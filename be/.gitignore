@@ -1,0 +1,74 @@
+# compiled output
+/dist
+/node_modules
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Tests
+/coverage
+/.nyc_output
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+.env.prod
+
+# Misc
+*.swp
+*.swo
+*~
+
+# SEA build artifacts
+/dist_sea
+/sea-prep.blob
+/pos-backend
+/pos-backend.exe
+/POSBackend.exe
+
+# Installer build output (keep installer/*.iss and installer/README.md)
+/installer/output
+*.iss.bak
+
+# Assets
+/assets
+/src/assets
+
+# Cursors
+*.cursor

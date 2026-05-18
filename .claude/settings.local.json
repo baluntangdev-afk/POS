@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be -Force -Depth 1)",
+      "Bash(Select-Object Name, Attributes)"
+    ]
+  }
+}

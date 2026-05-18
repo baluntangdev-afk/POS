@@ -1,0 +1,74 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+**/.idea/*
+!.idea/runConfigurations/
+
+# VS Code related
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Environment files
+**/.env
+**/.env.*
+!.env.sample
+/lib/config/environment/env.g.dart
+
+# FVM Version Cache
+.fvm/
+
+# Generated files
+/lib/gen/
+**/*.g.dart
+**/*.mapper.dart
+
+# Installer files
+/installer/*
+!/installer/POSAppInstaller.iss
+!/installer/tools/*
+!/installer/scripts
+
+# Backend
+/backend/*

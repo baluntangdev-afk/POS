@@ -1,0 +1,8 @@
+{
+  "main": "dist_sea/index.js",
+  "output": "sea-prep.blob",
+  "disableExperimentalSEAWarning": true,
+  "assets": {
+    "env": ".env.prod"
+  }
+}

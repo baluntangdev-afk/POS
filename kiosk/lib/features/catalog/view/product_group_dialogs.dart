@@ -12,7 +12,7 @@ import '../../../validation/rules/is_required.dart';
 import '../../../validation/validate.dart';
 import '../../../widgets/button.dart';
 import '../../../widgets/image_picker_form_field.dart';
-import '../../../widgets/message_dialog.dart';
+import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../entities/product_group.dart';
 import '../state/product_groups_notifier.dart';
@@ -45,7 +45,7 @@ class SaveProductGroupDialog extends HookConsumerWidget {
 
     ref.listen(saveAction, (prev, next) async {
       if (next case MutationError(:final error)) {
-        return showMessageDialog(context, type: DialogType.error, message: '$error');
+        return showNetworkErrorDialog(context, error: error);
       }
 
       if (next case MutationSuccess(
@@ -197,7 +197,7 @@ class DeleteProductGroupDialog extends ConsumerWidget {
 
     ref.listen(deleteAction, (prev, next) async {
       if (next case MutationError(:final error)) {
-        return showMessageDialog(context, type: DialogType.error, message: '$error');
+        return showNetworkErrorDialog(context, error: error);
       }
 
       if (next case MutationSuccess(

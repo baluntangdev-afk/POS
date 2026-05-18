@@ -6,6 +6,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/product.dart';
 import '../entities/product_variant.dart';
@@ -29,14 +30,18 @@ class ProductVariantsScreen extends HookConsumerWidget {
       ),
     );
 
-    if (productState.isLoading) {
-      return const WindowsScaffold(body: Center(child: CircularProgressIndicator()));
-    }
+    ref.listen(productsProvider, (previous, next) {
+      if (next case AsyncError(:final error)) {
+        showNetworkErrorDialog(context, error: error).then((_) {
+          if (context.mounted && context.canPop()) {
+            context.pop();
+          }
+        });
+      }
+    });
 
-    if (productState.hasError) {
-      return WindowsScaffold(
-        body: Center(child: Text('Error loading product: ${productState.error}')),
-      );
+    if (productState.isLoading || productState.hasError) {
+      return const WindowsScaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final product = productState.value ?? Product.draft();

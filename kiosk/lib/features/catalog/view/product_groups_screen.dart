@@ -8,6 +8,7 @@ import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/debounce.dart';
 import '../../../widgets/button.dart';
+import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/product_group.dart';
@@ -28,6 +29,12 @@ class ProductGroupsScreen extends HookConsumerWidget {
     final totalPages = ref.watch(
       productGroupsProvider.select((it) => it.value?.data.totalPages ?? 1),
     );
+
+    ref.listen(productGroupsProvider, (previous, next) {
+      if (next case AsyncError(:final error)) {
+        showNetworkErrorDialog(context, error: error);
+      }
+    });
 
     useEffect(() {
       page.value = 1;
@@ -329,23 +336,7 @@ class _ProductGroupsTable extends ConsumerWidget {
           Expanded(
             child: state.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) {
-                return Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(
-                      context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-                    ),
-                    child: Text(
-                      'Error loading product groups:\n$error',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
-                        color: ColorSet.danger,
-                      ),
-                    ),
-                  ),
-                );
-              },
+              error: (error, _) => const Center(child: SizedBox.shrink()),
               data: (data) {
                 if (data.data.isEmpty) {
                   return Center(

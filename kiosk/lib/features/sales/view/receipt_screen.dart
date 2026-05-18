@@ -11,7 +11,7 @@ import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
-import '../../../widgets/message_dialog.dart';
+import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/cashier.dart';
 import '../entities/payment.dart';
@@ -29,7 +29,7 @@ class ReceiptScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen(receiptProvider(receiptId), (previous, next) async {
       if (next case AsyncError(:final error)) {
-        await showMessageDialog(context, type: DialogType.error, message: '$error');
+        await showNetworkErrorDialog(context, error: error);
 
         if (context.mounted && context.canPop()) {
           context.pop();
@@ -639,7 +639,7 @@ class _PrintButton extends ConsumerWidget {
 
     ref.listen(printAction, (prev, next) {
       if (next case MutationError(:final error)) {
-        showMessageDialog(context, type: DialogType.error, message: '$error');
+        showNetworkErrorDialog(context, error: error);
       }
     });
 

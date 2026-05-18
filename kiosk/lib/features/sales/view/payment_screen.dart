@@ -12,6 +12,7 @@ import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
+import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/payment.dart';
 import '../state/ordering_notifier.dart';
@@ -333,9 +334,7 @@ class _ConfirmButton extends ConsumerWidget {
       if (next case AsyncData(value: final receipt) when receipt != null) {
         ReceiptRoute(receipt.id).go(context);
       } else if (next case AsyncError(:final error)) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to save sale: $error')));
+        showNetworkErrorDialog(context, error: error);
       }
     });
     return GestureDetector(

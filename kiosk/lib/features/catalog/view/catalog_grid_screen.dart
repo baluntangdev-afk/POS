@@ -9,6 +9,7 @@ import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/debounce.dart';
 import '../../../widgets/button.dart';
+import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../entities/product.dart';
 import '../state/products_notifier.dart';
@@ -24,6 +25,12 @@ class CatalogGridScreen extends HookConsumerWidget {
     final sort = useState<String?>(null);
 
     final totalPages = ref.watch(productsProvider.select((it) => it.value?.data.totalPages ?? 1));
+
+    ref.listen(productsProvider, (previous, next) {
+      if (next case AsyncError(:final error)) {
+        showNetworkErrorDialog(context, error: error);
+      }
+    });
 
     useEffect(() {
       page.value = 1;
@@ -201,21 +208,7 @@ class _ProductsGrid extends ConsumerWidget {
 
     return state.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) {
-        return Center(
-          child: Padding(
-            padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-            child: Text(
-              'Error loading products:\n$error',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
-                color: ColorSet.danger,
-              ),
-            ),
-          ),
-        );
-      },
+      error: (error, _) => const Center(child: SizedBox.shrink()),
       data: (data) {
         if (data.data.isEmpty) {
           return Center(

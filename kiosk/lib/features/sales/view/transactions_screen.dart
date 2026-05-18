@@ -248,32 +248,20 @@ class _PaginationControls extends StatelessWidget {
               ),
             ],
           ),
-          Row(
-            children: [
-              Button(
-                label: const Text('Previous'),
-                onPressed: page.value > 1 ? () => page.value-- : null,
-                leading: const Icon(Icons.keyboard_arrow_left),
-              ),
-              const Spacer(),
-              Text(
-                'Page ${totalPages > 0 ? page.value : 0} of $totalPages',
-                style: TextStyle(
-                  fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const Spacer(),
-              Container(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 460;
+              final dropdownBorderRadius = BorderRadius.circular(
+                context.responsive.value(kiosk: 8, tablet: 8, phone: 6),
+              );
+              final dropdownChild = Container(
                 padding: EdgeInsets.symmetric(
                   horizontal: context.responsive.value(kiosk: 16, tablet: 16, phone: 12),
                   vertical: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
                 ),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(
-                    context.responsive.value(kiosk: 8, tablet: 8, phone: 6),
-                  ),
+                  borderRadius: dropdownBorderRadius,
                 ),
                 child: DropdownButton<int>(
                   value: limit.value,
@@ -283,24 +271,53 @@ class _PaginationControls extends StatelessWidget {
                     fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
                     color: Colors.black87,
                   ),
-                  items:
-                      [10, 25, 50, 100].map((rows) {
-                        return DropdownMenuItem(value: rows, child: Text('$rows rows'));
-                      }).toList(),
+                  items: [10, 25, 50, 100].map((rows) {
+                    return DropdownMenuItem(value: rows, child: Text('$rows rows'));
+                  }).toList(),
                   onChanged: (value) {
-                    if (value != null) {
-                      limit.value = value;
-                    }
+                    if (value != null) limit.value = value;
                   },
                 ),
-              ),
-              Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-              Button(
-                label: const Text('Next'),
-                onPressed: page.value < totalPages ? () => page.value++ : null,
-                trailing: const Icon(Icons.keyboard_arrow_right),
-              ),
-            ],
+              );
+
+              return Row(
+                children: [
+                  if (compact)
+                    FilledButton(
+                      onPressed: page.value > 1 ? () => page.value-- : null,
+                      child: const Icon(Icons.keyboard_arrow_left),
+                    )
+                  else
+                    Button(
+                      label: const Text('Previous'),
+                      onPressed: page.value > 1 ? () => page.value-- : null,
+                      leading: const Icon(Icons.keyboard_arrow_left),
+                    ),
+                  const Spacer(),
+                  Text(
+                    'Page ${totalPages > 0 ? page.value : 0} of $totalPages',
+                    style: TextStyle(
+                      fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const Spacer(),
+                  dropdownChild,
+                  Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+                  if (compact)
+                    FilledButton(
+                      onPressed: page.value < totalPages ? () => page.value++ : null,
+                      child: const Icon(Icons.keyboard_arrow_right),
+                    )
+                  else
+                    Button(
+                      label: const Text('Next'),
+                      onPressed: page.value < totalPages ? () => page.value++ : null,
+                      trailing: const Icon(Icons.keyboard_arrow_right),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -343,7 +360,7 @@ class _TransactionsTable extends ConsumerWidget {
             padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
             child: Row(
               children: [
-                const Expanded(child: SizedBox()),
+                const Expanded(flex: 1, child: SizedBox()),
                 Expanded(
                   flex: 2,
                   child: _SortableHeader(
@@ -530,6 +547,8 @@ class _TransactionRow extends HookWidget {
                       color: Colors.black87,
                     ),
                     textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Expanded(
@@ -541,6 +560,8 @@ class _TransactionRow extends HookWidget {
                       color: Colors.black87,
                     ),
                     textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Expanded(
@@ -552,6 +573,8 @@ class _TransactionRow extends HookWidget {
                       color: Colors.black87,
                     ),
                     textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Expanded(
@@ -564,13 +587,15 @@ class _TransactionRow extends HookWidget {
                       color: Colors.black87,
                     ),
                     textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Consumer(
-                  builder: (context, ref, child) {
-                    return Expanded(
-                      flex: 3,
-                      child: ResponsiveBuilder(
+                Expanded(
+                  flex: 3,
+                  child: Consumer(
+                    builder: (context, ref, child) {
+                      return ResponsiveBuilder(
                         kiosk: (context) {
                           return Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -599,28 +624,35 @@ class _TransactionRow extends HookWidget {
                         },
                         tablet: (context) {
                           return Column(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Button(
-                                label: const Text('Reprint'),
-                                onPressed: () {
-                                  ReceiptRoute(receipt.id).push<void>(context);
-                                },
+                              SizedBox(
+                                width: double.infinity,
+                                child: Button(
+                                  label: const Text('Reprint'),
+                                  onPressed: () {
+                                    ReceiptRoute(receipt.id).push<void>(context);
+                                  },
+                                ),
                               ),
                               const Gap(6),
-                              Button(
-                                label: const Text('Refund'),
-                                onPressed: () async {
-                                  await RefundRoute(receipt.id).push<void>(context);
-                                  ref.invalidate(receiptProvider(receipt.id));
-                                },
-                                backgroundColor: ColorSet.warning,
+                              SizedBox(
+                                width: double.infinity,
+                                child: Button(
+                                  label: const Text('Refund'),
+                                  onPressed: () async {
+                                    await RefundRoute(receipt.id).push<void>(context);
+                                    ref.invalidate(receiptProvider(receipt.id));
+                                  },
+                                  backgroundColor: ColorSet.warning,
+                                ),
                               ),
                             ],
                           );
                         },
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ],
             ),

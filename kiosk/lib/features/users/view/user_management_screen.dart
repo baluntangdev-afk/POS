@@ -3,12 +3,13 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../exceptions/exception_extension.dart';
+
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../widgets/message_dialog.dart';
+import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/user.dart';
@@ -71,7 +72,7 @@ class UserManagementScreen extends HookConsumerWidget {
           ref.read(userManagementPageProvider.notifier).setUsers(results);
         },
         error: (error, stackTrace) {
-          _showError(context, error.message);
+          showNetworkErrorDialog(context, error: error);
         },
       );
     });
@@ -88,7 +89,7 @@ class UserManagementScreen extends HookConsumerWidget {
           }
         },
         error: (error, stackTrace) {
-          _showError(context, error.message);
+          showNetworkErrorDialog(context, error: error);
         },
       );
     });
@@ -312,16 +313,6 @@ class UserManagementScreen extends HookConsumerWidget {
           onDelete: () => _showDeleteConfirmation(context, ref, user),
         );
       },
-    );
-  }
-
-  void _showError(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: ColorSet.danger,
-        duration: const Duration(seconds: 3),
-      ),
     );
   }
 

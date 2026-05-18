@@ -3,13 +3,14 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../exceptions/exception_extension.dart';
+
 import '../../../gen/assets.gen.dart';
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../validation/rules/is_required.dart';
 import '../../../widgets/message_dialog.dart';
+import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/pin_indicator.dart';
 import '../../../widgets/pin_pad.dart';
 import '../state/login_state_notifier.dart';
@@ -65,15 +66,7 @@ class LoginView extends HookConsumerWidget {
           }
         },
         error: (error, stackTrace) {
-          // Show error message
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Login failed: ${error.message}'),
-              backgroundColor: ColorSet.danger,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-          // Clear PIN on error
+          showNetworkErrorDialog(context, error: error);
           pin.value = '';
         },
       );

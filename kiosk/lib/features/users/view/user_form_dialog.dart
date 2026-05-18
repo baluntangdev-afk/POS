@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../../exceptions/exception_extension.dart';
+
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../validation/rules/is_email.dart';
@@ -14,6 +14,7 @@ import '../../../validation/rules/is_phone.dart';
 import '../../../validation/rules/is_required.dart';
 import '../../../validation/validate.dart';
 import '../../../widgets/message_dialog.dart';
+import '../../../widgets/network_error_dialog.dart';
 import '../entities/user.dart';
 import '../state/modify_user_notifier.dart';
 import '../state/user_state.dart';
@@ -107,7 +108,7 @@ class UserFormDialog extends HookConsumerWidget {
           }
         },
         error: (error, stackTrace) {
-          showMessageDialog(context, message: error.message, type: DialogType.error);
+          showNetworkErrorDialog(context, error: error);
         },
       );
     });
@@ -158,9 +159,7 @@ class UserFormDialog extends HookConsumerWidget {
         await ref.read(modifyUserProvider.notifier).createUser(userData);
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: ColorSet.danger));
+          await showNetworkErrorDialog(context, error: e);
         }
       } finally {
         isLoading.value = false;

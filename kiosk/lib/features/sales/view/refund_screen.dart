@@ -15,6 +15,7 @@ import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../utils/decimal_rounding.dart';
 import '../../../widgets/message_dialog.dart';
+import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../state/refund_notifier.dart';
@@ -28,11 +29,7 @@ class RefundScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen(refundProvider(receiptId), (previous, next) async {
       if (next case AsyncError(:final error)) {
-        await showMessageDialog(
-          context,
-          type: DialogType.error,
-          message: 'Failed to load items: $error',
-        );
+        await showNetworkErrorDialog(context, error: error);
 
         if (context.mounted && context.canPop()) {
           context.pop();
@@ -686,12 +683,7 @@ class _ConfirmButton extends ConsumerWidget {
 
     ref.listen(confirmAction, (prev, next) async {
       if (next case MutationError(:final error)) {
-        await showMessageDialog(
-          context,
-          type: DialogType.error,
-          message: 'Failed to process refund: $error',
-        );
-
+        await showNetworkErrorDialog(context, error: error);
         return;
       }
 

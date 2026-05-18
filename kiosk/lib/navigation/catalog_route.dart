@@ -2,7 +2,10 @@ part of 'router.dart';
 
 @TypedGoRoute<ProductsRoute>(
   path: '/products',
-  routes: [TypedGoRoute<ProductVariantsRoute>(path: ':productId/variants')],
+  routes: [
+    TypedGoRoute<ProductDetailRoute>(path: ':productId'),
+    TypedGoRoute<ProductVariantsRoute>(path: ':productId/variants'),
+  ],
 )
 class ProductsRoute extends GoRouteData with $ProductsRoute {
   const ProductsRoute();
@@ -10,6 +13,17 @@ class ProductsRoute extends GoRouteData with $ProductsRoute {
   @override
   Widget build(BuildContext context, GoRouterState state) {
     return const CatalogScreen();
+  }
+}
+
+class ProductDetailRoute extends GoRouteData with $ProductDetailRoute {
+  const ProductDetailRoute(this.productId);
+
+  final int productId;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return ProductDetailScreen(productId: productId);
   }
 }
 

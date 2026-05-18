@@ -24,7 +24,7 @@ Future<ProviderContainer> bootstrap(AppEnv env) async {
 
     final windowOptions = WindowOptions(
       fullScreen: !env.isDev,
-      size: const Size(1536, 864),
+      size: !env.isDev ? const Size(1536, 864) : const Size(414, 736),
       minimumSize: const Size(414, 736),
       // Set to transparent to avoid white flash
       backgroundColor: Colors.transparent,

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
@@ -141,32 +141,20 @@ class _SearchAndFilterControls extends StatelessWidget {
               ),
             ],
           ),
-          Row(
-            children: [
-              Button(
-                label: const Text('Previous'),
-                onPressed: page.value > 1 ? () => page.value-- : null,
-                leading: const Icon(Icons.keyboard_arrow_left),
-              ),
-              const Spacer(),
-              Text(
-                'Page ${totalPages > 0 ? page.value : 0} of $totalPages',
-                style: TextStyle(
-                  fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const Spacer(),
-              Container(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 460;
+              final dropdownBorderRadius = BorderRadius.circular(
+                context.responsive.value(kiosk: 8, tablet: 8, phone: 6),
+              );
+              final dropdownChild = Container(
                 padding: EdgeInsets.symmetric(
                   horizontal: context.responsive.value(kiosk: 16, tablet: 16, phone: 12),
                   vertical: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
                 ),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(
-                    context.responsive.value(kiosk: 8, tablet: 8, phone: 6),
-                  ),
+                  borderRadius: dropdownBorderRadius,
                 ),
                 child: DropdownButton<int>(
                   value: limit.value,
@@ -176,24 +164,53 @@ class _SearchAndFilterControls extends StatelessWidget {
                     fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
                     color: Colors.black87,
                   ),
-                  items:
-                      [20, 50, 100].map((rows) {
-                        return DropdownMenuItem(value: rows, child: Text('$rows items'));
-                      }).toList(),
+                  items: [20, 50, 100].map((rows) {
+                    return DropdownMenuItem(value: rows, child: Text('$rows items'));
+                  }).toList(),
                   onChanged: (value) {
-                    if (value != null) {
-                      limit.value = value;
-                    }
+                    if (value != null) limit.value = value;
                   },
                 ),
-              ),
-              Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-              Button(
-                label: const Text('Next'),
-                onPressed: page.value < totalPages ? () => page.value++ : null,
-                trailing: const Icon(Icons.keyboard_arrow_right),
-              ),
-            ],
+              );
+
+              return Row(
+                children: [
+                  if (compact)
+                    FilledButton(
+                      onPressed: page.value > 1 ? () => page.value-- : null,
+                      child: const Icon(Icons.keyboard_arrow_left),
+                    )
+                  else
+                    Button(
+                      label: const Text('Previous'),
+                      onPressed: page.value > 1 ? () => page.value-- : null,
+                      leading: const Icon(Icons.keyboard_arrow_left),
+                    ),
+                  const Spacer(),
+                  Text(
+                    'Page ${totalPages > 0 ? page.value : 0} of $totalPages',
+                    style: TextStyle(
+                      fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const Spacer(),
+                  dropdownChild,
+                  Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+                  if (compact)
+                    FilledButton(
+                      onPressed: page.value < totalPages ? () => page.value++ : null,
+                      child: const Icon(Icons.keyboard_arrow_right),
+                    )
+                  else
+                    Button(
+                      label: const Text('Next'),
+                      onPressed: page.value < totalPages ? () => page.value++ : null,
+                      trailing: const Icon(Icons.keyboard_arrow_right),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -323,7 +340,7 @@ class _ProductCard extends StatelessWidget {
       ),
       child: InkWell(
         onTap: () {
-          context.push('/catalog/products/${product.id}');
+          ProductDetailRoute(product.id).push<void>(context);
         },
         borderRadius: BorderRadius.circular(
           context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
@@ -443,7 +460,7 @@ class _ProductCard extends StatelessWidget {
                           ),
                         ),
                         onPressed: () {
-                          context.push('/catalog/products/${product.id}');
+                          ProductDetailRoute(product.id).push<void>(context);
                         },
                         backgroundColor: ColorSet.primary,
                         foregroundColor: Colors.white,

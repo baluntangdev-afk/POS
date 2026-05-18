@@ -6,6 +6,7 @@ import '../features/auth/entities/auth.dart';
 import '../features/auth/view/login_screen.dart';
 import '../features/auth/view/setup_pin_screen.dart';
 import '../features/catalog/view/catalog_screen.dart';
+import '../features/catalog/view/product_detail_screen.dart';
 import '../features/catalog/view/product_variants_screen.dart';
 import '../features/menu/view/menu_screen.dart';
 import '../features/onboarding/view/onboarding_screen.dart';

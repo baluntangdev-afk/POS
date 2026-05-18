@@ -5,7 +5,9 @@
       "PowerShell(Get-NetTCPConnection *)",
       "PowerShell(netstat *)",
       "PowerShell(Get-Process *)",
-      "PowerShell(docker stop pos-backend-app *)"
+      "PowerShell(docker stop pos-backend-app *)",
+      "PowerShell(Stop-Process *)",
+      "PowerShell(npm install *)"
     ]
   }
 }

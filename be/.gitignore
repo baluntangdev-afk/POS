@@ -25,6 +25,9 @@ $RECYCLE.BIN/
 /coverage
 /.nyc_output
 
+# Claude Code
+.claude/settings.local.json
+
 # IDEs and editors
 /.idea
 .project

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gap/gap.dart';
 
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
@@ -13,53 +14,53 @@ class MenuItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final r = context.responsive;
+    final responsive = ResponsiveValue.of(context);
+    final minWidth = responsive.value<double>(kiosk: 200, tablet: 160, phone: 130);
+    final minHeight = responsive.value<double>(kiosk: 160, tablet: 130, phone: 110);
+    final iconSize = responsive.value<double>(kiosk: 64, tablet: 48, phone: 36);
+    final labelSize = responsive.value<double>(kiosk: 24, tablet: 20, phone: 16);
 
-    return AspectRatio(
-      aspectRatio: r.value(kiosk: 1.0, tablet: 1.0, phone: 1.1),
+    return ConstrainedBox(
+      constraints: BoxConstraints(minWidth: minWidth, minHeight: minHeight),
       child: Material(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(24),
         child: InkWell(
           onTap: () => onTap(menuItem.type),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(24),
           child: Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: ColorSet.primary.withValues(alpha: 0.1),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 12,
-                  offset: const Offset(0, 3),
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
-            padding: EdgeInsets.all(r.spacingLg),
+            padding: const EdgeInsets.all(20),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Flexible(
-                  flex: 3,
-                  child: FractionallySizedBox(
-                    widthFactor: 0.5,
-                    child: FittedBox(
-                      fit: BoxFit.contain,
-                      child: menuItem.icon,
-                    ),
-                  ),
+                SizedBox(
+                  height: iconSize,
+                  width: iconSize,
+                  child: menuItem.icon,
                 ),
-                SizedBox(height: r.spacingMd),
-                Flexible(
-                  child: Text(
-                    menuItem.label,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: r.fontBody,
-                      fontWeight: FontWeight.w500,
-                      color: ColorSet.text,
-                    ),
+                Gap(responsive.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                Text(
+                  menuItem.label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: labelSize,
+                    fontWeight: FontWeight.w500,
+                    color: ColorSet.dark,
                   ),
                 ),
               ],

@@ -1,212 +1,212 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
-import 'package:intl/intl.dart';
 
 import '../../../gen/assets.gen.dart';
 import '../../../styles/color_set.dart';
-import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
 
-/// Full-bleed onboarding / attract screen.
-///
-/// Renders a gradient background, brand logo, hero headline, an animated
-/// "Tap to Begin" CTA, and a bottom info strip with store name + live clock.
-///
-/// Three form-factor variants (per spec Section 4 §1):
-///   [K] 480 px-wide pill CTA, 80 px height, 56 px+ hero text.
-///   [W] Full-width CTA (max 400 px), 72 px height, 48 px hero text.
-///   [A] Same as W with SafeArea for status bar, transparent light-icon status
-///       bar, bottom strip above navigation inset.
-///
-/// [isSmallHeight] is forwarded from the parent so the layout can collapse
-/// vertical spacing when the window is short.
-///
-/// [onTap] is called when the user presses "Tap to Begin". Wire it to
-/// `const LoginRoute().go(context)` in the parent screen.
-///
-/// [storeName] appears in the bottom info strip.
-class OnboardingContents extends HookWidget {
-  const OnboardingContents({
-    super.key,
-    required this.isSmallHeight,
-    this.onTap,
-    this.storeName = 'POS System',
-  });
+class OnboardingContents extends StatefulWidget {
+  const OnboardingContents({super.key, required this.isSmallHeight});
 
   final bool isSmallHeight;
-  final VoidCallback? onTap;
-  final String storeName;
+
+  @override
+  State<OnboardingContents> createState() => _OnboardingContentsState();
+}
+
+class _OnboardingContentsState extends State<OnboardingContents>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.06).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final r = context.responsive;
-    final bp = context.breakpoint;
+    final responsive = ResponsiveValue.of(context);
+    final isKiosk = responsive.value<bool>(kiosk: true, tablet: false, phone: false);
+    final isTablet = responsive.value<bool>(kiosk: false, tablet: true, phone: false);
 
-    // ─── Breathing animation on the CTA button ───────────────────────────────
-    final animCtrl = useAnimationController(
-      duration: const Duration(milliseconds: 1600),
-    );
-    final breathScale = useAnimation(
-      Tween<double>(begin: 1.0, end: 1.06).animate(
-        CurvedAnimation(parent: animCtrl, curve: Curves.easeInOut),
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: ColorSet.gradientBg,
+        ),
       ),
-    );
-    useEffect(() {
-      animCtrl.repeat(reverse: true);
-      return animCtrl.stop;
-    }, const []);
-
-    // ─── Android: transparent status bar with light icons ────────────────────
-    useEffect(() {
-      if (bp.isAndroid) {
-        SystemChrome.setSystemUIOverlayStyle(
-          const SystemUiOverlayStyle(
-            statusBarColor: Colors.transparent,
-            statusBarIconBrightness: Brightness.light,
-          ),
-        );
-      }
-      return null;
-    }, const []);
-
-    // ─── Sizing ──────────────────────────────────────────────────────────────
-    final heroSize = r.value<double>(kiosk: 56, tablet: 48, phone: 36);
-    final logoW = r.value<double>(kiosk: 600, tablet: 400, phone: 280);
-    final logoH = r.value<double>(kiosk: 160, tablet: 110, phone: 76);
-    final ctaH = r.value<double>(kiosk: 80, tablet: 72, phone: 64);
-    final stripFontSize = r.value<double>(kiosk: 20, tablet: 18, phone: 16);
-    final bottomInset =
-        bp.isAndroid ? MediaQuery.of(context).viewPadding.bottom : 0.0;
-
-    // ─── CTA button with breathing scale ─────────────────────────────────────
-    Widget buildCta() {
-      Widget pill = GestureDetector(
-        onTap: onTap,
-        child: Container(
-          height: ctaH,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(ctaH / 2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.18),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Main content
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Logo
+              Padding(
+                padding: responsive.value<EdgeInsets>(
+                  phone: const EdgeInsets.symmetric(horizontal: 30.0),
+                  tablet: const EdgeInsets.symmetric(horizontal: 60.0),
+                  kiosk: const EdgeInsets.symmetric(horizontal: 100.0),
+                ),
+                child: Assets.images.png.onboardingLogo.image(
+                  color: Colors.white,
+                  width: responsive.value<double>(phone: 260, tablet: 400, kiosk: 600),
+                  height: responsive.value<double>(phone: 80, tablet: 120, kiosk: 160),
+                  fit: BoxFit.contain,
+                ),
+              ),
+              Gap(
+                responsive.value<double>(
+                  phone: widget.isSmallHeight ? 20 : 30,
+                  tablet: widget.isSmallHeight ? 30 : 50,
+                  kiosk: widget.isSmallHeight ? 40 : 60,
+                ),
+              ),
+              // Headline
+              Text(
+                'Welcome to',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: responsive.value<double>(phone: 24, tablet: 40, kiosk: 60),
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              Gap(
+                responsive.value<double>(
+                  phone: widget.isSmallHeight ? 40 : 60,
+                  tablet: widget.isSmallHeight ? 60 : 80,
+                  kiosk: widget.isSmallHeight ? 80 : 120,
+                ),
+              ),
+              // Pulsing "Touch To Start" button
+              ScaleTransition(
+                scale: _pulseAnimation,
+                child: Container(
+                  constraints: BoxConstraints(
+                    minWidth: isKiosk ? 480 : 0.0,
+                  ),
+                  margin: isTablet
+                      ? const EdgeInsets.symmetric(horizontal: 48)
+                      : EdgeInsets.zero,
+                  child: isTablet
+                      ? SizedBox(
+                          width: double.infinity,
+                          height: 64,
+                          child: _TouchToStartContent(
+                            fontSize: 22,
+                            isTablet: true,
+                          ),
+                        )
+                      : SizedBox(
+                          width: isKiosk ? 480 : 300,
+                          height: isKiosk ? 80 : 56,
+                          child: _TouchToStartContent(
+                            fontSize: isKiosk ? 28 : 18,
+                            isTablet: false,
+                          ),
+                        ),
+                ),
               ),
             ],
           ),
-          child: Center(
-            child: Text(
-              'Tap to Begin',
-              style: TextStyle(
-                color: ColorSet.primary,
-                fontSize: r.fontLabel,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
+          // Bottom info strip
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: responsive.value<double>(phone: 16, tablet: 24, kiosk: 32),
+                vertical: responsive.value<double>(phone: 10, tablet: 12, kiosk: 16),
+              ),
+              color: Colors.black.withValues(alpha: 0.2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'POS Kiosk System',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: responsive.value<double>(phone: 11, tablet: 13, kiosk: 15),
+                    ),
+                  ),
+                  Text(
+                    _getDateString(),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: responsive.value<double>(phone: 11, tablet: 13, kiosk: 15),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        ),
-      );
+        ],
+      ),
+    );
+  }
 
-      pill = Transform.scale(scale: breathScale, child: pill);
+  String _getDateString() {
+    final now = DateTime.now();
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${months[now.month - 1]} ${now.day}, ${now.year}';
+  }
+}
 
-      if (bp.isKiosk) {
-        return ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 480),
-          child: pill,
-        );
-      }
+class _TouchToStartContent extends StatelessWidget {
+  const _TouchToStartContent({required this.fontSize, required this.isTablet});
 
-      // Tablet / Android: full-width within 24 dp horizontal padding.
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: pill,
-      );
-    }
+  final double fontSize;
+  final bool isTablet;
 
-    // ─── Bottom strip: store name + live clock ───────────────────────────────
-    Widget buildBottomStrip() {
-      final textStyle = TextStyle(
-        color: Colors.white.withValues(alpha: 0.75),
-        fontSize: stripFontSize,
-        fontWeight: FontWeight.w500,
-      );
-      return Padding(
-        padding: EdgeInsets.fromLTRB(24, 0, 24, bottomInset + 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(storeName, style: textStyle),
-            StreamBuilder<int>(
-              stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
-              builder: (context, _) => Text(
-                DateFormat('MMM d, yyyy  h:mm a').format(DateTime.now()),
-                style: textStyle,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // ─── Root layout ─────────────────────────────────────────────────────────
-    // The gradient fills the full screen (extends behind Android status bar).
-    // SafeArea(bottom: false) shifts the main column below the status bar while
-    // the bottom strip handles its own inset manually.
-    return SizedBox.expand(
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: ColorSet.gradientBg,
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(50),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
-        ),
-        child: Stack(
-          children: [
-            // Main content — centred, safe-area aware at the top.
-            Positioned.fill(
-              bottom: 60 + bottomInset,
-              child: SafeArea(
-                bottom: false,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Logo
-                    Assets.images.png.onboardingLogo.image(
-                      color: Colors.white,
-                      width: logoW,
-                      height: logoH,
-                      fit: BoxFit.contain,
-                    ),
-                    Gap(isSmallHeight ? 24 : r.spacingXl),
-                    // Hero headline
-                    Text(
-                      'Welcome',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: heroSize,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    Gap(isSmallHeight ? 20 : r.spacingLg),
-                    // Breathing CTA
-                    buildCta(),
-                  ],
-                ),
-              ),
-            ),
-            // Bottom info strip — pinned to the bottom edge.
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: buildBottomStrip(),
-            ),
-          ],
+        ],
+      ),
+      child: Center(
+        child: Text(
+          'Touch To Start',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: ColorSet.primary,
+            fontSize: fontSize,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1,
+          ),
         ),
       ),
     );

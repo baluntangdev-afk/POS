@@ -7,17 +7,13 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../styles/color_set.dart';
-import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../utils/tax_calculator.dart';
 import '../../../validation/rules/is_required.dart';
 import '../../../validation/validate.dart';
-import '../../../widgets/android_scaffold.dart';
-import '../../../widgets/gradient_button.dart';
 import '../../../widgets/text_box_form_field.dart';
-import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/discount.dart';
 import '../state/ordering_notifier.dart';
@@ -54,12 +50,13 @@ class DiscountScreen extends HookConsumerWidget {
       context.pop();
     }
 
-    final isAndroid = context.breakpoint.isAndroid;
-    final body = Column(
-      children: [
-        TopAppBar(title: 'Apply Discount'),
-        Expanded(
-          child: ResponsiveBuilder(
+    return WindowsScaffold(
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
+        child: const _TopAppBar(),
+      ),
+      backgroundColor: ColorSet.background,
+      body: ResponsiveBuilder(
         kiosk: (context) {
           return _LandscapeLayout(
             selectedQuantities: selectedQuantities.value,
@@ -90,14 +87,8 @@ class DiscountScreen extends HookConsumerWidget {
             onApplyDiscount: onApplyDiscount,
           );
         },
-            ),
-          ),
-        ],
-      );
-    if (isAndroid) {
-      return AndroidScaffold(backgroundColor: ColorSet.background, body: body);
-    }
-    return WindowsScaffold(backgroundColor: ColorSet.background, body: body);
+      ),
+    );
   }
 }
 
@@ -181,6 +172,68 @@ class _PortraitLayout extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _TopAppBar extends StatelessWidget {
+  const _TopAppBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            ColorSet.secondary.withValues(alpha: 0.85),
+            ColorSet.primary.withValues(alpha: 0.85),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Row(
+        children: [
+          Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+          OutlinedButton.icon(
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              }
+            },
+            icon: Icon(
+              Icons.arrow_back_ios,
+              size: context.responsive.value(kiosk: 20, tablet: 16, phone: 14),
+            ),
+            label: const Text('Back'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: ColorSet.light,
+              side: BorderSide(color: ColorSet.light.withValues(alpha: 0.7)),
+              minimumSize: Size(
+                context.responsive.value(kiosk: 120, tablet: 96, phone: 80),
+                context.responsive.value(kiosk: 56, tablet: 48, phone: 40),
+              ),
+              textStyle: TextStyle(
+                fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
+              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              'Apply Discount',
+              style: TextStyle(
+                fontSize: context.responsive.value(kiosk: 36, tablet: 28, phone: 20),
+                fontWeight: FontWeight.w600,
+                color: ColorSet.light,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          Gap(context.responsive.value(kiosk: 80, tablet: 56, phone: 40)),
+        ],
+      ),
     );
   }
 }
@@ -702,6 +755,33 @@ class _ConfirmButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GradientButton(label: 'Apply', onPressed: onTap);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: context.responsive.value(kiosk: 72, tablet: 64, phone: 52),
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              ColorSet.secondary.withValues(alpha: 0.85),
+              ColorSet.primary.withValues(alpha: 0.85),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Center(
+          child: Text(
+            'Apply',
+            style: TextStyle(
+              fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+              fontWeight: FontWeight.w600,
+              color: ColorSet.light,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

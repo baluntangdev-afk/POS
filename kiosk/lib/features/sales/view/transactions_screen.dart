@@ -9,12 +9,10 @@ import 'package:intl/intl.dart';
 
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
-import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/debounce.dart';
 import '../../../utils/decimal_formatter.dart';
-import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/button.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../../../widgets/windows_scaffold.dart';
@@ -55,38 +53,28 @@ class TransactionsScreen extends HookConsumerWidget {
       return null;
     }, [page.value, limit.value, soNumber.value, soDate.value, sort.value]);
 
-    final isAndroid = context.breakpoint.isAndroid;
-    final appBar = PreferredSize(
-      preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
-      child: const _TopAppBar(),
-    );
-    final body = Padding(
-      padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-      child: Column(
-        spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-        children: [
-          _PaginationControls(
-            page: page,
-            limit: limit,
-            totalPages: totalPages,
-            soNumber: soNumber,
-            soDate: soDate,
-          ),
-          Expanded(child: _TransactionsTable(sort: sort)),
-        ],
-      ),
-    );
-    if (isAndroid) {
-      return AndroidScaffold(
-        backgroundColor: Colors.grey.shade50,
-        appBar: appBar,
-        body: body,
-      );
-    }
     return WindowsScaffold(
       backgroundColor: Colors.grey.shade50,
-      appBar: appBar,
-      body: body,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(context.responsive.value(kiosk: 68.0, tablet: 60.0, phone: 52.0)),
+        child: const _TopAppBar(),
+      ),
+      body: Padding(
+        padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+        child: Column(
+          spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+          children: [
+            _PaginationControls(
+              page: page,
+              limit: limit,
+              totalPages: totalPages,
+              soNumber: soNumber,
+              soDate: soDate,
+            ),
+            Expanded(child: _TransactionsTable(sort: sort)),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -97,45 +85,54 @@ class _TopAppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            ColorSet.secondary.withValues(alpha: 0.85),
-            ColorSet.primary.withValues(alpha: 0.85),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+      height: context.responsive.value(kiosk: 68.0, tablet: 60.0, phone: 52.0),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFE8E6E1))),
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: context.responsive.value(kiosk: 24.0, tablet: 16.0, phone: 12.0),
       ),
       child: Row(
         children: [
-          Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-          GestureDetector(
-            onTap: () {
+          OutlinedButton.icon(
+            onPressed: () {
               if (context.canPop()) {
                 context.pop();
               }
             },
-            behavior: HitTestBehavior.opaque,
-            child: Icon(
+            icon: Icon(
               Icons.arrow_back_ios,
-              color: ColorSet.light,
-              size: context.responsive.value(kiosk: 48, tablet: 32, phone: 24),
+              size: context.responsive.value(kiosk: 18.0, tablet: 15.0, phone: 13.0),
+            ),
+            label: const Text('Back'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: ColorSet.primary,
+              side: const BorderSide(color: ColorSet.primary, width: 2),
+              minimumSize: Size(
+                context.responsive.value(kiosk: 110.0, tablet: 90.0, phone: 76.0),
+                context.responsive.value(kiosk: 52.0, tablet: 44.0, phone: 38.0),
+              ),
+              textStyle: TextStyle(
+                fontSize: context.responsive.value(kiosk: 15.0, tablet: 13.0, phone: 12.0),
+              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
           Expanded(
             child: Text(
               'Transactions',
               style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 36, tablet: 28, phone: 20),
+                fontSize: context.responsive.value(kiosk: 24.0, tablet: 20.0, phone: 16.0),
                 fontWeight: FontWeight.w600,
-                color: ColorSet.light,
+                color: ColorSet.dark,
               ),
               textAlign: TextAlign.center,
             ),
           ),
-          Gap(context.responsive.value(kiosk: 80, tablet: 56, phone: 40)),
+          SizedBox(
+            width: context.responsive.value<double>(kiosk: 110, tablet: 90, phone: 76),
+          ),
         ],
       ),
     );
@@ -260,20 +257,32 @@ class _PaginationControls extends StatelessWidget {
               ),
             ],
           ),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final compact = constraints.maxWidth < 460;
-              final dropdownBorderRadius = BorderRadius.circular(
-                context.responsive.value(kiosk: 8, tablet: 8, phone: 6),
-              );
-              final dropdownChild = Container(
+          Row(
+            children: [
+              Button(
+                label: const Text('Previous'),
+                onPressed: page.value > 1 ? () => page.value-- : null,
+                leading: const Icon(Icons.keyboard_arrow_left),
+              ),
+              const Spacer(),
+              Text(
+                'Page ${totalPages > 0 ? page.value : 0} of $totalPages',
+                style: TextStyle(
+                  fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const Spacer(),
+              Container(
                 padding: EdgeInsets.symmetric(
                   horizontal: context.responsive.value(kiosk: 16, tablet: 16, phone: 12),
                   vertical: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
                 ),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: dropdownBorderRadius,
+                  borderRadius: BorderRadius.circular(
+                    context.responsive.value(kiosk: 8, tablet: 8, phone: 6),
+                  ),
                 ),
                 child: DropdownButton<int>(
                   value: limit.value,
@@ -283,53 +292,24 @@ class _PaginationControls extends StatelessWidget {
                     fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
                     color: Colors.black87,
                   ),
-                  items: [10, 25, 50, 100].map((rows) {
-                    return DropdownMenuItem(value: rows, child: Text('$rows rows'));
-                  }).toList(),
+                  items:
+                      [10, 25, 50, 100].map((rows) {
+                        return DropdownMenuItem(value: rows, child: Text('$rows rows'));
+                      }).toList(),
                   onChanged: (value) {
-                    if (value != null) limit.value = value;
+                    if (value != null) {
+                      limit.value = value;
+                    }
                   },
                 ),
-              );
-
-              return Row(
-                children: [
-                  if (compact)
-                    FilledButton(
-                      onPressed: page.value > 1 ? () => page.value-- : null,
-                      child: const Icon(Icons.keyboard_arrow_left),
-                    )
-                  else
-                    Button(
-                      label: const Text('Previous'),
-                      onPressed: page.value > 1 ? () => page.value-- : null,
-                      leading: const Icon(Icons.keyboard_arrow_left),
-                    ),
-                  const Spacer(),
-                  Text(
-                    'Page ${totalPages > 0 ? page.value : 0} of $totalPages',
-                    style: TextStyle(
-                      fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const Spacer(),
-                  dropdownChild,
-                  Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-                  if (compact)
-                    FilledButton(
-                      onPressed: page.value < totalPages ? () => page.value++ : null,
-                      child: const Icon(Icons.keyboard_arrow_right),
-                    )
-                  else
-                    Button(
-                      label: const Text('Next'),
-                      onPressed: page.value < totalPages ? () => page.value++ : null,
-                      trailing: const Icon(Icons.keyboard_arrow_right),
-                    ),
-                ],
-              );
-            },
+              ),
+              Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+              Button(
+                label: const Text('Next'),
+                onPressed: page.value < totalPages ? () => page.value++ : null,
+                trailing: const Icon(Icons.keyboard_arrow_right),
+              ),
+            ],
           ),
         ],
       ),
@@ -372,7 +352,7 @@ class _TransactionsTable extends ConsumerWidget {
             padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
             child: Row(
               children: [
-                const Expanded(flex: 1, child: SizedBox()),
+                const Expanded(child: SizedBox()),
                 Expanded(
                   flex: 2,
                   child: _SortableHeader(
@@ -559,8 +539,6 @@ class _TransactionRow extends HookWidget {
                       color: Colors.black87,
                     ),
                     textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Expanded(
@@ -572,8 +550,6 @@ class _TransactionRow extends HookWidget {
                       color: Colors.black87,
                     ),
                     textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Expanded(
@@ -585,8 +561,6 @@ class _TransactionRow extends HookWidget {
                       color: Colors.black87,
                     ),
                     textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Expanded(
@@ -599,15 +573,13 @@ class _TransactionRow extends HookWidget {
                       color: Colors.black87,
                     ),
                     textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Expanded(
-                  flex: 3,
-                  child: Consumer(
-                    builder: (context, ref, child) {
-                      return ResponsiveBuilder(
+                Consumer(
+                  builder: (context, ref, child) {
+                    return Expanded(
+                      flex: 3,
+                      child: ResponsiveBuilder(
                         kiosk: (context) {
                           return Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -636,35 +608,28 @@ class _TransactionRow extends HookWidget {
                         },
                         tablet: (context) {
                           return Column(
-                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              SizedBox(
-                                width: double.infinity,
-                                child: Button(
-                                  label: const Text('Reprint'),
-                                  onPressed: () {
-                                    ReceiptRoute(receipt.id).push<void>(context);
-                                  },
-                                ),
+                              Button(
+                                label: const Text('Reprint'),
+                                onPressed: () {
+                                  ReceiptRoute(receipt.id).push<void>(context);
+                                },
                               ),
                               const Gap(6),
-                              SizedBox(
-                                width: double.infinity,
-                                child: Button(
-                                  label: const Text('Refund'),
-                                  onPressed: () async {
-                                    await RefundRoute(receipt.id).push<void>(context);
-                                    ref.invalidate(receiptProvider(receipt.id));
-                                  },
-                                  backgroundColor: ColorSet.warning,
-                                ),
+                              Button(
+                                label: const Text('Refund'),
+                                onPressed: () async {
+                                  await RefundRoute(receipt.id).push<void>(context);
+                                  ref.invalidate(receiptProvider(receipt.id));
+                                },
+                                backgroundColor: ColorSet.warning,
                               ),
                             ],
                           );
                         },
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

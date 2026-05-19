@@ -21,7 +21,7 @@ class MenuScreen extends ConsumerWidget {
       body: Column(
         children: [
           _MenuHeader(access: access),
-          Expanded(child: MenuGrid(role: access.role)),
+          Expanded(child: SingleChildScrollView(child: MenuGrid(role: access.role))),
         ],
       ),
     );

@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 
 
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../validation/rules/is_email.dart';
 import '../../../validation/rules/is_phone.dart';
@@ -205,9 +206,9 @@ class UserFormDialog extends HookConsumerWidget {
       backgroundColor: Colors.transparent,
       child: _buildLayoutContainer(
         context: context,
-        width: context.responsive.scale(700),
+        width: context.responsive.value(kiosk: 700.0, tablet: 560.0, phone: double.infinity),
         maxHeight: context.responsive.scale(900),
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(context.responsive.scale(24)),
         buildFormContent: (context, edgeInsets) {
           return buildFormContent(context, edgeInsets);
         },
@@ -315,7 +316,7 @@ class UserFormDialog extends HookConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildRow([
+          _buildResponsiveRow(context, [
             _buildTextField(
               context: context,
               controller: idNumberController,
@@ -336,7 +337,7 @@ class UserFormDialog extends HookConsumerWidget {
             ),
           ]),
           const SizedBox(height: 8),
-          _buildRow([
+          _buildResponsiveRow(context, [
             _buildTextField(
               context: context,
               controller: middleNameController,
@@ -355,7 +356,7 @@ class UserFormDialog extends HookConsumerWidget {
             _buildSuffixDropdown(context, selectedSuffix, validationAttempted),
           ]),
           const SizedBox(height: 8),
-          _buildRow([
+          _buildResponsiveRow(context, [
             _buildTextField(
               context: context,
               controller: emailController,
@@ -390,7 +391,7 @@ class UserFormDialog extends HookConsumerWidget {
             ),
           ]),
           const SizedBox(height: 8),
-          _buildRow([
+          _buildResponsiveRow(context, [
             _buildTextField(
               context: context,
               controller: addressController,
@@ -415,7 +416,7 @@ class UserFormDialog extends HookConsumerWidget {
             ),
           ]),
           const SizedBox(height: 8),
-          _buildRow([
+          _buildResponsiveRow(context, [
             _buildPopupMenuField(
               context: context,
               label: 'Gender',
@@ -463,6 +464,32 @@ class UserFormDialog extends HookConsumerWidget {
       rowChildren.add(Expanded(child: children[i]));
     }
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: rowChildren);
+  }
+
+  Widget _buildResponsiveRow(BuildContext context, List<Widget> children) {
+    if (context.breakpoint.isPhone) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            children[i],
+            if (i < children.length - 1) const SizedBox(height: 8),
+          ],
+        ],
+      );
+    }
+    if (context.breakpoint.isTablet && children.length > 2) {
+      // Split 3-column rows into [2 + 1] on tablet
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildRow(children.sublist(0, 2)),
+          const SizedBox(height: 8),
+          _buildRow(children.sublist(2)),
+        ],
+      );
+    }
+    return _buildRow(children);
   }
 
   Widget _buildTextField({
@@ -813,73 +840,83 @@ class UserFormDialog extends HookConsumerWidget {
     required Future<void> Function() handleSubmit,
     required Future<void> Function() handleReset,
   }) {
+    final cancelBtn = OutlinedButton(
+      onPressed: isLoading.value ? null : () => Navigator.of(context).pop(),
+      style: OutlinedButton.styleFrom(
+        padding: EdgeInsets.symmetric(vertical: context.responsive.scale(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        side: const BorderSide(color: ColorSet.primary),
+      ),
+      child: const Text(
+        'Cancel',
+        style: TextStyle(color: ColorSet.primary, fontWeight: FontWeight.w600),
+      ),
+    );
+
+    final submitBtn = FilledButton(
+      onPressed: isLoading.value ? null : handleSubmit,
+      style: FilledButton.styleFrom(
+        backgroundColor: ColorSet.primary,
+        padding: EdgeInsets.symmetric(vertical: context.responsive.scale(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      child: isLoading.value
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(ColorSet.light),
+              ),
+            )
+          : Text(
+              isEditing ? 'Update User' : 'Create User',
+              style: const TextStyle(color: ColorSet.light, fontWeight: FontWeight.w600),
+            ),
+    );
+
+    final resetBtn = isEditing
+        ? FilledButton(
+            onPressed: handleReset,
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorSet.danger,
+              padding: EdgeInsets.symmetric(vertical: context.responsive.scale(20)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: isLoading.value
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(ColorSet.light),
+                    ),
+                  )
+                : const Text(
+                    'Reset Pin',
+                    style: TextStyle(color: ColorSet.light, fontWeight: FontWeight.w600),
+                  ),
+          )
+        : null;
+
+    if (context.breakpoint.isPhone) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          submitBtn,
+          const SizedBox(height: 8),
+          if (resetBtn != null) ...[resetBtn, const SizedBox(height: 8)],
+          cancelBtn,
+        ],
+      );
+    }
+
     return Row(
       children: [
-        Expanded(
-          child: OutlinedButton(
-            onPressed: isLoading.value ? null : () => Navigator.of(context).pop(),
-            style: OutlinedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: context.responsive.scale(20)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              side: const BorderSide(color: ColorSet.primary),
-            ),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: ColorSet.primary, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ),
+        Expanded(child: cancelBtn),
         const SizedBox(width: 16),
-        Expanded(
-          child: FilledButton(
-            onPressed: isLoading.value ? null : handleSubmit,
-            style: FilledButton.styleFrom(
-              backgroundColor: ColorSet.primary,
-              padding: EdgeInsets.symmetric(vertical: context.responsive.scale(20)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child:
-                isLoading.value
-                    ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(ColorSet.light),
-                      ),
-                    )
-                    : Text(
-                      isEditing ? 'Update User' : 'Create User',
-                      style: const TextStyle(color: ColorSet.light, fontWeight: FontWeight.w600),
-                    ),
-          ),
-        ),
-        if (isEditing) const SizedBox(width: 16),
-        if (isEditing)
-          Expanded(
-            child: FilledButton(
-              onPressed: handleReset,
-              style: FilledButton.styleFrom(
-                backgroundColor: ColorSet.danger,
-                padding: EdgeInsets.symmetric(vertical: context.responsive.scale(20)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child:
-                  isLoading.value
-                      ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(ColorSet.light),
-                        ),
-                      )
-                      : const Text(
-                        'Reset Pin',
-                        style: TextStyle(color: ColorSet.light, fontWeight: FontWeight.w600),
-                      ),
-            ),
-          ),
+        Expanded(child: submitBtn),
+        if (resetBtn != null) ...[const SizedBox(width: 16), Expanded(child: resetBtn)],
       ],
     );
   }

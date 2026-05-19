@@ -22,7 +22,8 @@ class LoginScreen extends StatelessWidget {
             return Column(
               children: [
                 Container(
-                  height: 120,
+                  height: 100,
+                  padding: const EdgeInsets.all(30),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
@@ -39,7 +40,7 @@ class LoginScreen extends StatelessWidget {
                   ),
                 ),
                 Expanded(
-                  child: Container(
+                  child: ColoredBox(
                     color: Colors.white,
                     child: LoginView(isSmallHeight: isSmallHeight),
                   ),
@@ -87,7 +88,7 @@ class LoginScreen extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: Container(
+                child: ColoredBox(
                   color: Colors.white,
                   child: LoginView(isSmallHeight: isSmallHeight),
                 ),

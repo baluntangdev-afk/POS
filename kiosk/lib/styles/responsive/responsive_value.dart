@@ -27,7 +27,7 @@ class ResponsiveValue {
   }
 
   // ─── Structural ──────────────────────────────────────────────────────────
-  double get appBarHeight => value(kiosk: 120.0, tablet: 90.0, phone: 70.0);
+  double get appBarHeight => value(kiosk: 90.0, tablet: 80.0, phone: 60.0);
   double get buttonHeight => value(kiosk: 64.0, tablet: 56.0, phone: 48.0);
   double get buttonRadius => buttonHeight / 2;
 
@@ -44,7 +44,7 @@ class ResponsiveValue {
   double get iconSm => value(kiosk: 24.0, tablet: 20.0, phone: 16.0);
   double get iconMd => value(kiosk: 32.0, tablet: 24.0, phone: 20.0);
   double get iconLg => value(kiosk: 48.0, tablet: 36.0, phone: 28.0);
-  double get iconBack => value(kiosk: 48.0, tablet: 32.0, phone: 24.0);
+  double get iconBack => value(kiosk: 44.0, tablet: 28.0, phone: 20.0);
 
   // ─── Font sizes ──────────────────────────────────────────────────────────
   double get fontSm => value(kiosk: 20.0, tablet: 16.0, phone: 12.0);

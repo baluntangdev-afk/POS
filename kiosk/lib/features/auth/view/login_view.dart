@@ -9,7 +9,6 @@ import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../validation/rules/is_required.dart';
 import '../../../widgets/message_dialog.dart';
-import '../../../widgets/pin_indicator.dart';
 import '../../../widgets/pin_pad.dart';
 import '../state/login_state_notifier.dart';
 import 'username_input.dart';
@@ -39,7 +38,6 @@ class LoginView extends HookConsumerWidget {
         return;
       }
 
-      // Dismiss loading dialog only if we actually showed one
       if (isDialogShowing.value) {
         isDialogShowing.value = false;
         Navigator.of(context, rootNavigator: true).pop();
@@ -72,7 +70,6 @@ class LoginView extends HookConsumerWidget {
       );
     });
 
-    // Add listener to clear error when user starts typing
     useEffect(() {
       void listener() {
         if (usernameController.text.isNotEmpty && usernameError.value != null) {
@@ -84,26 +81,27 @@ class LoginView extends HookConsumerWidget {
       return () => usernameController.removeListener(listener);
     }, [usernameController, usernameError.value]);
 
+    void attemptLogin() {
+      if (usernameController.text.isNotEmpty && pin.value.length == 6) {
+        ref.read(loginStateProvider.notifier).login(usernameController.text, pin.value);
+      }
+    }
+
     void onNumberPressed(String number) {
-      // Validate username before allowing PIN input
       final usernameValidationError = isRequired(message: 'Username is required.');
       if (usernameValidationError(usernameController.text) != null) {
         usernameError.value = usernameValidationError(usernameController.text);
         return;
       }
 
-      // Clear username error if validation passes
       usernameError.value = null;
       loginError.value = null;
 
       if (pin.value.length < 6) {
         pin.value += number;
 
-        // Auto-login when PIN is complete
         if (pin.value.length == 6 && usernameController.text.isNotEmpty) {
-          Future.delayed(const Duration(milliseconds: 300), () {
-            ref.read(loginStateProvider.notifier).login(usernameController.text, pin.value);
-          });
+          Future.delayed(const Duration(milliseconds: 300), attemptLogin);
         }
       }
     }
@@ -116,170 +114,108 @@ class LoginView extends HookConsumerWidget {
     }
 
     final buttonHeight = context.responsive.value<double>(kiosk: 72, tablet: 60, phone: 52);
+    final fieldRadius = context.responsive.value<double>(phone: 12, tablet: 16, kiosk: 20);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height),
-            child: Padding(
-              padding: context.responsive.value<EdgeInsets>(
-                phone: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                tablet: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
-                kiosk: const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // "Welcome back" heading
-                  Text(
-                    'Welcome back',
-                    style: TextStyle(
-                      color: ColorSet.dark,
-                      fontSize: context.responsive.value<double>(
-                        phone: 22,
-                        tablet: 26,
-                        kiosk: 28,
-                      ),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Gap(context.responsive.value<double>(phone: 8, tablet: 10, kiosk: 12)),
-                  Text(
-                    'Enter your username and PIN to continue.',
-                    style: TextStyle(
-                      color: ColorSet.dark.withValues(alpha: 0.5),
-                      fontSize: context.responsive.value<double>(phone: 14, tablet: 16, kiosk: 18),
-                    ),
-                  ),
-                  Gap(context.responsive.value<double>(phone: 20, tablet: 28, kiosk: 36)),
-                  // Username field
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight:
-                          context.responsive.value<double>(kiosk: 64, tablet: 56, phone: 48),
-                    ),
-                    child: UsernameInput(
-                      controller: usernameController,
-                      errorText: usernameError.value,
-                    ),
-                  ),
-                  Gap(context.responsive.value<double>(phone: 20, tablet: 28, kiosk: 36)),
-                  // PIN label
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: constraints.maxWidth * 0.15,
-                    ),
-                    child: Text(
-                      'PIN',
-                      style: TextStyle(
-                        color: ColorSet.dark.withValues(alpha: 0.7),
-                        fontSize:
-                            context.responsive.value<double>(phone: 14, tablet: 16, kiosk: 18),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  Gap(context.responsive.value<double>(phone: 8, tablet: 10, kiosk: 12)),
-                  PinIndicator(pin: pin.value),
-                  Gap(context.responsive.value<double>(phone: 20, tablet: 28, kiosk: 36)),
-                  PinPad(
-                    onNumberPressed: onNumberPressed,
-                    onBackspace: onBackspace,
-                    selectedButton: selectedButton,
-                  ),
-                  // Error banner
-                  if (loginError.value != null) ...[
-                    Gap(context.responsive.value<double>(phone: 12, tablet: 14, kiosk: 16)),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: context.responsive.value<double>(phone: 16, tablet: 20, kiosk: 24),
-                        vertical: context.responsive.value<double>(phone: 10, tablet: 12, kiosk: 14),
-                      ),
-                      decoration: BoxDecoration(
-                        color: ColorSet.danger.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: ColorSet.danger.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            color: ColorSet.danger,
-                            size: context.responsive.value<double>(phone: 16, tablet: 18, kiosk: 20),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              loginError.value!,
-                              style: TextStyle(
-                                color: ColorSet.danger,
-                                fontSize: context.responsive.value<double>(
-                                  phone: 13,
-                                  tablet: 14,
-                                  kiosk: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  Gap(context.responsive.value<double>(phone: 12, tablet: 16, kiosk: 20)),
-                  // Login button
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: constraints.maxWidth * 0.15),
-                    child: SizedBox(
-                      height: buttonHeight,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: ColorSet.gradientBg,
-                          ),
-                          borderRadius: BorderRadius.circular(buttonHeight / 2),
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(buttonHeight / 2),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(buttonHeight / 2),
-                            onTap: () {
-                              if (usernameController.text.isNotEmpty && pin.value.length == 6) {
-                                ref.read(loginStateProvider.notifier).login(
-                                  usernameController.text,
-                                  pin.value,
-                                );
-                              }
-                            },
-                            child: Center(
-                              child: Text(
-                                'Login →',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: context.responsive.value<double>(
-                                    phone: 16,
-                                    tablet: 18,
-                                    kiosk: 20,
-                                  ),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Gap(context.responsive.value<double>(phone: 16, tablet: 20, kiosk: 24)),
-                ],
-              ),
-            ),
+    return SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height),
+        child: Padding(
+          padding: context.responsive.value<EdgeInsets>(
+            phone: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            tablet: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+            kiosk: const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
           ),
-        );
-      },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Welcome Back',
+                style: TextStyle(
+                  color: ColorSet.dark,
+                  fontSize: context.responsive.value<double>(phone: 22, tablet: 26, kiosk: 28),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Gap(context.responsive.value<double>(phone: 16, tablet: 20, kiosk: 24)),
+              UsernameInput(
+                controller: usernameController,
+                errorText: usernameError.value,
+              ),
+              Gap(context.responsive.value<double>(phone: 12, tablet: 14, kiosk: 16)),
+              // PIN display field
+              Container(
+                decoration: BoxDecoration(
+                  color: ColorSet.background,
+                  borderRadius: BorderRadius.circular(fieldRadius),
+                ),
+                padding: context.responsive.value<EdgeInsets>(
+                  phone: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  tablet: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  kiosk: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+                ),
+                child: Center(
+                  child: Text(
+                    pin.value.isEmpty ? 'PIN' : '•' * pin.value.length,
+                    style: TextStyle(
+                      color: pin.value.isEmpty
+                          ? ColorSet.dark.withValues(alpha: 0.4)
+                          : ColorSet.dark,
+                      fontSize: context.responsive.value<double>(phone: 16, tablet: 20, kiosk: 24),
+                      letterSpacing: pin.value.isEmpty ? 0 : 8.0,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ),
+              Gap(context.responsive.value<double>(phone: 20, tablet: 24, kiosk: 28)),
+              PinPad(
+                onNumberPressed: onNumberPressed,
+                onBackspace: onBackspace,
+                onConfirm: attemptLogin,
+                selectedButton: selectedButton,
+              ),
+              if (loginError.value != null) ...[
+                Gap(context.responsive.value<double>(phone: 12, tablet: 14, kiosk: 16)),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: context.responsive.value<double>(phone: 16, tablet: 20, kiosk: 24),
+                    vertical: context.responsive.value<double>(phone: 10, tablet: 12, kiosk: 14),
+                  ),
+                  decoration: BoxDecoration(
+                    color: ColorSet.danger.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: ColorSet.danger.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        color: ColorSet.danger,
+                        size: context.responsive.value<double>(phone: 16, tablet: 18, kiosk: 20),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          loginError.value!,
+                          style: TextStyle(
+                            color: ColorSet.danger,
+                            fontSize: context.responsive.value<double>(
+                              phone: 13,
+                              tablet: 14,
+                              kiosk: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              Gap(context.responsive.value<double>(phone: 16, tablet: 20, kiosk: 24)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

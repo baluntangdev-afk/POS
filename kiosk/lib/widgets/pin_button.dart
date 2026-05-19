@@ -7,7 +7,6 @@ import '../styles/responsive/responsive_value.dart';
 class PinButton extends HookWidget {
   const PinButton({
     super.key,
-    required this.size,
     required this.onPressed,
     required this.selectedButton,
     required this.buttonIndex,
@@ -15,7 +14,6 @@ class PinButton extends HookWidget {
     this.child,
   });
 
-  final double size;
   final VoidCallback onPressed;
   final String? label;
   final Widget? child;
@@ -39,55 +37,40 @@ class PinButton extends HookWidget {
 
     final scaleAnimation = Tween<double>(
       begin: 1.0,
-      end: 0.85,
+      end: 0.92,
     ).animate(CurvedAnimation(parent: animationController, curve: Curves.easeInOut));
 
-    return Padding(
-      padding: responsive.value<EdgeInsets>(
-        phone: const EdgeInsets.symmetric(horizontal: 4),
-        tablet: const EdgeInsets.symmetric(horizontal: 6),
-        kiosk: const EdgeInsets.symmetric(horizontal: 8),
-      ),
-      child: GestureDetector(
-        onTapDown: (_) => selectedButton.value = buttonIndex,
-        onTapUp: (_) {
-          selectedButton.value = null;
-          onPressed();
-        },
-        onTapCancel: () => selectedButton.value = null,
-        child: AnimatedBuilder(
-          animation: scaleAnimation,
-          builder:
-              (context, child) => Transform.scale(
-                scale: scaleAnimation.value,
-                child: Container(
-                  width: size * 0.9,
-                  height: size * 0.9,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSelected ? ColorSet.primary : ColorSet.light.withValues(alpha: 0.9),
-                    boxShadow: [
-                      BoxShadow(
-                        color: ColorSet.dark.withValues(alpha: isSelected ? 0.3 : 0.15),
-                        blurRadius: isSelected ? 8 : 12,
-                        offset: Offset(0, isSelected ? 2 : 4),
-                      ),
-                    ],
+    final buttonHeight = responsive.value<double>(phone: 52, tablet: 60, kiosk: 72);
+
+    return GestureDetector(
+      onTapDown: (_) => selectedButton.value = buttonIndex,
+      onTapUp: (_) {
+        selectedButton.value = null;
+        onPressed();
+      },
+      onTapCancel: () => selectedButton.value = null,
+      child: AnimatedBuilder(
+        animation: scaleAnimation,
+        builder: (context, _) => Transform.scale(
+          scale: scaleAnimation.value,
+          child: Container(
+            height: buttonHeight,
+            decoration: BoxDecoration(
+              color: isSelected ? ColorSet.primary : ColorSet.background,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Center(
+              child: this.child ??
+                  Text(
+                    label ?? '',
+                    style: TextStyle(
+                      fontSize: responsive.value<double>(phone: 20, tablet: 24, kiosk: 28),
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? ColorSet.light : ColorSet.dark,
+                    ),
                   ),
-                  child: Center(
-                    child:
-                        this.child ??
-                        Text(
-                          label ?? '',
-                          style: TextStyle(
-                            fontSize: responsive.value<double>(phone: 28, tablet: 36, kiosk: 44),
-                            fontWeight: FontWeight.w500,
-                            color: isSelected ? ColorSet.light : ColorSet.dark,
-                          ),
-                        ),
-                  ),
-                ),
-              ),
+            ),
+          ),
         ),
       ),
     );

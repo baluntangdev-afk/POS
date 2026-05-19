@@ -90,7 +90,6 @@ class MenuGrid extends StatelessWidget {
         type: MenuType.transactions,
       ),
       MenuItem(label: 'Promos', icon: Assets.images.svg.icPromo.svg(), type: MenuType.promos),
-
       MenuItem(
         label: 'Sales Reports',
         icon: Assets.images.svg.icReports.svg(),
@@ -102,17 +101,11 @@ class MenuGrid extends StatelessWidget {
         type: MenuType.settings,
       ),
       MenuItem(
-        label: 'User Management',
+        label: 'User',
         icon: Assets.images.svg.icUserManagement.svg(),
         type: MenuType.userManagement,
       ),
       MenuItem(label: 'Sync Data', icon: Assets.images.svg.icSync.svg(), type: MenuType.syncData),
-      MenuItem(
-        label: 'Inventory',
-        icon: Assets.images.svg.icInventory.svg(),
-        type: MenuType.inventory,
-      ),
-      MenuItem(label: 'Logout', icon: Assets.images.svg.icLogout.svg(), type: MenuType.logout),
     ];
     if (role == Role.user) {
       return baseItems

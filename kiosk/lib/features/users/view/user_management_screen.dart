@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
@@ -99,23 +98,37 @@ class UserManagementScreen extends HookConsumerWidget {
         children: [
           TopAppBar(
             title: 'User Management',
-            trailing: IconButton(
-              onPressed: () => _showAddUserDialog(context, ref),
-              icon: Icon(Icons.add, size: context.responsive.iconMd),
-              tooltip: 'Add User',
+            trailing: OutlinedButton.icon(
+              onPressed: () {
+                _showAddUserDialog(context, ref);
+              },
+              icon: Icon(
+                Icons.add,
+                size: context.responsive.value(kiosk: 18.0, tablet: 15.0, phone: 13.0),
+              ),
+              label: const Text('Add User'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: ColorSet.light,
+                side: const BorderSide(color: ColorSet.light, width: 2),
+                minimumSize: Size(
+                  context.responsive.value(kiosk: 110.0, tablet: 90.0, phone: 76.0),
+                  context.responsive.value(kiosk: 52.0, tablet: 44.0, phone: 38.0),
+                ),
+                textStyle: TextStyle(
+                  fontSize: context.responsive.value(kiosk: 15.0, tablet: 13.0, phone: 12.0),
+                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
             ),
           ),
           Expanded(
             child: ResponsiveBuilder(
               kiosk:
-                  (context) =>
-                      _buildDesktopLayout(context, ref, searchController, searchFocusNode),
+                  (context) => _buildDesktopLayout(context, ref, searchController, searchFocusNode),
               tablet:
-                  (context) =>
-                      _buildDesktopLayout(context, ref, searchController, searchFocusNode),
+                  (context) => _buildDesktopLayout(context, ref, searchController, searchFocusNode),
               phone:
-                  (context) =>
-                      _buildMobileLayout(context, ref, searchController, searchFocusNode),
+                  (context) => _buildMobileLayout(context, ref, searchController, searchFocusNode),
             ),
           ),
         ],

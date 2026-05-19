@@ -21,7 +21,7 @@ class CatalogScreen extends HookConsumerWidget {
 
     final body = Column(
       children: [
-        TopAppBar(title: 'Catalog Management'),
+        const TopAppBar(title: 'Catalog Management'),
         _TabBar(selectedTab: selectedTab),
         Expanded(
           child: IndexedStack(

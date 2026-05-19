@@ -42,10 +42,13 @@ class TopAppBar extends StatelessWidget {
         children: [
           SizedBox(width: hPad),
           if (showBack)
-            GestureDetector(
+            InkWell(
+              borderRadius: const BorderRadius.all(Radius.circular(20)),
               onTap: onBackPressed ?? () { if (context.canPop()) context.pop(); },
-              behavior: HitTestBehavior.opaque,
-              child: Icon(Icons.arrow_back_ios, color: ColorSet.light, size: backSize),
+              child: Padding(
+                padding: const EdgeInsets.all(6.0),
+                child: Icon(Icons.arrow_back_ios_new_rounded, color: ColorSet.light, size: backSize),
+              ),
             )
           else
             SizedBox(width: backSize),

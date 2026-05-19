@@ -9,6 +9,7 @@ import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../validation/rules/is_required.dart';
 import '../../../widgets/message_dialog.dart';
+import '../../../widgets/pin_indicator.dart';
 import '../../../widgets/pin_pad.dart';
 import '../state/login_state_notifier.dart';
 import 'username_input.dart';
@@ -112,10 +113,6 @@ class LoginView extends HookConsumerWidget {
         pin.value = pin.value.substring(0, pin.value.length - 1);
       }
     }
-
-    final buttonHeight = context.responsive.value<double>(kiosk: 72, tablet: 60, phone: 52);
-    final fieldRadius = context.responsive.value<double>(phone: 12, tablet: 16, kiosk: 20);
-
     return SingleChildScrollView(
       child: ConstrainedBox(
         constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height),
@@ -141,39 +138,17 @@ class LoginView extends HookConsumerWidget {
                 controller: usernameController,
                 errorText: usernameError.value,
               ),
-              Gap(context.responsive.value<double>(phone: 12, tablet: 14, kiosk: 16)),
+              Gap(context.responsive.value<double>(phone: 30, tablet: 28, kiosk: 28)),
               // PIN display field
-              Container(
-                decoration: BoxDecoration(
-                  color: ColorSet.background,
-                  borderRadius: BorderRadius.circular(fieldRadius),
-                ),
-                padding: context.responsive.value<EdgeInsets>(
-                  phone: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  tablet: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                  kiosk: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
-                ),
-                child: Center(
-                  child: Text(
-                    pin.value.isEmpty ? 'PIN' : '•' * pin.value.length,
-                    style: TextStyle(
-                      color: pin.value.isEmpty
-                          ? ColorSet.dark.withValues(alpha: 0.4)
-                          : ColorSet.dark,
-                      fontSize: context.responsive.value<double>(phone: 16, tablet: 20, kiosk: 24),
-                      letterSpacing: pin.value.isEmpty ? 0 : 8.0,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ),
-              ),
-              Gap(context.responsive.value<double>(phone: 20, tablet: 24, kiosk: 28)),
+              PinIndicator(pin: pin.value, color: ColorSet.primary),
+              Gap(context.responsive.value<double>(phone: 30, tablet: 28, kiosk: 28)),
               PinPad(
                 onNumberPressed: onNumberPressed,
                 onBackspace: onBackspace,
                 onConfirm: attemptLogin,
                 selectedButton: selectedButton,
               ),
+
               if (loginError.value != null) ...[
                 Gap(context.responsive.value<double>(phone: 12, tablet: 14, kiosk: 16)),
                 Container(

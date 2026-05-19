@@ -350,6 +350,15 @@ class _ProductDetails extends StatelessWidget {
           width: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
           height: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
           fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => SizedBox(
+            width: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
+            height: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
+            child: Icon(
+              Icons.image_not_supported_outlined,
+              color: Colors.grey.shade400,
+              size: context.responsive.value(kiosk: 64, tablet: 48, phone: 32),
+            ),
+          ),
         ),
         Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
         Expanded(
@@ -644,6 +653,15 @@ class _ModifierOptionCard extends StatelessWidget {
                 width: context.responsive.value(kiosk: 40, tablet: 32, phone: 24),
                 height: context.responsive.value(kiosk: 40, tablet: 32, phone: 24),
                 fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => SizedBox(
+                  width: context.responsive.value(kiosk: 40, tablet: 32, phone: 24),
+                  height: context.responsive.value(kiosk: 40, tablet: 32, phone: 24),
+                  child: Icon(
+                    Icons.image_not_supported_outlined,
+                    color: Colors.grey.shade400,
+                    size: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
+                  ),
+                ),
               ),
               Gap(context.responsive.value(kiosk: 8, tablet: 4, phone: 4)),
             ],

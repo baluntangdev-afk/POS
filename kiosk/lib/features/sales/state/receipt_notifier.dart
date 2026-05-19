@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/experimental/mutation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -26,6 +29,7 @@ class ReceiptNotifier extends AsyncNotifier<Receipt> {
 
   Future<void> print() async {
     if (!state.hasValue) return;
+    if (kIsWeb || !Platform.isWindows) return;
 
     final encodeReceipt = ref.read(encodeEscPosReceiptProvider);
     final data = await encodeReceipt(receipt: state.requireValue);

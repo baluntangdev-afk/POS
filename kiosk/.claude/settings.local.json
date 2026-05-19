@@ -5,7 +5,8 @@
       "Bash(flutter doctor *)",
       "Bash(Rename-Item *)",
       "Bash(Remove-Item -Recurse -Force \".dart_tool\\\\build\" -ErrorAction SilentlyContinue)",
-      "Bash(flutter analyze *)"
+      "Bash(flutter analyze *)",
+      "Bash(flutter create *)"
     ]
   }
 }

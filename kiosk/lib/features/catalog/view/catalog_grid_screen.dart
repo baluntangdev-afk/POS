@@ -376,7 +376,7 @@ class _ProductCard extends StatelessWidget {
                     product.image,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
-                      return Container(
+                      return ColoredBox(
                         color: Colors.grey.shade200,
                         child: Icon(
                           Icons.image,
@@ -478,11 +478,11 @@ class _ProductCard extends StatelessWidget {
 
   String _getPriceRange(Product product) {
     if (product.variants.isEmpty) {
-      return '\$0.00';
+      return r'$0.00';
     }
 
     // Since ProductVariant doesn't have price, return placeholder
-    return '\$0.00';
+    return r'$0.00';
   }
 
   int _getModifierGroupCount(Product product) {

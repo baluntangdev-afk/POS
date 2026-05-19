@@ -19,7 +19,8 @@ class ImageUrlMapper extends SimpleMapper<Uint8List> {
   }
 
   @override
-  String encode(Uint8List self) {
+  Object encode(Uint8List? self) {
+    if (self == null) return '';
     return base64Encode(self);
   }
 }

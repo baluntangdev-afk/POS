@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:decimal/decimal.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -49,7 +51,7 @@ class ProductRepositoryImpl implements ProductRepository {
       id: dto.id,
       name: dto.name,
       price: Decimal.zero,
-      image: dto.imageUrl,
+      image: dto.imageUrl ?? Uint8List(0),
       variants: const IList.empty(),
     );
   }

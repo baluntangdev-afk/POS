@@ -218,7 +218,28 @@ class _ProductImage extends StatelessWidget {
         ),
         child:
             product.image.isNotEmpty
-                ? Image.memory(product.image, fit: BoxFit.cover)
+                ? Image.memory(
+                    product.image,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.image_not_supported_outlined,
+                          size: context.responsive.value(kiosk: 48, tablet: 40, phone: 32),
+                          color: Colors.grey.shade400,
+                        ),
+                        Gap(context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
+                        Text(
+                          'Image unavailable',
+                          style: TextStyle(
+                            fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
                 : Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

@@ -251,11 +251,29 @@ class _CategoriesList extends ConsumerWidget {
                     group.image,
                     height: context.responsive.value(kiosk: 64, tablet: 48, phone: 32),
                     fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => SizedBox(
+                      height: context.responsive.value(kiosk: 64, tablet: 48, phone: 32),
+                      child: Icon(
+                        Icons.image_not_supported_outlined,
+                        color: ColorSet.light.withValues(alpha: 0.5),
+                        size: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+                      ),
+                    ),
                   ),
                   Gap(context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
                 ],
                 if (scrollDirection == Axis.horizontal) ...[
-                  Expanded(child: Image.memory(group.image, fit: BoxFit.contain)),
+                  Expanded(
+                    child: Image.memory(
+                      group.image,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Icon(
+                        Icons.image_not_supported_outlined,
+                        color: ColorSet.light.withValues(alpha: 0.5),
+                        size: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+                      ),
+                    ),
+                  ),
                   Gap(context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
                 ],
                 Text(
@@ -330,7 +348,15 @@ class _ProductGrid extends ConsumerWidget {
                           padding: EdgeInsets.all(
                             context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
                           ),
-                          child: Image.memory(product.image, fit: BoxFit.contain),
+                          child: Image.memory(
+                            product.image,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => Icon(
+                              Icons.image_not_supported_outlined,
+                              color: Colors.grey.shade400,
+                              size: context.responsive.value(kiosk: 48, tablet: 36, phone: 24),
+                            ),
+                          ),
                         ),
                       ),
                       Positioned(

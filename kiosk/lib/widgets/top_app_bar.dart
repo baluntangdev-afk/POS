@@ -1,19 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
 import '../styles/color_set.dart';
 import '../styles/responsive/responsive_value.dart';
-import '../styles/type_set.dart';
 
 class TopAppBar extends StatelessWidget {
-  const TopAppBar({super.key, required this.onBackPressed, required this.title, this.trailing});
+  const TopAppBar({
+    super.key,
+    required this.title,
+    this.onBackPressed,
+    this.trailing,
+    this.showBack = true,
+  });
 
-  final void Function() onBackPressed;
   final String title;
+  final VoidCallback? onBackPressed;
   final Widget? trailing;
+  final bool showBack;
+
+  static double preferredHeight(BuildContext context) => context.responsive.appBarHeight;
 
   @override
   Widget build(BuildContext context) {
-    final responsive = context.responsive;
+    final r = context.responsive;
+    final backSize = r.iconBack;
+    final hPad = r.hPagePadding;
+
     return Container(
+      height: r.appBarHeight,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -24,33 +38,36 @@ class TopAppBar extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
       ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: responsive.scale(24)),
-        child: Stack(
-          alignment: Alignment.center,
-          // fit: StackFit.expand,
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18.0),
-                child: IconButton(
-                  onPressed: onBackPressed,
-                  icon: Icon(
-                    Icons.arrow_back_ios,
-                    color: ColorSet.light,
-                    size: responsive.scale(35),
-                  ),
-                ),
-              ),
-            ),
-            Text(
+      child: Row(
+        children: [
+          SizedBox(width: hPad),
+          if (showBack)
+            GestureDetector(
+              onTap: onBackPressed ?? () { if (context.canPop()) context.pop(); },
+              behavior: HitTestBehavior.opaque,
+              child: Icon(Icons.arrow_back_ios, color: ColorSet.light, size: backSize),
+            )
+          else
+            SizedBox(width: backSize),
+          Expanded(
+            child: Text(
               title,
-              style: TypeSet.h5.copyWith(color: ColorSet.light, fontSize: responsive.scale(28)),
+              style: TextStyle(
+                fontSize: r.fontTitle,
+                fontWeight: FontWeight.w600,
+                color: ColorSet.light,
+              ),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ],
-        ),
+          ),
+          if (trailing != null) ...[
+            trailing!,
+            SizedBox(width: hPad),
+          ] else
+            SizedBox(width: backSize + hPad),
+        ],
       ),
     );
   }

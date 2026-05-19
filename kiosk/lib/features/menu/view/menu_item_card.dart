@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../entities/menu_item.dart';
 import '../enums/menu_type.dart';
@@ -12,48 +13,56 @@ class MenuItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final responsive = ResponsiveValue.of(context);
+    final r = context.responsive;
 
-    return Container(
-      height: responsive.scale(300),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+    return AspectRatio(
+      aspectRatio: r.value(kiosk: 1.0, tablet: 1.0, phone: 1.1),
       child: Material(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: () => onTap(menuItem.type),
-          borderRadius: BorderRadius.circular(8),
-          child: Ink(
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
                 ),
               ],
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(30),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    height: responsive.scale(90),
-                    width: responsive.scale(90),
-                    child: menuItem.icon,
+            padding: EdgeInsets.all(r.spacingLg),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  flex: 3,
+                  child: FractionallySizedBox(
+                    widthFactor: 0.5,
+                    child: FittedBox(
+                      fit: BoxFit.contain,
+                      child: menuItem.icon,
+                    ),
                   ),
-                  SizedBox(height: responsive.scale(16), width: responsive.scale(16)),
-                  Text(
+                ),
+                SizedBox(height: r.spacingMd),
+                Flexible(
+                  child: Text(
                     menuItem.label,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: responsive.scale(20), fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      fontSize: r.fontBody,
+                      fontWeight: FontWeight.w500,
+                      color: ColorSet.text,
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

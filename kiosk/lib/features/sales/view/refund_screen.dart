@@ -14,9 +14,11 @@ import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../utils/decimal_rounding.dart';
+import '../../../widgets/gradient_button.dart';
 import '../../../widgets/message_dialog.dart';
 import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/text_box_form_field.dart';
+import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../state/refund_notifier.dart';
 
@@ -42,19 +44,21 @@ class RefundScreen extends HookConsumerWidget {
     final isLoading = ref.watch(refundProvider(receiptId).select((it) => it.isLoading));
 
     return WindowsScaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
-        child: const _TopAppBar(),
-      ),
       backgroundColor: ColorSet.background,
-      body:
-          isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : ResponsiveBuilder(
-                kiosk: (context) => _LandscapeLayout(receiptId: receiptId),
-                tablet: (context) => _LandscapeLayout(receiptId: receiptId),
-                phone: (context) => _PortraitLayout(receiptId: receiptId),
-              ),
+      body: Column(
+        children: [
+          TopAppBar(title: 'Process Refund'),
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ResponsiveBuilder(
+                    kiosk: (context) => _LandscapeLayout(receiptId: receiptId),
+                    tablet: (context) => _LandscapeLayout(receiptId: receiptId),
+                    phone: (context) => _PortraitLayout(receiptId: receiptId),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -87,57 +91,6 @@ class _PortraitLayout extends StatelessWidget {
         Expanded(flex: 2, child: _ItemSelectionView(receiptId: receiptId)),
         Expanded(child: _RefundControlsView(receiptId: receiptId)),
       ],
-    );
-  }
-}
-
-class _TopAppBar extends StatelessWidget {
-  const _TopAppBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            ColorSet.secondary.withValues(alpha: 0.85),
-            ColorSet.primary.withValues(alpha: 0.85),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Row(
-        children: [
-          Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-          GestureDetector(
-            onTap: () {
-              if (context.canPop()) {
-                context.pop();
-              }
-            },
-            behavior: HitTestBehavior.opaque,
-            child: Icon(
-              Icons.arrow_back_ios,
-              color: ColorSet.light,
-              size: context.responsive.value(kiosk: 48, tablet: 32, phone: 24),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              'Process Refund',
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 36, tablet: 28, phone: 20),
-                fontWeight: FontWeight.w600,
-                color: ColorSet.light,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          Gap(context.responsive.value(kiosk: 80, tablet: 56, phone: 40)),
-        ],
-      ),
     );
   }
 }
@@ -700,33 +653,10 @@ class _ConfirmButton extends ConsumerWidget {
       }
     });
 
-    return GestureDetector(
-      onTap: confirmStatus is! MutationPending ? () => submitForm() : null,
-      child: Container(
-        height: context.responsive.value(kiosk: 64, tablet: 56, phone: 48),
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              ColorSet.secondary.withValues(alpha: 0.85),
-              ColorSet.primary.withValues(alpha: 0.85),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: Text(
-            'Confirm',
-            style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-              fontWeight: FontWeight.normal,
-              color: ColorSet.light,
-            ),
-          ),
-        ),
-      ),
+    return GradientButton(
+      label: 'Confirm',
+      isLoading: confirmStatus is MutationPending,
+      onPressed: confirmStatus is! MutationPending ? () => submitForm() : null,
     );
   }
 }

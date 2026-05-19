@@ -6,7 +6,11 @@
       "Bash(Rename-Item *)",
       "Bash(Remove-Item -Recurse -Force \".dart_tool\\\\build\" -ErrorAction SilentlyContinue)",
       "Bash(flutter analyze *)",
-      "Bash(flutter create *)"
+      "Bash(flutter create *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "Bash(flutter build *)"
     ]
   }
 }

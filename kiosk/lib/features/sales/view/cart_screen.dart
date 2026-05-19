@@ -2,15 +2,16 @@ import 'package:decimal/decimal.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
-import '../../../widgets/button.dart';
+import '../../../widgets/gradient_button.dart';
+import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
+import '../entities/line_item.dart';
 import '../state/ordering_notifier.dart';
 import 'line_item_dialog.dart';
 
@@ -20,68 +21,14 @@ class CartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return WindowsScaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
-        child: const _TopAppBar(),
-      ),
       backgroundColor: ColorSet.background,
-      body: const Column(
+      body: Column(
         children: [
-          Expanded(child: _LineItemListView()),
-          _SummaryView(),
-          _DiscountButton(),
-          _PaymentButton(),
-        ],
-      ),
-    );
-  }
-}
-
-class _TopAppBar extends StatelessWidget {
-  const _TopAppBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            ColorSet.secondary.withValues(alpha: 0.85),
-            ColorSet.primary.withValues(alpha: 0.85),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Row(
-        children: [
-          Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-          GestureDetector(
-            onTap: () {
-              if (context.canPop()) {
-                context.pop();
-              }
-            },
-            behavior: HitTestBehavior.opaque,
-            child: Icon(
-              Icons.arrow_back_ios,
-              color: ColorSet.light,
-              size: context.responsive.value(kiosk: 48, tablet: 32, phone: 24),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              'Order Summary',
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 36, tablet: 28, phone: 20),
-                fontWeight: FontWeight.w600,
-                color: ColorSet.light,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          Gap(context.responsive.value(kiosk: 80, tablet: 56, phone: 40)),
+          TopAppBar(title: 'Order Summary'),
+          const Expanded(child: _LineItemListView()),
+          const _SummaryView(),
+          const _DiscountButton(),
+          const _PaymentButton(),
         ],
       ),
     );
@@ -96,15 +43,11 @@ class _LineItemListView extends ConsumerWidget {
     final lineItems = ref.watch(
       orderingProvider.select((it) => it.value?.sale.items ?? const IList.empty()),
     );
+    final r = context.responsive;
     return Container(
       width: double.infinity,
       height: double.infinity,
-      margin: EdgeInsets.fromLTRB(
-        context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-        16,
-        context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-        0,
-      ),
+      margin: EdgeInsets.fromLTRB(r.hPagePadding, r.spacingMd, r.hPagePadding, 0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
@@ -117,186 +60,165 @@ class _LineItemListView extends ConsumerWidget {
         ],
       ),
       child: ListView.separated(
-        padding: EdgeInsets.all(context.responsive.value(kiosk: 20, tablet: 16, phone: 12)),
+        padding: EdgeInsets.all(r.spacingLg),
         itemCount: lineItems.length,
-        separatorBuilder:
-            (context, index) => Divider(
-              height: context.responsive.value(kiosk: 30, tablet: 20, phone: 16),
-              thickness: 0.5,
-            ),
+        separatorBuilder: (context, index) => Divider(
+          height: r.spacingLg,
+          thickness: 0.5,
+        ),
         itemBuilder: (context, index) {
           final lineItem = lineItems[index];
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: context.responsive.value(kiosk: 90, tablet: 72, phone: 56),
-                height: context.responsive.value(kiosk: 90, tablet: 72, phone: 56),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: ColorSet.background,
-                  image: DecorationImage(
-                    image: MemoryImage(lineItem.productImage),
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-              Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 12)),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${lineItem.variant.name.isNotEmpty ? "${lineItem.variant.name} " : ""}${lineItem.productName}',
-                      style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 30, tablet: 20, phone: 14),
-                        fontWeight: FontWeight.normal,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                    Text(
-                      'Qty: ${lineItem.quantity}',
-                      style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
-                        fontWeight: FontWeight.normal,
-                        color: ColorSet.text.withValues(alpha: 0.5),
-                      ),
-                    ),
-                    if (lineItem.modifiers.isNotEmpty) ...[
-                      const Gap(4),
-                      Text(
-                        'Add-ons: ${lineItem.modifiers.expand((modifier) => modifier.options).map((option) => option.name).join(', ')}',
-                        style: TextStyle(
-                          fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
-                          fontWeight: FontWeight.normal,
-                          color: ColorSet.text.withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ],
-                    Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Flexible(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                lineItem.grossAmount.pesoFormatted,
-                                style: TextStyle(
-                                  fontSize: context.responsive.value(
-                                    kiosk: 36,
-                                    tablet: 24,
-                                    phone: 16,
-                                  ),
-                                  fontWeight: FontWeight.w600,
-                                  color: ColorSet.secondary,
-                                ),
-                              ),
-                              if (lineItem.discount != null)
-                                Text(
-                                  'LESS: ${lineItem.discount!.code}',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: context.responsive.value(
-                                      kiosk: 16,
-                                      tablet: 14,
-                                      phone: 10,
-                                    ),
-                                    fontWeight: FontWeight.normal,
-                                    color: ColorSet.danger,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Button(
-                              onPressed: () async {
-                                final updatedLineItem = await showLineItemDialog(
-                                  context,
-                                  productId: lineItem.productId,
-                                  initialQuantity: lineItem.quantity,
-                                  initialVariant: lineItem.variant,
-                                  initialModifiers: lineItem.modifiers,
-                                );
-                                if (updatedLineItem == null || !context.mounted) return;
-                                ref
-                                    .read(orderingProvider.notifier)
-                                    .replaceLineItem(
-                                      updatedLineItem.copyWith(
-                                        id: lineItem.id, // Retain id
-                                      ),
-                                      index: index,
-                                    );
-                              },
-                              backgroundColor: const Color(0xFF377FEB),
-                              foregroundColor: ColorSet.light,
-                              label: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: context.responsive.value(
-                                    kiosk: 16,
-                                    tablet: 12,
-                                    phone: 8,
-                                  ),
-                                  vertical: context.responsive.value(kiosk: 8, tablet: 6, phone: 4),
-                                ),
-                                child: Text(
-                                  'Edit',
-                                  style: TextStyle(
-                                    fontSize: context.responsive.value(
-                                      kiosk: 20,
-                                      tablet: 16,
-                                      phone: 12,
-                                    ),
-                                    fontWeight: FontWeight.normal,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Gap(context.responsive.value(kiosk: 8, tablet: 8, phone: 4)),
-                            Button(
-                              onPressed: () {
-                                ref.read(orderingProvider.notifier).removeLineItem(index: index);
-                              },
-                              backgroundColor: ColorSet.danger,
-                              foregroundColor: ColorSet.light,
-                              label: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: context.responsive.value(
-                                    kiosk: 16,
-                                    tablet: 12,
-                                    phone: 8,
-                                  ),
-                                  vertical: context.responsive.value(kiosk: 8, tablet: 6, phone: 4),
-                                ),
-                                child: Text(
-                                  'Delete',
-                                  style: TextStyle(
-                                    fontSize: context.responsive.value(
-                                      kiosk: 20,
-                                      tablet: 16,
-                                      phone: 12,
-                                    ),
-                                    fontWeight: FontWeight.normal,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
+          return _LineItemRow(lineItem: lineItem, index: index);
         },
       ),
+    );
+  }
+}
+
+class _LineItemRow extends ConsumerWidget {
+  const _LineItemRow({required this.lineItem, required this.index});
+
+  final LineItem lineItem;
+  final int index;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final r = context.responsive;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: r.value(kiosk: 90.0, tablet: 72.0, phone: 56.0),
+          height: r.value(kiosk: 90.0, tablet: 72.0, phone: 56.0),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: ColorSet.background,
+            image: DecorationImage(
+              image: MemoryImage(lineItem.productImage),
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+        Gap(r.spacingMd),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${lineItem.variant.name.isNotEmpty ? "${lineItem.variant.name} " : ""}${lineItem.productName}',
+                style: TextStyle(fontSize: r.fontMd),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+              Text(
+                'Qty: ${lineItem.quantity}',
+                style: TextStyle(fontSize: r.fontSm, color: ColorSet.text.withValues(alpha: 0.5)),
+              ),
+              if (lineItem.modifiers.isNotEmpty) ...[
+                const Gap(4),
+                Text(
+                  'Add-ons: ${lineItem.modifiers.expand((m) => m.options).map((o) => o.name).join(', ')}',
+                  style: TextStyle(fontSize: r.fontSm, color: ColorSet.text.withValues(alpha: 0.5)),
+                ),
+              ],
+              Gap(r.spacingMd),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          lineItem.grossAmount.pesoFormatted,
+                          style: TextStyle(
+                            fontSize: r.fontLg,
+                            fontWeight: FontWeight.w600,
+                            color: ColorSet.secondary,
+                          ),
+                        ),
+                        if (lineItem.discount != null)
+                          Text(
+                            'LESS: ${lineItem.discount!.code}',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: r.fontCaption,
+                              color: ColorSet.danger,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      _ItemActionButton(
+                        label: 'Edit',
+                        color: const Color(0xFF377FEB),
+                        onPressed: () async {
+                          final updatedLineItem = await showLineItemDialog(
+                            context,
+                            productId: lineItem.productId,
+                            initialQuantity: lineItem.quantity,
+                            initialVariant: lineItem.variant,
+                            initialModifiers: lineItem.modifiers,
+                          );
+                          if (updatedLineItem == null || !context.mounted) return;
+                          ref
+                              .read(orderingProvider.notifier)
+                              .replaceLineItem(
+                                updatedLineItem.copyWith(id: lineItem.id),
+                                index: index,
+                              );
+                        },
+                      ),
+                      Gap(r.spacingSm),
+                      _ItemActionButton(
+                        label: 'Delete',
+                        color: ColorSet.danger,
+                        onPressed: () =>
+                            ref.read(orderingProvider.notifier).removeLineItem(index: index),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ItemActionButton extends StatelessWidget {
+  const _ItemActionButton({
+    required this.label,
+    required this.color,
+    required this.onPressed,
+  });
+
+  final String label;
+  final Color color;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.responsive;
+    return FilledButton(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: ColorSet.light,
+        padding: EdgeInsets.symmetric(
+          horizontal: r.spacingMd,
+          vertical: r.spacingSm,
+        ),
+        minimumSize: Size(0, r.value(kiosk: 40.0, tablet: 34.0, phone: 28.0)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Text(label, style: TextStyle(fontSize: r.fontSm)),
     );
   }
 }
@@ -312,54 +234,48 @@ class _SummaryView extends ConsumerWidget {
         if (sale == null) return <({String label, Decimal amount})>[];
         return [
           (label: 'VATable Sales', amount: sale.vatableAmount),
-          if (sale.vatExemptSales > Decimal.zero) ...[
+          if (sale.vatExemptSales > Decimal.zero)
             (label: 'VAT-Exempt Sales', amount: sale.vatExemptSales),
-          ],
           (label: 'VAT', amount: sale.vatAmount),
-          if (sale.discountAmount > Decimal.zero) ...[
+          if (sale.discountAmount > Decimal.zero)
             (label: 'Discount', amount: -sale.discountAmount),
-          ],
           (label: 'Total', amount: sale.totalAmount),
         ];
       }),
     );
+    final r = context.responsive;
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
-        32,
-        context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
-        0,
-      ),
+      padding: EdgeInsets.fromLTRB(r.hButtonMargin, r.spacingLg, r.hButtonMargin, 0),
       child: Column(
-        children: [
-          ...computations.map((computation) {
-            final (:label, :amount) = computation;
-            final isTotal = label == 'Total';
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  label,
+        children: computations.map((comp) {
+          final isTotal = comp.label == 'Total';
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  comp.label,
                   style: TextStyle(
-                    fontSize: context.responsive.value(kiosk: 36, tablet: 24, phone: 18),
-                    fontWeight: FontWeight.w600,
+                    fontSize: r.fontLg,
+                    fontWeight: isTotal ? FontWeight.w600 : FontWeight.w300,
                     height: 1.25,
-                  ).copyWith(fontWeight: isTotal ? FontWeight.w600 : FontWeight.w300),
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const Gap(16),
-                Text(
-                  amount.pesoFormatted,
-                  style: TextStyle(
-                    fontSize: context.responsive.value(kiosk: 36, tablet: 24, phone: 18),
-                    fontWeight: FontWeight.w600,
-                    color: ColorSet.secondary,
-                    height: 1.25,
-                  ).copyWith(fontWeight: isTotal ? FontWeight.w600 : FontWeight.w300),
+              ),
+              const Gap(16),
+              Text(
+                comp.amount.pesoFormatted,
+                style: TextStyle(
+                  fontSize: r.fontLg,
+                  fontWeight: isTotal ? FontWeight.w600 : FontWeight.w300,
+                  color: ColorSet.secondary,
+                  height: 1.25,
                 ),
-              ],
-            );
-          }),
-        ],
+              ),
+            ],
+          );
+        }).toList(),
       ),
     );
   }
@@ -375,31 +291,16 @@ class _DiscountButton extends ConsumerWidget {
         (it) => (isLoading: it.isLoading, lineItemCount: it.value?.sale.items.length ?? 0),
       ),
     );
-    return Container(
-      height: context.responsive.value(kiosk: 64, tablet: 56, phone: 48),
-      width: double.infinity,
-      margin: EdgeInsets.fromLTRB(
-        context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
-        context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-        context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
-        context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-      ),
-      child: Button(
-        onPressed:
-            !isLoading && lineItemCount > 0
-                ? () {
-                  const DiscountRoute().push<void>(context);
-                }
-                : null,
-        label: Text(
-          'Apply Discount',
-          style: TextStyle(
-            fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-            fontWeight: FontWeight.normal,
-          ),
-        ),
-        foregroundColor: ColorSet.text,
+    final r = context.responsive;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(r.hButtonMargin, r.spacingLg, r.hButtonMargin, r.spacingMd),
+      child: GradientButton.solid(
+        label: 'Apply Discount',
         backgroundColor: ColorSet.light,
+        foregroundColor: ColorSet.text,
+        onPressed: !isLoading && lineItemCount > 0
+            ? () => const DiscountRoute().push<void>(context)
+            : null,
       ),
     );
   }
@@ -415,49 +316,14 @@ class _PaymentButton extends ConsumerWidget {
         (it) => (isLoading: it.isLoading, lineItemCount: it.value?.sale.items.length ?? 0),
       ),
     );
-    return GestureDetector(
-      onTap:
-          !isLoading && lineItemCount > 0
-              ? () {
-                const PaymentRoute().push<void>(context);
-              }
-              : null,
-      child: Container(
-        height: context.responsive.value(kiosk: 64, tablet: 56, phone: 48),
-        width: double.infinity,
-        margin: EdgeInsets.fromLTRB(
-          context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
-          0,
-          context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
-          context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-        ),
-        decoration: BoxDecoration(
-          gradient:
-              !isLoading && lineItemCount > 0
-                  ? LinearGradient(
-                    colors: [
-                      ColorSet.secondary.withValues(alpha: 0.85),
-                      ColorSet.primary.withValues(alpha: 0.85),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                  : null,
-          color: lineItemCount == 0 ? const Color(0xFFE0E0E0) : null,
-          borderRadius: BorderRadius.circular(
-            context.responsive.value(kiosk: 64, tablet: 56, phone: 48) / 2,
-          ),
-        ),
-        child: Center(
-          child: Text(
-            'Proceed to Payment',
-            style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-              fontWeight: FontWeight.normal,
-              color: lineItemCount == 0 ? const Color(0xFF9E9E9E) : ColorSet.light,
-            ),
-          ),
-        ),
+    final r = context.responsive;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(r.hButtonMargin, 0, r.hButtonMargin, r.spacingLg),
+      child: GradientButton(
+        label: 'Proceed to Payment',
+        onPressed: !isLoading && lineItemCount > 0
+            ? () => const PaymentRoute().push<void>(context)
+            : null,
       ),
     );
   }

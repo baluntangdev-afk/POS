@@ -17,37 +17,41 @@ class MenuScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final access = ref.watch(accessProvider.select((it) => it.value ?? Access.unknown()));
-    final responsive = context.responsive;
+    final r = context.responsive;
+
     return WindowsScaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: LinearGradient(colors: ColorSet.gradientBg)),
-        child: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) {
-            return [
-              SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Gap(50),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                      child: Assets.images.png.appBarLogo.image(
-                        color: Colors.white,
-                        width: responsive.scale(300),
-                        height: responsive.scale(80),
-                      ),
-                    ),
-                    UserDetailsWidget(access: access),
-                  ],
-                ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Gradient header ──────────────────────────────────────────
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(colors: ColorSet.gradientBg),
               ),
-            ];
-          },
-          body: Container(
-            decoration: const BoxDecoration(color: ColorSet.background),
-            padding: const EdgeInsets.all(16),
-            child: MenuGrid(role: access.role),
-          ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Gap(r.spacingXl),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: r.hPagePadding),
+                    child: Assets.images.png.appBarLogo.image(
+                      color: Colors.white,
+                      width: r.scale(300),
+                      height: r.scale(80),
+                    ),
+                  ),
+                  UserDetailsWidget(access: access),
+                ],
+              ),
+            ),
+            // ── Menu grid ────────────────────────────────────────────────
+            Container(
+              color: ColorSet.background,
+              padding: EdgeInsets.all(r.spacingMd),
+              child: MenuGrid(role: access.role),
+            ),
+          ],
         ),
       ),
     );

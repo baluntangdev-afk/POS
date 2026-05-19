@@ -13,7 +13,9 @@ import '../../../utils/decimal_formatter.dart';
 import '../../../utils/tax_calculator.dart';
 import '../../../validation/rules/is_required.dart';
 import '../../../validation/validate.dart';
+import '../../../widgets/gradient_button.dart';
 import '../../../widgets/text_box_form_field.dart';
+import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/discount.dart';
 import '../state/ordering_notifier.dart';
@@ -51,12 +53,12 @@ class DiscountScreen extends HookConsumerWidget {
     }
 
     return WindowsScaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
-        child: const _TopAppBar(),
-      ),
       backgroundColor: ColorSet.background,
-      body: ResponsiveBuilder(
+      body: Column(
+        children: [
+          TopAppBar(title: 'Apply Discount'),
+          Expanded(
+            child: ResponsiveBuilder(
         kiosk: (context) {
           return _LandscapeLayout(
             selectedQuantities: selectedQuantities.value,
@@ -87,6 +89,9 @@ class DiscountScreen extends HookConsumerWidget {
             onApplyDiscount: onApplyDiscount,
           );
         },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -172,57 +177,6 @@ class _PortraitLayout extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _TopAppBar extends StatelessWidget {
-  const _TopAppBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            ColorSet.secondary.withValues(alpha: 0.85),
-            ColorSet.primary.withValues(alpha: 0.85),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Row(
-        children: [
-          Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-          GestureDetector(
-            onTap: () {
-              if (context.canPop()) {
-                context.pop();
-              }
-            },
-            behavior: HitTestBehavior.opaque,
-            child: Icon(
-              Icons.arrow_back_ios,
-              color: ColorSet.light,
-              size: context.responsive.value(kiosk: 48, tablet: 32, phone: 24),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              'Apply Discount',
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 36, tablet: 28, phone: 20),
-                fontWeight: FontWeight.w600,
-                color: ColorSet.light,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          Gap(context.responsive.value(kiosk: 80, tablet: 56, phone: 40)),
-        ],
-      ),
     );
   }
 }
@@ -744,33 +698,6 @@ class _ConfirmButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: context.responsive.value(kiosk: 64, tablet: 56, phone: 48),
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              ColorSet.secondary.withValues(alpha: 0.85),
-              ColorSet.primary.withValues(alpha: 0.85),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: Text(
-            'Apply',
-            style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-              fontWeight: FontWeight.normal,
-              color: ColorSet.light,
-            ),
-          ),
-        ),
-      ),
-    );
+    return GradientButton(label: 'Apply', onPressed: onTap);
   }
 }

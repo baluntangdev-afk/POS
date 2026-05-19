@@ -11,6 +11,7 @@ import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
+import '../../../widgets/gradient_button.dart';
 import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/cashier.dart';
@@ -40,19 +41,20 @@ class ReceiptScreen extends ConsumerWidget {
     });
 
     final isLoading = ref.watch(receiptProvider(receiptId).select((it) => it.isLoading));
+    final r = context.responsive;
 
     return WindowsScaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
-        child: const _TopAppBar(),
-      ),
       extendBodyBehindAppBar: true,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(r.appBarHeight),
+        child: _ReceiptTitleBar(height: r.appBarHeight, fontSize: r.fontTitle),
+      ),
       body: Container(
         width: double.infinity,
         height: double.infinity,
         padding: EdgeInsets.only(
-          top: context.responsive.value(kiosk: 140, tablet: 110, phone: 90),
-          bottom: context.responsive.value(kiosk: 64, tablet: 48, phone: 32),
+          top: r.appBarHeight + r.spacingMd,
+          bottom: r.spacingLg,
         ),
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -64,39 +66,36 @@ class ReceiptScreen extends ConsumerWidget {
             end: Alignment.bottomRight,
           ),
         ),
-        child:
-            isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : Column(
-                  spacing: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-                  children: [
-                    Expanded(child: _ReceiptPreview(receiptId: receiptId)),
-                    _PrintButton(receiptId: receiptId),
-                    const _CloseButton(),
-                  ],
-                ),
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  Expanded(child: _ReceiptPreview(receiptId: receiptId)),
+                  Gap(r.spacingLg),
+                  _PrintButton(receiptId: receiptId),
+                  Gap(r.spacingMd),
+                  const _CloseButton(),
+                ],
+              ),
       ),
     );
   }
 }
 
-class _TopAppBar extends StatelessWidget {
-  const _TopAppBar();
+class _ReceiptTitleBar extends StatelessWidget {
+  const _ReceiptTitleBar({required this.height, required this.fontSize});
+
+  final double height;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
-      decoration: const BoxDecoration(color: ColorSet.transparent),
+    return SizedBox(
+      height: height,
       child: Center(
         child: Text(
           'Order Receipt',
-          style: TextStyle(
-            fontSize: context.responsive.value(kiosk: 36, tablet: 28, phone: 20),
-            fontWeight: FontWeight.w600,
-            color: ColorSet.light,
-          ),
-          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w600, color: ColorSet.light),
         ),
       ),
     );
@@ -645,39 +644,23 @@ class _PrintButton extends ConsumerWidget {
 
     if (!hasReceipt) return const SizedBox.shrink();
 
-    return GestureDetector(
-      onTap:
-          printStatus is! MutationPending
-              ? () {
-                printAction.run(ref, (txn) {
-                  return txn.get(receiptProvider(receiptId).notifier).print();
-                }).ignore();
-              }
-              : null,
-      child: Container(
-        height: context.responsive.value(kiosk: 64, tablet: 56, phone: 48),
-        width: double.infinity,
-        margin: EdgeInsets.symmetric(
-          horizontal: context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
-        ),
-        decoration: BoxDecoration(
-          color: printStatus is! MutationPending ? ColorSet.primary : const Color(0xFFE0E0E0),
-          borderRadius: BorderRadius.circular(32),
-        ),
-        child: Center(
-          child: Text(
-            printStatus is MutationPending
-                ? 'Printing...'
-                : printStatus is MutationSuccess
+    final isPending = printStatus is MutationPending;
+    final r = context.responsive;
+    return Padding(
+      padding: r.buttonMarginH,
+      child: GradientButton.solid(
+        label: isPending
+            ? 'Printing...'
+            : printStatus is MutationSuccess
                 ? 'Reprint Receipt'
                 : 'Print Receipt',
-            style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-              fontWeight: FontWeight.normal,
-              color: printStatus is! MutationPending ? ColorSet.light : const Color(0xFF9E9E9E),
-            ),
-          ),
-        ),
+        backgroundColor: ColorSet.primary,
+        isLoading: isPending,
+        onPressed: !isPending
+            ? () => printAction.run(ref, (txn) {
+                  return txn.get(receiptProvider(receiptId).notifier).print();
+                }).ignore()
+            : null,
       ),
     );
   }
@@ -688,31 +671,20 @@ class _CloseButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
-      onTap: () {
-        if (context.canPop()) {
-          context.pop();
-        } else {
-          const SalesRoute().go(context);
-        }
-      },
-      child: Container(
-        height: context.responsive.value(kiosk: 64, tablet: 56, phone: 48),
-        width: double.infinity,
-        margin: EdgeInsets.symmetric(
-          horizontal: context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
-        ),
-        decoration: BoxDecoration(color: ColorSet.light, borderRadius: BorderRadius.circular(32)),
-        child: Center(
-          child: Text(
-            'Close',
-            style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-              fontWeight: FontWeight.normal,
-              color: ColorSet.text,
-            ),
-          ),
-        ),
+    final r = context.responsive;
+    return Padding(
+      padding: r.buttonMarginH,
+      child: GradientButton.solid(
+        label: 'Close',
+        backgroundColor: ColorSet.light,
+        foregroundColor: ColorSet.text,
+        onPressed: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            const SalesRoute().go(context);
+          }
+        },
       ),
     );
   }

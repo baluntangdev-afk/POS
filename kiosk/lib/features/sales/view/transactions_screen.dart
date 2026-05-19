@@ -56,7 +56,7 @@ class TransactionsScreen extends HookConsumerWidget {
     return WindowsScaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
+        preferredSize: Size.fromHeight(context.responsive.value(kiosk: 68.0, tablet: 60.0, phone: 52.0)),
         child: const _TopAppBar(),
       ),
       body: Padding(
@@ -85,45 +85,54 @@ class _TopAppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            ColorSet.secondary.withValues(alpha: 0.85),
-            ColorSet.primary.withValues(alpha: 0.85),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+      height: context.responsive.value(kiosk: 68.0, tablet: 60.0, phone: 52.0),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFE8E6E1))),
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: context.responsive.value(kiosk: 24.0, tablet: 16.0, phone: 12.0),
       ),
       child: Row(
         children: [
-          Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-          GestureDetector(
-            onTap: () {
+          OutlinedButton.icon(
+            onPressed: () {
               if (context.canPop()) {
                 context.pop();
               }
             },
-            behavior: HitTestBehavior.opaque,
-            child: Icon(
+            icon: Icon(
               Icons.arrow_back_ios,
-              color: ColorSet.light,
-              size: context.responsive.value(kiosk: 48, tablet: 32, phone: 24),
+              size: context.responsive.value(kiosk: 18.0, tablet: 15.0, phone: 13.0),
+            ),
+            label: const Text('Back'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: ColorSet.primary,
+              side: const BorderSide(color: ColorSet.primary, width: 2),
+              minimumSize: Size(
+                context.responsive.value(kiosk: 110.0, tablet: 90.0, phone: 76.0),
+                context.responsive.value(kiosk: 52.0, tablet: 44.0, phone: 38.0),
+              ),
+              textStyle: TextStyle(
+                fontSize: context.responsive.value(kiosk: 15.0, tablet: 13.0, phone: 12.0),
+              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
           Expanded(
             child: Text(
               'Transactions',
               style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 36, tablet: 28, phone: 20),
+                fontSize: context.responsive.value(kiosk: 24.0, tablet: 20.0, phone: 16.0),
                 fontWeight: FontWeight.w600,
-                color: ColorSet.light,
+                color: ColorSet.dark,
               ),
               textAlign: TextAlign.center,
             ),
           ),
-          Gap(context.responsive.value(kiosk: 80, tablet: 56, phone: 40)),
+          SizedBox(
+            width: context.responsive.value<double>(kiosk: 110, tablet: 90, phone: 76),
+          ),
         ],
       ),
     );

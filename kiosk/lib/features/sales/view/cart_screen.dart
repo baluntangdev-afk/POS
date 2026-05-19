@@ -7,6 +7,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../widgets/button.dart';
@@ -20,74 +21,246 @@ class CartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return WindowsScaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
-        child: const _TopAppBar(),
-      ),
       backgroundColor: ColorSet.background,
-      body: const Column(
-        children: [
-          Expanded(child: _LineItemListView()),
-          _SummaryView(),
-          _DiscountButton(),
-          _PaymentButton(),
-        ],
+      body: ResponsiveBuilder(
+        kiosk: (context) => const _KioskCartLayout(),
+        tablet: (context) => const _DefaultCartLayout(),
+        phone: (context) => const _DefaultCartLayout(),
       ),
     );
   }
 }
 
-class _TopAppBar extends StatelessWidget {
-  const _TopAppBar();
+// ── White header bar ──────────────────────────────────────────────────────────
+class _CartHeader extends StatelessWidget {
+  const _CartHeader();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            ColorSet.secondary.withValues(alpha: 0.85),
-            ColorSet.primary.withValues(alpha: 0.85),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+      height: context.responsive.value(kiosk: 68.0, tablet: 60.0, phone: 52.0),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFE8E6E1))),
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: context.responsive.value(kiosk: 24.0, tablet: 16.0, phone: 12.0),
       ),
       child: Row(
         children: [
-          Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-          GestureDetector(
-            onTap: () {
-              if (context.canPop()) {
-                context.pop();
-              }
+          OutlinedButton.icon(
+            onPressed: () {
+              if (context.canPop()) context.pop();
             },
-            behavior: HitTestBehavior.opaque,
-            child: Icon(
+            icon: Icon(
               Icons.arrow_back_ios,
-              color: ColorSet.light,
-              size: context.responsive.value(kiosk: 48, tablet: 32, phone: 24),
+              size: context.responsive.value(kiosk: 18.0, tablet: 15.0, phone: 13.0),
             ),
-          ),
-          Expanded(
-            child: Text(
-              'Order Summary',
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 36, tablet: 28, phone: 20),
-                fontWeight: FontWeight.w600,
-                color: ColorSet.light,
+            label: const Text('Back'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: ColorSet.primary,
+              side: const BorderSide(color: ColorSet.primary, width: 2),
+              minimumSize: Size(
+                context.responsive.value(kiosk: 110.0, tablet: 90.0, phone: 76.0),
+                context.responsive.value(kiosk: 52.0, tablet: 44.0, phone: 38.0),
               ),
-              textAlign: TextAlign.center,
+              textStyle: TextStyle(
+                fontSize: context.responsive.value(kiosk: 15.0, tablet: 13.0, phone: 12.0),
+              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
-          Gap(context.responsive.value(kiosk: 80, tablet: 56, phone: 40)),
+          const Spacer(),
+          Text(
+            'Order Summary',
+            style: TextStyle(
+              fontSize: context.responsive.value(kiosk: 24.0, tablet: 20.0, phone: 16.0),
+              fontWeight: FontWeight.w600,
+              color: ColorSet.dark,
+            ),
+          ),
+          const Spacer(),
+          // Balance the back button so the title is centered
+          SizedBox(
+            width: context.responsive.value<double>(kiosk: 110, tablet: 90, phone: 76),
+          ),
         ],
       ),
     );
   }
 }
 
+// ── Kiosk: header + Row(items | 360px summary panel) ─────────────────────────
+class _KioskCartLayout extends StatelessWidget {
+  const _KioskCartLayout();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _CartHeader(),
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Expanded(child: _LineItemListView()),
+              const _CartSummaryPanel(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Tablet / phone: header + items + summary + buttons (vertical) ─────────────
+class _DefaultCartLayout extends StatelessWidget {
+  const _DefaultCartLayout();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _CartHeader(),
+        const Expanded(child: _LineItemListView()),
+        const _SummaryView(),
+        const _DiscountButton(),
+        const _PaymentButton(),
+      ],
+    );
+  }
+}
+
+// ── Right summary panel (kiosk only, 360px) ───────────────────────────────────
+class _CartSummaryPanel extends ConsumerWidget {
+  const _CartSummaryPanel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final computations = ref.watch(
+      orderingProvider.select((it) {
+        final sale = it.value?.sale;
+        if (sale == null) return <({String label, Decimal amount})>[];
+        return [
+          (label: 'VATable Sales', amount: sale.vatableAmount),
+          if (sale.vatExemptSales > Decimal.zero) ...[
+            (label: 'VAT-Exempt Sales', amount: sale.vatExemptSales),
+          ],
+          (label: 'VAT', amount: sale.vatAmount),
+          if (sale.discountAmount > Decimal.zero) ...[
+            (label: 'Discount', amount: -sale.discountAmount),
+          ],
+          (label: 'Total', amount: sale.totalAmount),
+        ];
+      }),
+    );
+
+    final (:isLoading, :lineItemCount) = ref.watch(
+      orderingProvider.select(
+        (it) => (isLoading: it.isLoading, lineItemCount: it.value?.sale.items.length ?? 0),
+      ),
+    );
+
+    return Container(
+      width: 360,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(left: BorderSide(color: Color(0xFFE8E6E1))),
+      ),
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Order Total',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          const Gap(12),
+          const Divider(),
+          const Gap(12),
+          ...computations.map((computation) {
+            final (:label, :amount) = computation;
+            final isTotal = label == 'Total';
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: isTotal ? 20 : 15,
+                      fontWeight: isTotal ? FontWeight.w800 : FontWeight.w400,
+                      color: isTotal ? ColorSet.dark : Colors.grey.shade600,
+                    ),
+                  ),
+                  Text(
+                    amount.pesoFormatted,
+                    style: TextStyle(
+                      fontSize: isTotal ? 22 : 15,
+                      fontWeight: isTotal ? FontWeight.w800 : FontWeight.w400,
+                      color: isTotal ? ColorSet.primary : Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const Spacer(),
+          if (lineItemCount > 0) ...[
+            OutlinedButton(
+              onPressed:
+                  !isLoading ? () => const DiscountRoute().push<void>(context) : null,
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: ColorSet.primary.withValues(alpha: 0.5)),
+                foregroundColor: ColorSet.primary,
+                minimumSize: const Size(double.infinity, 52),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Apply Discount'),
+            ),
+            const Gap(12),
+          ],
+          GestureDetector(
+            onTap:
+                !isLoading && lineItemCount > 0
+                    ? () => const PaymentRoute().push<void>(context)
+                    : null,
+            child: Container(
+              height: 64,
+              decoration: BoxDecoration(
+                gradient:
+                    !isLoading && lineItemCount > 0
+                        ? const LinearGradient(
+                          colors: ColorSet.gradientBg,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                        : null,
+                color: lineItemCount == 0 ? const Color(0xFFE0E0E0) : null,
+                borderRadius: BorderRadius.circular(32),
+              ),
+              child: Center(
+                child: Text(
+                  'Proceed to Payment',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: lineItemCount == 0 ? const Color(0xFF9E9E9E) : Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Line items list ───────────────────────────────────────────────────────────
 class _LineItemListView extends ConsumerWidget {
   const _LineItemListView();
 
@@ -100,200 +273,146 @@ class _LineItemListView extends ConsumerWidget {
       width: double.infinity,
       height: double.infinity,
       margin: EdgeInsets.fromLTRB(
-        context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+        context.responsive.value(kiosk: 24.0, tablet: 20.0, phone: 12.0),
         16,
-        context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-        0,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        context.responsive.value(kiosk: 24.0, tablet: 20.0, phone: 12.0),
+        16,
       ),
       child: ListView.separated(
-        padding: EdgeInsets.all(context.responsive.value(kiosk: 20, tablet: 16, phone: 12)),
+        padding: EdgeInsets.all(context.responsive.value(kiosk: 4.0, tablet: 4.0, phone: 4.0)),
         itemCount: lineItems.length,
-        separatorBuilder:
-            (context, index) => Divider(
-              height: context.responsive.value(kiosk: 30, tablet: 20, phone: 16),
-              thickness: 0.5,
-            ),
+        separatorBuilder: (context, index) => const Gap(12),
         itemBuilder: (context, index) {
           final lineItem = lineItems[index];
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: context.responsive.value(kiosk: 90, tablet: 72, phone: 56),
-                height: context.responsive.value(kiosk: 90, tablet: 72, phone: 56),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: ColorSet.background,
-                  image: DecorationImage(
-                    image: MemoryImage(lineItem.productImage),
-                    fit: BoxFit.contain,
+          return Container(
+            constraints: BoxConstraints(
+              minHeight: context.responsive.value(kiosk: 88.0, tablet: 80.0, phone: 72.0),
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.07),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            padding: EdgeInsets.all(
+              context.responsive.value(kiosk: 16.0, tablet: 14.0, phone: 12.0),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: context.responsive.value(kiosk: 80.0, tablet: 64.0, phone: 52.0),
+                  height: context.responsive.value(kiosk: 80.0, tablet: 64.0, phone: 52.0),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: ColorSet.background,
+                    image: DecorationImage(
+                      image: MemoryImage(lineItem.productImage),
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
-              ),
-              Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 12)),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${lineItem.variant.name.isNotEmpty ? "${lineItem.variant.name} " : ""}${lineItem.productName}',
-                      style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 30, tablet: 20, phone: 14),
-                        fontWeight: FontWeight.normal,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                    Text(
-                      'Qty: ${lineItem.quantity}',
-                      style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
-                        fontWeight: FontWeight.normal,
-                        color: ColorSet.text.withValues(alpha: 0.5),
-                      ),
-                    ),
-                    if (lineItem.modifiers.isNotEmpty) ...[
-                      const Gap(4),
+                Gap(context.responsive.value(kiosk: 16.0, tablet: 12.0, phone: 10.0)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        'Add-ons: ${lineItem.modifiers.expand((modifier) => modifier.options).map((option) => option.name).join(', ')}',
+                        '${lineItem.variant.name.isNotEmpty ? "${lineItem.variant.name} " : ""}${lineItem.productName}',
                         style: TextStyle(
-                          fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
-                          fontWeight: FontWeight.normal,
-                          color: ColorSet.text.withValues(alpha: 0.5),
+                          fontSize: context.responsive.value(kiosk: 18.0, tablet: 16.0, phone: 14.0),
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      Text(
+                        'Qty: ${lineItem.quantity}',
+                        style: TextStyle(
+                          fontSize: context.responsive.value(kiosk: 14.0, tablet: 13.0, phone: 12.0),
+                          color: Colors.grey.shade500,
                         ),
                       ),
-                    ],
-                    Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Flexible(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                lineItem.grossAmount.pesoFormatted,
-                                style: TextStyle(
-                                  fontSize: context.responsive.value(
-                                    kiosk: 36,
-                                    tablet: 24,
-                                    phone: 16,
-                                  ),
-                                  fontWeight: FontWeight.w600,
-                                  color: ColorSet.secondary,
-                                ),
-                              ),
-                              if (lineItem.discount != null)
-                                Text(
-                                  'LESS: ${lineItem.discount!.code}',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: context.responsive.value(
-                                      kiosk: 16,
-                                      tablet: 14,
-                                      phone: 10,
-                                    ),
-                                    fontWeight: FontWeight.normal,
-                                    color: ColorSet.danger,
-                                  ),
-                                ),
-                            ],
+                      if (lineItem.modifiers.isNotEmpty) ...[
+                        const Gap(2),
+                        Text(
+                          'Add-ons: ${lineItem.modifiers.expand((modifier) => modifier.options).map((option) => option.name).join(', ')}',
+                          style: TextStyle(
+                            fontSize: context.responsive.value(
+                              kiosk: 13.0,
+                              tablet: 12.0,
+                              phone: 11.0,
+                            ),
+                            color: Colors.grey.shade500,
                           ),
                         ),
-                        Row(
-                          children: [
-                            Button(
-                              onPressed: () async {
-                                final updatedLineItem = await showLineItemDialog(
-                                  context,
-                                  productId: lineItem.productId,
-                                  initialQuantity: lineItem.quantity,
-                                  initialVariant: lineItem.variant,
-                                  initialModifiers: lineItem.modifiers,
+                      ],
+                    ],
+                  ),
+                ),
+                Gap(context.responsive.value(kiosk: 16.0, tablet: 12.0, phone: 8.0)),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      lineItem.grossAmount.pesoFormatted,
+                      style: TextStyle(
+                        fontSize: context.responsive.value(kiosk: 20.0, tablet: 18.0, phone: 15.0),
+                        fontWeight: FontWeight.w700,
+                        color: ColorSet.secondary,
+                      ),
+                    ),
+                    if (lineItem.discount != null)
+                      Text(
+                        'LESS: ${lineItem.discount!.code}',
+                        style: TextStyle(
+                          fontSize: context.responsive.value(kiosk: 12.0, tablet: 11.0, phone: 10.0),
+                          color: ColorSet.danger,
+                        ),
+                      ),
+                    const Gap(8),
+                    Row(
+                      children: [
+                        _QtyButton(
+                          icon: Icons.remove,
+                          onPressed: () async {
+                            final updatedLineItem = await showLineItemDialog(
+                              context,
+                              productId: lineItem.productId,
+                              initialQuantity: lineItem.quantity,
+                              initialVariant: lineItem.variant,
+                              initialModifiers: lineItem.modifiers,
+                            );
+                            if (updatedLineItem == null || !context.mounted) return;
+                            ref
+                                .read(orderingProvider.notifier)
+                                .replaceLineItem(
+                                  updatedLineItem.copyWith(id: lineItem.id),
+                                  index: index,
                                 );
-                                if (updatedLineItem == null || !context.mounted) return;
-                                ref
-                                    .read(orderingProvider.notifier)
-                                    .replaceLineItem(
-                                      updatedLineItem.copyWith(
-                                        id: lineItem.id, // Retain id
-                                      ),
-                                      index: index,
-                                    );
-                              },
-                              backgroundColor: const Color(0xFF377FEB),
-                              foregroundColor: ColorSet.light,
-                              label: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: context.responsive.value(
-                                    kiosk: 16,
-                                    tablet: 12,
-                                    phone: 8,
-                                  ),
-                                  vertical: context.responsive.value(kiosk: 8, tablet: 6, phone: 4),
-                                ),
-                                child: Text(
-                                  'Edit',
-                                  style: TextStyle(
-                                    fontSize: context.responsive.value(
-                                      kiosk: 20,
-                                      tablet: 16,
-                                      phone: 12,
-                                    ),
-                                    fontWeight: FontWeight.normal,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Gap(context.responsive.value(kiosk: 8, tablet: 8, phone: 4)),
-                            Button(
-                              onPressed: () {
-                                ref.read(orderingProvider.notifier).removeLineItem(index: index);
-                              },
-                              backgroundColor: ColorSet.danger,
-                              foregroundColor: ColorSet.light,
-                              label: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: context.responsive.value(
-                                    kiosk: 16,
-                                    tablet: 12,
-                                    phone: 8,
-                                  ),
-                                  vertical: context.responsive.value(kiosk: 8, tablet: 6, phone: 4),
-                                ),
-                                child: Text(
-                                  'Delete',
-                                  style: TextStyle(
-                                    fontSize: context.responsive.value(
-                                      kiosk: 20,
-                                      tablet: 16,
-                                      phone: 12,
-                                    ),
-                                    fontWeight: FontWeight.normal,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                          },
+                          size: context.responsive.value(kiosk: 52.0, tablet: 44.0, phone: 36.0),
+                        ),
+                        Gap(context.responsive.value(kiosk: 8.0, tablet: 6.0, phone: 4.0)),
+                        _QtyButton(
+                          icon: Icons.delete_outline,
+                          onPressed: () {
+                            ref.read(orderingProvider.notifier).removeLineItem(index: index);
+                          },
+                          size: context.responsive.value(kiosk: 52.0, tablet: 44.0, phone: 36.0),
+                          color: ColorSet.danger,
                         ),
                       ],
                     ),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),
@@ -301,6 +420,39 @@ class _LineItemListView extends ConsumerWidget {
   }
 }
 
+class _QtyButton extends StatelessWidget {
+  const _QtyButton({
+    required this.icon,
+    required this.onPressed,
+    required this.size,
+    this.color = ColorSet.primary,
+  });
+
+  final IconData icon;
+  final VoidCallback onPressed;
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: color, width: 2),
+          foregroundColor: color,
+          padding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        child: Icon(icon, size: size * 0.4),
+      ),
+    );
+  }
+}
+
+// ── Summary view (tablet/phone only) ─────────────────────────────────────────
 class _SummaryView extends ConsumerWidget {
   const _SummaryView();
 
@@ -325,9 +477,9 @@ class _SummaryView extends ConsumerWidget {
     );
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
-        32,
-        context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
+        context.responsive.value(kiosk: 64.0, tablet: 48.0, phone: 24.0),
+        24,
+        context.responsive.value(kiosk: 64.0, tablet: 48.0, phone: 24.0),
         0,
       ),
       child: Column(
@@ -341,20 +493,20 @@ class _SummaryView extends ConsumerWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: context.responsive.value(kiosk: 36, tablet: 24, phone: 18),
-                    fontWeight: FontWeight.w600,
-                    height: 1.25,
-                  ).copyWith(fontWeight: isTotal ? FontWeight.w600 : FontWeight.w300),
+                    fontSize: context.responsive.value(kiosk: 24.0, tablet: 18.0, phone: 15.0),
+                    fontWeight: isTotal ? FontWeight.w700 : FontWeight.w300,
+                    height: 1.3,
+                  ),
                 ),
                 const Gap(16),
                 Text(
                   amount.pesoFormatted,
                   style: TextStyle(
-                    fontSize: context.responsive.value(kiosk: 36, tablet: 24, phone: 18),
-                    fontWeight: FontWeight.w600,
+                    fontSize: context.responsive.value(kiosk: 24.0, tablet: 18.0, phone: 15.0),
+                    fontWeight: isTotal ? FontWeight.w700 : FontWeight.w300,
                     color: ColorSet.secondary,
-                    height: 1.25,
-                  ).copyWith(fontWeight: isTotal ? FontWeight.w600 : FontWeight.w300),
+                    height: 1.3,
+                  ),
                 ),
               ],
             );
@@ -365,6 +517,7 @@ class _SummaryView extends ConsumerWidget {
   }
 }
 
+// ── Discount button (tablet/phone only) ───────────────────────────────────────
 class _DiscountButton extends ConsumerWidget {
   const _DiscountButton();
 
@@ -376,13 +529,13 @@ class _DiscountButton extends ConsumerWidget {
       ),
     );
     return Container(
-      height: context.responsive.value(kiosk: 64, tablet: 56, phone: 48),
+      height: context.responsive.value(kiosk: 64.0, tablet: 56.0, phone: 48.0),
       width: double.infinity,
       margin: EdgeInsets.fromLTRB(
-        context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
-        context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-        context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
-        context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+        context.responsive.value(kiosk: 64.0, tablet: 48.0, phone: 24.0),
+        context.responsive.value(kiosk: 24.0, tablet: 20.0, phone: 16.0),
+        context.responsive.value(kiosk: 64.0, tablet: 48.0, phone: 24.0),
+        context.responsive.value(kiosk: 16.0, tablet: 12.0, phone: 8.0),
       ),
       child: Button(
         onPressed:
@@ -394,8 +547,7 @@ class _DiscountButton extends ConsumerWidget {
         label: Text(
           'Apply Discount',
           style: TextStyle(
-            fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-            fontWeight: FontWeight.normal,
+            fontSize: context.responsive.value(kiosk: 18.0, tablet: 16.0, phone: 14.0),
           ),
         ),
         foregroundColor: ColorSet.text,
@@ -405,6 +557,7 @@ class _DiscountButton extends ConsumerWidget {
   }
 }
 
+// ── Payment button (tablet/phone only) ────────────────────────────────────────
 class _PaymentButton extends ConsumerWidget {
   const _PaymentButton();
 
@@ -423,13 +576,13 @@ class _PaymentButton extends ConsumerWidget {
               }
               : null,
       child: Container(
-        height: context.responsive.value(kiosk: 64, tablet: 56, phone: 48),
+        height: context.responsive.value(kiosk: 80.0, tablet: 64.0, phone: 52.0),
         width: double.infinity,
         margin: EdgeInsets.fromLTRB(
-          context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
+          context.responsive.value(kiosk: 64.0, tablet: 48.0, phone: 24.0),
           0,
-          context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
-          context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+          context.responsive.value(kiosk: 64.0, tablet: 48.0, phone: 24.0),
+          context.responsive.value(kiosk: 32.0, tablet: 24.0, phone: 16.0),
         ),
         decoration: BoxDecoration(
           gradient:
@@ -445,15 +598,15 @@ class _PaymentButton extends ConsumerWidget {
                   : null,
           color: lineItemCount == 0 ? const Color(0xFFE0E0E0) : null,
           borderRadius: BorderRadius.circular(
-            context.responsive.value(kiosk: 64, tablet: 56, phone: 48) / 2,
+            context.responsive.value(kiosk: 80.0, tablet: 64.0, phone: 52.0) / 2,
           ),
         ),
         child: Center(
           child: Text(
             'Proceed to Payment',
             style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-              fontWeight: FontWeight.normal,
+              fontSize: context.responsive.value(kiosk: 20.0, tablet: 18.0, phone: 15.0),
+              fontWeight: FontWeight.w600,
               color: lineItemCount == 0 ? const Color(0xFF9E9E9E) : ColorSet.light,
             ),
           ),

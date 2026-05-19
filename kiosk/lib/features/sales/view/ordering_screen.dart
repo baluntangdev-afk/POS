@@ -10,6 +10,7 @@ import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/product.dart';
 import '../state/ordering_notifier.dart';
@@ -20,20 +21,31 @@ class OrderingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isAndroid = context.breakpoint.isAndroid;
+    final body = ResponsiveBuilder(
+      kiosk: (context) {
+        final isPortrait = MediaQuery.orientationOf(context) == Orientation.portrait;
+        if (isPortrait) {
+          return const _PortraitLayout();
+        } else {
+          return const _LandscapeLayout();
+        }
+      },
+      tablet: (context) => const _LandscapeLayout(),
+      phone: (context) => const _LandscapeLayout(),
+    );
+
+    if (isAndroid) {
+      return AndroidScaffold(
+        backgroundColor: ColorSet.background,
+        body: body,
+        floatingActionButton: const _CartButton(),
+        floatingActionButtonLocation: _CartButtonLocation(),
+      );
+    }
     return WindowsScaffold(
       backgroundColor: ColorSet.background,
-      body: ResponsiveBuilder(
-        kiosk: (context) {
-          final isPortrait = MediaQuery.orientationOf(context) == Orientation.portrait;
-          if (isPortrait) {
-            return const _PortraitLayout();
-          } else {
-            return const _LandscapeLayout();
-          }
-        },
-        tablet: (context) => const _LandscapeLayout(),
-        phone: (context) => const _LandscapeLayout(),
-      ),
+      body: body,
       floatingActionButton: const _CartButton(),
       floatingActionButtonLocation: _CartButtonLocation(),
     );
@@ -61,33 +73,36 @@ class _LandscapeLayout extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Container(
-                height: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
-                padding: EdgeInsets.symmetric(
-                  horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-                ),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        if (context.canPop()) {
-                          context.pop();
-                        }
-                      },
-                      behavior: HitTestBehavior.opaque,
-                      child: Icon(
-                        Icons.arrow_back_ios,
-                        color: ColorSet.light,
-                        size: context.responsive.value(kiosk: 48, tablet: 36, phone: 24),
+              SafeArea(
+                bottom: false,
+                child: Container(
+                  height: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+                  ),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          if (context.canPop()) {
+                            context.pop();
+                          }
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: Icon(
+                          Icons.arrow_back_ios,
+                          color: ColorSet.light,
+                          size: context.responsive.value(kiosk: 48, tablet: 36, phone: 24),
+                        ),
                       ),
-                    ),
-                    const Spacer(),
-                    Assets.images.svg.icAdtoKart.svg(
-                      height: context.responsive.value(kiosk: 80, tablet: 60, phone: 40),
-                      colorFilter: const ColorFilter.mode(ColorSet.light, BlendMode.srcIn),
-                    ),
-                    const Spacer(),
-                  ],
+                      const Spacer(),
+                      Assets.images.svg.icAdtoKart.svg(
+                        height: context.responsive.value(kiosk: 80, tablet: 60, phone: 40),
+                        colorFilter: const ColorFilter.mode(ColorSet.light, BlendMode.srcIn),
+                      ),
+                      const Spacer(),
+                    ],
+                  ),
                 ),
               ),
               Container(

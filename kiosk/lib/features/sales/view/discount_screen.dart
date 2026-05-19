@@ -7,12 +7,14 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../utils/tax_calculator.dart';
 import '../../../validation/rules/is_required.dart';
 import '../../../validation/validate.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/gradient_button.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../../../widgets/top_app_bar.dart';
@@ -52,13 +54,12 @@ class DiscountScreen extends HookConsumerWidget {
       context.pop();
     }
 
-    return WindowsScaffold(
-      backgroundColor: ColorSet.background,
-      body: Column(
-        children: [
-          TopAppBar(title: 'Apply Discount'),
-          Expanded(
-            child: ResponsiveBuilder(
+    final isAndroid = context.breakpoint.isAndroid;
+    final body = Column(
+      children: [
+        TopAppBar(title: 'Apply Discount'),
+        Expanded(
+          child: ResponsiveBuilder(
         kiosk: (context) {
           return _LandscapeLayout(
             selectedQuantities: selectedQuantities.value,
@@ -92,8 +93,11 @@ class DiscountScreen extends HookConsumerWidget {
             ),
           ),
         ],
-      ),
-    );
+      );
+    if (isAndroid) {
+      return AndroidScaffold(backgroundColor: ColorSet.background, body: body);
+    }
+    return WindowsScaffold(backgroundColor: ColorSet.background, body: body);
   }
 }
 

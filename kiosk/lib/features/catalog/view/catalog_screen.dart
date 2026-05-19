@@ -3,7 +3,9 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
 import 'catalog_grid_screen.dart';
@@ -15,22 +17,24 @@ class CatalogScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedTab = useState(0);
+    final isAndroid = context.breakpoint.isAndroid;
 
-    return WindowsScaffold(
-      backgroundColor: Colors.grey.shade50,
-      body: Column(
-        children: [
-          TopAppBar(title: 'Catalog Management'),
-          _TabBar(selectedTab: selectedTab),
-          Expanded(
-            child: IndexedStack(
-              index: selectedTab.value,
-              children: const [CatalogGridScreen(), ModifierGroupsScreen(), _CategoriesTab()],
-            ),
+    final body = Column(
+      children: [
+        TopAppBar(title: 'Catalog Management'),
+        _TabBar(selectedTab: selectedTab),
+        Expanded(
+          child: IndexedStack(
+            index: selectedTab.value,
+            children: const [CatalogGridScreen(), ModifierGroupsScreen(), _CategoriesTab()],
           ),
-        ],
-      ),
+        ),
+      ],
     );
+    if (isAndroid) {
+      return AndroidScaffold(backgroundColor: Colors.grey.shade50, body: body);
+    }
+    return WindowsScaffold(backgroundColor: Colors.grey.shade50, body: body);
   }
 }
 

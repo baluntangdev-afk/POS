@@ -9,10 +9,12 @@ import 'package:intl/intl.dart';
 
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/debounce.dart';
 import '../../../utils/decimal_formatter.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/button.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../../../widgets/windows_scaffold.dart';
@@ -53,28 +55,38 @@ class TransactionsScreen extends HookConsumerWidget {
       return null;
     }, [page.value, limit.value, soNumber.value, soDate.value, sort.value]);
 
+    final isAndroid = context.breakpoint.isAndroid;
+    final appBar = PreferredSize(
+      preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
+      child: const _TopAppBar(),
+    );
+    final body = Padding(
+      padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+      child: Column(
+        spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+        children: [
+          _PaginationControls(
+            page: page,
+            limit: limit,
+            totalPages: totalPages,
+            soNumber: soNumber,
+            soDate: soDate,
+          ),
+          Expanded(child: _TransactionsTable(sort: sort)),
+        ],
+      ),
+    );
+    if (isAndroid) {
+      return AndroidScaffold(
+        backgroundColor: Colors.grey.shade50,
+        appBar: appBar,
+        body: body,
+      );
+    }
     return WindowsScaffold(
       backgroundColor: Colors.grey.shade50,
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
-        child: const _TopAppBar(),
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-        child: Column(
-          spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-          children: [
-            _PaginationControls(
-              page: page,
-              limit: limit,
-              totalPages: totalPages,
-              soNumber: soNumber,
-              soDate: soDate,
-            ),
-            Expanded(child: _TransactionsTable(sort: sort)),
-          ],
-        ),
-      ),
+      appBar: appBar,
+      body: body,
     );
   }
 }

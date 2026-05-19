@@ -8,7 +8,9 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/button.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../../../widgets/windows_scaffold.dart';
@@ -36,29 +38,31 @@ class ProductDetailScreen extends HookConsumerWidget {
       ]),
     );
 
-    return WindowsScaffold(
-      backgroundColor: Colors.grey.shade50,
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
-        child: _TopAppBar(productName: mockProduct.name),
-      ),
-      body: Column(
-        children: [
-          _TabBar(selectedTab: selectedTab),
-          Expanded(
-            child: IndexedStack(
-              index: selectedTab.value,
-              children: [
-                _DetailsTab(product: mockProduct),
-                _VariantsTab(product: mockProduct),
-                _ModifiersTab(product: mockProduct),
-                _AvailabilityTab(product: mockProduct),
-              ],
-            ),
-          ),
-        ],
-      ),
+    final isAndroid = context.breakpoint.isAndroid;
+    final appBar = PreferredSize(
+      preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
+      child: _TopAppBar(productName: mockProduct.name),
     );
+    final body = Column(
+      children: [
+        _TabBar(selectedTab: selectedTab),
+        Expanded(
+          child: IndexedStack(
+            index: selectedTab.value,
+            children: [
+              _DetailsTab(product: mockProduct),
+              _VariantsTab(product: mockProduct),
+              _ModifiersTab(product: mockProduct),
+              _AvailabilityTab(product: mockProduct),
+            ],
+          ),
+        ),
+      ],
+    );
+    if (isAndroid) {
+      return AndroidScaffold(backgroundColor: Colors.grey.shade50, appBar: appBar, body: body);
+    }
+    return WindowsScaffold(backgroundColor: Colors.grey.shade50, appBar: appBar, body: body);
   }
 }
 

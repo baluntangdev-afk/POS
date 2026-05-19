@@ -14,6 +14,8 @@ import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../utils/decimal_rounding.dart';
+import '../../../styles/responsive/breakpoint.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/gradient_button.dart';
 import '../../../widgets/message_dialog.dart';
 import '../../../widgets/network_error_dialog.dart';
@@ -42,24 +44,26 @@ class RefundScreen extends HookConsumerWidget {
     });
 
     final isLoading = ref.watch(refundProvider(receiptId).select((it) => it.isLoading));
+    final isAndroid = context.breakpoint.isAndroid;
 
-    return WindowsScaffold(
-      backgroundColor: ColorSet.background,
-      body: Column(
-        children: [
-          TopAppBar(title: 'Process Refund'),
-          Expanded(
-            child: isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : ResponsiveBuilder(
-                    kiosk: (context) => _LandscapeLayout(receiptId: receiptId),
-                    tablet: (context) => _LandscapeLayout(receiptId: receiptId),
-                    phone: (context) => _PortraitLayout(receiptId: receiptId),
-                  ),
-          ),
-        ],
-      ),
+    final body = Column(
+      children: [
+        TopAppBar(title: 'Process Refund'),
+        Expanded(
+          child: isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : ResponsiveBuilder(
+                  kiosk: (context) => _LandscapeLayout(receiptId: receiptId),
+                  tablet: (context) => _LandscapeLayout(receiptId: receiptId),
+                  phone: (context) => _PortraitLayout(receiptId: receiptId),
+                ),
+        ),
+      ],
     );
+    if (isAndroid) {
+      return AndroidScaffold(backgroundColor: ColorSet.background, body: body);
+    }
+    return WindowsScaffold(backgroundColor: ColorSet.background, body: body);
   }
 }
 

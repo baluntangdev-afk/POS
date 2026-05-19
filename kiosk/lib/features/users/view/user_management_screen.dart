@@ -7,6 +7,7 @@ import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/message_dialog.dart';
 import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/top_app_bar.dart';
@@ -92,36 +93,38 @@ class UserManagementScreen extends HookConsumerWidget {
         },
       );
     });
-    return WindowsScaffold(
-      backgroundColor: ColorSet.background,
-      body: SizedBox.expand(
-        child: Column(
-          children: [
-            TopAppBar(
-              title: 'User Management',
-              trailing: IconButton(
-                onPressed: () => _showAddUserDialog(context, ref),
-                icon: Icon(Icons.add, size: context.responsive.iconMd),
-                tooltip: 'Add User',
-              ),
+    final isAndroid = context.breakpoint.isAndroid;
+    final body = SizedBox.expand(
+      child: Column(
+        children: [
+          TopAppBar(
+            title: 'User Management',
+            trailing: IconButton(
+              onPressed: () => _showAddUserDialog(context, ref),
+              icon: Icon(Icons.add, size: context.responsive.iconMd),
+              tooltip: 'Add User',
             ),
-            Expanded(
-              child: ResponsiveBuilder(
-                kiosk:
-                    (context) =>
-                        _buildDesktopLayout(context, ref, searchController, searchFocusNode),
-                tablet:
-                    (context) =>
-                        _buildDesktopLayout(context, ref, searchController, searchFocusNode),
-                phone:
-                    (context) =>
-                        _buildMobileLayout(context, ref, searchController, searchFocusNode),
-              ),
+          ),
+          Expanded(
+            child: ResponsiveBuilder(
+              kiosk:
+                  (context) =>
+                      _buildDesktopLayout(context, ref, searchController, searchFocusNode),
+              tablet:
+                  (context) =>
+                      _buildDesktopLayout(context, ref, searchController, searchFocusNode),
+              phone:
+                  (context) =>
+                      _buildMobileLayout(context, ref, searchController, searchFocusNode),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+    if (isAndroid) {
+      return AndroidScaffold(backgroundColor: ColorSet.background, body: body);
+    }
+    return WindowsScaffold(backgroundColor: ColorSet.background, body: body);
   }
 
   Widget _buildDesktopLayout(

@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/debounce.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/button.dart';
 import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/text_box_form_field.dart';
@@ -54,28 +56,39 @@ class ProductsScreen extends HookConsumerWidget {
       return null;
     }, [page.value, limit.value, name.value, description.value, sort.value]);
 
+    final isAndroid = context.breakpoint.isAndroid;
+    final appBar = PreferredSize(
+      preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
+      child: const _TopAppBar(),
+    );
+    final body = Padding(
+      padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+      child: Column(
+        spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+        children: [
+          _PaginationControls(
+            page: page,
+            limit: limit,
+            totalPages: totalPages,
+            name: name,
+            description: description,
+          ),
+          Expanded(child: _ProductsTable(sort: sort)),
+        ],
+      ),
+    );
+    if (isAndroid) {
+      return AndroidScaffold(
+        backgroundColor: Colors.grey.shade50,
+        appBar: appBar,
+        body: body,
+        floatingActionButton: const _FloatingAddButton(),
+      );
+    }
     return WindowsScaffold(
       backgroundColor: Colors.grey.shade50,
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
-        child: const _TopAppBar(),
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-        child: Column(
-          spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-          children: [
-            _PaginationControls(
-              page: page,
-              limit: limit,
-              totalPages: totalPages,
-              name: name,
-              description: description,
-            ),
-            Expanded(child: _ProductsTable(sort: sort)),
-          ],
-        ),
-      ),
+      appBar: appBar,
+      body: body,
       floatingActionButton: const _FloatingAddButton(),
     );
   }

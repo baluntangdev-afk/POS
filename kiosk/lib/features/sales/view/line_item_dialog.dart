@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:decimal/decimal.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +9,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../widgets/android_bottom_sheet.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../utils/uuidv7.dart';
 import '../../../widgets/button.dart';
@@ -27,38 +30,57 @@ Future<LineItem?> showLineItemDialog(
   SelectedVariant? initialVariant,
   IList<SelectedModifier> initialModifiers = const IList.empty(),
 }) {
+  Widget content(BuildContext ctx) => Consumer(
+    builder: (context, ref, child) {
+      switch (ref.watch(lineItemProvider(productId))) {
+        case AsyncLoading():
+          return const Center(child: CircularProgressIndicator());
+        case AsyncError():
+          return const Center(child: Text('Cannot load product'));
+        case AsyncData(value: final product):
+          final defaultVariant =
+              product.variants.isEmpty
+                  ? null
+                  : product.variants.firstWhere(
+                    (variant) => variant.isDefault,
+                    orElse: () => product.variants.first,
+                  );
+          if (defaultVariant != null) {
+            final ProductVariant(:id, :name, :price) = defaultVariant;
+            initialVariant ??= SelectedVariant(id: id, name: name, price: price);
+          }
+          return LineItemDialog(
+            product: product,
+            initialQuantity: initialQuantity,
+            initialVariant: initialVariant,
+            initialModifiers: initialModifiers,
+          );
+      }
+    },
+  );
+
+  if (Platform.isAndroid) {
+    return showAndroidBottomSheet<LineItem>(
+      context: context,
+      maxHeightRatio: 0.95,
+      builder: content,
+    );
+  }
   return showDialog<LineItem>(
     context: context,
-    builder: (context) {
-      return Consumer(
-        builder: (context, ref, child) {
-          switch (ref.watch(lineItemProvider(productId))) {
-            case AsyncLoading():
-              return const Center(child: CircularProgressIndicator());
-            case AsyncError():
-              return const Center(child: Text('Cannot load product'));
-            case AsyncData(value: final product):
-              final defaultVariant =
-                  product.variants.isEmpty
-                      ? null
-                      : product.variants.firstWhere(
-                        (variant) => variant.isDefault,
-                        orElse: () => product.variants.first,
-                      );
-              if (defaultVariant != null) {
-                final ProductVariant(:id, :name, :price) = defaultVariant;
-                initialVariant ??= SelectedVariant(id: id, name: name, price: price);
-              }
-              return LineItemDialog(
-                product: product,
-                initialQuantity: initialQuantity,
-                initialVariant: initialVariant,
-                initialModifiers: initialModifiers,
-              );
-          }
-        },
-      );
-    },
+    builder: (context) => Dialog(
+      backgroundColor: ColorSet.light,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
+          context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+        ),
+      ),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+        vertical: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+      ),
+      child: content(context),
+    ),
   );
 }
 
@@ -248,21 +270,10 @@ class LineItemDialog extends HookConsumerWidget {
       );
     }
 
-    return Dialog(
-      backgroundColor: ColorSet.light,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-        ),
-      ),
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-        vertical: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-      ),
-      child: SingleChildScrollView(
-        child: SizedBox(
-          width: context.responsive.value(kiosk: 1200, tablet: 600, phone: double.infinity),
-          child: Column(
+    return SingleChildScrollView(
+      child: SizedBox(
+        width: context.responsive.value(kiosk: 1200, tablet: 600, phone: double.infinity),
+        child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -318,7 +329,6 @@ class LineItemDialog extends HookConsumerWidget {
               ),
               Gap(context.responsive.value(kiosk: 64, tablet: 48, phone: 32)),
             ],
-          ),
         ),
       ),
     );

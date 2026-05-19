@@ -11,6 +11,8 @@ import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
+import '../../../styles/responsive/breakpoint.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/gradient_button.dart';
 import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/windows_scaffold.dart';
@@ -42,43 +44,51 @@ class ReceiptScreen extends ConsumerWidget {
 
     final isLoading = ref.watch(receiptProvider(receiptId).select((it) => it.isLoading));
     final r = context.responsive;
+    final isAndroid = context.breakpoint.isAndroid;
 
-    return WindowsScaffold(
-      extendBodyBehindAppBar: true,
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(r.appBarHeight),
-        child: _ReceiptTitleBar(height: r.appBarHeight, fontSize: r.fontTitle),
-      ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        padding: EdgeInsets.only(
-          top: r.appBarHeight + r.spacingMd,
-          bottom: r.spacingLg,
-        ),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              ColorSet.secondary.withValues(alpha: 0.85),
-              ColorSet.primary.withValues(alpha: 0.85),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                children: [
-                  Expanded(child: _ReceiptPreview(receiptId: receiptId)),
-                  Gap(r.spacingLg),
-                  _PrintButton(receiptId: receiptId),
-                  Gap(r.spacingMd),
-                  const _CloseButton(),
-                ],
-              ),
-      ),
+    final appBar = PreferredSize(
+      preferredSize: Size.fromHeight(r.appBarHeight),
+      child: _ReceiptTitleBar(height: r.appBarHeight, fontSize: r.fontTitle),
     );
+    final body = Container(
+      width: double.infinity,
+      height: double.infinity,
+      padding: EdgeInsets.only(
+        top: r.appBarHeight + r.spacingMd,
+        bottom: r.spacingLg,
+      ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            ColorSet.secondary.withValues(alpha: 0.85),
+            ColorSet.primary.withValues(alpha: 0.85),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Expanded(child: _ReceiptPreview(receiptId: receiptId)),
+                Gap(r.spacingLg),
+                _PrintButton(receiptId: receiptId),
+                Gap(r.spacingMd),
+                const _CloseButton(),
+              ],
+            ),
+    );
+
+    if (isAndroid) {
+      return AndroidScaffold(
+        extendBodyBehindAppBar: true,
+        statusBarIconBrightness: Brightness.light,
+        appBar: appBar,
+        body: body,
+      );
+    }
+    return WindowsScaffold(extendBodyBehindAppBar: true, appBar: appBar, body: body);
   }
 }
 

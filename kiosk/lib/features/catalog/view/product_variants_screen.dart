@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/product.dart';
@@ -40,30 +42,44 @@ class ProductVariantsScreen extends HookConsumerWidget {
       }
     });
 
+    final isAndroid = context.breakpoint.isAndroid;
+
     if (productState.isLoading || productState.hasError) {
+      if (isAndroid) return const AndroidScaffold(body: Center(child: CircularProgressIndicator()));
       return const WindowsScaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final product = productState.value ?? Product.draft();
     final variants = useState(product.variants.toList());
 
+    final appBar = PreferredSize(
+      preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
+      child: _TopAppBar(product: product),
+    );
+    final body = Padding(
+      padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+      child: Column(
+        spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+        children: [
+          _VariantsSummary(variants: variants.value),
+          Expanded(child: _VariantsTable(variants: variants)),
+        ],
+      ),
+    );
+    final fab = _FloatingAddButton(onAdd: () {});
+    if (isAndroid) {
+      return AndroidScaffold(
+        backgroundColor: Colors.grey.shade50,
+        appBar: appBar,
+        body: body,
+        floatingActionButton: fab,
+      );
+    }
     return WindowsScaffold(
       backgroundColor: Colors.grey.shade50,
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
-        child: _TopAppBar(product: product),
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-        child: Column(
-          spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-          children: [
-            _VariantsSummary(variants: variants.value),
-            Expanded(child: _VariantsTable(variants: variants)),
-          ],
-        ),
-      ),
-      floatingActionButton: _FloatingAddButton(onAdd: () {}),
+      appBar: appBar,
+      body: body,
+      floatingActionButton: fab,
     );
   }
 }

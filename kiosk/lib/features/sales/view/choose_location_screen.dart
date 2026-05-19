@@ -6,7 +6,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../enums/sale_type.dart';
 import '../state/ordering_notifier.dart';
@@ -16,30 +18,36 @@ class ChooseLocationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WindowsScaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isSmallHeight = constraints.maxHeight <= 500;
-          final scroll = constraints.maxWidth < 500;
-          return SizedBox.expand(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: ColorSet.gradientBg,
-                ),
+    final isAndroid = context.breakpoint.isAndroid;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmallHeight = constraints.maxHeight <= 500;
+        final scroll = constraints.maxWidth < 500;
+
+        Widget body = SizedBox.expand(
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: ColorSet.gradientBg,
               ),
-              child: Stack(
-                children: [
-                  SingleChildScrollView(
-                    scrollDirection: !scroll ? Axis.vertical : Axis.horizontal,
-                    child: Container(
-                      constraints: BoxConstraints(minWidth: MediaQuery.sizeOf(context).width),
-                      child: _OrderLocationContents(isSmallHeight: isSmallHeight),
-                    ),
+            ),
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  scrollDirection: !scroll ? Axis.vertical : Axis.horizontal,
+                  child: Container(
+                    constraints: BoxConstraints(minWidth: MediaQuery.sizeOf(context).width),
+                    child: _OrderLocationContents(isSmallHeight: isSmallHeight),
                   ),
-                  Row(
+                ),
+                // Back / logout row — uses SafeArea on Android so icons sit
+                // below the status bar rather than behind it.
+                SafeArea(
+                  bottom: false,
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       GestureDetector(
@@ -63,9 +71,7 @@ class ChooseLocationScreen extends StatelessWidget {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () {
-                          const LoginRoute().go(context);
-                        },
+                        onTap: () => const LoginRoute().go(context),
                         behavior: HitTestBehavior.opaque,
                         child: Padding(
                           padding: context.responsive.value<EdgeInsets>(
@@ -86,12 +92,21 @@ class ChooseLocationScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
+        );
+
+        if (isAndroid) {
+          return AndroidScaffold(
+            statusBarIconBrightness: Brightness.light,
+            extendBodyBehindAppBar: true,
+            body: body,
           );
-        },
-      ),
+        }
+        return WindowsScaffold(body: body);
+      },
     );
   }
 }

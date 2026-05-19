@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -9,22 +11,59 @@ import '../../../utils/decimal_formatter.dart';
 import '../../../utils/decimal_input_formatter.dart';
 import '../../../validation/rules/min_value.dart';
 import '../../../validation/validate.dart';
+import '../../../widgets/android_bottom_sheet.dart';
 import '../../../widgets/button.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../entities/payment.dart';
 
+/// Shows the cash payment UI.
+///
+/// On Android: slides up as a bottom sheet (spec §10 [A]).
+/// On Windows: shows as a centred dialog.
 Future<CashPayment?> showCashPaymentDialog(
   BuildContext context, {
   required Decimal collectibleAmount,
 }) {
+  if (Platform.isAndroid) {
+    return showAndroidBottomSheet<CashPayment>(
+      context: context,
+      maxHeightRatio: 0.95,
+      builder: (ctx) => _CashPaymentContent(collectibleAmount: collectibleAmount),
+    );
+  }
   return showDialog<CashPayment>(
     context: context,
     builder: (context) => CashPaymentDialog(collectibleAmount: collectibleAmount),
   );
 }
 
+/// Windows dialog wrapper — wraps [_CashPaymentContent] in a [Dialog].
 class CashPaymentDialog extends HookWidget {
   const CashPaymentDialog({super.key, required this.collectibleAmount});
+
+  final Decimal collectibleAmount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: ColorSet.light,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
+          context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+        ),
+      ),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+        vertical: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+      ),
+      child: _CashPaymentContent(collectibleAmount: collectibleAmount),
+    );
+  }
+}
+
+/// Shared form content used by both the Windows dialog and the Android bottom sheet.
+class _CashPaymentContent extends HookWidget {
+  const _CashPaymentContent({required this.collectibleAmount});
 
   final Decimal collectibleAmount;
 
@@ -37,25 +76,17 @@ class CashPaymentDialog extends HookWidget {
     useListenable(cashController);
 
     final cashReceived = Decimal.tryParse(cashController.text.replaceAll(',', '')) ?? Decimal.zero;
+    final bottomInset = Platform.isAndroid ? MediaQuery.of(context).viewPadding.bottom : 0.0;
 
-    return Dialog(
-      backgroundColor: ColorSet.light,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-        ),
-      ),
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-        vertical: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-      ),
-      child: Form(
+    return Form(
         key: formKey,
         child: SingleChildScrollView(
           child: Container(
             width: context.responsive.value(kiosk: 600, tablet: 600, phone: double.infinity),
-            padding: EdgeInsetsGeometry.symmetric(
-              horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+            padding: EdgeInsets.only(
+              left: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+              right: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+              bottom: bottomInset,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -240,7 +271,6 @@ class CashPaymentDialog extends HookWidget {
             ),
           ),
         ),
-      ),
     );
   }
 }

@@ -10,7 +10,13 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\" -Recurse -Directory)",
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(Sort-Object)",
-      "Bash(flutter build *)"
+      "Bash(flutter build *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(dart analyze *)",
+      "Bash(sed -n '78,86p' lib/features/catalog/view/products_screen.dart)",
+      "Bash(sed -n '78,86p' lib/features/catalog/view/product_groups_screen.dart)"
     ]
   }
 }

@@ -6,9 +6,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../exceptions/exception_extension.dart';
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../styles/type_set.dart';
 import '../../../widgets/message_dialog.dart';
+import '../../../widgets/numeric_keypad.dart';
 import '../../../widgets/pin_indicator.dart';
 import '../../../widgets/pin_pad.dart';
 import '../../../widgets/top_app_bar.dart';
@@ -183,6 +185,23 @@ class SetupPinView extends HookConsumerWidget {
       );
     });
 
+    // On Android use NumericKeypad (Material ripple); on Windows keep PinPad.
+    final isAndroid = context.breakpoint.isAndroid;
+
+    Widget buildKeypad() {
+      if (isAndroid) {
+        return NumericKeypad(
+          onKeyPressed: onNumberPressed,
+          onBackspace: onBackspace,
+        );
+      }
+      return PinPad(
+        onNumberPressed: onNumberPressed,
+        onBackspace: onBackspace,
+        selectedButton: selectedButton,
+      );
+    }
+
     Widget setUpPinView() {
       return Column(
         children: [
@@ -203,11 +222,7 @@ class SetupPinView extends HookConsumerWidget {
           Gap(context.responsive.value<double>(phone: 30, tablet: 40, kiosk: 50)),
           PinIndicator(pin: pin.value, color: ColorSet.primary),
           Gap(context.responsive.value<double>(phone: 30, tablet: 40, kiosk: 50)),
-          PinPad(
-            onNumberPressed: onNumberPressed,
-            onBackspace: onBackspace,
-            selectedButton: selectedButton,
-          ),
+          buildKeypad(),
           Gap(context.responsive.value<double>(phone: 20, tablet: 30, kiosk: 40)),
         ],
       );
@@ -233,17 +248,29 @@ class SetupPinView extends HookConsumerWidget {
           Gap(context.responsive.value<double>(phone: 30, tablet: 40, kiosk: 50)),
           PinIndicator(pin: confirmPin.value, color: ColorSet.primary),
           Gap(context.responsive.value<double>(phone: 30, tablet: 40, kiosk: 50)),
-          PinPad(
-            onNumberPressed: onNumberPressed,
-            onBackspace: onBackspace,
-            selectedButton: selectedButton,
-          ),
+          buildKeypad(),
           Gap(context.responsive.value<double>(phone: 20, tablet: 30, kiosk: 40)),
         ],
       );
     }
 
-    return LayoutBuilder(
+    // On Android: intercept the hardware/gesture back on the confirm step so it
+    // moves to step 1 rather than leaving the setup flow entirely.
+    Widget wrapWithPopScope(Widget child) {
+      if (!isAndroid) return child;
+      return PopScope(
+        canPop: currentPinState.value == PinType.setup,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop && currentPinState.value == PinType.confirm) {
+            isGoingForward.value = false;
+            currentPinState.value = PinType.setup;
+          }
+        },
+        child: child,
+      );
+    }
+
+    return wrapWithPopScope(LayoutBuilder(
       builder: (context, constraints) {
         return Stack(
           children: [
@@ -324,6 +351,6 @@ class SetupPinView extends HookConsumerWidget {
           ],
         );
       },
-    );
+    ));
   }
 }

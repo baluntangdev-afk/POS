@@ -8,6 +8,8 @@ import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
+import '../../../styles/responsive/breakpoint.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/gradient_button.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
@@ -20,18 +22,20 @@ class CartScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WindowsScaffold(
-      backgroundColor: ColorSet.background,
-      body: Column(
-        children: [
-          TopAppBar(title: 'Order Summary'),
-          const Expanded(child: _LineItemListView()),
-          const _SummaryView(),
-          const _DiscountButton(),
-          const _PaymentButton(),
-        ],
-      ),
+    final isAndroid = context.breakpoint.isAndroid;
+    final body = Column(
+      children: [
+        TopAppBar(title: 'Order Summary'),
+        const Expanded(child: _LineItemListView()),
+        const _SummaryView(),
+        const _DiscountButton(),
+        const _PaymentButton(),
+      ],
     );
+    if (isAndroid) {
+      return AndroidScaffold(backgroundColor: ColorSet.background, body: body);
+    }
+    return WindowsScaffold(backgroundColor: ColorSet.background, body: body);
   }
 }
 

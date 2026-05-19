@@ -4,7 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/resposive_wrap_container.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
@@ -23,81 +26,105 @@ class SalesReportScreen extends ConsumerWidget {
     final state = ref.watch(salesReportProvider);
     final selectedDateFilter = state.selectedDateFilter;
     final selectedTab = state.selectedTab;
+    final isAndroid = context.breakpoint.isAndroid;
 
+    Widget content = Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: TopAppBar(
+            onBackPressed: () {
+              if (context.canPop()) context.pop();
+            },
+            title: 'Sales Report',
+          ),
+        ),
+        Container(
+          padding: context.responsive.value<EdgeInsets>(
+            phone: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            tablet: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            kiosk: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+          ),
+          color: Colors.white,
+          child: ReportTabSelector(
+            selectedTab: selectedTab,
+            onTabChanged: (tab) => ref.read(salesReportProvider.notifier).updateTab(tab),
+          ),
+        ),
+        Expanded(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (child, animation) =>
+                FadeTransition(opacity: animation, child: child),
+            child: selectedTab == ReportTab.dashboard
+                ? _DashboardContent(
+                    key: const ValueKey('dashboard'),
+                    state: state,
+                    selectedDateFilter: selectedDateFilter,
+                    isAndroid: isAndroid,
+                  )
+                : const SalesHealthPage(),
+          ),
+        ),
+      ],
+    );
+
+    // Android: pull-to-refresh reloads the report data.
+    if (isAndroid) {
+      content = RefreshIndicator(
+        onRefresh: () async => ref.invalidate(salesReportProvider),
+        color: ColorSet.primary,
+        child: content,
+      );
+    }
+
+    if (isAndroid) {
+      return AndroidScaffold(
+        backgroundColor: Colors.grey.shade50,
+        body: content,
+      );
+    }
     return WindowsScaffold(
       backgroundColor: Colors.grey.shade50,
-      body: Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: TopAppBar(
-              onBackPressed: () {
-                if (context.canPop()) {
-                  context.pop();
-                }
-              },
-              title: 'Sales Report',
-            ),
-          ),
-          Container(
-            padding: context.responsive.value<EdgeInsets>(
-              phone: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              tablet: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              kiosk: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-            ),
-            color: Colors.white,
-            child: ReportTabSelector(
-              selectedTab: selectedTab,
-              onTabChanged: (tab) {
-                ref.read(salesReportProvider.notifier).updateTab(tab);
-              },
-            ),
-          ),
-
-          // Content with AnimatedSwitcher
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              transitionBuilder: (child, animation) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-              child:
-                  selectedTab == ReportTab.dashboard
-                      ? _DashboardContent(
-                        key: const ValueKey('dashboard'),
-                        state: state,
-                        selectedDateFilter: selectedDateFilter,
-                      )
-                      : const SalesHealthPage(),
-            ),
-          ),
-        ],
-      ),
+      body: content,
     );
   }
 }
 
 class _DashboardContent extends StatelessWidget {
-  const _DashboardContent({super.key, required this.state, required this.selectedDateFilter});
+  const _DashboardContent({
+    super.key,
+    required this.state,
+    required this.selectedDateFilter,
+    this.isAndroid = false,
+  });
 
   final SalesReportState state;
   final DateFilter selectedDateFilter;
+  final bool isAndroid;
 
   @override
   Widget build(BuildContext context) {
     final responsive = context.responsive;
+    // Shorter chart on Android portrait to leave room for other content.
+    final chartHeight = isAndroid
+        ? MediaQuery.of(context).size.height * 0.35
+        : MediaQuery.of(context).size.height * 0.6;
+
     return Align(
       alignment: Alignment.topCenter,
       child: SingleChildScrollView(
+        // physics must allow overscroll so RefreshIndicator works on Android.
+        physics: isAndroid ? const AlwaysScrollableScrollPhysics() : null,
         padding: responsive.value<EdgeInsets>(
           phone: const EdgeInsets.symmetric(horizontal: 20),
           tablet: const EdgeInsets.symmetric(horizontal: 24),
@@ -113,11 +140,10 @@ class _DashboardContent extends StatelessWidget {
             ),
             SizedBox(height: responsive.scale(45)),
             SizedBox(
-              height: MediaQuery.of(context).size.height * 0.6,
+              height: chartHeight,
               child: const _SalesChartSection(),
             ),
             SizedBox(height: responsive.scale(45)),
-            // _QuickActions(state: state),
           ],
         ),
       ),

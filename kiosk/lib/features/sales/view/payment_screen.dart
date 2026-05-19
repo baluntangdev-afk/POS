@@ -11,6 +11,8 @@ import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
+import '../../../styles/responsive/breakpoint.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/gradient_button.dart';
 import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/top_app_bar.dart';
@@ -24,17 +26,19 @@ class PaymentScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WindowsScaffold(
-      backgroundColor: ColorSet.background,
-      body: Column(
-        children: [
-          TopAppBar(title: 'Payment Method'),
-          const Expanded(child: _PaymentMethodListView()),
-          const _SummaryView(),
-          const _ConfirmButton(),
-        ],
-      ),
+    final isAndroid = context.breakpoint.isAndroid;
+    final body = Column(
+      children: [
+        TopAppBar(title: 'Payment Method'),
+        const Expanded(child: _PaymentMethodListView()),
+        const _SummaryView(),
+        const _ConfirmButton(),
+      ],
     );
+    if (isAndroid) {
+      return AndroidScaffold(backgroundColor: ColorSet.background, body: body);
+    }
+    return WindowsScaffold(backgroundColor: ColorSet.background, body: body);
   }
 }
 

@@ -71,8 +71,26 @@ class ReceiptScreen extends ConsumerWidget {
                   spacing: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
                   children: [
                     Expanded(child: _ReceiptPreview(receiptId: receiptId)),
-                    _PrintButton(receiptId: receiptId),
-                    const _CloseButton(),
+                    // Action buttons row
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(child: _PrintButton(receiptId: receiptId)),
+                          SizedBox(
+                            width: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+                          ),
+                          Expanded(child: const _NewOrderButton()),
+                          SizedBox(
+                            width: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+                          ),
+                          Expanded(child: const _CloseButton()),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
                   ],
                 ),
       ),
@@ -655,13 +673,10 @@ class _PrintButton extends ConsumerWidget {
               }
               : null,
       child: Container(
-        height: context.responsive.value(kiosk: 64, tablet: 56, phone: 48),
+        height: context.responsive.value(kiosk: 72, tablet: 64, phone: 52),
         width: double.infinity,
-        margin: EdgeInsets.symmetric(
-          horizontal: context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
-        ),
         decoration: BoxDecoration(
-          color: printStatus is! MutationPending ? ColorSet.primary : const Color(0xFFE0E0E0),
+          color: printStatus is! MutationPending ? ColorSet.secondary : const Color(0xFFE0E0E0),
           borderRadius: BorderRadius.circular(32),
         ),
         child: Center(
@@ -669,12 +684,45 @@ class _PrintButton extends ConsumerWidget {
             printStatus is MutationPending
                 ? 'Printing...'
                 : printStatus is MutationSuccess
-                ? 'Reprint Receipt'
+                ? 'Reprint'
                 : 'Print Receipt',
             style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-              fontWeight: FontWeight.normal,
+              fontSize: context.responsive.value(kiosk: 20, tablet: 18, phone: 14),
+              fontWeight: FontWeight.w600,
               color: printStatus is! MutationPending ? ColorSet.light : const Color(0xFF9E9E9E),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NewOrderButton extends StatelessWidget {
+  const _NewOrderButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => const SalesRoute().go(context),
+      child: Container(
+        height: context.responsive.value(kiosk: 72, tablet: 64, phone: 52),
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: ColorSet.gradientBg,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(32),
+        ),
+        child: Center(
+          child: Text(
+            'New Order',
+            style: TextStyle(
+              fontSize: context.responsive.value(kiosk: 20, tablet: 18, phone: 14),
+              fontWeight: FontWeight.w600,
+              color: ColorSet.light,
             ),
           ),
         ),
@@ -697,19 +745,19 @@ class _CloseButton extends ConsumerWidget {
         }
       },
       child: Container(
-        height: context.responsive.value(kiosk: 64, tablet: 56, phone: 48),
+        height: context.responsive.value(kiosk: 72, tablet: 64, phone: 52),
         width: double.infinity,
-        margin: EdgeInsets.symmetric(
-          horizontal: context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
+        decoration: BoxDecoration(
+          border: Border.all(color: ColorSet.danger, width: 2),
+          borderRadius: BorderRadius.circular(32),
         ),
-        decoration: BoxDecoration(color: ColorSet.light, borderRadius: BorderRadius.circular(32)),
         child: Center(
           child: Text(
             'Close',
             style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-              fontWeight: FontWeight.normal,
-              color: ColorSet.text,
+              fontSize: context.responsive.value(kiosk: 20, tablet: 18, phone: 14),
+              fontWeight: FontWeight.w600,
+              color: ColorSet.danger,
             ),
           ),
         ),

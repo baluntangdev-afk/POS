@@ -114,17 +114,28 @@ class _TopAppBar extends StatelessWidget {
       child: Row(
         children: [
           Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-          GestureDetector(
-            onTap: () {
+          OutlinedButton.icon(
+            onPressed: () {
               if (context.canPop()) {
                 context.pop();
               }
             },
-            behavior: HitTestBehavior.opaque,
-            child: Icon(
+            icon: Icon(
               Icons.arrow_back_ios,
-              color: ColorSet.light,
-              size: context.responsive.value(kiosk: 48, tablet: 32, phone: 24),
+              size: context.responsive.value(kiosk: 20, tablet: 16, phone: 14),
+            ),
+            label: const Text('Back'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: ColorSet.light,
+              side: BorderSide(color: ColorSet.light.withValues(alpha: 0.7)),
+              minimumSize: Size(
+                context.responsive.value(kiosk: 120, tablet: 96, phone: 80),
+                context.responsive.value(kiosk: 56, tablet: 48, phone: 40),
+              ),
+              textStyle: TextStyle(
+                fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
+              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
           Expanded(
@@ -711,26 +722,19 @@ class _ConfirmButton extends ConsumerWidget {
     return GestureDetector(
       onTap: confirmStatus is! MutationPending ? () => submitForm() : null,
       child: Container(
-        height: context.responsive.value(kiosk: 64, tablet: 56, phone: 48),
+        height: context.responsive.value(kiosk: 80, tablet: 64, phone: 52),
         width: double.infinity,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              ColorSet.secondary.withValues(alpha: 0.85),
-              ColorSet.primary.withValues(alpha: 0.85),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: confirmStatus is! MutationPending ? ColorSet.danger : const Color(0xFFE0E0E0),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(
           child: Text(
-            'Confirm',
+            'Confirm Refund',
             style: TextStyle(
               fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-              fontWeight: FontWeight.normal,
-              color: ColorSet.light,
+              fontWeight: FontWeight.w600,
+              color: confirmStatus is! MutationPending ? ColorSet.light : const Color(0xFF9E9E9E),
             ),
           ),
         ),

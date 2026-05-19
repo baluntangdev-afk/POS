@@ -196,17 +196,28 @@ class _TopAppBar extends StatelessWidget {
       child: Row(
         children: [
           Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-          GestureDetector(
-            onTap: () {
+          OutlinedButton.icon(
+            onPressed: () {
               if (context.canPop()) {
                 context.pop();
               }
             },
-            behavior: HitTestBehavior.opaque,
-            child: Icon(
+            icon: Icon(
               Icons.arrow_back_ios,
-              color: ColorSet.light,
-              size: context.responsive.value(kiosk: 48, tablet: 32, phone: 24),
+              size: context.responsive.value(kiosk: 20, tablet: 16, phone: 14),
+            ),
+            label: const Text('Back'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: ColorSet.light,
+              side: BorderSide(color: ColorSet.light.withValues(alpha: 0.7)),
+              minimumSize: Size(
+                context.responsive.value(kiosk: 120, tablet: 96, phone: 80),
+                context.responsive.value(kiosk: 56, tablet: 48, phone: 40),
+              ),
+              textStyle: TextStyle(
+                fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
+              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
           Expanded(
@@ -747,7 +758,7 @@ class _ConfirmButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: context.responsive.value(kiosk: 64, tablet: 56, phone: 48),
+        height: context.responsive.value(kiosk: 72, tablet: 64, phone: 52),
         width: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -765,7 +776,7 @@ class _ConfirmButton extends StatelessWidget {
             'Apply',
             style: TextStyle(
               fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-              fontWeight: FontWeight.normal,
+              fontWeight: FontWeight.w600,
               color: ColorSet.light,
             ),
           ),

@@ -30,6 +30,7 @@ export class SalesOrdersService {
 
   async findAll(
     query: SalesOrderQueryDto,
+    currentUser: User,
   ): Promise<PaginatedResult<SalesOrderWithItemsResponseDto>> {
     const { page, limit, sort, soNumber, soDate, soType, createdBy, status } = query;
     const skip = (page - 1) * limit;
@@ -64,7 +65,9 @@ export class SalesOrdersService {
       where.soType = soType;
     }
 
-    if (createdBy) {
+    if (!currentUser.systemAdmin) {
+      where.createdBy = { id: currentUser.id };
+    } else if (createdBy) {
       where.createdBy = { id: createdBy };
     }
 

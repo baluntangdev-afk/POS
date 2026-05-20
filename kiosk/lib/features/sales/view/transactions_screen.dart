@@ -223,59 +223,6 @@ class _DateFilterField extends StatelessWidget {
         );
       },
     );
-    return GestureDetector(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: soDate.value ?? DateTime.now(),
-          firstDate: DateTime(2020),
-          lastDate: DateTime.now(),
-        );
-        soDate.value = picked;
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: context.responsive.value(kiosk: 12, tablet: 12, phone: 10),
-          vertical: context.responsive.value(kiosk: 12, tablet: 10, phone: 10),
-        ),
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xffa9a9a9)),
-          borderRadius: BorderRadius.circular(
-            context.responsive.value(kiosk: 8, tablet: 8, phone: 6),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.calendar_today,
-              size: context.responsive.value(kiosk: 20, tablet: 18, phone: 16),
-              color: Colors.grey.shade500,
-            ),
-            Gap(context.responsive.value(kiosk: 8, tablet: 8, phone: 6)),
-            Expanded(
-              child: Text(
-                soDate.value != null
-                    ? DateFormat('MM/dd/yyyy').format(soDate.value!.toLocal())
-                    : 'Filter by date...',
-                style: TextStyle(
-                  fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 13),
-                  color: soDate.value != null ? Colors.black87 : Colors.grey.shade500,
-                ),
-              ),
-            ),
-            if (soDate.value != null)
-              GestureDetector(
-                onTap: () => soDate.value = null,
-                child: Icon(
-                  Icons.close,
-                  size: context.responsive.value(kiosk: 20, tablet: 18, phone: 16),
-                  color: Colors.grey.shade500,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
   }
 }
 

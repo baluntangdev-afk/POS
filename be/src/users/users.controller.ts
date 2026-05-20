@@ -31,7 +31,6 @@ export class UsersController {
   }
 
   @Get(':id')
-  @RequireSystemAdmin()
   @ApiOkResponse({ type: UserListItemDto })
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(+id);

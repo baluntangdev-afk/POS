@@ -30,7 +30,9 @@ class UserManagementScreen extends HookConsumerWidget {
     final searchController = useTextEditingController();
     final notifier = ref.read(userManagementPageProvider.notifier);
     final searchFocusNode = useFocusNode();
-    final isDialogShowing = useRef(false);
+    final isUsersLoadingShowing = useRef(false);
+    final isModifyLoadingShowing = useRef(false);
+    final isFormDialogOpen = useRef(false);
 
     useEffect(() {
       Future(() {
@@ -50,7 +52,7 @@ class UserManagementScreen extends HookConsumerWidget {
 
     ref.listen(getUsersProvider, (previous, next) {
       if (next.isLoading) {
-        isDialogShowing.value = true;
+        isUsersLoadingShowing.value = true;
         showDialog<void>(
           barrierDismissible: false,
           context: context,
@@ -59,15 +61,13 @@ class UserManagementScreen extends HookConsumerWidget {
         return;
       }
 
-      // Dismiss loading dialog only if we actually showed one
-      if (isDialogShowing.value) {
-        isDialogShowing.value = false;
+      if (isUsersLoadingShowing.value) {
+        isUsersLoadingShowing.value = false;
         Navigator.of(context, rootNavigator: true).pop();
       }
 
       next.whenOrNull(
         data: (results) {
-          // Update the userManagementPageProvider with the fetched users
           ref.read(userManagementPageProvider.notifier).setUsers(results);
         },
         error: (error, stackTrace) {
@@ -77,10 +77,29 @@ class UserManagementScreen extends HookConsumerWidget {
     });
 
     ref.listen(modifyUserProvider, (prev, next) {
+      // While the form dialog is open it manages its own loading/error/success UX.
+      // Skipping here prevents double overlays and mis-ordered navigator pops.
+      if (isFormDialogOpen.value) return;
+
+      if (next.isLoading) {
+        isModifyLoadingShowing.value = true;
+        showDialog<void>(
+          barrierDismissible: false,
+          context: context,
+          builder: (_) => const Center(child: CircularProgressIndicator()),
+        );
+        return;
+      }
+
+      if (isModifyLoadingShowing.value) {
+        isModifyLoadingShowing.value = false;
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
       next.whenOrNull(
         data: (result) {
           if (result case UserSuccessGet(:final user)) {
-            _showEditUserDialog(context, ref, user);
+            _showEditUserDialog(context, ref, user, isFormDialogOpen);
           }
           if (result case UserSuccessDelete(:final userId)) {
             showMessageDialog(context, message: 'User has been deleted', type: DialogType.success);
@@ -99,9 +118,7 @@ class UserManagementScreen extends HookConsumerWidget {
           TopAppBar(
             title: 'User Management',
             trailing: OutlinedButton.icon(
-              onPressed: () {
-                _showAddUserDialog(context, ref);
-              },
+              onPressed: () => _showAddUserDialog(context, ref, isFormDialogOpen),
               icon: Icon(
                 Icons.add,
                 size: context.responsive.value(kiosk: 18.0, tablet: 15.0, phone: 13.0),
@@ -326,23 +343,41 @@ class UserManagementScreen extends HookConsumerWidget {
     );
   }
 
-  Future<void> _showUserDialog(BuildContext context, WidgetRef ref, {User? user}) async {
-    final result = await showDialog<User?>(
-      context: context,
-      builder: (context) => UserFormDialog(user: user),
-    );
-
-    if (result != null) {
-      await ref.read(getUsersProvider.notifier).refresh();
+  Future<void> _showUserDialog(
+    BuildContext context,
+    WidgetRef ref,
+    ObjectRef<bool> isFormDialogOpen, {
+    User? user,
+  }) async {
+    isFormDialogOpen.value = true;
+    try {
+      final result = await showDialog<User?>(
+        context: context,
+        builder: (context) => UserFormDialog(user: user),
+      );
+      if (result != null) {
+        await ref.read(getUsersProvider.notifier).refresh();
+      }
+    } finally {
+      isFormDialogOpen.value = false;
     }
   }
 
-  Future<void> _showAddUserDialog(BuildContext context, WidgetRef ref) async {
-    await _showUserDialog(context, ref);
+  Future<void> _showAddUserDialog(
+    BuildContext context,
+    WidgetRef ref,
+    ObjectRef<bool> isFormDialogOpen,
+  ) async {
+    await _showUserDialog(context, ref, isFormDialogOpen);
   }
 
-  Future<void> _showEditUserDialog(BuildContext context, WidgetRef ref, User user) async {
-    await _showUserDialog(context, ref, user: user);
+  Future<void> _showEditUserDialog(
+    BuildContext context,
+    WidgetRef ref,
+    User user,
+    ObjectRef<bool> isFormDialogOpen,
+  ) async {
+    await _showUserDialog(context, ref, isFormDialogOpen, user: user);
   }
 
   void _showDeleteConfirmation(BuildContext context, WidgetRef ref, User user) {

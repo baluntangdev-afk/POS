@@ -24,14 +24,24 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto, causer: User) {
-    // check if user already exists
-    const existingUser = await this.userRepository.findOne({
+    const existingByEmail = await this.userRepository.findOne({
       select: { id: true },
-      where: [{ email: createUserDto.email }, { userId: createUserDto.userId }],
+      where: { email: createUserDto.email },
     });
+    if (existingByEmail) {
+      throw new ConflictException(
+        `The email address "${createUserDto.email}" is already in use.`,
+      );
+    }
 
-    if (existingUser) {
-      throw new ConflictException('User already exists');
+    const existingByUserId = await this.userRepository.findOne({
+      select: { id: true },
+      where: { userId: createUserDto.userId },
+    });
+    if (existingByUserId) {
+      throw new ConflictException(
+        `The Employee ID "${createUserDto.userId}" is already in use.`,
+      );
     }
 
     const salt = await bcrypt.genSalt();

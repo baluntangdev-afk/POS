@@ -52,8 +52,8 @@ export class SalesOrdersController {
     description: 'List of sales orders with pagination.',
     type: PaginatedResponse(SalesOrderWithItemsResponseDto),
   })
-  findAll(@Query() query: SalesOrderQueryDto) {
-    return this.salesOrdersService.findAll(query);
+  findAll(@Query() query: SalesOrderQueryDto, @CurrentUser() causer: User) {
+    return this.salesOrdersService.findAll(query, causer);
   }
 
   @Get('current')

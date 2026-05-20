@@ -13,7 +13,6 @@ import '../../../widgets/message_dialog.dart';
 import '../../../widgets/numeric_keypad.dart';
 import '../../../widgets/pin_indicator.dart';
 import '../../../widgets/pin_pad.dart';
-import '../../../widgets/top_app_bar.dart';
 import '../entities/auth.dart';
 import '../state/change_pin_notifier.dart';
 
@@ -69,7 +68,6 @@ class _CustomPageTransitionState extends State<_CustomPageTransition>
       builder: (context, child) {
         final screenWidth = MediaQuery.of(context).size.width;
 
-        // Current child animation
         final Widget currentChild = Transform.translate(
           offset: Offset((1.0 - _animation.value) * (_isSetupPin ? -screenWidth : screenWidth), 0),
           child: Opacity(
@@ -78,7 +76,6 @@ class _CustomPageTransitionState extends State<_CustomPageTransition>
           ),
         );
 
-        // Previous child animation (exit)
         Widget? previousChild;
         if (_previousChild != null) {
           previousChild = Transform.translate(
@@ -97,32 +94,35 @@ class _CustomPageTransitionState extends State<_CustomPageTransition>
 }
 
 class SetupPinView extends HookConsumerWidget {
-  const SetupPinView({super.key, required this.isSmallHeight, required this.auth});
+  const SetupPinView({
+    super.key,
+    required this.isSmallHeight,
+    required this.auth,
+    required this.pinTypeNotifier,
+  });
 
   final bool isSmallHeight;
   final Auth auth;
+  final ValueNotifier<PinType> pinTypeNotifier;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    useListenable(pinTypeNotifier);
+
     final pin = useState('');
     final confirmPin = useState('');
-    final currentPinState = useState<PinType>(PinType.setup);
-    final isGoingForward = useState(true);
-
     final selectedButton = useState<int?>(null);
     final isDialogShowing = useRef(false);
 
     void onNumberPressed(String number) {
-      final currentPin = currentPinState.value == PinType.setup ? pin : confirmPin;
+      final currentPin = pinTypeNotifier.value == PinType.setup ? pin : confirmPin;
 
       if (currentPin.value.length < 6) {
         currentPin.value += number;
 
-        // Auto-login when PIN is complete
         if (currentPin.value.length == 6) {
-          if (currentPinState.value == PinType.setup) {
-            isGoingForward.value = true;
-            currentPinState.value = PinType.confirm;
+          if (pinTypeNotifier.value == PinType.setup) {
+            pinTypeNotifier.value = PinType.confirm;
             return;
           }
           if (pin.value != confirmPin.value) {
@@ -143,8 +143,7 @@ class SetupPinView extends HookConsumerWidget {
     }
 
     void onBackspace() {
-      final currentPin = currentPinState.value == PinType.setup ? pin : confirmPin;
-
+      final currentPin = pinTypeNotifier.value == PinType.setup ? pin : confirmPin;
       if (currentPin.value.isNotEmpty) {
         currentPin.value = currentPin.value.substring(0, currentPin.value.length - 1);
       }
@@ -161,7 +160,6 @@ class SetupPinView extends HookConsumerWidget {
         return;
       }
 
-      // Dismiss loading dialog only if we actually showed one
       if (isDialogShowing.value) {
         isDialogShowing.value = false;
         Navigator.of(context, rootNavigator: true).pop();
@@ -185,15 +183,11 @@ class SetupPinView extends HookConsumerWidget {
       );
     });
 
-    // On Android use NumericKeypad (Material ripple); on Windows keep PinPad.
     final isAndroid = context.breakpoint.isAndroid;
 
     Widget buildKeypad() {
       if (isAndroid) {
-        return NumericKeypad(
-          onKeyPressed: onNumberPressed,
-          onBackspace: onBackspace,
-        );
+        return NumericKeypad(onKeyPressed: onNumberPressed, onBackspace: onBackspace);
       }
       return PinPad(
         onNumberPressed: onNumberPressed,
@@ -213,10 +207,11 @@ class SetupPinView extends HookConsumerWidget {
           ),
           Gap(context.responsive.value<double>(phone: 10, tablet: 15, kiosk: 20)),
           Text(
-            'Set you personal 6-digit pin to protect your account. It will be used for fast and secure login',
+            'Set your personal 6-digit pin to protect your account. It will be used for fast and secure login',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: context.responsive.value<double>(phone: 18, tablet: 22, kiosk: 25),
+              fontSize: context.responsive.value<double>(phone: 14, tablet: 18, kiosk: 20),
+              color: Colors.black54,
             ),
           ),
           Gap(context.responsive.value<double>(phone: 30, tablet: 40, kiosk: 50)),
@@ -242,7 +237,8 @@ class SetupPinView extends HookConsumerWidget {
             'Make sure to enter the same pin you set earlier.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: context.responsive.value<double>(phone: 18, tablet: 22, kiosk: 25),
+              fontSize: context.responsive.value<double>(phone: 14, tablet: 18, kiosk: 20),
+              color: Colors.black54,
             ),
           ),
           Gap(context.responsive.value<double>(phone: 30, tablet: 40, kiosk: 50)),
@@ -254,103 +250,51 @@ class SetupPinView extends HookConsumerWidget {
       );
     }
 
-    // On Android: intercept the hardware/gesture back on the confirm step so it
-    // moves to step 1 rather than leaving the setup flow entirely.
     Widget wrapWithPopScope(Widget child) {
       if (!isAndroid) return child;
       return PopScope(
-        canPop: currentPinState.value == PinType.setup,
+        canPop: pinTypeNotifier.value == PinType.setup,
         onPopInvokedWithResult: (didPop, _) {
-          if (!didPop && currentPinState.value == PinType.confirm) {
-            isGoingForward.value = false;
-            currentPinState.value = PinType.setup;
+          if (!didPop && pinTypeNotifier.value == PinType.confirm) {
+            pinTypeNotifier.value = PinType.setup;
           }
         },
         child: child,
       );
     }
 
-    return wrapWithPopScope(LayoutBuilder(
-      builder: (context, constraints) {
-        return Stack(
-          children: [
-            SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: MediaQuery.of(context).size.height),
+    return wrapWithPopScope(
+      LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Padding(
+                padding: context.responsive.value<EdgeInsets>(
+                  phone: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+                  tablet: const EdgeInsets.symmetric(horizontal: 60, vertical: 60),
+                  kiosk: const EdgeInsets.symmetric(horizontal: 80, vertical: 80),
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Gap(context.responsive.value<double>(phone: 30, tablet: 40, kiosk: 50)),
-                    Padding(
-                      padding: context.responsive.value<EdgeInsets>(
-                        phone: const EdgeInsets.only(left: 100.0, right: 100, top: 80),
-                        tablet: const EdgeInsets.only(left: 100.0, right: 100, top: 100),
-                        kiosk: const EdgeInsets.only(left: 100.0, right: 100, top: 150),
-                      ),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                gradient: const LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: ColorSet.gradientBg,
-                                ),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(18.0),
-                                child: Icon(
-                                  Icons.lock,
-                                  size: context.responsive.value<double>(
-                                    phone: 50,
-                                    tablet: 70,
-                                    kiosk: 100,
-                                  ),
-                                  color: ColorSet.background,
-                                ),
-                              ),
-                            ),
-                            Gap(context.responsive.value<double>(phone: 30, tablet: 40, kiosk: 50)),
-                            _CustomPageTransition(
-                              isSetupPin: currentPinState.value == PinType.setup,
-                              child: ColoredBox(
-                                color: ColorSet.background,
-                                key: ValueKey<PinType>(currentPinState.value),
-                                child:
-                                    currentPinState.value == PinType.setup
-                                        ? setUpPinView()
-                                        : confirmPinView(),
-                              ),
-                            ),
-                          ],
-                        ),
+                    _CustomPageTransition(
+                      isSetupPin: pinTypeNotifier.value == PinType.setup,
+                      child: ColoredBox(
+                        color: Colors.white,
+                        key: ValueKey<PinType>(pinTypeNotifier.value),
+                        child: pinTypeNotifier.value == PinType.setup
+                            ? setUpPinView()
+                            : confirmPinView(),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-            SizedBox.fromSize(
-              size: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
-              child: TopAppBar(
-                onBackPressed: () {
-                  switch (currentPinState.value) {
-                    case PinType.setup:
-                      const LoginRoute().go(context);
-                    case PinType.confirm:
-                      isGoingForward.value = false;
-                      currentPinState.value = PinType.setup;
-                  }
-                },
-                title: '',
-              ),
-            ),
-          ],
-        );
-      },
-    ));
+          );
+        },
+      ),
+    );
   }
 }

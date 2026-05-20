@@ -2,7 +2,24 @@
   "permissions": {
     "allow": [
       "Bash(Get-ChildItem C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be -Force -Depth 1)",
-      "Bash(Select-Object Name, Attributes)"
+      "Bash(Select-Object Name, Attributes)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\" | Where-Object { $_.Name -ne \"node_modules\" } | Select-Object Name, Attributes)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\" -Exclude \"node_modules\" | ForEach-Object { $_.Name })",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\" -Recurse | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\\", \"\"\\) })",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\scripts\" | ForEach-Object { $_.Name })",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\src\" -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object -ExpandProperty Name)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\windows\" -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object -ExpandProperty Name)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\" -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object -ExpandProperty FullName | ForEach-Object { $_.Replace\\(\"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\\", \"\"\\) })",
+      "PowerShell(New-Item *)",
+      "PowerShell(winget search *)",
+      "PowerShell(curl.exe -L -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\)\" \"https://nssm.cc/release/nssm-2.24.zip\" -o \"$env:TEMP\\\\nssm.zip\" --max-time 30 -w \"HTTP %{http_code}\" 2>&1)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\build\\\\windows\\\\x64\\\\runner\\\\Release\" -Recurse | Select-Object Name, @{N='SizeMB';E={[math]::Round\\($_.Length/1MB,2\\)}} | Format-Table -AutoSize)",
+      "PowerShell(winget install *)",
+      "PowerShell(Get-Service *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(\\([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent\\(\\)\\).IsInRole\\([Security.Principal.WindowsBuiltInRole]::Administrator\\))",
+      "PowerShell(explorer \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\output\")"
     ]
   }
 }

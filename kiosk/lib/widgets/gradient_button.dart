@@ -67,32 +67,40 @@ class GradientButton extends StatelessWidget {
       );
     }
 
-    return GestureDetector(
-      onTap: _isEnabled ? onPressed : null,
-      child: Container(
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(r.buttonRadius),
+      child: Ink(
         height: r.buttonHeight,
         width: double.infinity,
         decoration: decoration,
-        child: Center(
-          child: isLoading
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    color: ColorSet.light,
-                    strokeWidth: 2.5,
+        child: InkWell(
+          onTap: _isEnabled ? onPressed : null,
+          borderRadius: BorderRadius.circular(r.buttonRadius),
+          splashColor: Colors.white.withValues(alpha: 0.2),
+          highlightColor: Colors.white.withValues(alpha: 0.1),
+          child: Center(
+            child: isLoading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: ColorSet.light,
+                      strokeWidth: 2.5,
+                    ),
+                  )
+                : Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: r.fontBody,
+                      fontWeight: FontWeight.w600,
+                      color: _isEnabled
+                          ? (_foregroundColor ?? ColorSet.light)
+                          : const Color(0xFF9E9E9E),
+                      letterSpacing: 0.3,
+                    ),
                   ),
-                )
-              : Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: r.fontBody,
-                    fontWeight: FontWeight.w500,
-                    color: _isEnabled
-                        ? (_foregroundColor ?? ColorSet.light)
-                        : const Color(0xFF9E9E9E),
-                  ),
-                ),
+          ),
         ),
       ),
     );

@@ -1,12 +1,12 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../state/sales_report_state.dart';
-
-const _kTealColor = Color(0xFF5BBCBF);
 
 class DateFilterDialog extends HookConsumerWidget {
   const DateFilterDialog({
@@ -41,9 +41,7 @@ class DateFilterDialog extends HookConsumerWidget {
 
     return Dialog(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          responsive.value<double>(kiosk: 12, tablet: 11, phone: 10),
-        ),
+        borderRadius: BorderRadius.circular(POSRadius.xl),
       ),
       insetPadding: EdgeInsets.symmetric(
         horizontal: responsive.value<double>(kiosk: 16, tablet: 14, phone: 12),
@@ -61,9 +59,7 @@ class DateFilterDialog extends HookConsumerWidget {
               ),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(
-                  responsive.value<double>(kiosk: 12, tablet: 11, phone: 10),
-                ),
+                borderRadius: BorderRadius.circular(POSRadius.xl),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -77,17 +73,18 @@ class DateFilterDialog extends HookConsumerWidget {
                         'Date Filter',
                         style: TextStyle(
                           fontSize: responsive.scale(21),
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade800,
+                          fontWeight: FontWeight.w700,
+                          color: POSColors.textPrimary,
+                          letterSpacing: -0.3,
                         ),
                       ),
                       InkWell(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(POSRadius.full),
                         onTap: () => Navigator.of(context).pop(),
                         child: Icon(
-                          Icons.close,
+                          Icons.close_rounded,
                           size: responsive.value<double>(kiosk: 20, tablet: 18, phone: 16),
-                          color: Colors.grey.shade500,
+                          color: POSColors.iconSubtle,
                         ),
                       ),
                     ],
@@ -106,7 +103,7 @@ class DateFilterDialog extends HookConsumerWidget {
                         _presetFilters.map((filter) {
                           final isSelected = !isCustomMode.value && filter == selectedFilter;
                           return InkWell(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(POSRadius.sm),
                             onTap: () {
                               isCustomMode.value = false;
                               customStartDate.value = null;
@@ -122,7 +119,7 @@ class DateFilterDialog extends HookConsumerWidget {
                                       ? Icons.radio_button_checked
                                       : Icons.radio_button_unchecked,
                                   size: responsive.scale(25),
-                                  color: isSelected ? _kTealColor : Colors.grey.shade400,
+                                  color: isSelected ? ColorSet.primary : POSColors.textDisabled,
                                 ),
                                 const SizedBox(width: 6),
                                 Flexible(
@@ -131,7 +128,7 @@ class DateFilterDialog extends HookConsumerWidget {
                                     style: TextStyle(
                                       fontSize: responsive.scale(18),
                                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                                      color: isSelected ? _kTealColor : Colors.grey.shade700,
+                                      color: isSelected ? ColorSet.primary : POSColors.textSecondary,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -146,7 +143,7 @@ class DateFilterDialog extends HookConsumerWidget {
                   // OR divider
                   Row(
                     children: [
-                      Expanded(child: Divider(color: Colors.grey.shade300)),
+                      Expanded(child: Divider(color: POSColors.borderSubtle)),
                       Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: responsive.value<double>(kiosk: 12, tablet: 10, phone: 8),
@@ -156,11 +153,11 @@ class DateFilterDialog extends HookConsumerWidget {
                           style: TextStyle(
                             fontSize: responsive.scale(17),
                             fontWeight: FontWeight.w500,
-                            color: Colors.grey.shade500,
-                          ),
+                            color: POSColors.textTertiary,
+                        ),
                         ),
                       ),
-                      Expanded(child: Divider(color: Colors.grey.shade300)),
+                      Expanded(child: Divider(color: POSColors.borderSubtle)),
                     ],
                   ),
                   SizedBox(height: responsive.value<double>(kiosk: 12, tablet: 10, phone: 8)),
@@ -171,8 +168,8 @@ class DateFilterDialog extends HookConsumerWidget {
                     style: TextStyle(
                       fontSize: responsive.scale(16),
                       fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade700,
-                    ),
+                      color: POSColors.textSecondary,
+                        ),
                   ),
                   SizedBox(height: responsive.value<double>(kiosk: 6, tablet: 5, phone: 4)),
                   _DateTimeField(
@@ -203,8 +200,8 @@ class DateFilterDialog extends HookConsumerWidget {
                     style: TextStyle(
                       fontSize: responsive.scale(16),
                       fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade700,
-                    ),
+                      color: POSColors.textSecondary,
+                        ),
                   ),
                   SizedBox(height: responsive.value<double>(kiosk: 6, tablet: 5, phone: 4)),
                   _DateTimeField(
@@ -255,7 +252,7 @@ class DateFilterDialog extends HookConsumerWidget {
                         Navigator.of(context).pop();
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _kTealColor,
+                        backgroundColor: ColorSet.primary,
                         foregroundColor: Colors.white,
                         padding: EdgeInsets.symmetric(
                           horizontal: responsive.value<double>(kiosk: 28, tablet: 24, phone: 20),
@@ -305,19 +302,15 @@ class _DateTimeField extends StatelessWidget {
     final responsive = context.responsive;
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(
-          responsive.value<double>(kiosk: 8, tablet: 7, phone: 6),
-        ),
-        border: Border.all(color: enabled ? Colors.grey.shade300 : Colors.grey.shade200),
-        color: enabled ? Colors.white : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(POSRadius.md),
+        border: Border.all(color: enabled ? POSColors.borderDefault : POSColors.borderSubtle),
+        color: enabled ? Colors.white : POSColors.surfaceSubtle,
       ),
       child: Row(
         children: [
           Expanded(
             child: InkWell(
-              borderRadius: BorderRadius.circular(
-                responsive.value<double>(kiosk: 8, tablet: 7, phone: 6),
-              ),
+              borderRadius: BorderRadius.circular(POSRadius.md),
               onTap: enabled ? onTap : null,
               child: Padding(
                 padding: EdgeInsets.symmetric(
@@ -328,10 +321,9 @@ class _DateTimeField extends StatelessWidget {
                   dateTime != null ? DateFormat('MM/dd/yyyy').format(dateTime!) : hintText,
                   style: TextStyle(
                     fontSize: responsive.scale(18),
-                    color:
-                        dateTime != null
-                            ? (enabled ? Colors.grey.shade800 : Colors.grey.shade400)
-                            : (enabled ? Colors.grey.shade400 : Colors.grey.shade300),
+                    color: dateTime != null
+                            ? (enabled ? POSColors.textPrimary : POSColors.textDisabled)
+                            : (enabled ? POSColors.textTertiary : POSColors.borderDefault),
                   ),
                 ),
               ),
@@ -341,10 +333,8 @@ class _DateTimeField extends StatelessWidget {
             InkWell(
               onTap: onClear,
               borderRadius: BorderRadius.only(
-                topRight: Radius.circular(responsive.value<double>(kiosk: 8, tablet: 7, phone: 6)),
-                bottomRight: Radius.circular(
-                  responsive.value<double>(kiosk: 8, tablet: 7, phone: 6),
-                ),
+                topRight: Radius.circular(POSRadius.md),
+                bottomRight: Radius.circular(POSRadius.md),
               ),
               child: Container(
                 padding: EdgeInsets.symmetric(
@@ -354,8 +344,8 @@ class _DateTimeField extends StatelessWidget {
                 child: Icon(
                   Icons.clear,
                   size: responsive.value<double>(kiosk: 18, tablet: 16, phone: 14),
-                  color: Colors.grey.shade600,
-                ),
+                  color: POSColors.iconSubtle,
+              ),
               ),
             ),
         ],
@@ -363,3 +353,5 @@ class _DateTimeField extends StatelessWidget {
     );
   }
 }
+
+

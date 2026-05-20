@@ -207,37 +207,103 @@ class DeleteProductGroupDialog extends ConsumerWidget {
       }
     });
 
-    return AlertDialog(
-      title: const Text('Delete Product Group'),
-      content: Text('Are you sure you want to delete ${productGroup.name}?'),
-      actions: [
-        Button.outlined(
-          foregroundColor: ColorSet.text,
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          label: Text(
-            'Cancel',
-            style: TextStyle(fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12)),
-          ),
+    final r = context.responsive;
+    return Dialog(
+      backgroundColor: ColorSet.light,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(r.value(kiosk: 24, tablet: 20, phone: 16)),
+      ),
+      child: Container(
+        width: r.value<double>(kiosk: 440, tablet: 380, phone: double.infinity),
+        padding: EdgeInsets.all(r.value(kiosk: 32.0, tablet: 24.0, phone: 20.0)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: r.value<double>(kiosk: 80, tablet: 64, phone: 56),
+              height: r.value<double>(kiosk: 80, tablet: 64, phone: 56),
+              decoration: BoxDecoration(
+                color: ColorSet.danger.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.delete_outline_rounded,
+                color: ColorSet.danger,
+                size: r.value<double>(kiosk: 40, tablet: 32, phone: 28),
+              ),
+            ),
+            SizedBox(height: r.value<double>(kiosk: 20, tablet: 16, phone: 12)),
+            Text(
+              'Delete Product Group',
+              style: TextStyle(
+                fontSize: r.value(kiosk: 28.0, tablet: 22.0, phone: 18.0),
+                fontWeight: FontWeight.w700,
+                color: ColorSet.text,
+                letterSpacing: -0.3,
+              ),
+            ),
+            SizedBox(height: r.value<double>(kiosk: 10, tablet: 8, phone: 6)),
+            Text(
+              'Are you sure you want to delete "${productGroup.name}"?\nThis action cannot be undone.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: r.value(kiosk: 18.0, tablet: 15.0, phone: 13.0),
+                color: ColorSet.text.withValues(alpha: 0.6),
+                height: 1.5,
+              ),
+            ),
+            SizedBox(height: r.value<double>(kiosk: 28, tablet: 24, phone: 20)),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: r.value(kiosk: 16.0, tablet: 14.0, phone: 12.0)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      side: BorderSide(color: ColorSet.text.withValues(alpha: 0.2)),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        fontSize: r.value(kiosk: 18.0, tablet: 15.0, phone: 13.0),
+                        fontWeight: FontWeight.w600,
+                        color: ColorSet.text,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: r.value<double>(kiosk: 16, tablet: 12, phone: 8)),
+                Expanded(
+                  child: FilledButton(
+                    onPressed:
+                        deleteStatus is! MutationPending
+                            ? () async {
+                              deleteAction.run(ref, (txn) async {
+                                return txn.get(productGroupsProvider.notifier).delete(productGroup);
+                              }).ignore();
+                            }
+                            : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: ColorSet.danger,
+                      padding: EdgeInsets.symmetric(vertical: r.value(kiosk: 16.0, tablet: 14.0, phone: 12.0)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: Text(
+                      deleteStatus is MutationPending ? 'Deleting...' : 'Delete',
+                      style: TextStyle(
+                        fontSize: r.value(kiosk: 18.0, tablet: 15.0, phone: 13.0),
+                        fontWeight: FontWeight.w600,
+                        color: ColorSet.light,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-        Button(
-          onPressed:
-              deleteStatus is! MutationPending
-                  ? () async {
-                    deleteAction.run(ref, (txn) async {
-                      return txn.get(productGroupsProvider.notifier).delete(productGroup);
-                    }).ignore();
-                  }
-                  : null,
-          foregroundColor: ColorSet.background,
-          backgroundColor: ColorSet.danger,
-          label: Text(
-            deleteStatus is MutationPending ? 'Deleting...' : 'Delete',
-            style: TextStyle(fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12)),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

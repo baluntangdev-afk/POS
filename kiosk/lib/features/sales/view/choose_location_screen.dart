@@ -7,6 +7,7 @@ import '../../../gen/assets.gen.dart';
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../enums/sale_type.dart';
 import '../state/ordering_notifier.dart';
@@ -158,22 +159,24 @@ class _OrderLocationContents extends StatelessWidget {
                 OutlinedButton.icon(
                   onPressed: () => const MenuRoute().go(context),
                   icon: Icon(
-                    Icons.arrow_back_ios,
+                    Icons.arrow_back_ios_rounded,
                     size: responsive.value<double>(phone: 14, tablet: 16, kiosk: 18),
                   ),
                   label: const Text('Back to Menu'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white),
+                    side: const BorderSide(color: Colors.white, width: 1.5),
                     minimumSize: Size(
                       responsive.value<double>(phone: 140, tablet: 160, kiosk: 200),
                       responsive.value<double>(phone: 44, tablet: 48, kiosk: 56),
                     ),
                     textStyle: TextStyle(
                       fontSize: responsive.value<double>(phone: 14, tablet: 16, kiosk: 18),
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                     ),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(POSRadius.full),
+                    ),
                   ),
                 ),
               ],
@@ -219,10 +222,10 @@ class _OrderLocationCard extends StatelessWidget {
 
     return Material(
       color: color,
-      borderRadius: BorderRadius.circular(32),
+      borderRadius: BorderRadius.circular(POSRadius.xxl),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(POSRadius.xxl),
         child: SizedBox(
           width: cardWidth,
           height: cardHeight,

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../../../widgets/resposive_wrap_container.dart';
 import '../entities/sales_data_item.dart';
 import '../enums/sales_data_item_type.dart';
@@ -37,7 +39,13 @@ class _SalesHealthPageState extends ConsumerState<SalesHealthPage> {
     final customEndDate = state.healthPageCustomEndDate;
 
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(
+          color: ColorSet.primary,
+          strokeWidth: 3,
+          strokeCap: StrokeCap.round,
+        ),
+      );
     }
 
     return Align(
@@ -194,32 +202,31 @@ class _SalesDonutChart extends StatelessWidget {
       ), // Fixed height to prevent layout issues
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        boxShadow: POSShadow.card,
       ),
       child: Padding(
-        padding: EdgeInsets.all(responsive.value<double>(kiosk: 16, tablet: 14, phone: 12)),
+        padding: EdgeInsets.all(responsive.value<double>(kiosk: 20, tablet: 16, phone: 12)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               title,
               style: TextStyle(
-                fontSize: responsive.scale(25),
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF1F2937),
+                fontSize: responsive.scale(20),
+                fontWeight: FontWeight.w700,
+                color: POSColors.textPrimary,
+                letterSpacing: -0.3,
               ),
             ),
             SizedBox(height: responsive.value<double>(kiosk: 4, tablet: 3, phone: 2)),
             Text(
               dateRange,
-              style: TextStyle(fontSize: responsive.scale(18), color: Colors.grey.shade600),
+              style: TextStyle(
+                fontSize: responsive.scale(14),
+                color: POSColors.textTertiary,
+                fontWeight: FontWeight.w400,
+              ),
             ),
             SizedBox(height: responsive.value<double>(kiosk: 16, tablet: 14, phone: 12)),
             Expanded(
@@ -267,34 +274,29 @@ class _SalesDonutChart extends StatelessWidget {
       ), // Fixed height to prevent layout issues
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        boxShadow: POSShadow.card,
       ),
       child: Padding(
-        padding: EdgeInsets.all(responsive.value<double>(kiosk: 16, tablet: 14, phone: 12)),
+        padding: EdgeInsets.all(responsive.value<double>(kiosk: 20, tablet: 16, phone: 12)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               title,
               style: TextStyle(
-                fontSize: responsive.value<double>(kiosk: 16, tablet: 15, phone: 14),
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF1F2937),
+                fontSize: responsive.scale(20),
+                fontWeight: FontWeight.w700,
+                color: POSColors.textPrimary,
+                letterSpacing: -0.3,
               ),
             ),
             SizedBox(height: responsive.value<double>(kiosk: 4, tablet: 3, phone: 2)),
             Text(
               dateRange,
               style: TextStyle(
-                fontSize: responsive.value<double>(kiosk: 12, tablet: 11, phone: 10),
-                color: Colors.grey.shade600,
+                fontSize: responsive.scale(14),
+                color: POSColors.textTertiary,
               ),
             ),
             SizedBox(height: responsive.value<double>(kiosk: 16, tablet: 14, phone: 12)),
@@ -304,16 +306,17 @@ class _SalesDonutChart extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.pie_chart,
+                      Icons.pie_chart_outline_rounded,
                       size: responsive.value<double>(kiosk: 48, tablet: 44, phone: 40),
-                      color: Colors.grey.shade400,
+                      color: POSColors.textDisabled,
                     ),
                     SizedBox(height: responsive.value<double>(kiosk: 8, tablet: 7, phone: 6)),
                     Text(
                       'No data available',
                       style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: responsive.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                        color: POSColors.textTertiary,
+                        fontSize: responsive.scale(14),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -351,8 +354,9 @@ class _SalesDonutChart extends StatelessWidget {
                     child: Text(
                       '${item.name} - P${NumberFormat.decimalPattern().format(item.totalSales)}',
                       style: TextStyle(
-                        fontSize: responsive.scale(18),
-                        color: const Color(0xFF4B5563),
+                        fontSize: responsive.scale(14),
+                        color: POSColors.textSecondary,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),

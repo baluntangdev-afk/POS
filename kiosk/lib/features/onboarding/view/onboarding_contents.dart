@@ -88,10 +88,10 @@ class _OnboardingContentsState extends State<OnboardingContents>
                 'Welcome to',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Colors.white.withValues(alpha: 0.9),
                   fontSize: responsive.value<double>(phone: 24, tablet: 40, kiosk: 60),
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.w300,
+                  letterSpacing: 2.0,
                 ),
               ),
               Gap(
@@ -196,22 +196,39 @@ class _TouchToStartContent extends StatelessWidget {
         borderRadius: BorderRadius.circular(50),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 24,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: ColorSet.primary.withValues(alpha: 0.15),
+            blurRadius: 32,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Center(
-        child: Text(
-          'Touch To Start',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: ColorSet.primary,
-            fontSize: fontSize,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.touch_app_outlined,
+              color: ColorSet.primary,
+              size: fontSize * 1.1,
+            ),
+            SizedBox(width: fontSize * 0.4),
+            Text(
+              'Touch To Start',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: ColorSet.primary,
+                fontSize: fontSize,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ],
         ),
       ),
     );

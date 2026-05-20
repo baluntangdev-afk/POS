@@ -11,6 +11,7 @@ import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/message_dialog.dart';
@@ -30,11 +31,11 @@ class ReceiptScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAndroid = context.breakpoint.isAndroid;
+    final r = context.responsive;
 
     ref.listen(receiptProvider(receiptId), (previous, next) async {
       if (next case AsyncError(:final error)) {
         await showMessageDialog(context, type: DialogType.error, message: '$error');
-
         if (context.mounted && context.canPop()) {
           context.pop();
         } else if (context.mounted) {
@@ -46,101 +47,149 @@ class ReceiptScreen extends ConsumerWidget {
     final isLoading = ref.watch(receiptProvider(receiptId).select((it) => it.isLoading));
 
     final bodyContent = Container(
-        width: double.infinity,
-        height: double.infinity,
-        padding: EdgeInsets.only(
-          top: context.responsive.value(kiosk: 140, tablet: 110, phone: 90),
-          bottom: context.responsive.value(kiosk: 64, tablet: 48, phone: 32),
+      width: double.infinity,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: ColorSet.gradientBg,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              ColorSet.secondary.withValues(alpha: 0.85),
-              ColorSet.primary.withValues(alpha: 0.85),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child:
-            isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : Column(
-                  spacing: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-                  children: [
-                    Expanded(child: _ReceiptPreview(receiptId: receiptId)),
-                    // Action buttons row
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: context.responsive.value(kiosk: 64, tablet: 48, phone: 24),
+      ),
+      child: isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+            )
+          : Column(
+              children: [
+                // Header
+                Container(
+                  height: r.value<double>(kiosk: 100, tablet: 80, phone: 64),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: r.value<double>(kiosk: 48, tablet: 32, phone: 20),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(POSRadius.md),
+                        ),
+                        child: const Icon(
+                          Icons.receipt_long_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
                       ),
-                      child: Row(
+                      SizedBox(width: r.value<double>(kiosk: 16, tablet: 12, phone: 10)),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(child: _PrintButton(receiptId: receiptId)),
-                          SizedBox(
-                            width: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+                          Text(
+                            'Order Receipt',
+                            style: TextStyle(
+                              fontSize: r.value<double>(kiosk: 22, tablet: 18, phone: 15),
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: -0.3,
+                            ),
                           ),
-                          Expanded(child: const _NewOrderButton()),
-                          SizedBox(
-                            width: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+                          Text(
+                            'Transaction complete',
+                            style: TextStyle(
+                              fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                              color: Colors.white.withValues(alpha: 0.7),
+                            ),
                           ),
-                          Expanded(child: const _CloseButton()),
                         ],
                       ),
-                    ),
-                    SizedBox(height: context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-                  ],
+                      const Spacer(),
+                      // Success indicator
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: r.value<double>(kiosk: 14, tablet: 12, phone: 10),
+                          vertical: r.value<double>(kiosk: 8, tablet: 6, phone: 5),
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(POSRadius.full),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: ColorSet.success,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: ColorSet.success.withValues(alpha: 0.5),
+                                    blurRadius: 6,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Payment Successful',
+                              style: TextStyle(
+                                fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-      );
+                // Receipt preview
+                Expanded(child: _ReceiptPreview(receiptId: receiptId)),
+                // Action buttons
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    r.value<double>(kiosk: 48, tablet: 32, phone: 20),
+                    r.value<double>(kiosk: 20, tablet: 16, phone: 12),
+                    r.value<double>(kiosk: 48, tablet: 32, phone: 20),
+                    r.value<double>(kiosk: 32, tablet: 24, phone: 16),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(child: _PrintButton(receiptId: receiptId)),
+                      SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                      Expanded(child: const _NewOrderButton()),
+                      SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                      Expanded(child: const _CloseButton()),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+    );
 
     if (isAndroid) {
       return AndroidScaffold(
         statusBarIconBrightness: Brightness.light,
         extendBodyBehindAppBar: true,
-        body: SafeArea(
-          top: false,
-          bottom: false,
-          child: bodyContent,
-        ),
+        body: SafeArea(top: false, bottom: false, child: bodyContent),
       );
     }
 
     return WindowsScaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(
-          context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
-        ),
-        child: const _TopAppBar(),
-      ),
       extendBodyBehindAppBar: true,
       body: bodyContent,
     );
   }
 }
 
-class _TopAppBar extends StatelessWidget {
-  const _TopAppBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
-      decoration: const BoxDecoration(color: ColorSet.transparent),
-      child: Center(
-        child: Text(
-          'Order Receipt',
-          style: TextStyle(
-            fontSize: context.responsive.value(kiosk: 36, tablet: 28, phone: 20),
-            fontWeight: FontWeight.w600,
-            color: ColorSet.light,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ),
-    );
-  }
-}
-
+// ── Receipt preview (scrollable thermal receipt) ──────────────────────────────
 class _ReceiptPreview extends ConsumerWidget {
   const _ReceiptPreview({required this.receiptId});
 
@@ -149,72 +198,77 @@ class _ReceiptPreview extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final receipt = ref.watch(receiptProvider(receiptId).select((it) => it.value));
+    final r = context.responsive;
 
     if (receipt == null) return const SizedBox.shrink();
 
     return SingleChildScrollView(
-      child: Container(
-        width: context.responsive.value(kiosk: 400, tablet: 360, phone: 320),
-        padding: EdgeInsets.symmetric(
-          horizontal: context.responsive.value(kiosk: 16, tablet: 16, phone: 12),
-          vertical: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-        ),
-        decoration: BoxDecoration(
-          color: ColorSet.light,
-          borderRadius: BorderRadius.circular(2.0),
-          boxShadow: [
-            BoxShadow(
-              color: ColorSet.dark.withValues(alpha: 0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _StoreInfoView(store: receipt.store),
-            const Gap(8),
-            const _ReceiptDivider(char: '*'),
-            const Gap(4),
-            _DocumentInfoView(
-              docNumber: receipt.docNumber,
-              docDate: receipt.docDate,
-              cashier: receipt.cashier,
-            ),
-            const Gap(4),
-            const _ReceiptDivider(char: '*'),
-            Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-            _SaleTypeView(type: receipt.type),
-            Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-            _ItemsView(items: receipt.items.toList()),
-            Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-            const _ReceiptDivider(char: '-'),
-            Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-            _SummaryView(
-              vatableSales: receipt.vatableSales,
-              vatExemptSales: receipt.vatExemptSales,
-              vatAmount: receipt.vatAmount,
-              discountAmount: receipt.discountAmount,
-              totalAmount: receipt.totalAmount,
-            ),
-            Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-            _PaymentView(payment: receipt.payment),
-            Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-            Text(
-              'Thank You!',
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 24, tablet: 18, phone: 16),
-                fontWeight: FontWeight.bold,
+      child: Center(
+        child: Container(
+          width: r.value<double>(kiosk: 400, tablet: 360, phone: 320),
+          padding: EdgeInsets.symmetric(
+            horizontal: r.value<double>(kiosk: 20, tablet: 18, phone: 14),
+            vertical: r.value<double>(kiosk: 32, tablet: 24, phone: 16),
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(4),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 32,
+                offset: const Offset(0, 8),
               ),
-            ),
-            Gap(context.responsive.value(kiosk: 128, tablet: 80, phone: 48)),
-          ],
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _StoreInfoView(store: receipt.store),
+              const Gap(8),
+              const _ReceiptDivider(char: '*'),
+              const Gap(4),
+              _DocumentInfoView(
+                docNumber: receipt.docNumber,
+                docDate: receipt.docDate,
+                cashier: receipt.cashier,
+              ),
+              const Gap(4),
+              const _ReceiptDivider(char: '*'),
+              Gap(r.value<double>(kiosk: 16, tablet: 12, phone: 8)),
+              _SaleTypeView(type: receipt.type),
+              Gap(r.value<double>(kiosk: 16, tablet: 12, phone: 8)),
+              _ItemsView(items: receipt.items.toList()),
+              Gap(r.value<double>(kiosk: 16, tablet: 12, phone: 8)),
+              const _ReceiptDivider(char: '-'),
+              Gap(r.value<double>(kiosk: 16, tablet: 12, phone: 8)),
+              _SummaryView(
+                vatableSales: receipt.vatableSales,
+                vatExemptSales: receipt.vatExemptSales,
+                vatAmount: receipt.vatAmount,
+                discountAmount: receipt.discountAmount,
+                totalAmount: receipt.totalAmount,
+              ),
+              Gap(r.value<double>(kiosk: 16, tablet: 12, phone: 8)),
+              _PaymentView(payment: receipt.payment),
+              Gap(r.value<double>(kiosk: 32, tablet: 24, phone: 16)),
+              Text(
+                'Thank You!',
+                style: TextStyle(
+                  fontSize: r.value<double>(kiosk: 24, tablet: 18, phone: 16),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Gap(r.value<double>(kiosk: 80, tablet: 56, phone: 40)),
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+// ── Receipt internal widgets (thermal print format — unchanged) ───────────────
 
 class _StoreInfoView extends StatelessWidget {
   const _StoreInfoView({required this.store});
@@ -224,26 +278,25 @@ class _StoreInfoView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Store(:legalName, :addressLine1, :addressLine2, :tin) = store;
+    final r = context.responsive;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Assets.images.png.imgAdtoKart.image(
-          height: context.responsive.value(kiosk: 32, tablet: 28, phone: 24),
-        ),
-        Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+        Assets.images.png.imgAdtoKart.image(height: r.value<double>(kiosk: 32, tablet: 28, phone: 24)),
+        Gap(r.value<double>(kiosk: 16, tablet: 12, phone: 8)),
         Text(
           [legalName, addressLine1, addressLine2].join('\n'),
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12)),
+          style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
         ),
         Text(
           'TIN: $tin',
-          style: TextStyle(fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12)),
+          style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
         ),
         Text(
           'Sales Invoice',
           style: TextStyle(
-            fontSize: context.responsive.value(kiosk: 20, tablet: 18, phone: 16),
+            fontSize: r.value<double>(kiosk: 20, tablet: 18, phone: 16),
             fontWeight: FontWeight.bold,
           ),
           textAlign: TextAlign.center,
@@ -254,7 +307,11 @@ class _StoreInfoView extends StatelessWidget {
 }
 
 class _DocumentInfoView extends StatelessWidget {
-  const _DocumentInfoView({required this.docNumber, required this.docDate, required this.cashier});
+  const _DocumentInfoView({
+    required this.docNumber,
+    required this.docDate,
+    required this.cashier,
+  });
 
   final String docNumber;
   final DateTime docDate;
@@ -262,6 +319,7 @@ class _DocumentInfoView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final r = context.responsive;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -270,20 +328,19 @@ class _DocumentInfoView extends StatelessWidget {
           children: [
             Text(
               DateFormat.yMd().add_jm().format(docDate.toLocal()),
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-              ),
+              style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
             ),
             Text.rich(
               TextSpan(
                 children: [
                   const TextSpan(text: 'SI# '),
-                  TextSpan(text: docNumber, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  TextSpan(
+                    text: docNumber,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-              ),
+              style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
             ),
           ],
         ),
@@ -292,7 +349,7 @@ class _DocumentInfoView extends StatelessWidget {
           alignment: Alignment.centerLeft,
           child: Text(
             'Cashier: ${cashier.id} - ${cashier.fullName}',
-            style: TextStyle(fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12)),
+            style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
           ),
         ),
       ],
@@ -307,15 +364,16 @@ class _SaleTypeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final r = context.responsive;
     return Row(
       children: [
         const Expanded(child: _ReceiptDivider(char: '-')),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Text(
             type.displayName.toUpperCase(),
             style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
+              fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -333,6 +391,7 @@ class _ItemsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final r = context.responsive;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -343,19 +402,19 @@ class _ItemsView extends StatelessWidget {
               'Description',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
+                fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12),
               ),
             ),
             Text(
               'Price',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
+                fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12),
               ),
             ),
           ],
         ),
-        Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+        Gap(r.value<double>(kiosk: 16, tablet: 12, phone: 8)),
         ...items.map(
           (item) => Padding(
             padding: EdgeInsets.only(left: item.isMain ? 0 : 8),
@@ -367,14 +426,16 @@ class _ItemsView extends StatelessWidget {
                   child: Text(
                     '${item.quantity} ${item.description}',
                     style: TextStyle(
-                      fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
+                      fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12),
                     ),
                   ),
                 ),
                 Text(
-                  item.isMain || item.grossAmount > Decimal.zero ? item.grossAmount.withCommas : '',
+                  item.isMain || item.grossAmount > Decimal.zero
+                      ? item.grossAmount.withCommas
+                      : '',
                   style: TextStyle(
-                    fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
+                    fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12),
                   ),
                 ),
               ],
@@ -403,81 +464,42 @@ class _SummaryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final r = context.responsive;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Row(
           children: [
-            Text(
-              'VATable Sales',
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-              ),
-            ),
+            Text('VATable Sales', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
             const Spacer(),
-            Text(
-              vatableSales.withCommas,
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-              ),
-            ),
+            Text(vatableSales.withCommas, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
           ],
         ),
         const Gap(4),
         if (vatExemptSales > Decimal.zero) ...[
           Row(
             children: [
-              Text(
-                'VAT-Exempt Sales',
-                style: TextStyle(
-                  fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                ),
-              ),
+              Text('VAT-Exempt Sales', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
               const Spacer(),
-              Text(
-                vatExemptSales.withCommas,
-                style: TextStyle(
-                  fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                ),
-              ),
+              Text(vatExemptSales.withCommas, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
             ],
           ),
           const Gap(4),
         ],
         Row(
           children: [
-            Text(
-              'VAT',
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-              ),
-            ),
+            Text('VAT', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
             const Spacer(),
-            Text(
-              vatAmount.withCommas,
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-              ),
-            ),
+            Text(vatAmount.withCommas, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
           ],
         ),
         const Gap(4),
         if (discountAmount > Decimal.zero) ...[
           Row(
             children: [
-              Text(
-                'Discount',
-                style: TextStyle(
-                  fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                ),
-              ),
+              Text('Discount', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
               const Spacer(),
-              Text(
-                (-discountAmount).withCommas,
-                style: TextStyle(
-                  fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                ),
-              ),
+              Text((-discountAmount).withCommas, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
             ],
           ),
           const Gap(4),
@@ -488,14 +510,14 @@ class _SummaryView extends StatelessWidget {
             Text(
               'Total',
               style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 24, tablet: 18, phone: 16),
+                fontSize: r.value<double>(kiosk: 24, tablet: 18, phone: 16),
                 fontWeight: FontWeight.bold,
               ),
             ),
             Text(
               totalAmount.withCommas,
               style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 24, tablet: 18, phone: 16),
+                fontSize: r.value<double>(kiosk: 24, tablet: 18, phone: 16),
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -513,82 +535,39 @@ class _PaymentView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final r = context.responsive;
     if (payment case CashPayment(:final cashReceived, :final change)) {
       return Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Cash',
-                style: TextStyle(
-                  fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                ),
-              ),
-              const Gap(8),
-              Text(
-                cashReceived.withCommas,
-                style: TextStyle(
-                  fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                ),
-              ),
+              Text('Cash', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
+              Text(cashReceived.withCommas, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
             ],
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Change',
-                style: TextStyle(
-                  fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                ),
-              ),
-              const Gap(8),
-              Text(
-                change.withCommas,
-                style: TextStyle(
-                  fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                ),
-              ),
+              Text('Change', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
+              Text(change.withCommas, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
             ],
           ),
         ],
       );
-    } else if (payment case CardPayment(
-      :final referenceNumber,
-      :final cardType,
-      :final cardNumber,
-    )) {
+    } else if (payment case CardPayment(:final referenceNumber, :final cardType, :final cardNumber)) {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '$cardType ($cardNumber)',
-                style: TextStyle(
-                  fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                ),
-              ),
-              const Gap(8),
-              Text(
-                payment.paidAmount.withCommas,
-                style: TextStyle(
-                  fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                ),
-              ),
+              Text('$cardType ($cardNumber)', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
+              Text(payment.paidAmount.withCommas, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
             ],
           ),
           const Gap(4),
-          Center(
-            child: Text(
-              'Ref: $referenceNumber',
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 12, tablet: 12, phone: 10),
-              ),
-            ),
-          ),
+          Center(child: Text('Ref: $referenceNumber', style: TextStyle(fontSize: r.value<double>(kiosk: 12, tablet: 12, phone: 10)))),
         ],
       );
     } else if (payment case QRPayment(:final referenceNumber, :final walletProvider)) {
@@ -598,39 +577,18 @@ class _PaymentView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                walletProvider,
-                style: TextStyle(
-                  fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                ),
-              ),
-              const Gap(8),
-              Text(
-                payment.paidAmount.withCommas,
-                style: TextStyle(
-                  fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                ),
-              ),
+              Text(walletProvider, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
+              Text(payment.paidAmount.withCommas, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
             ],
           ),
           const Gap(4),
-          Center(
-            child: Text(
-              'Ref: $referenceNumber',
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 12, tablet: 12, phone: 10),
-              ),
-            ),
-          ),
+          Center(child: Text('Ref: $referenceNumber', style: TextStyle(fontSize: r.value<double>(kiosk: 12, tablet: 12, phone: 10)))),
         ],
       );
     } else if (payment is ZeroPayment) {
       return Align(
         alignment: Alignment.centerLeft,
-        child: Text(
-          'ZERO PAYMENT',
-          style: TextStyle(fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12)),
-        ),
+        child: Text('ZERO PAYMENT', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
       );
     }
     return const SizedBox.shrink();
@@ -639,12 +597,13 @@ class _PaymentView extends StatelessWidget {
 
 class _ReceiptDivider extends StatelessWidget {
   const _ReceiptDivider({required this.char})
-    : assert(char.length == 1, 'char should be 1 character long.');
+      : assert(char.length == 1, 'char should be 1 character long.');
 
   final String char;
 
   @override
   Widget build(BuildContext context) {
+    final r = context.responsive;
     return LayoutBuilder(
       builder: (context, constraints) {
         final boxWidth = constraints.constrainWidth();
@@ -655,7 +614,7 @@ class _ReceiptDivider extends StatelessWidget {
           children: List.generate(dashCount, (_) {
             return Text(
               char,
-              style: TextStyle(fontSize: context.responsive.value(kiosk: 10, tablet: 10, phone: 8)),
+              style: TextStyle(fontSize: r.value<double>(kiosk: 10, tablet: 10, phone: 8)),
             );
           }),
         );
@@ -664,6 +623,8 @@ class _ReceiptDivider extends StatelessWidget {
   }
 }
 
+// ── Action buttons ────────────────────────────────────────────────────────────
+
 class _PrintButton extends ConsumerWidget {
   const _PrintButton({required this.receiptId});
 
@@ -671,6 +632,7 @@ class _PrintButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final r = context.responsive;
     final hasReceipt = ref.watch(receiptProvider(receiptId).select((it) => it.hasValue));
     final printAction = ReceiptNotifier.printAction;
     final printStatus = ref.watch(printAction);
@@ -683,33 +645,62 @@ class _PrintButton extends ConsumerWidget {
 
     if (!hasReceipt) return const SizedBox.shrink();
 
-    return GestureDetector(
-      onTap:
-          printStatus is! MutationPending
-              ? () {
-                printAction.run(ref, (txn) {
-                  return txn.get(receiptProvider(receiptId).notifier).print();
-                }).ignore();
-              }
-              : null,
-      child: Container(
-        height: context.responsive.value(kiosk: 72, tablet: 64, phone: 52),
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: printStatus is! MutationPending ? ColorSet.secondary : const Color(0xFFE0E0E0),
-          borderRadius: BorderRadius.circular(32),
-        ),
-        child: Center(
-          child: Text(
-            printStatus is MutationPending
-                ? 'Printing...'
-                : printStatus is MutationSuccess
-                ? 'Reprint'
-                : 'Print Receipt',
-            style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 20, tablet: 18, phone: 14),
-              fontWeight: FontWeight.w600,
-              color: printStatus is! MutationPending ? ColorSet.light : const Color(0xFF9E9E9E),
+    final isPending = printStatus is MutationPending;
+    final isSuccess = printStatus is MutationSuccess;
+    final label = isPending ? 'Printing...' : isSuccess ? 'Reprint' : 'Print Receipt';
+    final height = r.value<double>(kiosk: 64, tablet: 56, phone: 48);
+    const radius = POSRadius.full;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: isPending
+            ? Colors.white.withValues(alpha: 0.25)
+            : Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.5),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(radius),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(radius),
+          onTap: isPending
+              ? null
+              : () {
+                  printAction.run(ref, (txn) {
+                    return txn.get(receiptProvider(receiptId).notifier).print();
+                  }).ignore();
+                },
+          child: SizedBox(
+            height: height,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (isPending)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                else
+                  Icon(
+                    isSuccess ? Icons.print_outlined : Icons.print_rounded,
+                    color: Colors.white,
+                    size: r.value<double>(kiosk: 18, tablet: 16, phone: 14),
+                  ),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13),
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -723,26 +714,48 @@ class _NewOrderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => const SalesRoute().go(context),
-      child: Container(
-        height: context.responsive.value(kiosk: 72, tablet: 64, phone: 52),
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: ColorSet.gradientBg,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    final r = context.responsive;
+    final height = r.value<double>(kiosk: 64, tablet: 56, phone: 48);
+    const radius = POSRadius.full;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(radius),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
-          borderRadius: BorderRadius.circular(32),
-        ),
-        child: Center(
-          child: Text(
-            'New Order',
-            style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 20, tablet: 18, phone: 14),
-              fontWeight: FontWeight.w600,
-              color: ColorSet.light,
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(radius),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(radius),
+          onTap: () => const SalesRoute().go(context),
+          child: SizedBox(
+            height: height,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.add_shopping_cart_rounded,
+                  color: ColorSet.primary,
+                  size: r.value<double>(kiosk: 18, tablet: 16, phone: 14),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'New Order',
+                  style: TextStyle(
+                    fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13),
+                    fontWeight: FontWeight.w700,
+                    color: ColorSet.primary,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -756,28 +769,48 @@ class _CloseButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
-      onTap: () {
-        if (context.canPop()) {
-          context.pop();
-        } else {
-          const SalesRoute().go(context);
-        }
-      },
-      child: Container(
-        height: context.responsive.value(kiosk: 72, tablet: 64, phone: 52),
-        width: double.infinity,
-        decoration: BoxDecoration(
-          border: Border.all(color: ColorSet.danger, width: 2),
-          borderRadius: BorderRadius.circular(32),
-        ),
-        child: Center(
-          child: Text(
-            'Close',
-            style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 20, tablet: 18, phone: 14),
-              fontWeight: FontWeight.w600,
-              color: ColorSet.danger,
+    final r = context.responsive;
+    final height = r.value<double>(kiosk: 64, tablet: 56, phone: 48);
+    const radius = POSRadius.full;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.5),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(radius),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(radius),
+          onTap: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              const SalesRoute().go(context);
+            }
+          },
+          child: SizedBox(
+            height: height,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.close_rounded,
+                  color: Colors.white,
+                  size: r.value<double>(kiosk: 18, tablet: 16, phone: 14),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Close',
+                  style: TextStyle(
+                    fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13),
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

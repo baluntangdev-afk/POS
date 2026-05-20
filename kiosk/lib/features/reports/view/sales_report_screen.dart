@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/resposive_wrap_container.dart';
 import '../../../widgets/top_app_bar.dart';
@@ -88,15 +89,9 @@ class SalesReportScreen extends ConsumerWidget {
     }
 
     if (isAndroid) {
-      return AndroidScaffold(
-        backgroundColor: Colors.grey.shade50,
-        body: content,
-      );
+      return AndroidScaffold(backgroundColor: ColorSet.background, body: content);
     }
-    return WindowsScaffold(
-      backgroundColor: Colors.grey.shade50,
-      body: content,
-    );
+    return WindowsScaffold(backgroundColor: ColorSet.background, body: content);
   }
 }
 
@@ -160,19 +155,11 @@ class _SalesChartSection extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        boxShadow: POSShadow.card,
       ),
-      child: Padding(
-        padding: EdgeInsets.all(responsive.value<double>(kiosk: 16, tablet: 14, phone: 12)),
-        child: const SalesBarChart(),
-      ),
+      padding: EdgeInsets.all(responsive.value<double>(kiosk: 20, tablet: 16, phone: 12)),
+      child: const SalesBarChart(),
     );
   }
 }
@@ -250,63 +237,56 @@ class _MetricCard extends StatelessWidget {
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(POSRadius.xl),
+            boxShadow: POSShadow.card,
           ),
-          child: Padding(
-            padding: EdgeInsets.all(padding),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: metric.color.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Icon(metric.icon, color: metric.color, size: iconSize),
+          padding: EdgeInsets.all(padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: metric.color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(POSRadius.md),
                     ),
-                    const Gap(10),
-                    Expanded(
-                      child: Text(
-                        metric.title,
-                        style: TextStyle(
-                          fontSize: titleFontSize,
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: spacing),
-                Flexible(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
+                    child: Icon(metric.icon, color: metric.color, size: iconSize),
+                  ),
+                  const Gap(10),
+                  Expanded(
                     child: Text(
-                      value,
+                      metric.title,
                       style: TextStyle(
-                        fontSize: valueFontSize,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        fontSize: titleFontSize,
+                        color: POSColors.textSecondary,
+                        fontWeight: FontWeight.w500,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: spacing),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: valueFontSize,
+                      fontWeight: FontWeight.w800,
+                      color: POSColors.textPrimary,
+                      letterSpacing: -0.5,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },

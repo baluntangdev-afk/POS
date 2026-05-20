@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:decimal/decimal.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
@@ -8,6 +8,7 @@ import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../styles/color_set.dart';
+import '../../../theme/pos_design.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../widgets/android_bottom_sheet.dart';
 import '../../../utils/decimal_formatter.dart';
@@ -34,7 +35,7 @@ Future<LineItem?> showLineItemDialog(
     builder: (context, ref, child) {
       switch (ref.watch(lineItemProvider(productId))) {
         case AsyncLoading():
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator(color: ColorSet.primary, strokeWidth: 3, strokeCap: StrokeCap.round));
         case AsyncError():
           return const Center(child: Text('Cannot load product'));
         case AsyncData(value: final product):
@@ -365,7 +366,7 @@ class _ProductDetails extends StatelessWidget {
             height: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
             child: Icon(
               Icons.image_not_supported_outlined,
-              color: Colors.grey.shade400,
+              color: POSColors.textDisabled,
               size: context.responsive.value(kiosk: 64, tablet: 48, phone: 32),
             ),
           ),
@@ -379,6 +380,9 @@ class _ProductDetails extends StatelessWidget {
                 product.name,
                 style: TextStyle(
                   fontSize: context.responsive.value(kiosk: 36, tablet: 24, phone: 18),
+                  fontWeight: FontWeight.w700,
+                  color: POSColors.textPrimary,
+                  letterSpacing: -0.3,
                 ),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
@@ -388,7 +392,7 @@ class _ProductDetails extends StatelessWidget {
                 'Quantity',
                 style: TextStyle(
                   fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
-                  color: ColorSet.text.withValues(alpha: 0.5),
+                  color: POSColors.textTertiary,
                 ),
               ),
               Gap(context.responsive.value(kiosk: 4, tablet: 4, phone: 4)),
@@ -402,14 +406,14 @@ class _ProductDetails extends StatelessWidget {
                 'Base Price',
                 style: TextStyle(
                   fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
-                  color: ColorSet.text.withValues(alpha: 0.5),
+                  color: POSColors.textTertiary,
                 ),
               ),
               Text(
                 (selectedVariant?.price ?? product.price).pesoFormatted,
                 style: TextStyle(
                   fontSize: context.responsive.value(kiosk: 30, tablet: 20, phone: 16),
-                  color: ColorSet.secondary,
+                  color: ColorSet.primary,
                 ),
               ),
             ],
@@ -433,40 +437,50 @@ class _QuantityControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final btnSize = context.responsive.value<double>(kiosk: 36, tablet: 28, phone: 24);
     return Row(
       children: [
-        GestureDetector(
-          onTap: onDecrease,
-          child: Container(
-            height: context.responsive.value(kiosk: 32, tablet: 24, phone: 20),
-            width: context.responsive.value(kiosk: 32, tablet: 24, phone: 20),
-            decoration: BoxDecoration(
-              color: ColorSet.secondary.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.remove,
-              color: ColorSet.secondary,
-              size: context.responsive.value(kiosk: 24, tablet: 18, phone: 16),
+        Material(
+          color: ColorSet.primary.withValues(alpha: 0.1),
+          shape: const CircleBorder(),
+          child: InkWell(
+            onTap: onDecrease,
+            customBorder: const CircleBorder(),
+            child: SizedBox(
+              width: btnSize,
+              height: btnSize,
+              child: Icon(
+                Icons.remove_rounded,
+                color: ColorSet.primary,
+                size: context.responsive.value(kiosk: 20, tablet: 16, phone: 14),
+              ),
             ),
           ),
         ),
         Gap(context.responsive.value(kiosk: 24, tablet: 18, phone: 12)),
         Text(
           '$quantity',
-          style: TextStyle(fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12)),
+          style: TextStyle(
+            fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
+            fontWeight: FontWeight.w700,
+            color: POSColors.textPrimary,
+          ),
         ),
         Gap(context.responsive.value(kiosk: 24, tablet: 18, phone: 12)),
-        GestureDetector(
-          onTap: onIncrease,
-          child: Container(
-            height: context.responsive.value(kiosk: 32, tablet: 24, phone: 20),
-            width: context.responsive.value(kiosk: 32, tablet: 24, phone: 20),
-            decoration: const BoxDecoration(color: ColorSet.secondary, shape: BoxShape.circle),
-            child: Icon(
-              Icons.add,
-              color: ColorSet.light,
-              size: context.responsive.value(kiosk: 24, tablet: 18, phone: 16),
+        Material(
+          color: ColorSet.primary,
+          shape: const CircleBorder(),
+          child: InkWell(
+            onTap: onIncrease,
+            customBorder: const CircleBorder(),
+            child: SizedBox(
+              width: btnSize,
+              height: btnSize,
+              child: Icon(
+                Icons.add_rounded,
+                color: ColorSet.light,
+                size: context.responsive.value(kiosk: 20, tablet: 16, phone: 14),
+              ),
             ),
           ),
         ),
@@ -494,41 +508,50 @@ class _VariantSelector extends StatelessWidget {
       children:
           variants.map((variant) {
             final isSelected = variant == selectedVariant;
-            return GestureDetector(
-              onTap: () => onVariantSelected(variant),
-              child: Container(
-                width: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
-                padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-                decoration: BoxDecoration(
-                  color: isSelected ? ColorSet.primary.withValues(alpha: 0.2) : ColorSet.light,
-                  border: Border.all(
-                    color: isSelected ? ColorSet.primary : ColorSet.text.withValues(alpha: 0.2),
-                    width: 2,
+            return Material(
+              color: isSelected ? ColorSet.primary.withValues(alpha: 0.1) : Colors.white,
+              borderRadius: BorderRadius.circular(POSRadius.md),
+              child: InkWell(
+                onTap: () => onVariantSelected(variant),
+                borderRadius: BorderRadius.circular(POSRadius.md),
+                child: Container(
+                  width: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
+                  padding: EdgeInsets.all(
+                    context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
                   ),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                alignment: Alignment.center,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      variant.name,
-                      style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
-                      ),
-                      textAlign: TextAlign.center,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: isSelected ? ColorSet.primary : POSColors.borderDefault,
+                      width: isSelected ? 2 : 1,
                     ),
-                    if (variant.price != Decimal.zero) ...[
-                      const Gap(4),
+                    borderRadius: BorderRadius.circular(POSRadius.md),
+                  ),
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       Text(
-                        variant.price.pesoFormatted,
+                        variant.name,
                         style: TextStyle(
-                          fontSize: context.responsive.value(kiosk: 16, tablet: 12, phone: 12),
-                          color: ColorSet.secondary,
+                          fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected ? ColorSet.primary : POSColors.textPrimary,
                         ),
+                        textAlign: TextAlign.center,
                       ),
+                      if (variant.price != Decimal.zero) ...[
+                        const Gap(4),
+                        Text(
+                          variant.price.pesoFormatted,
+                          style: TextStyle(
+                            fontSize: context.responsive.value(kiosk: 16, tablet: 12, phone: 12),
+                            color: ColorSet.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             );
@@ -584,7 +607,8 @@ class _ModifierGroupSection extends StatelessWidget {
           group.name,
           style: TextStyle(
             fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
+            color: POSColors.textPrimary,
           ),
         ),
         if (group.minSelections > 0 || group.maxSelections > 0) ...[
@@ -593,7 +617,7 @@ class _ModifierGroupSection extends StatelessWidget {
             _getSelectionLabel(group),
             style: TextStyle(
               fontSize: context.responsive.value(kiosk: 16, tablet: 12, phone: 10),
-              color: ColorSet.text.withValues(alpha: 0.6),
+              color: POSColors.textTertiary,
             ),
           ),
         ],
@@ -639,22 +663,23 @@ class _ModifierOptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: context.responsive.value(kiosk: 160, tablet: 120, phone: 96),
-        height: context.responsive.value(kiosk: 80, tablet: 60, phone: 60),
-        decoration: BoxDecoration(
-          color: isSelected ? ColorSet.secondary.withValues(alpha: 0.1) : ColorSet.light,
-          border: Border.all(
-            color: isSelected ? ColorSet.secondary : ColorSet.text.withValues(alpha: 0.2),
-            width: 2,
+    return Material(
+      color: isSelected ? ColorSet.primary.withValues(alpha: 0.08) : Colors.white,
+      borderRadius: BorderRadius.circular(POSRadius.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(POSRadius.md),
+        child: Container(
+          width: context.responsive.value(kiosk: 160, tablet: 120, phone: 96),
+          height: context.responsive.value(kiosk: 80, tablet: 60, phone: 60),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: isSelected ? ColorSet.primary : POSColors.borderDefault,
+              width: isSelected ? 2 : 1,
+            ),
+            borderRadius: BorderRadius.circular(POSRadius.md),
           ),
-          borderRadius: BorderRadius.circular(
-            context.responsive.value(kiosk: 12, tablet: 8, phone: 8),
-          ),
-        ),
-        padding: EdgeInsets.all(context.responsive.value(kiosk: 12, tablet: 8, phone: 8)),
+          padding: EdgeInsets.all(context.responsive.value(kiosk: 12, tablet: 8, phone: 8)),
         child: Row(
           children: [
             if (option.image != null) ...[
@@ -668,7 +693,7 @@ class _ModifierOptionCard extends StatelessWidget {
                   height: context.responsive.value(kiosk: 40, tablet: 32, phone: 24),
                   child: Icon(
                     Icons.image_not_supported_outlined,
-                    color: Colors.grey.shade400,
+                    color: POSColors.textDisabled,
                     size: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
                   ),
                 ),
@@ -695,7 +720,7 @@ class _ModifierOptionCard extends StatelessWidget {
                       option.price.pesoFormatted,
                       style: TextStyle(
                         fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 12),
-                        color: ColorSet.secondary,
+                        color: ColorSet.primary,
                       ),
                     ),
                   ],
@@ -704,16 +729,18 @@ class _ModifierOptionCard extends StatelessWidget {
             ),
             if (isSelected)
               Icon(
-                Icons.check_circle,
-                color: ColorSet.secondary,
+                Icons.check_circle_rounded,
+                color: ColorSet.primary,
                 size: context.responsive.value(kiosk: 20, tablet: 15, phone: 12),
               ),
           ],
         ),
       ),
+    ),
     );
   }
 }
+
 
 class _ActionControls extends StatelessWidget {
   const _ActionControls({required this.totalAmount, required this.onCancel, this.onConfirm});
@@ -742,7 +769,7 @@ class _ActionControls extends StatelessWidget {
               totalAmount.pesoFormatted,
               style: TextStyle(
                 fontSize: context.responsive.value(kiosk: 30, tablet: 24, phone: 18),
-                color: ColorSet.secondary,
+                color: ColorSet.primary,
               ),
             ),
             Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
@@ -774,7 +801,7 @@ class _ActionControls extends StatelessWidget {
             Button(
               onPressed: onConfirm,
               foregroundColor: ColorSet.light,
-              backgroundColor: ColorSet.secondary,
+              backgroundColor: ColorSet.primary,
               label: Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
@@ -795,3 +822,4 @@ class _ActionControls extends StatelessWidget {
     );
   }
 }
+

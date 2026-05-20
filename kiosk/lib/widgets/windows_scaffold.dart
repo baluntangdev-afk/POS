@@ -76,24 +76,7 @@ class WindowsScaffold extends HookWidget {
       body:
           Platform.isWindows
               ? Stack(
-                children: [
-                  // Positioned(
-                  //   top: 0,
-                  //   left: 0,
-                  //   child: ElevatedButton(
-                  //     onPressed: () {},
-                  //     focusNode: focusNode,
-                  //     style: ElevatedButton.styleFrom(
-                  //       backgroundColor: Colors.transparent,
-                  //       foregroundColor: Colors.transparent,
-                  //       shadowColor: Colors.transparent,
-                  //       surfaceTintColor: Colors.transparent,
-                  //     ),
-                  //     child: const SizedBox.shrink(),
-                  //   ),
-                  // ),
-                  if (body != null) Positioned.fill(child: body!),
-                ],
+                children: [if (body != null) Positioned.fill(child: body!)],
               )
               : body,
       appBar: appBar,

@@ -4,6 +4,7 @@ import '../../../gen/assets.gen.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/windows_scaffold.dart';
 import 'login_view.dart';
@@ -26,32 +27,11 @@ class LoginScreen extends StatelessWidget {
             builder: (context, constraints) {
               final isSmallHeight = constraints.maxHeight <= 500;
               final bottomPad = MediaQuery.of(context).viewPadding.bottom;
-              // Android always uses the portrait (top-banner + card) layout.
               return Column(
                 children: [
-                  Container(
-                    height: 120,
-                    padding: const EdgeInsets.all(30),
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: ColorSet.gradientBg,
-                      ),
-                    ),
-                    child: SafeArea(
-                      bottom: false,
-                      child: Center(
-                        child: Assets.images.png.onboardingLogo.image(
-                          color: Colors.white,
-                          height: 72,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ),
-                  ),
+                  _BrandPanel(height: 130, isLandscape: false),
                   Expanded(
-                    child: ColoredBox(
+                    child: Container(
                       color: Colors.white,
                       child: Padding(
                         padding: EdgeInsets.only(bottom: bottomPad),
@@ -74,29 +54,11 @@ class LoginScreen extends StatelessWidget {
           final isPortrait = constraints.maxHeight > constraints.maxWidth;
 
           if (isPortrait) {
-            // Windows tablet portrait: top gradient banner + white card below
             return Column(
               children: [
-                Container(
-                  height: 100,
-                  padding: const EdgeInsets.all(30),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: ColorSet.gradientBg,
-                    ),
-                  ),
-                  child: Center(
-                    child: Assets.images.png.onboardingLogo.image(
-                      color: Colors.white,
-                      height: 72,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
+                _BrandPanel(height: 110, isLandscape: false),
                 Expanded(
-                  child: ColoredBox(
+                  child: Container(
                     color: Colors.white,
                     child: LoginView(isSmallHeight: isSmallHeight),
                   ),
@@ -105,46 +67,12 @@ class LoginScreen extends StatelessWidget {
             );
           }
 
-          // Kiosk / Windows tablet landscape: left gradient panel + right white card
-          final panelWidth = context.responsive.value<double>(kiosk: 400, tablet: 320, phone: 240);
+          final panelWidth = context.responsive.value<double>(kiosk: 420, tablet: 340, phone: 260);
           return Row(
             children: [
-              Container(
-                width: panelWidth,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: ColorSet.gradientBg,
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Assets.images.png.onboardingLogo.image(
-                      color: Colors.white,
-                      width: panelWidth * 0.75,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(height: 32),
-                    Text(
-                      'Point of Sale',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: context.responsive.value<double>(
-                          kiosk: 20,
-                          tablet: 16,
-                          phone: 14,
-                        ),
-                        fontWeight: FontWeight.w300,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _BrandPanel(width: panelWidth, isLandscape: true),
               Expanded(
-                child: ColoredBox(
+                child: Container(
                   color: Colors.white,
                   child: LoginView(isSmallHeight: isSmallHeight),
                 ),
@@ -152,6 +80,153 @@ class LoginScreen extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _BrandPanel extends StatelessWidget {
+  const _BrandPanel({
+    this.height,
+    this.width,
+    required this.isLandscape,
+  });
+
+  final double? height;
+  final double? width;
+  final bool isLandscape;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.responsive;
+    final logoHeight = r.value<double>(kiosk: 52, tablet: 44, phone: 38);
+
+    Widget content;
+    if (isLandscape) {
+      content = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Assets.images.png.onboardingLogo.image(
+                height: 48,
+                fit: BoxFit.contain,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'POS Kiosk',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: r.value<double>(kiosk: 28, tablet: 22, phone: 18),
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: 40,
+            height: 3,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Point of Sale System',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.75),
+              fontSize: r.value<double>(kiosk: 14, tablet: 12, phone: 11),
+              fontWeight: FontWeight.w400,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 60),
+          _StatusBadge(),
+        ],
+      );
+    } else {
+      content = SafeArea(
+        bottom: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Assets.images.png.onboardingLogo.image(
+              height: logoHeight,
+              fit: BoxFit.contain,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'POS Kiosk',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: r.value<double>(kiosk: 22, tablet: 18, phone: 16),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      height: height,
+      width: width,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1B7A8C), Color(0xFF156070)],
+        ),
+      ),
+      padding: EdgeInsets.all(isLandscape ? 32.0 : 24.0),
+      child: content,
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(POSRadius.full),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: ColorSet.success,
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: ColorSet.success.withValues(alpha: 0.5), blurRadius: 6, spreadRadius: 1)],
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            'System Online',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

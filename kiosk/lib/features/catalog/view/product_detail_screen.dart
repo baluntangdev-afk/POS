@@ -10,6 +10,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/button.dart';
 import '../../../widgets/text_box_form_field.dart';
@@ -60,9 +61,9 @@ class ProductDetailScreen extends HookConsumerWidget {
       ],
     );
     if (isAndroid) {
-      return AndroidScaffold(backgroundColor: Colors.grey.shade50, appBar: appBar, body: body);
+      return AndroidScaffold(backgroundColor: ColorSet.background, appBar: appBar, body: body);
     }
-    return WindowsScaffold(backgroundColor: Colors.grey.shade50, appBar: appBar, body: body);
+    return WindowsScaffold(backgroundColor: ColorSet.background, appBar: appBar, body: body);
   }
 }
 
@@ -77,10 +78,7 @@ class _TopAppBar extends StatelessWidget {
       height: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            ColorSet.secondary.withValues(alpha: 0.85),
-            ColorSet.primary.withValues(alpha: 0.85),
-          ],
+          colors: ColorSet.gradientBg,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -88,17 +86,21 @@ class _TopAppBar extends StatelessWidget {
       child: Row(
         children: [
           Gap(context.responsive.spacingLg),
-          GestureDetector(
-            onTap: () {
-              if (context.canPop()) {
-                context.pop();
-              }
-            },
-            behavior: HitTestBehavior.opaque,
-            child: Icon(
-              Icons.arrow_back_ios,
-              color: ColorSet.light,
-              size: context.responsive.value(kiosk: 48, tablet: 32, phone: 24),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                if (context.canPop()) context.pop();
+              },
+              borderRadius: BorderRadius.circular(POSRadius.full),
+              child: Padding(
+                padding: EdgeInsets.all(context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
+                child: Icon(
+                  Icons.arrow_back_ios_rounded,
+                  color: ColorSet.light,
+                  size: context.responsive.value(kiosk: 28, tablet: 24, phone: 20),
+                ),
+              ),
             ),
           ),
           Expanded(
@@ -106,13 +108,14 @@ class _TopAppBar extends StatelessWidget {
               '$productName Management',
               style: TextStyle(
                 fontSize: context.responsive.fontTitle,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
                 color: ColorSet.light,
+                letterSpacing: -0.3,
               ),
               textAlign: TextAlign.center,
             ),
           ),
-          Gap(context.responsive.value(kiosk: 80, tablet: 56, phone: 40)),
+          Gap(context.responsive.value(kiosk: 64, tablet: 48, phone: 36)),
         ],
       ),
     );
@@ -131,55 +134,57 @@ class _TabBar extends StatelessWidget {
 
     Widget buildTabItem(int index, String title) {
       final isSelected = selectedTab.value == index;
-      return GestureDetector(
-        onTap: () => selectedTab.value = index,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            vertical: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
-            horizontal: isPhone ? context.responsive.spacingMd : 0,
-          ),
-          decoration: BoxDecoration(
-            color: isSelected ? ColorSet.primary.withValues(alpha: 0.1) : Colors.transparent,
-            border: Border(
-              bottom: BorderSide(
-                color: isSelected ? ColorSet.primary : Colors.transparent,
-                width: context.responsive.value(kiosk: 3, tablet: 2, phone: 2),
+      return Expanded(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => selectedTab.value = index,
+            child: AnimatedContainer(
+              duration: POSAnimation.fast,
+              padding: EdgeInsets.symmetric(
+                vertical: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
+                horizontal: isPhone ? context.responsive.spacingMd : 0,
+              ),
+              decoration: BoxDecoration(
+                color: isSelected ? ColorSet.primary.withValues(alpha: 0.06) : Colors.transparent,
+                border: Border(
+                  bottom: BorderSide(
+                    color: isSelected ? ColorSet.primary : Colors.transparent,
+                    width: context.responsive.value(kiosk: 3.0, tablet: 2.5, phone: 2.0),
+                  ),
+                ),
+              ),
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: context.responsive.value(kiosk: 15, tablet: 14, phone: 12),
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? ColorSet.primary : POSColors.textTertiary,
+                  letterSpacing: isSelected ? 0.2 : 0,
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
-          ),
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              color: isSelected ? ColorSet.primary : Colors.grey.shade600,
-            ),
-            textAlign: TextAlign.center,
           ),
         ),
       );
     }
 
-    final tabItems = tabs.asMap().entries.map((e) => buildTabItem(e.key, e.value)).toList();
+    final tabRow = Row(
+      children: tabs.asMap().entries.map((e) => buildTabItem(e.key, e.value)).toList(),
+    );
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: POSShadow.headerBottom,
       ),
       child: isPhone
           ? SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: Row(children: tabItems),
+              child: tabRow,
             )
-          : Row(children: tabItems.map((tab) => Expanded(child: tab)).toList()),
+          : tabRow,
     );
   }
 }
@@ -222,58 +227,53 @@ class _ProductImage extends StatelessWidget {
       width: context.responsive.value(kiosk: 200, tablet: 160, phone: 120),
       height: context.responsive.value(kiosk: 200, tablet: 160, phone: 120),
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(
-          context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
-        ),
-        border: Border.all(color: Colors.grey.shade300),
+        color: POSColors.surfaceSubtle,
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        border: Border.all(color: POSColors.borderDefault),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(
-          context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
-        ),
-        child:
-            product.image.isNotEmpty
-                ? Image.memory(
-                    product.image,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.image_not_supported_outlined,
-                          size: context.responsive.value(kiosk: 48, tablet: 40, phone: 32),
-                          color: Colors.grey.shade400,
-                        ),
-                        Gap(context.responsive.spacingSm),
-                        Text(
-                          'Image unavailable',
-                          style: TextStyle(
-                            fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                      ],
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        child: product.image.isNotEmpty
+            ? Image.memory(
+                product.image,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.image_not_supported_rounded,
+                      size: context.responsive.value(kiosk: 48, tablet: 40, phone: 32),
+                      color: POSColors.textDisabled,
                     ),
-                  )
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.image,
-                        size: context.responsive.value(kiosk: 48, tablet: 40, phone: 32),
-                        color: Colors.grey.shade400,
+                    Gap(context.responsive.spacingSm),
+                    Text(
+                      'Image unavailable',
+                      style: TextStyle(
+                        fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
+                        color: POSColors.textTertiary,
                       ),
-                      Gap(context.responsive.spacingSm),
-                      Text(
-                        'No Image',
-                        style: TextStyle(
-                          fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.image_rounded,
+                    size: context.responsive.value(kiosk: 48, tablet: 40, phone: 32),
+                    color: POSColors.textDisabled,
                   ),
+                  Gap(context.responsive.spacingSm),
+                  Text(
+                    'No Image',
+                    style: TextStyle(
+                      fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
+                      color: POSColors.textTertiary,
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -336,8 +336,8 @@ class _VariantsTab extends StatelessWidget {
             Column(
               spacing: context.responsive.spacingMd,
               children: [
-                _VariantCard(variant: product.variants.first, price: '\$8.99', stock: 45),
-                _VariantCard(variant: product.variants.last, price: '\$10.99', stock: 23),
+                _VariantCard(variant: product.variants.first, price: r'$8.99', stock: 45),
+                _VariantCard(variant: product.variants.last, price: r'$10.99', stock: 23),
               ],
             )
           else
@@ -345,10 +345,10 @@ class _VariantsTab extends StatelessWidget {
               spacing: context.responsive.spacingMd,
               children: [
                 Expanded(
-                  child: _VariantCard(variant: product.variants.first, price: '\$8.99', stock: 45),
+                  child: _VariantCard(variant: product.variants.first, price: r'$8.99', stock: 45),
                 ),
                 Expanded(
-                  child: _VariantCard(variant: product.variants.last, price: '\$10.99', stock: 23),
+                  child: _VariantCard(variant: product.variants.last, price: r'$10.99', stock: 23),
                 ),
               ],
             ),
@@ -381,17 +381,9 @@ class _VariantCard extends StatelessWidget {
       padding: EdgeInsets.all(context.responsive.spacingMd),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(
-          context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
-        ),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        border: Border.all(color: POSColors.borderSubtle),
+        boxShadow: POSShadow.card,
       ),
       child: Column(
         spacing: context.responsive.spacingMd,
@@ -400,23 +392,24 @@ class _VariantCard extends StatelessWidget {
             variant.name,
             style: TextStyle(
               fontSize: context.responsive.value(kiosk: 18, tablet: 16, phone: 14),
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              fontWeight: FontWeight.w700,
+              color: POSColors.textPrimary,
             ),
           ),
           Text(
             price,
             style: TextStyle(
               fontSize: context.responsive.value(kiosk: 20, tablet: 18, phone: 16),
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
               color: ColorSet.primary,
+              letterSpacing: -0.3,
             ),
           ),
           Text(
             'Stock: $stock',
             style: TextStyle(
               fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
-              color: Colors.grey.shade600,
+              color: POSColors.textSecondary,
             ),
           ),
           Row(
@@ -433,8 +426,8 @@ class _VariantCard extends StatelessWidget {
               Expanded(
                 child: Button(
                   label: const Text('Stock'),
-                  backgroundColor: Colors.grey.shade200,
-                  foregroundColor: Colors.black87,
+                  backgroundColor: POSColors.surfaceSubtle,
+                  foregroundColor: POSColors.textPrimary,
                   onPressed: () {
                     // TODO: Manage stock
                   },
@@ -465,8 +458,8 @@ class _ModifiersTab extends StatelessWidget {
             'Available Groups:',
             style: TextStyle(
               fontSize: context.responsive.value(kiosk: 18, tablet: 16, phone: 14),
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              fontWeight: FontWeight.w700,
+              color: POSColors.textPrimary,
             ),
           ),
           _ModifierGroupCheckbox(name: 'Sides', count: 3, isSelected: true, onToggle: () {}),
@@ -487,14 +480,14 @@ class _ModifiersTab extends StatelessWidget {
             'Applied Groups:',
             style: TextStyle(
               fontSize: context.responsive.value(kiosk: 18, tablet: 16, phone: 14),
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              fontWeight: FontWeight.w700,
+              color: POSColors.textPrimary,
             ),
           ),
           _AppliedModifierGroup(
             name: 'Sides',
             variants: const ['Regular', 'Large'],
-            modifiers: const ['Fries (+\$1.50)', 'Onion Rings (+\$2.00)', 'Salad (+\$1.00)'],
+            modifiers: const [r'Fries (+$1.50)', r'Onion Rings (+$2.00)', r'Salad (+$1.00)'],
           ),
         ],
       ),
@@ -523,14 +516,19 @@ class _ModifierGroupCheckbox extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Checkbox(value: isSelected, onChanged: (_) => onToggle(), activeColor: ColorSet.primary),
+          Checkbox(
+            value: isSelected,
+            onChanged: (_) => onToggle(),
+            activeColor: ColorSet.primary,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.xs)),
+          ),
           Gap(context.responsive.spacingSm),
           Expanded(
             child: Text(
               '$name ($count modifiers)',
               style: TextStyle(
                 fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
-                color: Colors.black87,
+                color: POSColors.textPrimary,
               ),
             ),
           ),
@@ -557,10 +555,9 @@ class _AppliedModifierGroup extends StatelessWidget {
       padding: EdgeInsets.all(context.responsive.spacingMd),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(
-          context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
-        ),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        border: Border.all(color: POSColors.borderSubtle),
+        boxShadow: POSShadow.card,
       ),
       child: Column(
         spacing: context.responsive.spacingMd,
@@ -570,25 +567,29 @@ class _AppliedModifierGroup extends StatelessWidget {
             'Applied to: ${variants.join(', ')}',
             style: TextStyle(
               fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
-              color: Colors.grey.shade600,
+              color: POSColors.textSecondary,
             ),
           ),
           Wrap(
             spacing: context.responsive.spacingSm,
             runSpacing: context.responsive.spacingSm,
-            children:
-                modifiers
-                    .map(
-                      (modifier) => Chip(
-                        label: Text(
-                          modifier,
-                          style: TextStyle(
-                            fontSize: context.responsive.value(kiosk: 10, tablet: 9, phone: 8),
-                          ),
-                        ),
+            children: modifiers
+                .map(
+                  (modifier) => Chip(
+                    label: Text(
+                      modifier,
+                      style: TextStyle(
+                        fontSize: context.responsive.value(kiosk: 10, tablet: 9, phone: 8),
                       ),
-                    )
-                    .toList(),
+                    ),
+                    backgroundColor: POSColors.surfaceSubtle,
+                    side: const BorderSide(color: POSColors.borderDefault),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(POSRadius.sm),
+                    ),
+                  ),
+                )
+                .toList(),
           ),
           SizedBox(
             width: double.infinity,
@@ -639,10 +640,9 @@ class _AvailabilitySetting extends StatelessWidget {
       padding: EdgeInsets.all(context.responsive.spacingMd),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(
-          context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
-        ),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        border: Border.all(color: POSColors.borderSubtle),
+        boxShadow: POSShadow.card,
       ),
       child: Row(
         children: [
@@ -655,15 +655,15 @@ class _AvailabilitySetting extends StatelessWidget {
                   title,
                   style: TextStyle(
                     fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    fontWeight: FontWeight.w700,
+                    color: POSColors.textPrimary,
                   ),
                 ),
                 Text(
                   value,
                   style: TextStyle(
                     fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
-                    color: Colors.grey.shade600,
+                    color: POSColors.textSecondary,
                   ),
                 ),
               ],

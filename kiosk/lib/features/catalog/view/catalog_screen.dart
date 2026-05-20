@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
@@ -37,7 +38,7 @@ class _AndroidCatalogScreen extends StatelessWidget {
     return DefaultTabController(
       length: tabs.length,
       child: AndroidScaffold(
-        backgroundColor: Colors.grey.shade50,
+        backgroundColor: ColorSet.background,
         appBar: PreferredSize(
           preferredSize: Size.fromHeight(
             r.appBarHeight + kTextTabBarHeight,
@@ -50,7 +51,7 @@ class _AndroidCatalogScreen extends StatelessWidget {
                 color: Colors.white,
                 child: TabBar(
                   labelColor: ColorSet.primary,
-                  unselectedLabelColor: Colors.grey.shade600,
+                  unselectedLabelColor: POSColors.textTertiary,
                   indicatorColor: ColorSet.primary,
                   indicatorWeight: 3,
                   labelStyle: TextStyle(
@@ -87,7 +88,7 @@ class _WindowsCatalogScreen extends HookWidget {
     final selectedTab = useState(0);
 
     return WindowsScaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: ColorSet.background,
       body: Column(
         children: [
           const TopAppBar(title: 'Catalog Management'),
@@ -117,13 +118,7 @@ class _WindowsTabBar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: POSShadow.headerBottom,
       ),
       child: Row(
         children: tabs.asMap().entries.map((entry) {
@@ -131,28 +126,34 @@ class _WindowsTabBar extends StatelessWidget {
           final title = entry.value;
           final isSelected = selectedTab.value == index;
           return Expanded(
-            child: GestureDetector(
-              onTap: () => selectedTab.value = index,
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                padding: EdgeInsets.symmetric(vertical: r.spacingLg),
-                decoration: BoxDecoration(
-                  color: isSelected ? ColorSet.primary.withValues(alpha: 0.1) : Colors.transparent,
-                  border: Border(
-                    bottom: BorderSide(
-                      color: isSelected ? ColorSet.primary : Colors.transparent,
-                      width: r.value(kiosk: 3.0, tablet: 2.0, phone: 2.0),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => selectedTab.value = index,
+                child: AnimatedContainer(
+                  duration: POSAnimation.fast,
+                  padding: EdgeInsets.symmetric(vertical: r.spacingLg),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? ColorSet.primary.withValues(alpha: 0.06)
+                        : Colors.transparent,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: isSelected ? ColorSet.primary : Colors.transparent,
+                        width: r.value(kiosk: 3.0, tablet: 2.5, phone: 2.0),
+                      ),
                     ),
                   ),
-                ),
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: r.value(kiosk: 16.0, tablet: 14.0, phone: 12.0),
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected ? ColorSet.primary : Colors.grey.shade600,
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: r.value(kiosk: 15.0, tablet: 14.0, phone: 12.0),
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected ? ColorSet.primary : POSColors.textTertiary,
+                      letterSpacing: isSelected ? 0.2 : 0,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
                 ),
               ),
             ),
@@ -173,21 +174,27 @@ class _CategoriesTab extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.category, size: r.value(kiosk: 80.0, tablet: 64.0, phone: 48.0),
-              color: Colors.grey.shade400),
+          Icon(
+            Icons.category_rounded,
+            size: r.value(kiosk: 64.0, tablet: 52.0, phone: 40.0),
+            color: POSColors.textDisabled,
+          ),
           SizedBox(height: r.spacingMd),
           Text(
             'Categories',
             style: TextStyle(
-              fontSize: r.fontBody,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade600,
+              fontSize: r.value(kiosk: 18.0, tablet: 16.0, phone: 14.0),
+              fontWeight: FontWeight.w700,
+              color: POSColors.textSecondary,
             ),
           ),
           SizedBox(height: r.spacingSm),
           Text(
             'Category management coming soon',
-            style: TextStyle(fontSize: r.fontCaption, color: Colors.grey.shade500),
+            style: TextStyle(
+              fontSize: r.value(kiosk: 14.0, tablet: 13.0, phone: 12.0),
+              color: POSColors.textDisabled,
+            ),
           ),
         ],
       ),

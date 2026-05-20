@@ -1,4 +1,4 @@
-import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+﻿import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
@@ -7,6 +7,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../../../utils/debounce.dart';
 import '../../../widgets/button.dart';
 import '../../../widgets/text_box_form_field.dart';
@@ -85,16 +86,8 @@ class _SearchAndAddControls extends StatelessWidget {
       padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(
-          context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        boxShadow: POSShadow.card,
       ),
       child: Row(
         spacing: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
@@ -106,9 +99,9 @@ class _SearchAndAddControls extends StatelessWidget {
                 return TextBoxFormField.singleLine(
                   hint: 'Search modifier groups...',
                   prefixIcon: Icon(
-                    Icons.search,
+                    Icons.search_rounded,
                     size: context.responsive.value(kiosk: 20, tablet: 18, phone: 16),
-                    color: Colors.grey.shade500,
+                    color: POSColors.iconSubtle,
                   ),
                   style: TextStyle(
                     fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
@@ -159,7 +152,7 @@ class _EmptyGroupsState extends StatelessWidget {
           Icon(
             Icons.tune_outlined,
             size: context.responsive.value(kiosk: 80, tablet: 64, phone: 48),
-            color: Colors.grey.shade400,
+            color: POSColors.textDisabled,
           ),
           Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
           Text(
@@ -167,7 +160,7 @@ class _EmptyGroupsState extends StatelessWidget {
             style: TextStyle(
               fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 14),
               fontWeight: FontWeight.w600,
-              color: Colors.grey.shade600,
+              color: POSColors.textSecondary,
             ),
           ),
           Gap(context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
@@ -175,7 +168,7 @@ class _EmptyGroupsState extends StatelessWidget {
             'Try adjusting your search or create a new group',
             style: TextStyle(
               fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
-              color: Colors.grey.shade500,
+              color: POSColors.textTertiary,
             ),
           ),
         ],
@@ -278,13 +271,13 @@ class _ModifierGroupCard extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                            color: POSColors.textPrimary,
                           ),
                         ),
                       ),
                       Text(
                         '${group.modifiers.length} items',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                        style: TextStyle(fontSize: 12, color: POSColors.textSecondary),
                       ),
                     ],
                   ),
@@ -454,7 +447,7 @@ class _ModifierGroupRow extends StatelessWidget {
           child: Container(
             padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
             decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+              border: Border(bottom: BorderSide(color: POSColors.borderSubtle)),
             ),
             child: Row(
               children: [
@@ -479,7 +472,7 @@ class _ModifierGroupRow extends StatelessWidget {
                           style: TextStyle(
                             fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
                             fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                            color: POSColors.textPrimary,
                           ),
                         ),
                       ),
@@ -492,7 +485,7 @@ class _ModifierGroupRow extends StatelessWidget {
                     '${group.modifiers.length} items',
                     style: TextStyle(
                       fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
-                      color: Colors.grey.shade600,
+                      color: POSColors.textSecondary,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -503,7 +496,7 @@ class _ModifierGroupRow extends StatelessWidget {
                     _getUsedByCount(group),
                     style: TextStyle(
                       fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
-                      color: Colors.grey.shade600,
+                      color: POSColors.textSecondary,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -578,8 +571,8 @@ class _ModifiersList extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+        color: POSColors.surfaceSubtle,
+        border: Border(bottom: BorderSide(color: POSColors.borderSubtle)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -590,7 +583,7 @@ class _ModifiersList extends StatelessWidget {
             style: TextStyle(
               fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: POSColors.textPrimary,
             ),
           ),
           ...group.modifiers.map((modifier) => _ModifierItem(modifier: modifier)),
@@ -602,8 +595,8 @@ class _ModifiersList extends StatelessWidget {
               onPressed: () {
                 // TODO: Show add modifier dialog
               },
-              backgroundColor: Colors.grey.shade200,
-              foregroundColor: Colors.black87,
+              backgroundColor: POSColors.borderSubtle,
+              foregroundColor: POSColors.textPrimary,
             ),
           ),
         ],
@@ -629,7 +622,7 @@ class _ModifierItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(
           context.responsive.value(kiosk: 6, tablet: 5, phone: 4),
         ),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: POSColors.borderSubtle),
       ),
       child: Row(
         children: [
@@ -638,7 +631,7 @@ class _ModifierItem extends StatelessWidget {
               '${modifier.name} (+\$${modifier.price.toStringAsFixed(2)})',
               style: TextStyle(
                 fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
-                color: Colors.black87,
+                color: POSColors.textPrimary,
               ),
             ),
           ),
@@ -682,3 +675,4 @@ class _ModifierItem extends StatelessWidget {
     );
   }
 }
+

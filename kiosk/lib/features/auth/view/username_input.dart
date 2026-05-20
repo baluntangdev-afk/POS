@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 
 class UsernameInput extends HookConsumerWidget {
   const UsernameInput({super.key, required this.controller, this.errorText});
@@ -22,11 +23,13 @@ class UsernameInput extends HookConsumerWidget {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: ColorSet.background,
-            borderRadius: BorderRadius.circular(
-              responsive.value<double>(phone: 12, tablet: 16, kiosk: 20),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(POSRadius.lg),
+            border: Border.all(
+              color: errorText != null ? ColorSet.danger : POSColors.borderDefault,
+              width: errorText != null ? 2 : 1,
             ),
-            border: errorText != null ? Border.all(color: ColorSet.danger, width: 2) : null,
+            boxShadow: POSShadow.card,
           ),
           child: TextField(
             focusNode: focusNode,

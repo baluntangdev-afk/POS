@@ -12,6 +12,7 @@ import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../utils/decimal_rounding.dart';
 import '../../../widgets/message_dialog.dart';
@@ -33,7 +34,6 @@ class RefundScreen extends HookConsumerWidget {
           type: DialogType.error,
           message: 'Failed to load items: $error',
         );
-
         if (context.mounted && context.canPop()) {
           context.pop();
         } else if (context.mounted) {
@@ -45,23 +45,100 @@ class RefundScreen extends HookConsumerWidget {
     final isLoading = ref.watch(refundProvider(receiptId).select((it) => it.isLoading));
 
     return WindowsScaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
-        child: const _TopAppBar(),
-      ),
       backgroundColor: ColorSet.background,
-      body:
-          isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : ResponsiveBuilder(
-                kiosk: (context) => _LandscapeLayout(receiptId: receiptId),
-                tablet: (context) => _LandscapeLayout(receiptId: receiptId),
-                phone: (context) => _PortraitLayout(receiptId: receiptId),
-              ),
+      body: Column(
+        children: [
+          const _FlatHeader(title: 'Process Refund'),
+          Expanded(
+            child: isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: ColorSet.primary,
+                      strokeWidth: 3,
+                      strokeCap: StrokeCap.round,
+                    ),
+                  )
+                : ResponsiveBuilder(
+                    kiosk: (context) => _LandscapeLayout(receiptId: receiptId),
+                    tablet: (context) => _LandscapeLayout(receiptId: receiptId),
+                    phone: (context) => _PortraitLayout(receiptId: receiptId),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
 
+// ── Flat white header ─────────────────────────────────────────────────────────
+class _FlatHeader extends StatelessWidget {
+  const _FlatHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.responsive;
+    final height = r.value<double>(kiosk: 68, tablet: 60, phone: 52);
+    final btnH = r.value<double>(kiosk: 44, tablet: 40, phone: 36);
+
+    return Container(
+      height: height,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: POSColors.borderDefault)),
+        boxShadow: POSShadow.headerBottom,
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: r.value<double>(kiosk: 24, tablet: 16, phone: 12),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            height: btnH,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                if (context.canPop()) context.pop();
+              },
+              icon: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
+              ),
+              label: Text(
+                'Back',
+                style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12)),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: ColorSet.primary,
+                side: BorderSide(color: ColorSet.primary.withValues(alpha: 0.6), width: 1.5),
+                padding: EdgeInsets.symmetric(
+                  horizontal: r.value<double>(kiosk: 16, tablet: 12, phone: 10),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(POSRadius.md),
+                ),
+              ),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: r.value<double>(kiosk: 20, tablet: 17, phone: 15),
+              fontWeight: FontWeight.w700,
+              color: POSColors.textPrimary,
+              letterSpacing: -0.3,
+            ),
+          ),
+          const Spacer(),
+          SizedBox(width: r.value<double>(kiosk: 90, tablet: 76, phone: 64)),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Layouts ───────────────────────────────────────────────────────────────────
 class _LandscapeLayout extends StatelessWidget {
   const _LandscapeLayout({required this.receiptId});
 
@@ -94,68 +171,7 @@ class _PortraitLayout extends StatelessWidget {
   }
 }
 
-class _TopAppBar extends StatelessWidget {
-  const _TopAppBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            ColorSet.secondary.withValues(alpha: 0.85),
-            ColorSet.primary.withValues(alpha: 0.85),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Row(
-        children: [
-          Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-          OutlinedButton.icon(
-            onPressed: () {
-              if (context.canPop()) {
-                context.pop();
-              }
-            },
-            icon: Icon(
-              Icons.arrow_back_ios,
-              size: context.responsive.value(kiosk: 20, tablet: 16, phone: 14),
-            ),
-            label: const Text('Back'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: ColorSet.light,
-              side: BorderSide(color: ColorSet.light.withValues(alpha: 0.7)),
-              minimumSize: Size(
-                context.responsive.value(kiosk: 120, tablet: 96, phone: 80),
-                context.responsive.value(kiosk: 56, tablet: 48, phone: 40),
-              ),
-              textStyle: TextStyle(
-                fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
-              ),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              'Process Refund',
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 36, tablet: 28, phone: 20),
-                fontWeight: FontWeight.w600,
-                color: ColorSet.light,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          Gap(context.responsive.value(kiosk: 80, tablet: 56, phone: 40)),
-        ],
-      ),
-    );
-  }
-}
-
+// ── Item selection panel ──────────────────────────────────────────────────────
 class _ItemSelectionView extends ConsumerWidget {
   const _ItemSelectionView({required this.receiptId});
 
@@ -163,6 +179,7 @@ class _ItemSelectionView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final r = context.responsive;
     final (:receipt, :selectedQuantities) = ref.watch(
       refundProvider(receiptId).select(
         (it) => (
@@ -178,210 +195,185 @@ class _ItemSelectionView extends ConsumerWidget {
     final mainItemsWithAddOns = receipt.mainItemsWithAddOns;
 
     return Container(
-      margin: EdgeInsets.all(context.responsive.value(kiosk: 24, tablet: 16, phone: 12)),
+      margin: EdgeInsets.all(r.value<double>(kiosk: 20, tablet: 16, phone: 12)),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        boxShadow: POSShadow.card,
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          Padding(
-            padding: EdgeInsets.all(context.responsive.value(kiosk: 24, tablet: 16, phone: 12)),
+          // Header
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: r.value<double>(kiosk: 20, tablet: 16, phone: 14),
+              vertical: r.value<double>(kiosk: 16, tablet: 14, phone: 12),
+            ),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: POSColors.borderDefault)),
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Select Items to Refund',
-                  style: TextStyle(
-                    fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: ColorSet.danger.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(POSRadius.xs),
+                      ),
+                      child: Icon(Icons.assignment_return_rounded, color: ColorSet.danger, size: 16),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Select Items to Refund',
+                      style: TextStyle(
+                        fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
+                        fontWeight: FontWeight.w700,
+                        color: POSColors.textPrimary,
+                      ),
+                    ),
+                  ],
                 ),
                 TextButton(
                   onPressed: () {
                     ref.read(refundProvider(receiptId).notifier).toggleAllItemsSelection();
                   },
+                  style: TextButton.styleFrom(
+                    foregroundColor: ColorSet.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  ),
                   child: Text(
-                    selectedQuantities.length == allItems.length ? 'Deselect All' : 'Select All',
+                    selectedQuantities.length == allItems.length
+                        ? 'Deselect All'
+                        : 'Select All',
                     style: TextStyle(
-                      fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 14),
-                      color: ColorSet.primary,
+                      fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
           Expanded(
             child: ListView.separated(
+              padding: EdgeInsets.symmetric(vertical: r.value<double>(kiosk: 8, tablet: 6, phone: 4)),
               itemCount: mainItemsWithAddOns.length,
-              separatorBuilder: (context, index) {
-                return Divider(
-                  height: context.responsive.value(kiosk: 30, tablet: 20, phone: 16),
-                  thickness: 0.5,
-                );
-              },
+              separatorBuilder: (_, __) => const Divider(
+                height: 1,
+                color: POSColors.borderSubtle,
+                indent: 16,
+                endIndent: 16,
+              ),
               itemBuilder: (context, index) {
                 final (:mainItem, :addOns) = mainItemsWithAddOns[index];
                 final selectedQuantity = selectedQuantities[mainItem.id];
                 final isSelected = selectedQuantity != null;
 
-                return InkWell(
-                  onTap: () {
-                    ref
-                        .read(refundProvider(receiptId).notifier)
-                        .toggleItemSelection(item: mainItem, isSelected: isSelected);
-                  },
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      vertical: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-                      horizontal: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Checkbox(
-                          value: isSelected,
-                          onChanged: (value) {
-                            ref
-                                .read(refundProvider(receiptId).notifier)
-                                .toggleItemSelection(item: mainItem, isSelected: !(value ?? false));
-                          },
-                        ),
-                        Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                mainItem.description,
-                                style: TextStyle(
-                                  fontSize: context.responsive.value(
-                                    kiosk: 30,
-                                    tablet: 20,
-                                    phone: 14,
-                                  ),
-                                  fontWeight: FontWeight.normal,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 2,
+                final totalAmount = mainItem.totalAmount +
+                    addOns.fold(Decimal.zero, (sum, addOn) => sum + addOn.totalAmount);
+
+                return Material(
+                  color: isSelected
+                      ? ColorSet.danger.withValues(alpha: 0.03)
+                      : Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      ref.read(refundProvider(receiptId).notifier).toggleItemSelection(
+                        item: mainItem,
+                        isSelected: isSelected,
+                      );
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        vertical: r.value<double>(kiosk: 14, tablet: 12, phone: 10),
+                        horizontal: r.value<double>(kiosk: 16, tablet: 14, phone: 12),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: Checkbox(
+                              value: isSelected,
+                              activeColor: ColorSet.danger,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(POSRadius.xs),
                               ),
-                              if (isSelected && mainItem.quantity > 1) ...[
-                                const Gap(8),
-                                Row(
-                                  children: [
-                                    _QuantityButton(
-                                      icon: Icons.remove,
-                                      foregroundColor: ColorSet.secondary,
-                                      backgroundColor: ColorSet.secondary.withValues(alpha: 0.2),
-                                      onTap: () {
-                                        ref
-                                            .read(refundProvider(receiptId).notifier)
-                                            .changeQuantity(
-                                              item: mainItem,
-                                              quantity: selectedQuantity - 1,
-                                            );
-                                      },
-                                    ),
-                                    Gap(context.responsive.value(kiosk: 24, tablet: 18, phone: 12)),
-                                    Text(
-                                      '$selectedQuantity',
-                                      style: TextStyle(
-                                        fontSize: context.responsive.value(
-                                          kiosk: 20,
-                                          tablet: 16,
-                                          phone: 12,
-                                        ),
-                                      ),
-                                    ),
-                                    Gap(context.responsive.value(kiosk: 24, tablet: 18, phone: 12)),
-                                    _QuantityButton(
-                                      icon: Icons.add,
-                                      foregroundColor: ColorSet.light,
-                                      backgroundColor: ColorSet.secondary,
-                                      onTap: () {
-                                        ref
-                                            .read(refundProvider(receiptId).notifier)
-                                            .changeQuantity(
-                                              item: mainItem,
-                                              quantity: selectedQuantity + 1,
-                                            );
-                                      },
-                                    ),
-                                    Gap(context.responsive.value(kiosk: 8, phone: 4)),
-                                    Text(
-                                      'of ${mainItem.quantity}',
-                                      style: TextStyle(
-                                        fontSize: context.responsive.value(
-                                          kiosk: 18,
-                                          tablet: 16,
-                                          phone: 12,
-                                        ),
-                                        fontWeight: FontWeight.normal,
-                                        color: ColorSet.text.withValues(alpha: 0.5),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ] else ...[
-                                Text(
-                                  'Qty: ${mainItem.quantity}',
-                                  style: TextStyle(
-                                    fontSize: context.responsive.value(
-                                      kiosk: 20,
-                                      tablet: 16,
-                                      phone: 12,
-                                    ),
-                                    fontWeight: FontWeight.normal,
-                                    color: ColorSet.text.withValues(alpha: 0.5),
-                                  ),
-                                ),
-                              ],
-                              if (addOns.isNotEmpty) ...[
-                                const Gap(4),
-                                Text(
-                                  'Add-ons: ${addOns.map((addOn) => addOn.description).join(', ')}',
-                                  style: TextStyle(
-                                    fontSize: context.responsive.value(
-                                      kiosk: 20,
-                                      tablet: 16,
-                                      phone: 12,
-                                    ),
-                                    fontWeight: FontWeight.normal,
-                                    color: ColorSet.text.withValues(alpha: 0.5),
-                                  ),
-                                ),
-                              ],
-                              Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-                              Text(
-                                (mainItem.totalAmount +
-                                        addOns.fold(
-                                          Decimal.zero,
-                                          (sum, addOn) => sum + addOn.totalAmount,
-                                        ))
-                                    .pesoFormatted,
-                                style: TextStyle(
-                                  fontSize: context.responsive.value(
-                                    kiosk: 36,
-                                    tablet: 24,
-                                    phone: 16,
-                                  ),
-                                  fontWeight: FontWeight.w600,
-                                  color: ColorSet.secondary,
-                                ),
-                              ),
-                            ],
+                              onChanged: (value) {
+                                ref.read(refundProvider(receiptId).notifier).toggleItemSelection(
+                                  item: mainItem,
+                                  isSelected: !(value ?? false),
+                                );
+                              },
+                            ),
                           ),
-                        ),
-                      ],
+                          SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  mainItem.description,
+                                  style: TextStyle(
+                                    fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
+                                    fontWeight: FontWeight.w600,
+                                    color: POSColors.textPrimary,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 3),
+                                if (isSelected && mainItem.quantity > 1) ...[
+                                  _RefundQuantityStepper(
+                                    value: selectedQuantity,
+                                    max: mainItem.quantity,
+                                    onChanged: (qty) {
+                                      ref
+                                          .read(refundProvider(receiptId).notifier)
+                                          .changeQuantity(item: mainItem, quantity: qty);
+                                    },
+                                    r: r,
+                                  ),
+                                ] else ...[
+                                  Text(
+                                    'Qty: ${mainItem.quantity}',
+                                    style: TextStyle(
+                                      fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                                      color: POSColors.textTertiary,
+                                    ),
+                                  ),
+                                ],
+                                if (addOns.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Add-ons: ${addOns.map((a) => a.description).join(', ')}',
+                                    style: TextStyle(
+                                      fontSize: r.value<double>(kiosk: 12, tablet: 11, phone: 10),
+                                      color: POSColors.textTertiary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                          Text(
+                            totalAmount.pesoFormatted,
+                            style: TextStyle(
+                              fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
+                              fontWeight: FontWeight.w700,
+                              color: isSelected ? ColorSet.danger : POSColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -394,37 +386,89 @@ class _ItemSelectionView extends ConsumerWidget {
   }
 }
 
-class _QuantityButton extends StatelessWidget {
-  const _QuantityButton({
-    required this.icon,
-    required this.onTap,
-    required this.foregroundColor,
-    required this.backgroundColor,
+class _RefundQuantityStepper extends StatelessWidget {
+  const _RefundQuantityStepper({
+    required this.value,
+    required this.max,
+    required this.onChanged,
+    required this.r,
   });
 
-  final IconData icon;
-  final VoidCallback onTap;
-  final Color foregroundColor;
-  final Color backgroundColor;
+  final int value;
+  final int max;
+  final ValueChanged<int> onChanged;
+  final ResponsiveValue r;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: context.responsive.value(kiosk: 32, tablet: 24, phone: 20),
-        width: context.responsive.value(kiosk: 32, tablet: 24, phone: 20),
-        decoration: BoxDecoration(color: backgroundColor, shape: BoxShape.circle),
-        child: Icon(
-          icon,
-          color: foregroundColor,
-          size: context.responsive.value(kiosk: 24, tablet: 18, phone: 16),
+    final btnSize = r.value<double>(kiosk: 28, tablet: 24, phone: 20);
+    final textSize = r.value<double>(kiosk: 14, tablet: 13, phone: 12);
+
+    return Row(
+      children: [
+        _StepBtn(
+          icon: Icons.remove,
+          color: ColorSet.danger,
+          size: btnSize,
+          onTap: value > 1 ? () => onChanged(value - 1) : null,
+        ),
+        SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+        Text(
+          '$value',
+          style: TextStyle(
+            fontSize: textSize,
+            fontWeight: FontWeight.w700,
+            color: POSColors.textPrimary,
+          ),
+        ),
+        SizedBox(width: r.value<double>(kiosk: 5, tablet: 4, phone: 3)),
+        Text(
+          'of $max',
+          style: TextStyle(fontSize: textSize - 1, color: POSColors.textTertiary),
+        ),
+        SizedBox(width: r.value<double>(kiosk: 8, tablet: 6, phone: 5)),
+        _StepBtn(
+          icon: Icons.add,
+          color: ColorSet.danger,
+          size: btnSize,
+          onTap: value < max ? () => onChanged(value + 1) : null,
+        ),
+      ],
+    );
+  }
+}
+
+class _StepBtn extends StatelessWidget {
+  const _StepBtn({required this.icon, required this.color, required this.size, this.onTap});
+
+  final IconData icon;
+  final Color color;
+  final double size;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Material(
+        color: onTap != null ? color.withValues(alpha: 0.1) : POSColors.borderStrong,
+        borderRadius: BorderRadius.circular(size / 2),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(size / 2),
+          onTap: onTap,
+          child: Icon(
+            icon,
+            color: onTap != null ? color : POSColors.textDisabled,
+            size: size * 0.55,
+          ),
         ),
       ),
     );
   }
 }
 
+// ── Refund controls panel ─────────────────────────────────────────────────────
 class _RefundControlsView extends HookConsumerWidget {
   const _RefundControlsView({required this.receiptId});
 
@@ -432,158 +476,207 @@ class _RefundControlsView extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final r = context.responsive;
     final formData = ref.watch(refundProvider(receiptId).select((it) => it.value?.formData));
-
     final reasonController = useTextEditingController(text: formData?.reason ?? '');
 
-    final refundMethods = useMemoized(() {
-      return <({String image, String name, bool enabled})>[
-        (image: Assets.images.svg.icPaymentCash.path, name: 'Cash Refund', enabled: true),
-        (image: Assets.images.svg.icPaymentCard.path, name: 'Card Refund', enabled: false),
-        (image: Assets.images.svg.icPaymentQr.path, name: 'E-wallet Refund', enabled: false),
-      ];
-    });
+    final refundMethods = useMemoized(() => <({String image, String name, bool enabled})>[
+      (image: Assets.images.svg.icPaymentCash.path, name: 'Cash Refund', enabled: true),
+      (image: Assets.images.svg.icPaymentCard.path, name: 'Card Refund', enabled: false),
+      (image: Assets.images.svg.icPaymentQr.path, name: 'E-wallet Refund', enabled: false),
+    ]);
 
     if (formData == null) return const SizedBox.shrink();
 
     return Container(
       margin: EdgeInsets.fromLTRB(
-        context.responsive.value(kiosk: 0, tablet: 0, phone: 12),
-        context.responsive.value(kiosk: 24, tablet: 16, phone: 0),
-        context.responsive.value(kiosk: 24, tablet: 16, phone: 12),
-        context.responsive.value(kiosk: 24, tablet: 16, phone: 12),
+        r.value<double>(kiosk: 0, tablet: 0, phone: 12),
+        r.value<double>(kiosk: 20, tablet: 16, phone: 0),
+        r.value<double>(kiosk: 20, tablet: 16, phone: 12),
+        r.value<double>(kiosk: 20, tablet: 16, phone: 12),
       ),
-      padding: EdgeInsets.all(context.responsive.value(kiosk: 24, tablet: 16, phone: 12)),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        boxShadow: POSShadow.card,
       ),
+      clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
+            padding: EdgeInsets.all(r.value<double>(kiosk: 20, tablet: 16, phone: 14)),
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: IntrinsicHeight(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Reason field
                     TextBoxFormField(
                       controller: reasonController,
-                      label: 'Reason',
+                      label: 'Reason for Refund',
                       hint: 'Enter refund reason',
                       maxLines: 3,
                       keyboardType: TextInputType.text,
                       textInputAction: TextInputAction.done,
                       style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+                        fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13),
                       ),
                       onChanged: (value) {
                         ref.read(refundProvider(receiptId).notifier).changeReason(value ?? '');
                       },
                     ),
-                    Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-                    Text(
-                      'Refund Method',
-                      style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-                        fontWeight: FontWeight.w600,
-                      ),
+                    SizedBox(height: r.value<double>(kiosk: 20, tablet: 16, phone: 14)),
+
+                    // Refund method label
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: ColorSet.danger.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(POSRadius.xs),
+                          ),
+                          child: Icon(Icons.payments_outlined, color: ColorSet.danger, size: 16),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Refund Method',
+                          style: TextStyle(
+                            fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13),
+                            fontWeight: FontWeight.w700,
+                            color: POSColors.textPrimary,
+                          ),
+                        ),
+                      ],
                     ),
-                    Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+                    SizedBox(height: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+
+                    // Refund method cards
                     ...refundMethods.map((method) {
                       final isSelected = formData.refundMethod == method.name;
                       return Padding(
                         padding: EdgeInsets.only(
-                          bottom: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+                          bottom: r.value<double>(kiosk: 10, tablet: 8, phone: 6),
                         ),
-                        child: GestureDetector(
-                          onTap:
-                              method.enabled
-                                  ? () {
-                                    ref
-                                        .read(refundProvider(receiptId).notifier)
-                                        .changeRefundMethod(method.name);
-                                  }
-                                  : null,
-                          child: Opacity(
-                            opacity: method.enabled ? 1.0 : 0.4,
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                vertical: context.responsive.value(
-                                  kiosk: 20,
-                                  tablet: 16,
-                                  phone: 12,
-                                ),
-                                horizontal: context.responsive.value(
-                                  kiosk: 20,
-                                  tablet: 16,
-                                  phone: 12,
-                                ),
+                        child: Opacity(
+                          opacity: method.enabled ? 1.0 : 0.45,
+                          child: AnimatedContainer(
+                            duration: POSAnimation.fast,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? ColorSet.danger.withValues(alpha: 0.05)
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(POSRadius.lg),
+                              border: Border.all(
+                                color: isSelected ? ColorSet.danger : POSColors.borderDefault,
+                                width: isSelected ? 2 : 1.5,
                               ),
-                              decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFFF2FCFF) : Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color:
-                                      isSelected
-                                          ? ColorSet.secondary
-                                          : ColorSet.dark.withValues(alpha: 0.2),
-                                  width: 2,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  SvgPicture.asset(
-                                    method.image,
-                                    width: context.responsive.value(
-                                      kiosk: 40,
-                                      tablet: 32,
-                                      phone: 24,
-                                    ),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              borderRadius: BorderRadius.circular(POSRadius.lg),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(POSRadius.lg),
+                                onTap: method.enabled
+                                    ? () {
+                                        ref
+                                            .read(refundProvider(receiptId).notifier)
+                                            .changeRefundMethod(method.name);
+                                      }
+                                    : null,
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: r.value<double>(kiosk: 16, tablet: 14, phone: 12),
+                                    vertical: r.value<double>(kiosk: 14, tablet: 12, phone: 10),
                                   ),
-                                  Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-                                  Expanded(
-                                    child: Text(
-                                      method.name,
-                                      style: TextStyle(
-                                        fontSize: context.responsive.value(
-                                          kiosk: 28,
-                                          tablet: 20,
-                                          phone: 16,
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: r.value<double>(kiosk: 40, tablet: 34, phone: 28),
+                                        height: r.value<double>(kiosk: 40, tablet: 34, phone: 28),
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? ColorSet.danger.withValues(alpha: 0.1)
+                                              : POSColors.surfaceSubtle,
+                                          borderRadius: BorderRadius.circular(POSRadius.sm),
                                         ),
-                                        fontWeight: FontWeight.w600,
+                                        child: Center(
+                                          child: SvgPicture.asset(
+                                            method.image,
+                                            width: r.value<double>(kiosk: 22, tablet: 18, phone: 15),
+                                            colorFilter: isSelected
+                                                ? const ColorFilter.mode(
+                                                    ColorSet.danger,
+                                                    BlendMode.srcIn,
+                                                  )
+                                                : null,
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                      SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              method.name,
+                                              style: TextStyle(
+                                                fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                                                fontWeight: FontWeight.w600,
+                                                color: isSelected
+                                                    ? ColorSet.danger
+                                                    : POSColors.textPrimary,
+                                              ),
+                                            ),
+                                            if (!method.enabled)
+                                              Text(
+                                                'Coming soon',
+                                                style: TextStyle(
+                                                  fontSize: r.value<double>(kiosk: 11, tablet: 10, phone: 9),
+                                                  color: POSColors.textTertiary,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                      AnimatedContainer(
+                                        duration: POSAnimation.fast,
+                                        width: r.value<double>(kiosk: 22, tablet: 20, phone: 18),
+                                        height: r.value<double>(kiosk: 22, tablet: 20, phone: 18),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: isSelected ? ColorSet.danger : Colors.transparent,
+                                          border: Border.all(
+                                            color: isSelected ? ColorSet.danger : POSColors.borderStrong,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: isSelected
+                                            ? const Icon(
+                                                Icons.check_rounded,
+                                                color: Colors.white,
+                                                size: 13,
+                                              )
+                                            : null,
+                                      ),
+                                    ],
                                   ),
-                                  Icon(
-                                    isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                                    color:
-                                        isSelected
-                                            ? ColorSet.secondary
-                                            : ColorSet.dark.withValues(alpha: 0.2),
-                                    size: context.responsive.value(
-                                      kiosk: 24,
-                                      tablet: 20,
-                                      phone: 16,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
                         ),
                       );
                     }),
+
                     const Spacer(),
+
+                    // Summary
                     _SummarySection(receiptId: receiptId),
-                    Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+                    SizedBox(height: r.value<double>(kiosk: 20, tablet: 16, phone: 12)),
+
+                    // Confirm button
                     _ConfirmButton(receiptId: receiptId),
                   ],
                 ),
@@ -603,12 +696,15 @@ class _SummarySection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final r = context.responsive;
     final data = ref.watch(refundProvider(receiptId).select((it) => it.value));
 
     if (data == null) return const SizedBox.shrink();
 
     final selectedQuantities = data.formData.selectedQuantities;
     final receipt = data.receipt;
+
+    if (selectedQuantities.isEmpty) return const SizedBox.shrink();
 
     final refundAmount = selectedQuantities.entries.fold(Decimal.zero, (sum, entry) {
       final itemId = entry.key;
@@ -620,36 +716,31 @@ class _SummarySection extends ConsumerWidget {
       return sum + (unitPrice * quantity);
     });
 
-    return Column(children: [_SummaryRow(label: 'Refund Amount', amount: refundAmount)]);
-  }
-}
-
-class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({required this.label, required this.amount});
-
-  final String label;
-  final Decimal amount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+    return Container(
+      padding: EdgeInsets.all(r.value<double>(kiosk: 14, tablet: 12, phone: 10)),
+      decoration: BoxDecoration(
+        color: ColorSet.danger.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(POSRadius.md),
+        border: Border.all(color: ColorSet.danger.withValues(alpha: 0.2)),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            label,
+            'Refund Amount',
             style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 22, tablet: 18, phone: 14),
-              color: ColorSet.dark,
+              fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13),
+              fontWeight: FontWeight.w600,
+              color: POSColors.textPrimary,
             ),
           ),
           Text(
-            amount.pesoFormatted,
+            refundAmount.pesoFormatted,
             style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 22, tablet: 18, phone: 14),
-              color: ColorSet.secondary,
-              fontWeight: FontWeight.w600,
+              fontSize: r.value<double>(kiosk: 20, tablet: 17, phone: 15),
+              fontWeight: FontWeight.w800,
+              color: ColorSet.danger,
+              letterSpacing: -0.5,
             ),
           ),
         ],
@@ -665,28 +756,25 @@ class _ConfirmButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final r = context.responsive;
     final confirmAction = RefundNotifier.confirmAction;
     final confirmStatus = ref.watch(confirmAction);
 
     Future<void> submitForm() async {
       final formData = ref.read(refundProvider(receiptId)).value?.formData;
-
       final lackingData = <String>[];
 
       if (formData?.selectedQuantities.isEmpty ?? true) {
         lackingData.add('at least one item to refund');
       }
-
       if (formData?.reason.trim().isEmpty ?? true) {
         lackingData.add('reason for the refund');
       }
 
       if (lackingData.isNotEmpty) {
-        final message =
-            lackingData.length == 1
-                ? 'Please provide ${lackingData.first}.'
-                : 'Please provide the following:\n• ${lackingData.join('\n• ')}';
-
+        final message = lackingData.length == 1
+            ? 'Please provide ${lackingData.first}.'
+            : 'Please provide the following:\n• ${lackingData.join('\n• ')}';
         return showMessageDialog(context, type: DialogType.error, message: message);
       }
 
@@ -702,39 +790,68 @@ class _ConfirmButton extends ConsumerWidget {
           type: DialogType.error,
           message: 'Failed to process refund: $error',
         );
-
         return;
       }
-
       if (next is MutationSuccess) {
         await showMessageDialog(
           context,
           type: DialogType.success,
           message: 'Refund has been processed.',
         );
-
-        if (context.mounted && context.canPop()) {
-          context.pop();
-        }
+        if (context.mounted && context.canPop()) context.pop();
       }
     });
 
-    return GestureDetector(
-      onTap: confirmStatus is! MutationPending ? () => submitForm() : null,
-      child: Container(
-        height: context.responsive.value(kiosk: 80, tablet: 64, phone: 52),
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: confirmStatus is! MutationPending ? ColorSet.danger : const Color(0xFFE0E0E0),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: Text(
-            'Confirm Refund',
-            style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-              fontWeight: FontWeight.w600,
-              color: confirmStatus is! MutationPending ? ColorSet.light : const Color(0xFF9E9E9E),
+    final isPending = confirmStatus is MutationPending;
+    final height = r.value<double>(kiosk: 60, tablet: 56, phone: 52);
+    const radius = POSRadius.full;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: isPending ? POSColors.borderStrong : ColorSet.danger,
+        borderRadius: BorderRadius.circular(radius),
+        boxShadow: isPending
+            ? null
+            : [
+                BoxShadow(
+                  color: ColorSet.danger.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(radius),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(radius),
+          onTap: !isPending ? () => submitForm() : null,
+          child: SizedBox(
+            height: height,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (isPending)
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                else
+                  const Icon(Icons.assignment_return_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  isPending ? 'Processing...' : 'Confirm Refund',
+                  style: TextStyle(
+                    fontSize: r.value<double>(kiosk: 16, tablet: 15, phone: 14),
+                    fontWeight: FontWeight.w600,
+                    color: isPending ? POSColors.textDisabled : Colors.white,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

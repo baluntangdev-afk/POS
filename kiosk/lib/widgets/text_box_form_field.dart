@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../styles/color_set.dart';
+import '../theme/pos_design.dart';
 
 class TextBoxFormField extends HookWidget {
   const TextBoxFormField({
@@ -212,34 +213,34 @@ class TextBoxFormField extends HookWidget {
     return InputDecorationTheme(
       data: InputDecorationThemeData(
         iconColor: WidgetStateColor.resolveWith((states) {
-          return const Color(0xffa9a9a9);
+          return POSColors.iconSubtle;
         }),
-        contentPadding: const EdgeInsets.all(12.0),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         filled: true,
         fillColor: WidgetStateColor.resolveWith((states) {
           return states.contains(WidgetState.disabled)
-              ? const Color(0x0a000000)
-              : const Color(0xffffffff);
+              ? POSColors.surfaceSubtle
+              : Colors.white;
         }),
         enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Color(0xffa9a9a9)),
-          borderRadius: BorderRadius.circular(8.0),
+          borderSide: const BorderSide(color: POSColors.borderDefault),
+          borderRadius: BorderRadius.circular(POSRadius.md),
         ),
         disabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Color(0xffa9a9a9)),
-          borderRadius: BorderRadius.circular(8.0),
+          borderSide: const BorderSide(color: POSColors.borderSubtle),
+          borderRadius: BorderRadius.circular(POSRadius.md),
         ),
         focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Color(0xffa9a9a9)),
-          borderRadius: BorderRadius.circular(8.0),
+          borderSide: const BorderSide(color: ColorSet.primary, width: 1.5),
+          borderRadius: BorderRadius.circular(POSRadius.md),
         ),
         errorBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Color(0xffa9a9a9)),
-          borderRadius: BorderRadius.circular(8.0),
+          borderSide: const BorderSide(color: ColorSet.danger),
+          borderRadius: BorderRadius.circular(POSRadius.md),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Color(0xffa9a9a9)),
-          borderRadius: BorderRadius.circular(8.0),
+          borderSide: const BorderSide(color: ColorSet.danger, width: 1.5),
+          borderRadius: BorderRadius.circular(POSRadius.md),
         ),
       ),
       child: Column(

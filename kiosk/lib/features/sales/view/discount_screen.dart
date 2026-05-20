@@ -10,6 +10,7 @@ import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../utils/tax_calculator.dart';
 import '../../../validation/rules/is_required.dart';
@@ -32,85 +33,141 @@ class DiscountScreen extends HookConsumerWidget {
 
     void onApplyDiscount(String? idNumber) {
       if (selectedQuantities.value.isEmpty) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Please select items to discount.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select items to discount.')),
+        );
         return;
       }
 
       if (selectedDiscountType.value == 'Senior/PWD') {
-        ref.read(orderingProvider.notifier).applyDiscount(selectedQuantities.value, (
-          item,
-          quantity,
-        ) {
-          return SeniorPwdDiscount(beneficiaryId: idNumber ?? '');
-        });
+        ref.read(orderingProvider.notifier).applyDiscount(
+          selectedQuantities.value,
+          (item, quantity) => SeniorPwdDiscount(beneficiaryId: idNumber ?? ''),
+        );
       } else {
-        ref
-            .read(orderingProvider.notifier)
-            .applyDiscount(selectedQuantities.value, (item, quantity) => null);
+        ref.read(orderingProvider.notifier).applyDiscount(
+          selectedQuantities.value,
+          (item, quantity) => null,
+        );
       }
       context.pop();
     }
 
-    final body = ResponsiveBuilder(
-      kiosk: (context) {
-        return _LandscapeLayout(
-          selectedQuantities: selectedQuantities.value,
-          onQuantitiesChanged: (val) => selectedQuantities.value = val,
-          discountTypes: discountTypes,
-          selectedDiscountType: selectedDiscountType.value,
-          onDiscountTypeChanged: (val) => selectedDiscountType.value = val,
-          onApplyDiscount: onApplyDiscount,
-        );
-      },
-      tablet: (context) {
-        return _LandscapeLayout(
-          selectedQuantities: selectedQuantities.value,
-          onQuantitiesChanged: (value) => selectedQuantities.value = value,
-          discountTypes: discountTypes,
-          selectedDiscountType: selectedDiscountType.value,
-          onDiscountTypeChanged: (value) => selectedDiscountType.value = value,
-          onApplyDiscount: onApplyDiscount,
-        );
-      },
-      phone: (context) {
-        return _PortraitLayout(
-          selectedQuantities: selectedQuantities.value,
-          onQuantitiesChanged: (value) => selectedQuantities.value = value,
-          discountTypes: discountTypes,
-          selectedDiscountType: selectedDiscountType.value,
-          onDiscountTypeChanged: (value) => selectedDiscountType.value = value,
-          onApplyDiscount: onApplyDiscount,
-        );
-      },
+    final body = Column(
+      children: [
+        const _FlatHeader(title: 'Apply Discount'),
+        Expanded(
+          child: ResponsiveBuilder(
+            kiosk: (context) => _LandscapeLayout(
+              selectedQuantities: selectedQuantities.value,
+              onQuantitiesChanged: (val) => selectedQuantities.value = val,
+              discountTypes: discountTypes,
+              selectedDiscountType: selectedDiscountType.value,
+              onDiscountTypeChanged: (val) => selectedDiscountType.value = val,
+              onApplyDiscount: onApplyDiscount,
+            ),
+            tablet: (context) => _LandscapeLayout(
+              selectedQuantities: selectedQuantities.value,
+              onQuantitiesChanged: (val) => selectedQuantities.value = val,
+              discountTypes: discountTypes,
+              selectedDiscountType: selectedDiscountType.value,
+              onDiscountTypeChanged: (val) => selectedDiscountType.value = val,
+              onApplyDiscount: onApplyDiscount,
+            ),
+            phone: (context) => _PortraitLayout(
+              selectedQuantities: selectedQuantities.value,
+              onQuantitiesChanged: (val) => selectedQuantities.value = val,
+              discountTypes: discountTypes,
+              selectedDiscountType: selectedDiscountType.value,
+              onDiscountTypeChanged: (val) => selectedDiscountType.value = val,
+              onApplyDiscount: onApplyDiscount,
+            ),
+          ),
+        ),
+      ],
     );
 
     if (isAndroid) {
       return AndroidScaffold(
         backgroundColor: ColorSet.background,
         resizeToAvoidBottomInset: true,
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(
-            context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
-          ),
-          child: const _TopAppBar(),
-        ),
-        body: SafeArea(top: false, child: body),
+        body: SafeArea(child: body),
       );
     }
 
-    return WindowsScaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
-        child: const _TopAppBar(),
+    return WindowsScaffold(backgroundColor: ColorSet.background, body: body);
+  }
+}
+
+// ── Flat white header (consistent with cart/payment) ──────────────────────────
+class _FlatHeader extends StatelessWidget {
+  const _FlatHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.responsive;
+    final height = r.value<double>(kiosk: 68, tablet: 60, phone: 52);
+    final btnH = r.value<double>(kiosk: 44, tablet: 40, phone: 36);
+
+    return Container(
+      height: height,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: POSColors.borderDefault)),
+        boxShadow: POSShadow.headerBottom,
       ),
-      backgroundColor: ColorSet.background,
-      body: body,
+      padding: EdgeInsets.symmetric(
+        horizontal: r.value<double>(kiosk: 24, tablet: 16, phone: 12),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            height: btnH,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                if (context.canPop()) context.pop();
+              },
+              icon: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
+              ),
+              label: Text(
+                'Back',
+                style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12)),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: ColorSet.primary,
+                side: BorderSide(color: ColorSet.primary.withValues(alpha: 0.6), width: 1.5),
+                padding: EdgeInsets.symmetric(
+                  horizontal: r.value<double>(kiosk: 16, tablet: 12, phone: 10),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(POSRadius.md),
+                ),
+              ),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: r.value<double>(kiosk: 20, tablet: 17, phone: 15),
+              fontWeight: FontWeight.w700,
+              color: POSColors.textPrimary,
+              letterSpacing: -0.3,
+            ),
+          ),
+          const Spacer(),
+          SizedBox(width: r.value<double>(kiosk: 90, tablet: 76, phone: 64)),
+        ],
+      ),
     );
   }
 }
 
+// ── Layouts ───────────────────────────────────────────────────────────────────
 class _LandscapeLayout extends StatelessWidget {
   const _LandscapeLayout({
     required this.selectedQuantities,
@@ -195,68 +252,7 @@ class _PortraitLayout extends StatelessWidget {
   }
 }
 
-class _TopAppBar extends StatelessWidget {
-  const _TopAppBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            ColorSet.secondary.withValues(alpha: 0.85),
-            ColorSet.primary.withValues(alpha: 0.85),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Row(
-        children: [
-          Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-          OutlinedButton.icon(
-            onPressed: () {
-              if (context.canPop()) {
-                context.pop();
-              }
-            },
-            icon: Icon(
-              Icons.arrow_back_ios,
-              size: context.responsive.value(kiosk: 20, tablet: 16, phone: 14),
-            ),
-            label: const Text('Back'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: ColorSet.light,
-              side: BorderSide(color: ColorSet.light.withValues(alpha: 0.7)),
-              minimumSize: Size(
-                context.responsive.value(kiosk: 120, tablet: 96, phone: 80),
-                context.responsive.value(kiosk: 56, tablet: 48, phone: 40),
-              ),
-              textStyle: TextStyle(
-                fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
-              ),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              'Apply Discount',
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 36, tablet: 28, phone: 20),
-                fontWeight: FontWeight.w600,
-                color: ColorSet.light,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          Gap(context.responsive.value(kiosk: 80, tablet: 56, phone: 40)),
-        ],
-      ),
-    );
-  }
-}
-
+// ── Item selection panel ──────────────────────────────────────────────────────
 class _LineItemSelectionView extends ConsumerWidget {
   const _LineItemSelectionView({
     required this.selectedQuantities,
@@ -268,237 +264,221 @@ class _LineItemSelectionView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final r = context.responsive;
     final lineItems = ref.watch(
       orderingProvider.select(
         (it) =>
-            it.value?.sale.items.where((e) => e.discount == null).toIList() ?? const IList.empty(),
+            it.value?.sale.items.where((e) => e.discount == null).toIList() ??
+            const IList.empty(),
       ),
     );
+
     return Container(
-      margin: EdgeInsets.all(context.responsive.value(kiosk: 24, tablet: 16, phone: 12)),
+      margin: EdgeInsets.all(r.value<double>(kiosk: 20, tablet: 16, phone: 12)),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        boxShadow: POSShadow.card,
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          Padding(
-            padding: EdgeInsets.all(context.responsive.value(kiosk: 24, tablet: 16, phone: 12)),
+          // Panel header
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: r.value<double>(kiosk: 20, tablet: 16, phone: 14),
+              vertical: r.value<double>(kiosk: 16, tablet: 14, phone: 12),
+            ),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: POSColors.borderDefault)),
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Select Items',
-                  style: TextStyle(
-                    fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: ColorSet.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(POSRadius.xs),
+                      ),
+                      child: const Icon(Icons.checklist_rounded, color: ColorSet.primary, size: 16),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Select Items',
+                      style: TextStyle(
+                        fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
+                        fontWeight: FontWeight.w700,
+                        color: POSColors.textPrimary,
+                      ),
+                    ),
+                  ],
                 ),
                 TextButton(
                   onPressed: () {
                     if (selectedQuantities.length == lineItems.length) {
                       onQuantitiesChanged({});
                     } else {
-                      onQuantitiesChanged({for (final item in lineItems) item.id: item.quantity});
+                      onQuantitiesChanged({
+                        for (final item in lineItems) item.id: item.quantity,
+                      });
                     }
                   },
+                  style: TextButton.styleFrom(
+                    foregroundColor: ColorSet.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  ),
                   child: Text(
-                    selectedQuantities.length == lineItems.length ? 'Deselect All' : 'Select All',
+                    selectedQuantities.length == lineItems.length
+                        ? 'Deselect All'
+                        : 'Select All',
                     style: TextStyle(
-                      fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 14),
-                      color: ColorSet.primary,
+                      fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
           Expanded(
             child: ListView.separated(
+              padding: EdgeInsets.symmetric(vertical: r.value<double>(kiosk: 8, tablet: 6, phone: 4)),
               itemCount: lineItems.length,
-              separatorBuilder:
-                  (context, index) => Divider(
-                    height: context.responsive.value(kiosk: 30, tablet: 20, phone: 16),
-                    thickness: 0.5,
-                  ),
+              separatorBuilder: (_, __) => const Divider(
+                height: 1,
+                color: POSColors.borderSubtle,
+                indent: 16,
+                endIndent: 16,
+              ),
               itemBuilder: (context, index) {
                 final item = lineItems[index];
                 final selectedQty = selectedQuantities[item.id];
                 final isSelected = selectedQty != null;
-                return InkWell(
-                  onTap: () {
-                    if (isSelected) {
+
+                return Material(
+                  color: isSelected
+                      ? ColorSet.primary.withValues(alpha: 0.03)
+                      : Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
                       final newMap = Map<String, int>.from(selectedQuantities);
-                      newMap.remove(item.id);
+                      if (isSelected) {
+                        newMap.remove(item.id);
+                      } else {
+                        newMap[item.id] = item.quantity;
+                      }
                       onQuantitiesChanged(newMap);
-                    } else {
-                      final newMap = Map<String, int>.from(selectedQuantities);
-                      newMap[item.id] = item.quantity;
-                      onQuantitiesChanged(newMap);
-                    }
-                  },
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      vertical: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-                      horizontal: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Checkbox(
-                          value: isSelected,
-                          onChanged: (value) {
-                            if (value ?? false) {
-                              final newMap = Map<String, int>.from(selectedQuantities);
-                              newMap[item.id] = item.quantity;
-                              onQuantitiesChanged(newMap);
-                            } else {
-                              final newMap = Map<String, int>.from(selectedQuantities);
-                              newMap.remove(item.id);
-                              onQuantitiesChanged(newMap);
-                            }
-                          },
-                        ),
-                        Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-                        Container(
-                          width: context.responsive.value(kiosk: 90, tablet: 72, phone: 56),
-                          height: context.responsive.value(kiosk: 90, tablet: 72, phone: 56),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: ColorSet.background,
-                            image: DecorationImage(
-                              image: MemoryImage(item.productImage),
-                              fit: BoxFit.contain,
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        vertical: r.value<double>(kiosk: 14, tablet: 12, phone: 10),
+                        horizontal: r.value<double>(kiosk: 16, tablet: 14, phone: 12),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: Checkbox(
+                              value: isSelected,
+                              activeColor: ColorSet.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(POSRadius.xs),
+                              ),
+                              onChanged: (value) {
+                                final newMap = Map<String, int>.from(selectedQuantities);
+                                if (value ?? false) {
+                                  newMap[item.id] = item.quantity;
+                                } else {
+                                  newMap.remove(item.id);
+                                }
+                                onQuantitiesChanged(newMap);
+                              },
                             ),
                           ),
-                        ),
-                        Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 12)),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.productName,
-                                style: TextStyle(
-                                  fontSize: context.responsive.value(
-                                    kiosk: 30,
-                                    tablet: 20,
-                                    phone: 14,
-                                  ),
-                                  fontWeight: FontWeight.normal,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
+                          SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                          // Product image
+                          Container(
+                            width: r.value<double>(kiosk: 64, tablet: 52, phone: 44),
+                            height: r.value<double>(kiosk: 64, tablet: 52, phone: 44),
+                            decoration: BoxDecoration(
+                              color: ColorSet.background,
+                              borderRadius: BorderRadius.circular(POSRadius.md),
+                              image: DecorationImage(
+                                image: MemoryImage(item.productImage),
+                                fit: BoxFit.contain,
                               ),
-                              if (isSelected && item.quantity > 1) ...[
-                                const Gap(8),
-                                Row(
-                                  children: [
-                                    _QuantityButton(
-                                      icon: Icons.remove,
-                                      foregroundColor: ColorSet.secondary,
-                                      backgroundColor: ColorSet.secondary.withValues(alpha: 0.2),
-                                      onTap: () {
-                                        if (selectedQty > 1) {
-                                          final newMap = Map<String, int>.from(selectedQuantities);
-                                          newMap[item.id] = selectedQty - 1;
-                                          onQuantitiesChanged(newMap);
-                                        }
-                                      },
-                                    ),
-                                    Gap(context.responsive.value(kiosk: 24, tablet: 18, phone: 12)),
-                                    Text(
-                                      '$selectedQty',
-                                      style: TextStyle(
-                                        fontSize: context.responsive.value(
-                                          kiosk: 20,
-                                          tablet: 16,
-                                          phone: 12,
-                                        ),
-                                      ),
-                                    ),
-                                    Gap(context.responsive.value(kiosk: 24, tablet: 18, phone: 12)),
-                                    _QuantityButton(
-                                      icon: Icons.add,
-                                      foregroundColor: ColorSet.light,
-                                      backgroundColor: ColorSet.secondary,
-                                      onTap: () {
-                                        if (selectedQty < item.quantity) {
-                                          final newMap = Map<String, int>.from(selectedQuantities);
-                                          newMap[item.id] = selectedQty + 1;
-                                          onQuantitiesChanged(newMap);
-                                        }
-                                      },
-                                    ),
-                                    Gap(context.responsive.value(kiosk: 8, phone: 4)),
-                                    Text(
-                                      'of ${item.quantity}',
-                                      style: TextStyle(
-                                        fontSize: context.responsive.value(
-                                          kiosk: 18,
-                                          tablet: 16,
-                                          phone: 12,
-                                        ),
-                                        fontWeight: FontWeight.normal,
-                                        color: ColorSet.text.withValues(alpha: 0.5),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ] else ...[
-                                Text(
-                                  'Qty: ${item.quantity}',
-                                  style: TextStyle(
-                                    fontSize: context.responsive.value(
-                                      kiosk: 20,
-                                      tablet: 16,
-                                      phone: 12,
-                                    ),
-                                    fontWeight: FontWeight.normal,
-                                    color: ColorSet.text.withValues(alpha: 0.5),
-                                  ),
-                                ),
-                              ],
-                              if (item.modifiers.isNotEmpty) ...[
-                                const Gap(4),
-                                Text(
-                                  'Add-ons: ${item.modifiers.expand((modifier) => modifier.options).map((option) => option.name).join(', ')}',
-                                  style: TextStyle(
-                                    fontSize: context.responsive.value(
-                                      kiosk: 20,
-                                      tablet: 16,
-                                      phone: 12,
-                                    ),
-                                    fontWeight: FontWeight.normal,
-                                    color: ColorSet.text.withValues(alpha: 0.5),
-                                  ),
-                                ),
-                              ],
-                              Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-                              Text(
-                                item.grossAmount.pesoFormatted,
-                                style: TextStyle(
-                                  fontSize: context.responsive.value(
-                                    kiosk: 36,
-                                    tablet: 24,
-                                    phone: 16,
-                                  ),
-                                  fontWeight: FontWeight.w600,
-                                  color: ColorSet.secondary,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ],
+                          SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.productName,
+                                  style: TextStyle(
+                                    fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
+                                    fontWeight: FontWeight.w600,
+                                    color: POSColors.textPrimary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                if (isSelected && item.quantity > 1) ...[
+                                  _QuantityStepper(
+                                    value: selectedQty,
+                                    max: item.quantity,
+                                    onChanged: (qty) {
+                                      final newMap = Map<String, int>.from(selectedQuantities);
+                                      newMap[item.id] = qty;
+                                      onQuantitiesChanged(newMap);
+                                    },
+                                    r: r,
+                                  ),
+                                ] else ...[
+                                  Text(
+                                    'Qty: ${item.quantity}',
+                                    style: TextStyle(
+                                      fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                                      color: POSColors.textTertiary,
+                                    ),
+                                  ),
+                                ],
+                                if (item.modifiers.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    item.modifiers
+                                        .expand((m) => m.options)
+                                        .map((o) => o.name)
+                                        .join(', '),
+                                    style: TextStyle(
+                                      fontSize: r.value<double>(kiosk: 12, tablet: 11, phone: 10),
+                                      color: POSColors.textTertiary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                          Text(
+                            item.grossAmount.pesoFormatted,
+                            style: TextStyle(
+                              fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
+                              fontWeight: FontWeight.w700,
+                              color: isSelected ? ColorSet.primary : POSColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -511,37 +491,92 @@ class _LineItemSelectionView extends ConsumerWidget {
   }
 }
 
-class _QuantityButton extends StatelessWidget {
-  const _QuantityButton({
-    required this.icon,
-    required this.onTap,
-    required this.foregroundColor,
-    required this.backgroundColor,
+class _QuantityStepper extends StatelessWidget {
+  const _QuantityStepper({
+    required this.value,
+    required this.max,
+    required this.onChanged,
+    required this.r,
   });
 
-  final IconData icon;
-  final VoidCallback onTap;
-  final Color foregroundColor;
-  final Color backgroundColor;
+  final int value;
+  final int max;
+  final ValueChanged<int> onChanged;
+  final ResponsiveValue r;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: context.responsive.value(kiosk: 32, tablet: 24, phone: 20),
-        width: context.responsive.value(kiosk: 32, tablet: 24, phone: 20),
-        decoration: BoxDecoration(color: backgroundColor, shape: BoxShape.circle),
-        child: Icon(
-          icon,
-          color: foregroundColor,
-          size: context.responsive.value(kiosk: 24, tablet: 18, phone: 16),
+    final btnSize = r.value<double>(kiosk: 28, tablet: 24, phone: 20);
+    final textSize = r.value<double>(kiosk: 15, tablet: 13, phone: 12);
+
+    return Row(
+      children: [
+        _StepBtn(
+          icon: Icons.remove,
+          color: ColorSet.primary,
+          size: btnSize,
+          onTap: value > 1 ? () => onChanged(value - 1) : null,
+        ),
+        SizedBox(width: r.value<double>(kiosk: 14, tablet: 10, phone: 8)),
+        Text(
+          '$value',
+          style: TextStyle(
+            fontSize: textSize,
+            fontWeight: FontWeight.w700,
+            color: POSColors.textPrimary,
+          ),
+        ),
+        SizedBox(width: r.value<double>(kiosk: 6, tablet: 5, phone: 4)),
+        Text(
+          'of $max',
+          style: TextStyle(
+            fontSize: textSize - 1,
+            color: POSColors.textTertiary,
+          ),
+        ),
+        SizedBox(width: r.value<double>(kiosk: 8, tablet: 6, phone: 5)),
+        _StepBtn(
+          icon: Icons.add,
+          color: ColorSet.primary,
+          size: btnSize,
+          onTap: value < max ? () => onChanged(value + 1) : null,
+        ),
+      ],
+    );
+  }
+}
+
+class _StepBtn extends StatelessWidget {
+  const _StepBtn({required this.icon, required this.color, required this.size, this.onTap});
+
+  final IconData icon;
+  final Color color;
+  final double size;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Material(
+        color: onTap != null ? color.withValues(alpha: 0.1) : POSColors.borderStrong,
+        borderRadius: BorderRadius.circular(size / 2),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(size / 2),
+          onTap: onTap,
+          child: Icon(
+            icon,
+            color: onTap != null ? color : POSColors.textDisabled,
+            size: size * 0.55,
+          ),
         ),
       ),
     );
   }
 }
 
+// ── Discount controls panel ───────────────────────────────────────────────────
 class _DiscountControlsView extends HookWidget {
   const _DiscountControlsView({
     required this.discountTypes,
@@ -559,6 +594,7 @@ class _DiscountControlsView extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final r = context.responsive;
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final idNumberController = useTextEditingController();
 
@@ -570,76 +606,106 @@ class _DiscountControlsView extends HookWidget {
 
     return Container(
       margin: EdgeInsets.fromLTRB(
-        context.responsive.value(kiosk: 0, tablet: 0, phone: 12),
-        context.responsive.value(kiosk: 24, tablet: 16, phone: 0),
-        context.responsive.value(kiosk: 24, tablet: 16, phone: 12),
-        context.responsive.value(kiosk: 24, tablet: 16, phone: 12),
+        r.value<double>(kiosk: 0, tablet: 0, phone: 12),
+        r.value<double>(kiosk: 20, tablet: 16, phone: 0),
+        r.value<double>(kiosk: 20, tablet: 16, phone: 12),
+        r.value<double>(kiosk: 20, tablet: 16, phone: 12),
       ),
-      padding: EdgeInsets.all(context.responsive.value(kiosk: 24, tablet: 16, phone: 12)),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        boxShadow: POSShadow.card,
       ),
+      clipBehavior: Clip.antiAlias,
       child: Form(
         key: formKey,
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
+              padding: EdgeInsets.all(r.value<double>(kiosk: 20, tablet: 16, phone: 14)),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: IntrinsicHeight(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        'Discount Type',
-                        style: TextStyle(
-                          fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-                          fontWeight: FontWeight.w600,
-                        ),
+                      // Section title
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: ColorSet.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(POSRadius.xs),
+                            ),
+                            child: const Icon(
+                              Icons.local_offer_rounded,
+                              color: ColorSet.primary,
+                              size: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Discount Type',
+                            style: TextStyle(
+                              fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
+                              fontWeight: FontWeight.w700,
+                              color: POSColors.textPrimary,
+                            ),
+                          ),
+                        ],
                       ),
-                      Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children:
-                            discountTypes.map((type) {
-                              final isSelected = selectedDiscountType == type;
-                              return ChoiceChip(
-                                label: Text(type),
-                                selected: isSelected,
-                                onSelected: (selected) {
-                                  if (selected) {
-                                    onDiscountTypeChanged(type);
-                                  }
-                                },
-                                selectedColor: ColorSet.secondary.withValues(alpha: 0.2),
-                                labelStyle: TextStyle(
-                                  color: isSelected ? ColorSet.secondary : ColorSet.dark,
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                  fontSize: context.responsive.value(
-                                    kiosk: 20,
-                                    tablet: 16,
-                                    phone: 14,
+                      SizedBox(height: r.value<double>(kiosk: 14, tablet: 12, phone: 10)),
+
+                      // Type toggle buttons
+                      Row(
+                        children: discountTypes.map((type) {
+                          final isSelected = selectedDiscountType == type;
+                          return Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                right: type == discountTypes.last ? 0 : 8,
+                              ),
+                              child: AnimatedContainer(
+                                duration: POSAnimation.fast,
+                                height: r.value<double>(kiosk: 48, tablet: 44, phone: 40),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? ColorSet.primary
+                                      : POSColors.surfaceSubtle,
+                                  borderRadius: BorderRadius.circular(POSRadius.md),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? ColorSet.primary
+                                        : POSColors.borderDefault,
                                   ),
                                 ),
-                                side: BorderSide(
-                                  color:
-                                      isSelected
-                                          ? ColorSet.secondary
-                                          : ColorSet.dark.withValues(alpha: 0.2),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  borderRadius: BorderRadius.circular(POSRadius.md),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(POSRadius.md),
+                                    onTap: () => onDiscountTypeChanged(type),
+                                    child: Center(
+                                      child: Text(
+                                        type,
+                                        style: TextStyle(
+                                          fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                                          fontWeight: FontWeight.w600,
+                                          color: isSelected ? Colors.white : POSColors.textSecondary,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              );
-                            }).toList(),
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
-                      Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+                      SizedBox(height: r.value<double>(kiosk: 20, tablet: 16, phone: 14)),
+
+                      // ID / Promo field
                       if (selectedDiscountType == 'Senior/PWD')
                         TextBoxFormField(
                           controller: idNumberController,
@@ -649,10 +715,10 @@ class _DiscountControlsView extends HookWidget {
                           textInputAction: TextInputAction.done,
                           validator: Validate(rules: [isRequired()]).call,
                           style: TextStyle(
-                            fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+                            fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13),
                           ),
-                        ),
-                      if (selectedDiscountType == 'Promo')
+                        )
+                      else
                         TextBoxFormField(
                           controller: idNumberController,
                           label: 'Promo Code',
@@ -661,16 +727,21 @@ class _DiscountControlsView extends HookWidget {
                           textInputAction: TextInputAction.done,
                           validator: Validate(rules: [isRequired()]).call,
                           style: TextStyle(
-                            fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+                            fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13),
                           ),
                         ),
+
                       const Spacer(),
+
+                      // Summary section
                       _SummarySection(
                         selectedQuantities: selectedQuantities,
                         selectedDiscountType: selectedDiscountType,
                       ),
-                      Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-                      _ConfirmButton(onTap: validateAndSubmit),
+                      SizedBox(height: r.value<double>(kiosk: 20, tablet: 16, phone: 12)),
+
+                      // Apply button
+                      _ApplyButton(onTap: validateAndSubmit),
                     ],
                   ),
                 ),
@@ -684,13 +755,17 @@ class _DiscountControlsView extends HookWidget {
 }
 
 class _SummarySection extends ConsumerWidget {
-  const _SummarySection({required this.selectedQuantities, required this.selectedDiscountType});
+  const _SummarySection({
+    required this.selectedQuantities,
+    required this.selectedDiscountType,
+  });
 
   final Map<String, int> selectedQuantities;
   final String selectedDiscountType;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final r = context.responsive;
     final lineItems = ref.watch(
       orderingProvider.select((it) => it.value?.sale.items ?? const IList.empty()),
     );
@@ -701,14 +776,12 @@ class _SummarySection extends ConsumerWidget {
         (item) => item.id == lineItemId,
         orElse: () => throw Exception('Line item with ID $lineItemId not found'),
       );
-
       final quantity = Decimal.fromInt(entry.value);
       final basePrice = item.variant.price;
       final modifiersPrice = item.modifiers.fold(
         Decimal.zero,
         (total, modifier) => total + modifier.price,
       );
-
       return sum + (quantity * (basePrice + modifiersPrice));
     });
 
@@ -721,14 +794,24 @@ class _SummarySection extends ConsumerWidget {
       discountAmount = discount.calculateAmount(grossAmount);
     }
 
-    return Column(
-      children: [
-        _SummaryRow(label: 'Selected Items Total', amount: grossAmount),
-        if (vatExempt > Decimal.zero)
-          _SummaryRow(label: 'VAT Exempt', amount: -vatExempt, isDeduction: true),
-        if (discountAmount > Decimal.zero)
-          _SummaryRow(label: 'Discount', amount: -discountAmount, isDeduction: true),
-      ],
+    if (selectedQuantities.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: EdgeInsets.all(r.value<double>(kiosk: 14, tablet: 12, phone: 10)),
+      decoration: BoxDecoration(
+        color: POSColors.surfaceSubtle,
+        borderRadius: BorderRadius.circular(POSRadius.md),
+        border: Border.all(color: POSColors.borderDefault),
+      ),
+      child: Column(
+        children: [
+          _SummaryRow(label: 'Selected Total', amount: grossAmount),
+          if (vatExempt > Decimal.zero)
+            _SummaryRow(label: 'VAT Exempt', amount: -vatExempt, isDeduction: true),
+          if (discountAmount > Decimal.zero)
+            _SummaryRow(label: 'Discount', amount: -discountAmount, isDeduction: true),
+        ],
+      ),
     );
   }
 }
@@ -742,23 +825,25 @@ class _SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final r = context.responsive;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
             style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 22, tablet: 18, phone: 14),
-              color: isDeduction ? ColorSet.secondary : ColorSet.dark,
+              fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+              color: isDeduction ? ColorSet.danger : POSColors.textSecondary,
             ),
           ),
           Text(
             amount.pesoFormatted,
             style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 22, tablet: 18, phone: 14),
-              color: isDeduction ? ColorSet.secondary : ColorSet.dark,
+              fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+              fontWeight: FontWeight.w600,
+              color: isDeduction ? ColorSet.danger : POSColors.textPrimary,
             ),
           ),
         ],
@@ -767,36 +852,49 @@ class _SummaryRow extends StatelessWidget {
   }
 }
 
-class _ConfirmButton extends StatelessWidget {
-  const _ConfirmButton({required this.onTap});
+class _ApplyButton extends StatelessWidget {
+  const _ApplyButton({required this.onTap});
 
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: context.responsive.value(kiosk: 72, tablet: 64, phone: 52),
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              ColorSet.secondary.withValues(alpha: 0.85),
-              ColorSet.primary.withValues(alpha: 0.85),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(8),
+    final r = context.responsive;
+    final height = r.value<double>(kiosk: 60, tablet: 56, phone: 52);
+    const radius = POSRadius.full;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: ColorSet.gradientBg,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Center(
-          child: Text(
-            'Apply',
-            style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-              fontWeight: FontWeight.w600,
-              color: ColorSet.light,
+        borderRadius: BorderRadius.circular(radius),
+        boxShadow: POSShadow.button,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(radius),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(radius),
+          onTap: onTap,
+          child: SizedBox(
+            height: height,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.check_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Apply Discount',
+                  style: TextStyle(
+                    fontSize: r.value<double>(kiosk: 16, tablet: 15, phone: 14),
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

@@ -8,6 +8,7 @@ import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../../../utils/debounce.dart';
 import '../../../widgets/button.dart';
 import '../../../widgets/network_error_dialog.dart';
@@ -91,16 +92,8 @@ class _SearchAndFilterControls extends StatelessWidget {
       padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(
-          context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        boxShadow: POSShadow.card,
       ),
       child: Column(
         spacing: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
@@ -115,9 +108,9 @@ class _SearchAndFilterControls extends StatelessWidget {
                     return TextBoxFormField.singleLine(
                       hint: 'Search products...',
                       prefixIcon: Icon(
-                        Icons.search,
+                        Icons.search_rounded,
                         size: context.responsive.value(kiosk: 20, tablet: 18, phone: 16),
-                        color: Colors.grey.shade500,
+                        color: POSColors.iconSubtle,
                       ),
                       style: TextStyle(
                         fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
@@ -155,16 +148,15 @@ class _SearchAndFilterControls extends StatelessWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               final compact = constraints.maxWidth < 460;
-              final dropdownBorderRadius = BorderRadius.circular(
-                context.responsive.value(kiosk: 8, tablet: 8, phone: 6),
-              );
+              final dropdownBorderRadius = BorderRadius.circular(POSRadius.md);
               final dropdownChild = Container(
                 padding: EdgeInsets.symmetric(
                   horizontal: context.responsive.value(kiosk: 16, tablet: 16, phone: 12),
                   vertical: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
                 ),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
+                  color: POSColors.surfaceSubtle,
+                  border: Border.all(color: POSColors.borderDefault),
                   borderRadius: dropdownBorderRadius,
                 ),
                 child: DropdownButton<int>(
@@ -235,7 +227,13 @@ class _ProductsGrid extends ConsumerWidget {
     final state = ref.watch(productsProvider.select((it) => it.whenData((data) => data.data)));
 
     return state.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(
+        child: CircularProgressIndicator(
+          color: ColorSet.primary,
+          strokeWidth: 3,
+          strokeCap: StrokeCap.round,
+        ),
+      ),
       error: (error, _) => const Center(child: SizedBox.shrink()),
       data: (data) {
         if (data.data.isEmpty) {
@@ -244,25 +242,25 @@ class _ProductsGrid extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  Icons.inventory_2_outlined,
-                  size: context.responsive.value(kiosk: 80, tablet: 64, phone: 48),
-                  color: Colors.grey.shade400,
+                  Icons.inventory_2_rounded,
+                  size: context.responsive.value(kiosk: 64, tablet: 52, phone: 40),
+                  color: POSColors.textDisabled,
                 ),
                 Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
                 Text(
                   'No products found',
                   style: TextStyle(
-                    fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 14),
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade600,
+                    fontSize: context.responsive.value(kiosk: 18, tablet: 15, phone: 13),
+                    fontWeight: FontWeight.w700,
+                    color: POSColors.textSecondary,
                   ),
                 ),
-                Gap(context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
+                Gap(context.responsive.value(kiosk: 6, tablet: 4, phone: 3)),
                 Text(
                   'Try adjusting your search or add new products',
                   style: TextStyle(
-                    fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
-                    color: Colors.grey.shade500,
+                    fontSize: context.responsive.value(kiosk: 13, tablet: 12, phone: 11),
+                    color: POSColors.textDisabled,
                   ),
                 ),
               ],
@@ -337,151 +335,114 @@ class _ProductCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(
-          context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        boxShadow: POSShadow.card,
       ),
-      child: InkWell(
-        onTap: () {
-          ProductDetailRoute(product.id).push<void>(context);
-        },
-        borderRadius: BorderRadius.circular(
-          context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image fills all remaining space — no fixed flex ratio
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(
-                      context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
-                    ),
-                    topRight: Radius.circular(
-                      context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
-                    ),
-                  ),
-                  color: Colors.grey.shade100,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(
-                      context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
-                    ),
-                    topRight: Radius.circular(
-                      context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
-                    ),
-                  ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        child: InkWell(
+          onTap: () => ProductDetailRoute(product.id).push<void>(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  color: POSColors.surfaceSubtle,
                   child: Image.memory(
                     product.image,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return ColoredBox(
-                        color: Colors.grey.shade200,
+                        color: POSColors.surfaceOverlay,
                         child: Icon(
-                          Icons.image,
+                          Icons.image_rounded,
                           size: context.responsive.value(kiosk: 40, tablet: 32, phone: 24),
-                          color: Colors.grey.shade400,
+                          color: POSColors.textDisabled,
                         ),
                       );
                     },
                   ),
                 ),
               ),
-            ),
-            // Info auto-sizes to content — no Spacer, no Expanded
-            Padding(
-              padding: EdgeInsets.all(context.responsive.value(kiosk: 12, tablet: 10, phone: 8)),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    style: TextStyle(
-                      fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+              Padding(
+                padding: EdgeInsets.all(context.responsive.value(kiosk: 12, tablet: 10, phone: 8)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.name,
+                      style: TextStyle(
+                        fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
+                        fontWeight: FontWeight.w700,
+                        color: POSColors.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: context.responsive.value(kiosk: 4, tablet: 3, phone: 2)),
-                  Text(
-                    priceRange,
-                    style: TextStyle(
-                      fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
-                      fontWeight: FontWeight.w700,
-                      color: ColorSet.primary,
+                    SizedBox(height: context.responsive.value(kiosk: 3, tablet: 2, phone: 2)),
+                    Text(
+                      priceRange,
+                      style: TextStyle(
+                        fontSize: context.responsive.value(kiosk: 15, tablet: 13, phone: 11),
+                        fontWeight: FontWeight.w800,
+                        color: ColorSet.primary,
+                        letterSpacing: -0.3,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: context.responsive.value(kiosk: 2, tablet: 2, phone: 1)),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.category_outlined,
-                        size: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
-                        color: Colors.grey.shade600,
-                      ),
-                      Gap(context.responsive.value(kiosk: 2, tablet: 2, phone: 1)),
-                      Text(
-                        '${product.variants.length} variant${product.variants.length == 1 ? '' : 's'}',
-                        style: TextStyle(
-                          fontSize: context.responsive.value(kiosk: 10, tablet: 9, phone: 8),
-                          color: Colors.grey.shade600,
+                    SizedBox(height: context.responsive.value(kiosk: 3, tablet: 2, phone: 2)),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.layers_rounded,
+                          size: context.responsive.value(kiosk: 11, tablet: 10, phone: 9),
+                          color: POSColors.iconSubtle,
                         ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.tune_outlined,
-                        size: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
-                        color: Colors.grey.shade600,
-                      ),
-                      Gap(context.responsive.value(kiosk: 2, tablet: 2, phone: 1)),
-                      Text(
-                        '$modifierGroupCount modifier group${modifierGroupCount == 1 ? '' : 's'}',
-                        style: TextStyle(
-                          fontSize: context.responsive.value(kiosk: 10, tablet: 9, phone: 8),
-                          color: Colors.grey.shade600,
+                        Gap(context.responsive.value(kiosk: 3, tablet: 2, phone: 2)),
+                        Text(
+                          '${product.variants.length} variant${product.variants.length == 1 ? '' : 's'}',
+                          style: TextStyle(
+                            fontSize: context.responsive.value(kiosk: 11, tablet: 10, phone: 9),
+                            color: POSColors.textTertiary,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
-                  SizedBox(
-                    width: double.infinity,
-                    child: Button(
-                      label: Text(
-                        'Manage',
-                        style: TextStyle(
-                          fontSize: context.responsive.value(kiosk: 10, tablet: 9, phone: 8),
+                        Gap(context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
+                        Icon(
+                          Icons.tune_rounded,
+                          size: context.responsive.value(kiosk: 11, tablet: 10, phone: 9),
+                          color: POSColors.iconSubtle,
                         ),
-                      ),
-                      onPressed: () {
-                        ProductDetailRoute(product.id).push<void>(context);
-                      },
-                      backgroundColor: ColorSet.primary,
-                      foregroundColor: Colors.white,
+                        Gap(context.responsive.value(kiosk: 3, tablet: 2, phone: 2)),
+                        Text(
+                          '$modifierGroupCount mod${modifierGroupCount == 1 ? '' : 's'}',
+                          style: TextStyle(
+                            fontSize: context.responsive.value(kiosk: 11, tablet: 10, phone: 9),
+                            color: POSColors.textTertiary,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                    SizedBox(height: context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
+                    SizedBox(
+                      width: double.infinity,
+                      child: Button(
+                        label: Text(
+                          'Manage',
+                          style: TextStyle(
+                            fontSize: context.responsive.value(kiosk: 12, tablet: 11, phone: 10),
+                          ),
+                        ),
+                        onPressed: () => ProductDetailRoute(product.id).push<void>(context),
+                        backgroundColor: ColorSet.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

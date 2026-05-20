@@ -7,6 +7,7 @@ import 'package:gap/gap.dart';
 
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../utils/decimal_input_formatter.dart';
 import '../../../validation/rules/min_value.dart';
@@ -98,6 +99,9 @@ class _CashPaymentContent extends HookWidget {
                   'Cash Payment',
                   style: TextStyle(
                     fontSize: context.responsive.value(kiosk: 36, tablet: 24, phone: 18),
+                    fontWeight: FontWeight.w700,
+                    color: POSColors.textPrimary,
+                    letterSpacing: -0.3,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -106,19 +110,18 @@ class _CashPaymentContent extends HookWidget {
                     context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(
-                      context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
-                    ),
-                    border: Border.all(color: Colors.grey.shade300),
+                    color: POSColors.surfaceSubtle,
+                    borderRadius: BorderRadius.circular(POSRadius.xl),
+                    border: Border.all(color: POSColors.borderDefault),
                   ),
                   child: Column(
                     children: [
                       Text(
                         'Total Amount Due',
                         style: TextStyle(
-                          color: Colors.grey,
+                          color: POSColors.textTertiary,
                           fontSize: context.responsive.value(kiosk: 24, tablet: 18, phone: 14),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       Gap(context.responsive.value(kiosk: 12, tablet: 8, phone: 4)),
@@ -158,38 +161,42 @@ class _CashPaymentContent extends HookWidget {
                   runSpacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
                   children:
                       [20, 50, 100, 200, 500, 1000].map((denomination) {
-                        return GestureDetector(
-                          onTap: () {
-                            final newValue = cashInputFormatter.formatEditUpdate(
-                              cashController.value,
-                              TextEditingValue(
-                                text: '$denomination',
-                                selection: TextSelection.collapsed(offset: '$denomination'.length),
-                              ),
-                            );
-                            cashController.value = newValue;
-                          },
-                          child: Container(
-                            width: context.responsive.value(kiosk: 120, tablet: 96, phone: 96),
-                            height: context.responsive.value(kiosk: 60, tablet: 48, phone: 48),
-                            decoration: BoxDecoration(
-                              color: ColorSet.light,
-                              border: Border.all(
-                                color: ColorSet.text.withValues(alpha: 0.2),
-                                width: 2,
-                              ),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              '$denomination',
-                              style: TextStyle(
-                                fontSize: context.responsive.value(
-                                  kiosk: 24,
-                                  tablet: 20,
-                                  phone: 16,
+                        return Material(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(POSRadius.md),
+                          child: InkWell(
+                            onTap: () {
+                              final newValue = cashInputFormatter.formatEditUpdate(
+                                cashController.value,
+                                TextEditingValue(
+                                  text: '$denomination',
+                                  selection: TextSelection.collapsed(
+                                    offset: '$denomination'.length,
+                                  ),
                                 ),
-                                fontWeight: FontWeight.w600,
+                              );
+                              cashController.value = newValue;
+                            },
+                            borderRadius: BorderRadius.circular(POSRadius.md),
+                            child: Container(
+                              width: context.responsive.value(kiosk: 120, tablet: 96, phone: 96),
+                              height: context.responsive.value(kiosk: 60, tablet: 48, phone: 48),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: POSColors.borderDefault),
+                                borderRadius: BorderRadius.circular(POSRadius.md),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '$denomination',
+                                style: TextStyle(
+                                  fontSize: context.responsive.value(
+                                    kiosk: 24,
+                                    tablet: 20,
+                                    phone: 16,
+                                  ),
+                                  fontWeight: FontWeight.w700,
+                                  color: POSColors.textPrimary,
+                                ),
                               ),
                             ),
                           ),
@@ -205,14 +212,17 @@ class _CashPaymentContent extends HookWidget {
                         'Change',
                         style: TextStyle(
                           fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+                          fontWeight: FontWeight.w500,
+                          color: POSColors.textTertiary,
                         ),
                       ),
                       Text(
                         (cashReceived - collectibleAmount).withCommas,
                         style: TextStyle(
                           fontSize: context.responsive.value(kiosk: 56, tablet: 36, phone: 28),
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w800,
                           color: ColorSet.success,
+                          letterSpacing: -0.5,
                         ),
                       ),
                     ],
@@ -250,7 +260,7 @@ class _CashPaymentContent extends HookWidget {
                         Navigator.of(context).pop(payment);
                       },
                       foregroundColor: ColorSet.background,
-                      backgroundColor: ColorSet.secondary,
+                      backgroundColor: ColorSet.primary,
                       label: Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),

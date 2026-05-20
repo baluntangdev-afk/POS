@@ -21,7 +21,7 @@ class ColorSet {
 
   static const background = Color(0xFFF3F1ED);
 
-  static const text = Color(0xFF000000);
+  static const text = Color(0xFF1A1A1A);
 
   static const link = Color(0xFF0D6EFD);
 

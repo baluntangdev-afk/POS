@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 
 class UserTypeFilter extends StatelessWidget {
   const UserTypeFilter({required this.selectedUserType, required this.onChanged, super.key});
@@ -14,21 +15,55 @@ class UserTypeFilter extends StatelessWidget {
     return selectedUserType! ? 'Admin' : 'User';
   }
 
+  bool get _isFiltered => selectedUserType != null;
+
   @override
   Widget build(BuildContext context) {
+    final r = context.responsive;
     final key = GlobalKey();
 
-    return GestureDetector(
-      key: key,
-      onTap: () => _showFilterMenu(context, key),
-      child: Container(
-        padding: EdgeInsets.all(context.responsive.scale(17)),
-        decoration: BoxDecoration(color: ColorSet.light, borderRadius: BorderRadius.circular(12)),
-        child: Row(
-          children: [
-            Expanded(child: Text(_label)),
-            const Icon(Icons.arrow_drop_down, color: ColorSet.primary),
-          ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: key,
+        onTap: () => _showFilterMenu(context, key),
+        borderRadius: BorderRadius.circular(POSRadius.lg),
+        child: Container(
+          height: r.value<double>(kiosk: 44, tablet: 40, phone: 36),
+          padding: EdgeInsets.symmetric(horizontal: r.scale(14)),
+          decoration: BoxDecoration(
+            color: _isFiltered ? ColorSet.primary.withValues(alpha: 0.08) : POSColors.surfaceSubtle,
+            borderRadius: BorderRadius.circular(POSRadius.lg),
+            border: Border.all(
+              color: _isFiltered ? ColorSet.primary.withValues(alpha: 0.4) : POSColors.borderDefault,
+              width: _isFiltered ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.filter_list_rounded,
+                size: r.value<double>(kiosk: 18, tablet: 16, phone: 14),
+                color: _isFiltered ? ColorSet.primary : POSColors.iconSubtle,
+              ),
+              SizedBox(width: r.scale(8)),
+              Expanded(
+                child: Text(
+                  _label,
+                  style: TextStyle(
+                    fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                    color: _isFiltered ? ColorSet.primary : POSColors.textSecondary,
+                    fontWeight: _isFiltered ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: r.value<double>(kiosk: 18, tablet: 16, phone: 14),
+                color: _isFiltered ? ColorSet.primary : POSColors.iconSubtle,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -45,25 +80,50 @@ class UserTypeFilter extends StatelessWidget {
       context: context,
       position: RelativeRect.fromLTRB(
         offset.dx,
-        offset.dy + size.height,
+        offset.dy + size.height + 4,
         offset.dx + size.width,
         offset.dy,
       ),
       color: Colors.white,
-      menuPadding: const EdgeInsets.symmetric(vertical: 10),
-      items: const [
-        PopupMenuItem<bool?>(child: Text('All Roles')),
-        PopupMenuItem<bool?>(
-          value: false,
-          child: Text('User', style: TextStyle(fontWeight: FontWeight.bold)),
-        ),
-        PopupMenuItem<bool?>(
-          value: true,
-          child: Text('Admin', style: TextStyle(fontWeight: FontWeight.bold)),
-        ),
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.md)),
+      menuPadding: const EdgeInsets.symmetric(vertical: 8),
+      items: [
+        _menuItem(context, null, 'All Roles', Icons.people_rounded),
+        _menuItem(context, false, 'User', Icons.person_rounded),
+        _menuItem(context, true, 'Admin', Icons.admin_panel_settings_rounded),
       ],
     );
 
     onChanged(selected);
+  }
+
+  PopupMenuItem<bool?> _menuItem(
+    BuildContext context,
+    bool? value,
+    String label,
+    IconData icon,
+  ) {
+    final isSelected = selectedUserType == value;
+    return PopupMenuItem<bool?>(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: isSelected ? ColorSet.primary : POSColors.iconSubtle),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
+              color: isSelected ? ColorSet.primary : POSColors.textPrimary,
+            ),
+          ),
+          if (isSelected) ...[
+            const Spacer(),
+            const Icon(Icons.check_rounded, size: 16, color: ColorSet.primary),
+          ],
+        ],
+      ),
+    );
   }
 }

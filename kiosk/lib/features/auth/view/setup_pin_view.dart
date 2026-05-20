@@ -9,6 +9,7 @@ import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../styles/type_set.dart';
+import '../../../theme/pos_design.dart';
 import '../../../widgets/message_dialog.dart';
 import '../../../widgets/numeric_keypad.dart';
 import '../../../widgets/pin_indicator.dart';
@@ -155,7 +156,13 @@ class SetupPinView extends HookConsumerWidget {
         showDialog<void>(
           barrierDismissible: false,
           context: context,
-          builder: (_) => const Center(child: CircularProgressIndicator()),
+          builder: (_) => const Center(
+          child: CircularProgressIndicator(
+            color: ColorSet.primary,
+            strokeWidth: 3,
+            strokeCap: StrokeCap.round,
+          ),
+        ),
         );
         return;
       }
@@ -211,7 +218,7 @@ class SetupPinView extends HookConsumerWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: context.responsive.value<double>(phone: 14, tablet: 18, kiosk: 20),
-              color: Colors.black54,
+              color: POSColors.textTertiary,
             ),
           ),
           Gap(context.responsive.value<double>(phone: 30, tablet: 40, kiosk: 50)),
@@ -238,7 +245,7 @@ class SetupPinView extends HookConsumerWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: context.responsive.value<double>(phone: 14, tablet: 18, kiosk: 20),
-              color: Colors.black54,
+              color: POSColors.textTertiary,
             ),
           ),
           Gap(context.responsive.value<double>(phone: 30, tablet: 40, kiosk: 50)),

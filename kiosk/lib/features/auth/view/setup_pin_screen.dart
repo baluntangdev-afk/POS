@@ -5,6 +5,7 @@ import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/auth.dart';
@@ -30,15 +31,19 @@ class SetupPinScreen extends HookWidget {
     }
 
     Widget buildBackButton() {
-      return InkWell(
-        onTap: handleBack,
-        borderRadius: const BorderRadius.all(Radius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(6),
-          child: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: Colors.white,
-            size: context.responsive.iconBack,
+      return Material(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(POSRadius.full),
+        child: InkWell(
+          onTap: handleBack,
+          borderRadius: BorderRadius.circular(POSRadius.full),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Colors.white,
+              size: context.responsive.iconBack,
+            ),
           ),
         ),
       );

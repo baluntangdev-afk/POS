@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../styles/color_set.dart';
 import '../styles/responsive/responsive_value.dart';
+import '../theme/pos_design.dart';
 
 class PinButton extends HookWidget {
   const PinButton({
@@ -24,7 +26,7 @@ class PinButton extends HookWidget {
   Widget build(BuildContext context) {
     final responsive = context.responsive;
     final isSelected = selectedButton.value == buttonIndex;
-    final animationController = useAnimationController(duration: const Duration(milliseconds: 150));
+    final animationController = useAnimationController(duration: POSAnimation.fast);
 
     useEffect(() {
       if (isSelected) {
@@ -37,13 +39,16 @@ class PinButton extends HookWidget {
 
     final scaleAnimation = Tween<double>(
       begin: 1.0,
-      end: 0.92,
+      end: 0.90,
     ).animate(CurvedAnimation(parent: animationController, curve: Curves.easeInOut));
 
-    final buttonHeight = responsive.value<double>(phone: 52, tablet: 60, kiosk: 72);
+    final buttonHeight = responsive.value<double>(phone: 56, tablet: 64, kiosk: 76);
 
     return GestureDetector(
-      onTapDown: (_) => selectedButton.value = buttonIndex,
+      onTapDown: (_) {
+        HapticFeedback.lightImpact();
+        selectedButton.value = buttonIndex;
+      },
       onTapUp: (_) {
         selectedButton.value = null;
         onPressed();
@@ -53,20 +58,26 @@ class PinButton extends HookWidget {
         animation: scaleAnimation,
         builder: (context, _) => Transform.scale(
           scale: scaleAnimation.value,
-          child: Container(
+          child: AnimatedContainer(
+            duration: POSAnimation.fast,
             height: buttonHeight,
             decoration: BoxDecoration(
-              color: isSelected ? ColorSet.primary : ColorSet.background,
-              borderRadius: BorderRadius.circular(14),
+              color: isSelected ? ColorSet.primary : Colors.white,
+              borderRadius: BorderRadius.circular(POSRadius.md),
+              border: Border.all(
+                color: isSelected ? ColorSet.primary : POSColors.borderDefault,
+                width: isSelected ? 0 : 1.5,
+              ),
+              boxShadow: isSelected ? POSShadow.primaryGlow : POSShadow.card,
             ),
             child: Center(
-              child: this.child ??
+              child: child ??
                   Text(
                     label ?? '',
                     style: TextStyle(
-                      fontSize: responsive.value<double>(phone: 20, tablet: 24, kiosk: 28),
+                      fontSize: responsive.value<double>(phone: 22, tablet: 26, kiosk: 30),
                       fontWeight: FontWeight.w600,
-                      color: isSelected ? ColorSet.light : ColorSet.dark,
+                      color: isSelected ? Colors.white : POSColors.textPrimary,
                     ),
                   ),
             ),

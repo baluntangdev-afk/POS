@@ -5,6 +5,7 @@ import 'package:gap/gap.dart';
 
 import '../styles/color_set.dart';
 import '../styles/responsive/responsive_value.dart';
+import '../theme/pos_design.dart';
 
 /// A general-purpose numeric keypad for PIN and cash entry.
 ///
@@ -76,7 +77,7 @@ class NumericKeypad extends StatelessWidget {
                 style: TextStyle(
                   fontSize: size * 0.38,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: POSColors.textPrimary,
                 ),
               ),
             ),
@@ -124,13 +125,13 @@ class _KeyCell extends StatelessWidget {
           style: TextStyle(
             fontSize: size * 0.36,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: POSColors.textPrimary,
           ),
         );
 
     if (Platform.isAndroid) {
       return Material(
-        color: const Color(0xFFEEEEEE),
+        color: POSColors.surfaceSubtle,
         borderRadius: BorderRadius.circular(size / 2),
         child: InkWell(
           onTap: onTap,
@@ -153,15 +154,9 @@ class _KeyCell extends StatelessWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: const Color(0xFFEEEEEE),
+          color: POSColors.surfaceSubtle,
           borderRadius: BorderRadius.circular(size / 2),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x1A000000),
-              blurRadius: 6,
-              offset: Offset(0, 3),
-            ),
-          ],
+          boxShadow: POSShadow.card,
         ),
         child: Center(child: content),
       ),

@@ -69,11 +69,28 @@ class FranchiseeInfoDialog extends HookConsumerWidget {
               spacing: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
               children: [
                 Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+                Center(
+                  child: Container(
+                    width: context.responsive.value<double>(kiosk: 80, tablet: 64, phone: 56),
+                    height: context.responsive.value<double>(kiosk: 80, tablet: 64, phone: 56),
+                    decoration: BoxDecoration(
+                      color: ColorSet.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.store_outlined,
+                      color: ColorSet.primary,
+                      size: context.responsive.value<double>(kiosk: 40, tablet: 32, phone: 28),
+                    ),
+                  ),
+                ),
                 Text(
                   'Franchisee Information',
                   style: TextStyle(
-                    fontSize: context.responsive.value(kiosk: 36, tablet: 24, phone: 18),
-                    fontWeight: FontWeight.bold,
+                    fontSize: context.responsive.value(kiosk: 32, tablet: 24, phone: 18),
+                    fontWeight: FontWeight.w700,
+                    color: ColorSet.text,
+                    letterSpacing: -0.3,
                   ),
                   textAlign: TextAlign.center,
                 ),

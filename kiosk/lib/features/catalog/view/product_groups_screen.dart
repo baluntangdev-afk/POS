@@ -7,6 +7,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../../../utils/debounce.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/button.dart';
@@ -81,14 +82,14 @@ class ProductGroupsScreen extends HookConsumerWidget {
     );
     if (isAndroid) {
       return AndroidScaffold(
-        backgroundColor: Colors.grey.shade50,
+        backgroundColor: ColorSet.background,
         appBar: appBar,
         body: body,
         floatingActionButton: const _FloatingAddButton(),
       );
     }
     return WindowsScaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: ColorSet.background,
       appBar: appBar,
       body: body,
       floatingActionButton: const _FloatingAddButton(),
@@ -168,16 +169,8 @@ class _PaginationControls extends StatelessWidget {
       padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(
-          context.responsive.value(kiosk: 8, tablet: 8, phone: 6),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        boxShadow: POSShadow.card,
       ),
       child: Column(
         spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
@@ -192,9 +185,9 @@ class _PaginationControls extends StatelessWidget {
                     return TextBoxFormField.singleLine(
                       hint: 'Search product group name...',
                       prefixIcon: Icon(
-                        Icons.search,
+                        Icons.search_rounded,
                         size: context.responsive.value(kiosk: 20, tablet: 18, phone: 16),
-                        color: Colors.grey.shade500,
+                        color: POSColors.iconSubtle,
                       ),
                       style: TextStyle(
                         fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
@@ -215,9 +208,9 @@ class _PaginationControls extends StatelessWidget {
                     return TextBoxFormField.singleLine(
                       hint: 'Search description...',
                       prefixIcon: Icon(
-                        Icons.search,
+                        Icons.search_rounded,
                         size: context.responsive.value(kiosk: 20, tablet: 18, phone: 16),
-                        color: Colors.grey.shade500,
+                        color: POSColors.iconSubtle,
                       ),
                       style: TextStyle(
                         fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
@@ -255,10 +248,9 @@ class _PaginationControls extends StatelessWidget {
                   vertical: context.responsive.value(kiosk: 8, tablet: 8, phone: 6),
                 ),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(
-                    context.responsive.value(kiosk: 8, tablet: 8, phone: 6),
-                  ),
+                  color: POSColors.surfaceSubtle,
+                  border: Border.all(color: POSColors.borderDefault),
+                  borderRadius: BorderRadius.circular(POSRadius.md),
                 ),
                 child: DropdownButton<int>(
                   value: limit.value,
@@ -305,25 +297,19 @@ class _ProductGroupsTable extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(
-          context.responsive.value(kiosk: 8, tablet: 8, phone: 6),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        boxShadow: POSShadow.card,
       ),
-      child: Column(
-        children: [
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        child: Column(
+          children: [
           Container(
-            decoration: BoxDecoration(
-              color: ColorSet.secondary,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(context.responsive.value(kiosk: 8, tablet: 8, phone: 6)),
-                topRight: Radius.circular(context.responsive.value(kiosk: 8, tablet: 8, phone: 6)),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: ColorSet.gradientBg,
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
               ),
             ),
             padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
@@ -348,17 +334,35 @@ class _ProductGroupsTable extends ConsumerWidget {
           ),
           Expanded(
             child: state.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(
+                child: CircularProgressIndicator(
+                  color: ColorSet.primary,
+                  strokeWidth: 3,
+                  strokeCap: StrokeCap.round,
+                ),
+              ),
               error: (error, _) => const Center(child: SizedBox.shrink()),
               data: (data) {
                 if (data.data.isEmpty) {
                   return Center(
-                    child: Text(
-                      'No product groups found.',
-                      style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
-                        color: Colors.grey.shade500,
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.folder_off_rounded,
+                          size: context.responsive.value(kiosk: 48, tablet: 40, phone: 32),
+                          color: POSColors.textDisabled,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No product groups found.',
+                          style: TextStyle(
+                            fontSize: context.responsive.value(kiosk: 15, tablet: 13, phone: 12),
+                            color: POSColors.textTertiary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 }
@@ -372,7 +376,8 @@ class _ProductGroupsTable extends ConsumerWidget {
               },
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -475,7 +480,7 @@ class _ProductGroupRow extends ConsumerWidget {
 
     return Container(
       padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: POSColors.borderSubtle))),
       child: Row(
         children: [
           Expanded(
@@ -510,8 +515,8 @@ class _ProductGroupRow extends ConsumerWidget {
               productGroup.name,
               style: TextStyle(
                 fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
-                fontWeight: FontWeight.w500,
-                color: Colors.black87,
+                fontWeight: FontWeight.w600,
+                color: POSColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -522,7 +527,7 @@ class _ProductGroupRow extends ConsumerWidget {
               productGroup.description,
               style: TextStyle(
                 fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
-                color: Colors.black87,
+                color: POSColors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -531,28 +536,35 @@ class _ProductGroupRow extends ConsumerWidget {
             flex: 3,
             child: Center(
               child: Wrap(
-                alignment: WrapAlignment.end,
-                spacing: 8,
-                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                spacing: 6,
+                runSpacing: 6,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.visibility),
-                    tooltip: 'View Products',
-                    onPressed: () {
-                      // TODO(cody-kalvin): Navigate to product group details
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.edit),
-                    tooltip: 'Edit',
-                    style: TextButton.styleFrom(foregroundColor: ColorSet.primary),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.edit_rounded, size: 13),
+                    label: const Text('Edit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                     onPressed: () => updateProductGroup(productGroup),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: ColorSet.primary,
+                      side: BorderSide(color: ColorSet.primary.withValues(alpha: 0.4)),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.sm)),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      minimumSize: Size.zero,
+                    ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.delete),
-                    tooltip: 'Delete',
-                    style: TextButton.styleFrom(foregroundColor: ColorSet.danger),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.delete_rounded, size: 13),
+                    label: const Text('Delete', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                     onPressed: () => deleteProductGroup(productGroup),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: ColorSet.danger,
+                      side: BorderSide(color: ColorSet.danger.withValues(alpha: 0.4)),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.sm)),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      minimumSize: Size.zero,
+                    ),
                   ),
                 ],
               ),

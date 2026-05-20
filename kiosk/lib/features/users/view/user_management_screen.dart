@@ -6,6 +6,7 @@ import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/message_dialog.dart';
 import '../../../widgets/network_error_dialog.dart';
@@ -117,24 +118,31 @@ class UserManagementScreen extends HookConsumerWidget {
         children: [
           TopAppBar(
             title: 'User Management',
-            trailing: OutlinedButton.icon(
-              onPressed: () => _showAddUserDialog(context, ref, isFormDialogOpen),
-              icon: Icon(
-                Icons.add,
-                size: context.responsive.value(kiosk: 18.0, tablet: 15.0, phone: 13.0),
-              ),
-              label: const Text('Add User'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: ColorSet.light,
-                side: const BorderSide(color: ColorSet.light, width: 2),
-                minimumSize: Size(
-                  context.responsive.value(kiosk: 110.0, tablet: 90.0, phone: 76.0),
-                  context.responsive.value(kiosk: 52.0, tablet: 44.0, phone: 38.0),
+            trailing: SizedBox(
+              height: context.responsive.value<double>(kiosk: 44, tablet: 40, phone: 36),
+              child: OutlinedButton.icon(
+                onPressed: () => _showAddUserDialog(context, ref, isFormDialogOpen),
+                icon: Icon(
+                  Icons.person_add_rounded,
+                  size: context.responsive.value<double>(kiosk: 17, tablet: 15, phone: 13),
                 ),
-                textStyle: TextStyle(
-                  fontSize: context.responsive.value(kiosk: 15.0, tablet: 13.0, phone: 12.0),
+                label: Text(
+                  'Add User',
+                  style: TextStyle(
+                    fontSize: context.responsive.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.7), width: 1.5),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: context.responsive.value<double>(kiosk: 16, tablet: 12, phone: 10),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(POSRadius.md),
+                  ),
+                ),
               ),
             ),
           ),
@@ -230,28 +238,50 @@ class UserManagementScreen extends HookConsumerWidget {
     TextEditingController searchController,
     FocusNode searchFocusNode,
   ) {
+    final r = context.responsive;
     return TextField(
       focusNode: searchFocusNode,
       controller: searchController,
+      style: TextStyle(
+        fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+        color: POSColors.textPrimary,
+      ),
       decoration: InputDecoration(
         hintText: 'Search by name, email, or ID...',
-        prefixIcon: Icon(Icons.search, color: ColorSet.primary, size: context.responsive.scale(30)),
-        suffixIcon:
-            searchController.text.isNotEmpty
-                ? IconButton(
-                  icon: Icon(Icons.clear, size: context.responsive.scale(30)),
-                  onPressed: () {
-                    searchController.clear();
-                  },
-                )
-                : null,
-        filled: true,
-        fillColor: ColorSet.light,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+        hintStyle: TextStyle(
+          fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+          color: POSColors.textTertiary,
         ),
-        contentPadding: EdgeInsets.all(context.responsive.scale(20)),
+        prefixIcon: Icon(
+          Icons.search_rounded,
+          color: POSColors.iconSubtle,
+          size: r.value<double>(kiosk: 20, tablet: 18, phone: 16),
+        ),
+        suffixIcon: searchController.text.isNotEmpty
+            ? IconButton(
+                icon: Icon(Icons.close_rounded, size: r.value<double>(kiosk: 18, tablet: 16, phone: 14)),
+                color: POSColors.iconSubtle,
+                onPressed: () => searchController.clear(),
+              )
+            : null,
+        filled: true,
+        fillColor: POSColors.surfaceSubtle,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(POSRadius.lg),
+          borderSide: const BorderSide(color: POSColors.borderDefault),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(POSRadius.lg),
+          borderSide: const BorderSide(color: POSColors.borderDefault),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(POSRadius.lg),
+          borderSide: const BorderSide(color: ColorSet.primary, width: 1.5),
+        ),
+        contentPadding: EdgeInsets.symmetric(
+          vertical: r.value<double>(kiosk: 14, tablet: 12, phone: 10),
+          horizontal: r.value<double>(kiosk: 16, tablet: 14, phone: 12),
+        ),
       ),
     );
   }

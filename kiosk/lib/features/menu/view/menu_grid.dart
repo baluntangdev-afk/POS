@@ -21,14 +21,15 @@ class MenuGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        // kiosk: width>900 → 4 cols, else 3; tablet: width>600 → 3, else 2
         final rowItems = width > 900 ? 4 : width > 600 ? 3 : 2;
+        final padding = width > 900 ? 32.0 : width > 600 ? 24.0 : 16.0;
+        final spacing = width > 900 ? 20.0 : 16.0;
         return Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(padding),
           child: ResponsiveWrapContainer(
             equalWidth: true,
             rowItems: rowItems,
-            spacing: 16,
+            spacing: spacing,
             items:
                 menuItems.map((item) {
                   return MenuItemCard(

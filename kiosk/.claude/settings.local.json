@@ -24,7 +24,12 @@
       "PowerShell(head *)",
       "PowerShell(Get-Content \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\lib\\\\features\\\\catalog\\\\view\\\\modifier_groups_screen.dart\" | Select-Object -Index \\(265..272\\))",
       "PowerShell(Get-Content \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\lib\\\\features\\\\catalog\\\\view\\\\modifier_groups_screen.dart\" | Select-Object -Index \\(405..412\\))",
-      "PowerShell(Get-Content \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\lib\\\\features\\\\catalog\\\\view\\\\modifier_groups_screen.dart\" | Select-Object -Index \\(403..418\\))"
+      "PowerShell(Get-Content \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\lib\\\\features\\\\catalog\\\\view\\\\modifier_groups_screen.dart\" | Select-Object -Index \\(403..418\\))",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\jufie\\\\Documents\\\\POS\\\\kiosk\\\\lib\" -Directory | Where-Object { $_.Name -in @\\(\"screens\", \"views\", \"pages\"\\) } | Select-Object FullName)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\jufie\\\\Documents\\\\POS\\\\kiosk\\\\lib\\\\features\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(dir C:\\\\Users\\\\jufie\\\\Documents\\\\POS\\\\kiosk\\\\assets\\\\fonts *)",
+      "Bash(Get-ChildItem C:\\\\Users\\\\jufie\\\\Documents\\\\POS\\\\kiosk\\\\assets\\\\fonts *)"
     ]
   }
 }

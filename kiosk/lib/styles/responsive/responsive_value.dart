@@ -72,6 +72,12 @@ class ResponsiveValue {
   /// Square key size for PIN and cash entry pads — 88px kiosk, 72px tablet.
   double get keypadKeySize => value(kiosk: 88.0, tablet: 72.0, phone: 56.0);
 
+  /// Height of category filter chips — 64px kiosk, 56px tablet.
+  double get chipHeight => value(kiosk: 64.0, tablet: 56.0, phone: 44.0);
+
+  /// Width of the mini-cart panel shown alongside ordering grid (non-kiosk).
+  double get miniCartPanelWidth => value(kiosk: 320.0, tablet: 240.0, phone: 0.0);
+
   // ─── Layout helpers ──────────────────────────────────────────────────────
   /// Card corner radius — 24px kiosk, 16px tablet.
   double get cardRadius => value(kiosk: 24.0, tablet: 16.0, phone: 12.0);

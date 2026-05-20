@@ -5,6 +5,7 @@ import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/debounce.dart';
 import '../../../widgets/button.dart';
@@ -16,7 +17,7 @@ final mockModifierGroups = [
   ModifierGroup(
     id: 1,
     name: 'Sides',
-    modifiers: IList([
+    modifiers: IList(const [
       Modifier(id: 1, name: 'Fries', price: 1.50),
       Modifier(id: 2, name: 'Onion Rings', price: 2.00),
       Modifier(id: 3, name: 'Salad', price: 1.00),
@@ -25,7 +26,7 @@ final mockModifierGroups = [
   ModifierGroup(
     id: 2,
     name: 'Drink Upgrades',
-    modifiers: IList([
+    modifiers: IList(const [
       Modifier(id: 4, name: 'Large', price: 0.50),
       Modifier(id: 5, name: 'Premium', price: 1.00),
     ]),
@@ -33,7 +34,7 @@ final mockModifierGroups = [
   ModifierGroup(
     id: 3,
     name: 'Extra Toppings',
-    modifiers: IList([
+    modifiers: IList(const [
       Modifier(id: 6, name: 'Cheese', price: 0.75),
       Modifier(id: 7, name: 'Bacon', price: 1.50),
     ]),
@@ -47,6 +48,7 @@ class ModifierGroupsScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final searchQuery = useState<String?>(null);
     final expandedGroups = useState<Set<int>>(<int>{});
+    final isPhone = context.breakpoint.isPhone;
 
     return Padding(
       padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
@@ -55,7 +57,15 @@ class ModifierGroupsScreen extends HookConsumerWidget {
         children: [
           _SearchAndAddControls(searchQuery: searchQuery),
           Expanded(
-            child: _ModifierGroupsTable(searchQuery: searchQuery, expandedGroups: expandedGroups),
+            child: isPhone
+                ? _ModifierGroupsMobileList(
+                    searchQuery: searchQuery,
+                    expandedGroups: expandedGroups,
+                  )
+                : _ModifierGroupsTable(
+                    searchQuery: searchQuery,
+                    expandedGroups: expandedGroups,
+                  ),
           ),
         ],
       ),
@@ -70,6 +80,7 @@ class _SearchAndAddControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPhone = context.breakpoint.isPhone;
     return Container(
       padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
       decoration: BoxDecoration(
@@ -111,18 +122,211 @@ class _SearchAndAddControls extends StatelessWidget {
               },
             ),
           ),
-          Button(
-            label: const Text('Create New Group'),
-            leading: const Icon(Icons.add),
-            onPressed: () {
-              // TODO: Show create modifier group dialog
-            },
+          if (isPhone)
+            FilledButton(
+              onPressed: () {
+                // TODO: Show create modifier group dialog
+              },
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(40, 40),
+                padding: EdgeInsets.zero,
+              ),
+              child: const Icon(Icons.add, size: 20),
+            )
+          else
+            Button(
+              label: const Text('Create New Group'),
+              leading: const Icon(Icons.add),
+              onPressed: () {
+                // TODO: Show create modifier group dialog
+              },
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Shared empty state ────────────────────────────────────────────────────────
+
+class _EmptyGroupsState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.tune_outlined,
+            size: context.responsive.value(kiosk: 80, tablet: 64, phone: 48),
+            color: Colors.grey.shade400,
+          ),
+          Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+          Text(
+            'No modifier groups found',
+            style: TextStyle(
+              fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 14),
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          Gap(context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
+          Text(
+            'Try adjusting your search or create a new group',
+            style: TextStyle(
+              fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
+              color: Colors.grey.shade500,
+            ),
           ),
         ],
       ),
     );
   }
 }
+
+// ── Phone: card list ──────────────────────────────────────────────────────────
+
+class _ModifierGroupsMobileList extends StatelessWidget {
+  const _ModifierGroupsMobileList({required this.searchQuery, required this.expandedGroups});
+
+  final ValueNotifier<String?> searchQuery;
+  final ValueNotifier<Set<int>> expandedGroups;
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredGroups =
+        searchQuery.value == null
+            ? mockModifierGroups
+            : mockModifierGroups
+                .where(
+                  (group) => group.name.toLowerCase().contains(searchQuery.value!.toLowerCase()),
+                )
+                .toList();
+
+    if (filteredGroups.isEmpty) {
+      return _EmptyGroupsState();
+    }
+
+    return ListView.builder(
+      itemCount: filteredGroups.length,
+      itemBuilder: (context, index) {
+        final group = filteredGroups[index];
+        return _ModifierGroupCard(
+          group: group,
+          isExpanded: expandedGroups.value.contains(group.id),
+          onToggle: () {
+            final newExpanded = Set<int>.from(expandedGroups.value);
+            if (newExpanded.contains(group.id)) {
+              newExpanded.remove(group.id);
+            } else {
+              newExpanded.add(group.id);
+            }
+            expandedGroups.value = newExpanded;
+          },
+        );
+      },
+    );
+  }
+}
+
+class _ModifierGroupCard extends StatelessWidget {
+  const _ModifierGroupCard({
+    required this.group,
+    required this.isExpanded,
+    required this.onToggle,
+  });
+
+  final ModifierGroup group;
+  final bool isExpanded;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: onToggle,
+            borderRadius: BorderRadius.vertical(
+              top: const Radius.circular(10),
+              bottom: isExpanded ? Radius.zero : const Radius.circular(10),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      AnimatedRotation(
+                        turns: isExpanded ? 0.25 : 0.0,
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeInOut,
+                        child: const Icon(
+                          Icons.keyboard_arrow_right,
+                          color: ColorSet.primary,
+                          size: 20,
+                        ),
+                      ),
+                      const Gap(6),
+                      Expanded(
+                        child: Text(
+                          group.name,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${group.modifiers.length} items',
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      ),
+                    ],
+                  ),
+                  const Gap(8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () {
+                          // TODO: Show edit group dialog
+                        },
+                        icon: const Icon(Icons.edit, size: 15),
+                        label: const Text('Edit'),
+                        style: TextButton.styleFrom(foregroundColor: ColorSet.primary),
+                      ),
+                      TextButton.icon(
+                        onPressed: () {
+                          // TODO: Show delete confirmation
+                        },
+                        icon: const Icon(Icons.delete, size: 15),
+                        label: const Text('Delete'),
+                        style: TextButton.styleFrom(foregroundColor: ColorSet.danger),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: isExpanded ? _ModifiersList(group: group) : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Tablet / Kiosk: table ─────────────────────────────────────────────────────
 
 class _ModifierGroupsTable extends StatelessWidget {
   const _ModifierGroupsTable({required this.searchQuery, required this.expandedGroups});
@@ -143,35 +347,7 @@ class _ModifierGroupsTable extends StatelessWidget {
                 .toList();
 
     if (filteredGroups.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.tune_outlined,
-              size: context.responsive.value(kiosk: 80, tablet: 64, phone: 48),
-              color: Colors.grey.shade400,
-            ),
-            Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-            Text(
-              'No modifier groups found',
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 14),
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade600,
-              ),
-            ),
-            Gap(context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
-            Text(
-              'Try adjusting your search or create a new group',
-              style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
-                color: Colors.grey.shade500,
-              ),
-            ),
-          ],
-        ),
-      );
+      return _EmptyGroupsState();
     }
 
     return Container(
@@ -230,12 +406,12 @@ class _TableHeader extends StatelessWidget {
         ),
       ),
       padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-      child: Row(
+      child: const Row(
         children: [
-          const Expanded(flex: 3, child: _HeaderCell(title: 'Group Name')),
-          const Expanded(flex: 2, child: _HeaderCell(title: 'Modifiers')),
-          const Expanded(flex: 2, child: _HeaderCell(title: 'Used By')),
-          const Expanded(flex: 2, child: _HeaderCell(title: 'Actions')),
+          Expanded(flex: 3, child: _HeaderCell(title: 'Group Name')),
+          Expanded(flex: 2, child: _HeaderCell(title: 'Modifiers')),
+          Expanded(flex: 2, child: _HeaderCell(title: 'Used By')),
+          Expanded(flex: 2, child: _HeaderCell(title: 'Actions')),
         ],
       ),
     );

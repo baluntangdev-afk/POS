@@ -16,7 +16,15 @@
       "Bash(Format-Table -AutoSize)",
       "Bash(dart analyze *)",
       "Bash(sed -n '78,86p' lib/features/catalog/view/products_screen.dart)",
-      "Bash(sed -n '78,86p' lib/features/catalog/view/product_groups_screen.dart)"
+      "Bash(sed -n '78,86p' lib/features/catalog/view/product_groups_screen.dart)",
+      "Bash(Select-Object Name, FullName)",
+      "Bash(grep -E \"\\\\.\\(dart\\)$\")",
+      "Bash(grep -E \"\\(screen|view\\)\\\\.dart$\")",
+      "Bash(flutter pub *)",
+      "PowerShell(head *)",
+      "PowerShell(Get-Content \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\lib\\\\features\\\\catalog\\\\view\\\\modifier_groups_screen.dart\" | Select-Object -Index \\(265..272\\))",
+      "PowerShell(Get-Content \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\lib\\\\features\\\\catalog\\\\view\\\\modifier_groups_screen.dart\" | Select-Object -Index \\(405..412\\))",
+      "PowerShell(Get-Content \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\lib\\\\features\\\\catalog\\\\view\\\\modifier_groups_screen.dart\" | Select-Object -Index \\(403..418\\))"
     ]
   }
 }

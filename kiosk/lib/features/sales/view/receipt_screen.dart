@@ -9,8 +9,10 @@ import 'package:intl/intl.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/message_dialog.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/cashier.dart';
@@ -27,6 +29,8 @@ class ReceiptScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isAndroid = context.breakpoint.isAndroid;
+
     ref.listen(receiptProvider(receiptId), (previous, next) async {
       if (next case AsyncError(:final error)) {
         await showMessageDialog(context, type: DialogType.error, message: '$error');
@@ -41,13 +45,7 @@ class ReceiptScreen extends ConsumerWidget {
 
     final isLoading = ref.watch(receiptProvider(receiptId).select((it) => it.isLoading));
 
-    return WindowsScaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
-        child: const _TopAppBar(),
-      ),
-      extendBodyBehindAppBar: true,
-      body: Container(
+    final bodyContent = Container(
         width: double.infinity,
         height: double.infinity,
         padding: EdgeInsets.only(
@@ -93,7 +91,29 @@ class ReceiptScreen extends ConsumerWidget {
                     SizedBox(height: context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
                   ],
                 ),
+      );
+
+    if (isAndroid) {
+      return AndroidScaffold(
+        statusBarIconBrightness: Brightness.light,
+        extendBodyBehindAppBar: true,
+        body: SafeArea(
+          top: false,
+          bottom: false,
+          child: bodyContent,
+        ),
+      );
+    }
+
+    return WindowsScaffold(
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(
+          context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
+        ),
+        child: const _TopAppBar(),
       ),
+      extendBodyBehindAppBar: true,
+      body: bodyContent,
     );
   }
 }

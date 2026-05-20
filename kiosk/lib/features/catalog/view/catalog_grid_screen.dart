@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/debounce.dart';
@@ -85,6 +86,7 @@ class _SearchAndFilterControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPhone = context.breakpoint.isPhone;
     return Container(
       padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
       decoration: BoxDecoration(
@@ -107,7 +109,6 @@ class _SearchAndFilterControls extends StatelessWidget {
             spacing: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
             children: [
               Expanded(
-                flex: 2,
                 child: HookBuilder(
                   builder: (context) {
                     final debounce = useDebounce(const Duration(milliseconds: 300));
@@ -130,15 +131,25 @@ class _SearchAndFilterControls extends StatelessWidget {
                   },
                 ),
               ),
-              Expanded(
-                child: Button(
+              if (isPhone)
+                FilledButton(
+                  onPressed: () {
+                    // TODO: Navigate to add product screen
+                  },
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                    padding: EdgeInsets.zero,
+                  ),
+                  child: const Icon(Icons.add, size: 20),
+                )
+              else
+                Button(
                   label: const Text('Add Product'),
                   leading: const Icon(Icons.add),
                   onPressed: () {
                     // TODO: Navigate to add product screen
                   },
                 ),
-              ),
             ],
           ),
           LayoutBuilder(
@@ -348,8 +359,8 @@ class _ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Image fills all remaining space — no fixed flex ratio
             Expanded(
-              flex: 3,
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
@@ -389,85 +400,85 @@ class _ProductCard extends StatelessWidget {
                 ),
               ),
             ),
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: EdgeInsets.all(context.responsive.value(kiosk: 12, tablet: 10, phone: 8)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: context.responsive.value(kiosk: 4, tablet: 3, phone: 2),
-                  children: [
-                    Text(
-                      product.name,
-                      style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+            // Info auto-sizes to content — no Spacer, no Expanded
+            Padding(
+              padding: EdgeInsets.all(context.responsive.value(kiosk: 12, tablet: 10, phone: 8)),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    style: TextStyle(
+                      fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
                     ),
-                    Text(
-                      priceRange,
-                      style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
-                        fontWeight: FontWeight.w700,
-                        color: ColorSet.primary,
-                      ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: context.responsive.value(kiosk: 4, tablet: 3, phone: 2)),
+                  Text(
+                    priceRange,
+                    style: TextStyle(
+                      fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
+                      fontWeight: FontWeight.w700,
+                      color: ColorSet.primary,
                     ),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.category_outlined,
-                          size: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
+                  ),
+                  SizedBox(height: context.responsive.value(kiosk: 2, tablet: 2, phone: 1)),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.category_outlined,
+                        size: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
+                        color: Colors.grey.shade600,
+                      ),
+                      Gap(context.responsive.value(kiosk: 2, tablet: 2, phone: 1)),
+                      Text(
+                        '${product.variants.length} variant${product.variants.length == 1 ? '' : 's'}',
+                        style: TextStyle(
+                          fontSize: context.responsive.value(kiosk: 10, tablet: 9, phone: 8),
                           color: Colors.grey.shade600,
                         ),
-                        Gap(context.responsive.value(kiosk: 2, tablet: 2, phone: 1)),
-                        Text(
-                          '${product.variants.length} variant${product.variants.length == 1 ? '' : 's'}',
-                          style: TextStyle(
-                            fontSize: context.responsive.value(kiosk: 10, tablet: 9, phone: 8),
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.tune_outlined,
-                          size: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.tune_outlined,
+                        size: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
+                        color: Colors.grey.shade600,
+                      ),
+                      Gap(context.responsive.value(kiosk: 2, tablet: 2, phone: 1)),
+                      Text(
+                        '$modifierGroupCount modifier group${modifierGroupCount == 1 ? '' : 's'}',
+                        style: TextStyle(
+                          fontSize: context.responsive.value(kiosk: 10, tablet: 9, phone: 8),
                           color: Colors.grey.shade600,
                         ),
-                        Gap(context.responsive.value(kiosk: 2, tablet: 2, phone: 1)),
-                        Text(
-                          '$modifierGroupCount modifier group${modifierGroupCount == 1 ? '' : 's'}',
-                          style: TextStyle(
-                            fontSize: context.responsive.value(kiosk: 10, tablet: 9, phone: 8),
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    SizedBox(
-                      width: double.infinity,
-                      child: Button(
-                        label: Text(
-                          'Manage',
-                          style: TextStyle(
-                            fontSize: context.responsive.value(kiosk: 10, tablet: 9, phone: 8),
-                          ),
-                        ),
-                        onPressed: () {
-                          ProductDetailRoute(product.id).push<void>(context);
-                        },
-                        backgroundColor: ColorSet.primary,
-                        foregroundColor: Colors.white,
                       ),
+                    ],
+                  ),
+                  SizedBox(height: context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
+                  SizedBox(
+                    width: double.infinity,
+                    child: Button(
+                      label: Text(
+                        'Manage',
+                        style: TextStyle(
+                          fontSize: context.responsive.value(kiosk: 10, tablet: 9, phone: 8),
+                        ),
+                      ),
+                      onPressed: () {
+                        ProductDetailRoute(product.id).push<void>(context);
+                      },
+                      backgroundColor: ColorSet.primary,
+                      foregroundColor: Colors.white,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],

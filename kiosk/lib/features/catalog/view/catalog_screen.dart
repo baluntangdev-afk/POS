@@ -16,36 +16,102 @@ class CatalogScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedTab = useState(0);
     final isAndroid = context.breakpoint.isAndroid;
 
-    final body = Column(
-      children: [
-        const TopAppBar(title: 'Catalog Management'),
-        _TabBar(selectedTab: selectedTab),
-        Expanded(
-          child: IndexedStack(
-            index: selectedTab.value,
-            children: const [CatalogGridScreen(), ModifierGroupsScreen(), _CategoriesTab()],
-          ),
-        ),
-      ],
-    );
     if (isAndroid) {
-      return AndroidScaffold(backgroundColor: Colors.grey.shade50, body: body);
+      return _AndroidCatalogScreen();
     }
-    return WindowsScaffold(backgroundColor: Colors.grey.shade50, body: body);
+
+    return _WindowsCatalogScreen();
   }
 }
 
-class _TabBar extends StatelessWidget {
-  const _TabBar({required this.selectedTab});
+// ── Android: Material TabBar + TabBarView (swipe-enabled) ────────────────────
+
+class _AndroidCatalogScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    const tabs = ['Products', 'Modifier Groups', 'Categories'];
+    final r = context.responsive;
+
+    return DefaultTabController(
+      length: tabs.length,
+      child: AndroidScaffold(
+        backgroundColor: Colors.grey.shade50,
+        appBar: PreferredSize(
+          preferredSize: Size.fromHeight(
+            r.appBarHeight + kTextTabBarHeight,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const TopAppBar(title: 'Catalog Management'),
+              Material(
+                color: Colors.white,
+                child: TabBar(
+                  labelColor: ColorSet.primary,
+                  unselectedLabelColor: Colors.grey.shade600,
+                  indicatorColor: ColorSet.primary,
+                  indicatorWeight: 3,
+                  labelStyle: TextStyle(
+                    fontSize: r.value(kiosk: 16.0, tablet: 14.0, phone: 13.0),
+                    fontWeight: FontWeight.w600,
+                  ),
+                  unselectedLabelStyle: TextStyle(
+                    fontSize: r.value(kiosk: 16.0, tablet: 14.0, phone: 13.0),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  tabs: tabs.map((t) => Tab(text: t)).toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        body: const TabBarView(
+          children: [
+            CatalogGridScreen(),
+            ModifierGroupsScreen(),
+            _CategoriesTab(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Windows: custom GestureDetector tab bar + IndexedStack ───────────────────
+
+class _WindowsCatalogScreen extends HookWidget {
+  @override
+  Widget build(BuildContext context) {
+    final selectedTab = useState(0);
+
+    return WindowsScaffold(
+      backgroundColor: Colors.grey.shade50,
+      body: Column(
+        children: [
+          const TopAppBar(title: 'Catalog Management'),
+          _WindowsTabBar(selectedTab: selectedTab),
+          Expanded(
+            child: IndexedStack(
+              index: selectedTab.value,
+              children: const [CatalogGridScreen(), ModifierGroupsScreen(), _CategoriesTab()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WindowsTabBar extends StatelessWidget {
+  const _WindowsTabBar({required this.selectedTab});
 
   final ValueNotifier<int> selectedTab;
 
   @override
   Widget build(BuildContext context) {
-    final tabs = ['Products', 'Modifier Groups', 'Categories'];
+    const tabs = ['Products', 'Modifier Groups', 'Categories'];
     final r = context.responsive;
 
     return Container(
@@ -71,9 +137,7 @@ class _TabBar extends StatelessWidget {
               child: Container(
                 padding: EdgeInsets.symmetric(vertical: r.spacingLg),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? ColorSet.primary.withValues(alpha: 0.1)
-                      : Colors.transparent,
+                  color: isSelected ? ColorSet.primary.withValues(alpha: 0.1) : Colors.transparent,
                   border: Border(
                     bottom: BorderSide(
                       color: isSelected ? ColorSet.primary : Colors.transparent,

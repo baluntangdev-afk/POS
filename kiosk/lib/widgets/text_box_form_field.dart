@@ -22,7 +22,9 @@ class TextBoxFormField extends HookWidget {
     this.enabled = true,
     this.prefixIcon,
     this.suffixIcon,
+    this.readOnly = false,
     this.style,
+    this.onTap,
   }) : assert(
          initialValue == null || controller == null,
          'Provide only one of either initialValue or controller.',
@@ -31,6 +33,7 @@ class TextBoxFormField extends HookWidget {
   const TextBoxFormField.email({
     super.key,
     this.label,
+    this.readOnly = false,
     this.controller,
     this.initialValue,
     this.hint,
@@ -44,6 +47,8 @@ class TextBoxFormField extends HookWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.style,
+
+    this.onTap,
   }) : maxLines = 1,
        keyboardType = TextInputType.emailAddress,
        assert(
@@ -54,6 +59,36 @@ class TextBoxFormField extends HookWidget {
          maxLength == null || maxLength == -1 || maxLength > 0,
          'Maximum length of characters should be either greater than 0 or -1.',
        );
+
+  const TextBoxFormField.readOnly({
+    super.key,
+    this.label,
+    this.controller,
+    this.initialValue,
+    this.hint,
+    this.validator,
+    this.onChanged,
+    this.maxLength,
+    this.inputFormatters,
+    this.textInputAction,
+    this.showError = false,
+    this.enabled = true,
+    this.prefixIcon,
+    this.suffixIcon,
+    this.style,
+    this.readOnly = true,
+    this.onTap,
+
+  }) : maxLines = 1,
+        keyboardType = TextInputType.emailAddress,
+        assert(
+        initialValue == null || controller == null,
+        'Provide only one of either initialValue or controller.',
+        ),
+        assert(
+        maxLength == null || maxLength == -1 || maxLength > 0,
+        'Maximum length of characters should be either greater than 0 or -1.',
+        );
 
   const TextBoxFormField.password({
     super.key,
@@ -70,6 +105,8 @@ class TextBoxFormField extends HookWidget {
     this.enabled = true,
     this.prefixIcon,
     this.style,
+    this.readOnly = false,
+    this.onTap,
   }) : maxLines = 1,
        keyboardType = TextInputType.visiblePassword,
        suffixIcon = null,
@@ -98,6 +135,8 @@ class TextBoxFormField extends HookWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.style,
+    this.readOnly = false,
+    this.onTap,
   }) : maxLines = 1,
        keyboardType = TextInputType.text,
        assert(
@@ -112,6 +151,7 @@ class TextBoxFormField extends HookWidget {
   const TextBoxFormField.multiline({
     super.key,
     this.label,
+    this.readOnly = false,
     this.controller,
     this.hint,
     this.initialValue,
@@ -126,6 +166,7 @@ class TextBoxFormField extends HookWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.style,
+    this.onTap,
   }) : keyboardType = TextInputType.multiline,
        assert(
          initialValue == null || controller == null,
@@ -143,6 +184,7 @@ class TextBoxFormField extends HookWidget {
   final String? initialValue;
   final String? label;
   final String? hint;
+  final bool readOnly;
   final TextEditingController? controller;
   final int? maxLines;
   final int? maxLength;
@@ -156,7 +198,7 @@ class TextBoxFormField extends HookWidget {
   final Widget? prefixIcon;
   final Widget? suffixIcon;
   final TextStyle? style;
-
+  final void Function()? onTap;
   @override
   Widget build(BuildContext context) {
     // Assert suffix icon is null when keyboardType is TextInputType.visiblePassword.
@@ -209,7 +251,10 @@ class TextBoxFormField extends HookWidget {
             const SizedBox(height: 4.0),
           ],
           TextFormField(
+            onTap: readOnly ? onTap : null,
+            readOnly: readOnly,
             enabled: enabled,
+            canRequestFocus: !readOnly,
             controller: controller,
             initialValue: controller != null ? null : initialValue,
             maxLines: maxLines,

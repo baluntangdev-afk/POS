@@ -7,9 +7,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/button.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../state/ordering_notifier.dart';
@@ -20,6 +22,18 @@ class CartScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (context.breakpoint.isAndroid) {
+      return AndroidScaffold(
+        backgroundColor: ColorSet.background,
+        body: SafeArea(
+          child: ResponsiveBuilder(
+            kiosk: (context) => const _KioskCartLayout(),
+            tablet: (context) => const _DefaultCartLayout(),
+            phone: (context) => const _DefaultCartLayout(),
+          ),
+        ),
+      );
+    }
     return WindowsScaffold(
       backgroundColor: ColorSet.background,
       body: ResponsiveBuilder(
@@ -269,6 +283,7 @@ class _LineItemListView extends ConsumerWidget {
     final lineItems = ref.watch(
       orderingProvider.select((it) => it.value?.sale.items ?? const IList.empty()),
     );
+    final isAndroid = context.breakpoint.isAndroid;
     return Container(
       width: double.infinity,
       height: double.infinity,
@@ -284,7 +299,7 @@ class _LineItemListView extends ConsumerWidget {
         separatorBuilder: (context, index) => const Gap(12),
         itemBuilder: (context, index) {
           final lineItem = lineItems[index];
-          return Container(
+          final card = Container(
             constraints: BoxConstraints(
               minHeight: context.responsive.value(kiosk: 88.0, tablet: 80.0, phone: 72.0),
             ),
@@ -413,6 +428,44 @@ class _LineItemListView extends ConsumerWidget {
                 ),
               ],
             ),
+          );
+          if (!isAndroid) return card;
+          // Android: wrap with Dismissible for swipe-to-delete
+          return Dismissible(
+            key: ValueKey(lineItem.id),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              decoration: BoxDecoration(
+                color: ColorSet.danger,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
+            ),
+            onDismissed: (_) {
+              final removed = lineItem;
+              ref.read(orderingProvider.notifier).removeLineItem(index: index);
+              ScaffoldMessenger.of(context).clearMaterialBanners();
+              ScaffoldMessenger.of(context).showMaterialBanner(
+                MaterialBanner(
+                  content: Text(
+                    '${removed.productName} removed',
+                    style: const TextStyle(color: ColorSet.dark),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).clearMaterialBanners();
+                        ref.read(orderingProvider.notifier).addLineItem(removed);
+                      },
+                      child: const Text('UNDO'),
+                    ),
+                  ],
+                ),
+              );
+            },
+            child: card,
           );
         },
       ),

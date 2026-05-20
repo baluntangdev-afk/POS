@@ -7,12 +7,14 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../utils/tax_calculator.dart';
 import '../../../validation/rules/is_required.dart';
 import '../../../validation/validate.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/discount.dart';
@@ -26,6 +28,7 @@ class DiscountScreen extends HookConsumerWidget {
     final discountTypes = useMemoized(() => ['Senior/PWD', 'Promo']);
     final selectedDiscountType = useState('Senior/PWD');
     final selectedQuantities = useState<Map<String, int>>({});
+    final isAndroid = context.breakpoint.isAndroid;
 
     void onApplyDiscount(String? idNumber) {
       if (selectedQuantities.value.isEmpty) {
@@ -50,44 +53,60 @@ class DiscountScreen extends HookConsumerWidget {
       context.pop();
     }
 
+    final body = ResponsiveBuilder(
+      kiosk: (context) {
+        return _LandscapeLayout(
+          selectedQuantities: selectedQuantities.value,
+          onQuantitiesChanged: (val) => selectedQuantities.value = val,
+          discountTypes: discountTypes,
+          selectedDiscountType: selectedDiscountType.value,
+          onDiscountTypeChanged: (val) => selectedDiscountType.value = val,
+          onApplyDiscount: onApplyDiscount,
+        );
+      },
+      tablet: (context) {
+        return _LandscapeLayout(
+          selectedQuantities: selectedQuantities.value,
+          onQuantitiesChanged: (value) => selectedQuantities.value = value,
+          discountTypes: discountTypes,
+          selectedDiscountType: selectedDiscountType.value,
+          onDiscountTypeChanged: (value) => selectedDiscountType.value = value,
+          onApplyDiscount: onApplyDiscount,
+        );
+      },
+      phone: (context) {
+        return _PortraitLayout(
+          selectedQuantities: selectedQuantities.value,
+          onQuantitiesChanged: (value) => selectedQuantities.value = value,
+          discountTypes: discountTypes,
+          selectedDiscountType: selectedDiscountType.value,
+          onDiscountTypeChanged: (value) => selectedDiscountType.value = value,
+          onApplyDiscount: onApplyDiscount,
+        );
+      },
+    );
+
+    if (isAndroid) {
+      return AndroidScaffold(
+        backgroundColor: ColorSet.background,
+        resizeToAvoidBottomInset: true,
+        appBar: PreferredSize(
+          preferredSize: Size.fromHeight(
+            context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
+          ),
+          child: const _TopAppBar(),
+        ),
+        body: SafeArea(top: false, child: body),
+      );
+    }
+
     return WindowsScaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(context.responsive.value(kiosk: 120, tablet: 90, phone: 70)),
         child: const _TopAppBar(),
       ),
       backgroundColor: ColorSet.background,
-      body: ResponsiveBuilder(
-        kiosk: (context) {
-          return _LandscapeLayout(
-            selectedQuantities: selectedQuantities.value,
-            onQuantitiesChanged: (val) => selectedQuantities.value = val,
-            discountTypes: discountTypes,
-            selectedDiscountType: selectedDiscountType.value,
-            onDiscountTypeChanged: (val) => selectedDiscountType.value = val,
-            onApplyDiscount: onApplyDiscount,
-          );
-        },
-        tablet: (context) {
-          return _LandscapeLayout(
-            selectedQuantities: selectedQuantities.value,
-            onQuantitiesChanged: (value) => selectedQuantities.value = value,
-            discountTypes: discountTypes,
-            selectedDiscountType: selectedDiscountType.value,
-            onDiscountTypeChanged: (value) => selectedDiscountType.value = value,
-            onApplyDiscount: onApplyDiscount,
-          );
-        },
-        phone: (context) {
-          return _PortraitLayout(
-            selectedQuantities: selectedQuantities.value,
-            onQuantitiesChanged: (value) => selectedQuantities.value = value,
-            discountTypes: discountTypes,
-            selectedDiscountType: selectedDiscountType.value,
-            onDiscountTypeChanged: (value) => selectedDiscountType.value = value,
-            onApplyDiscount: onApplyDiscount,
-          );
-        },
-      ),
+      body: body,
     );
   }
 }

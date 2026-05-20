@@ -32,9 +32,9 @@ class ProductDetailScreen extends HookConsumerWidget {
       name: 'Burger Meal',
       description: 'Classic burger with sides and drink',
       image: Uint8List(0), // Placeholder
-      variants: IList([
-        const ProductVariant(id: 1, name: 'Regular', isDefault: true),
-        const ProductVariant(id: 2, name: 'Large', isDefault: false),
+      variants: IList(const [
+        ProductVariant(id: 1, name: 'Regular', isDefault: true),
+        ProductVariant(id: 2, name: 'Large', isDefault: false),
       ]),
     );
 
@@ -87,7 +87,7 @@ class _TopAppBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+          Gap(context.responsive.spacingLg),
           GestureDetector(
             onTap: () {
               if (context.canPop()) {
@@ -105,7 +105,7 @@ class _TopAppBar extends StatelessWidget {
             child: Text(
               '$productName Management',
               style: TextStyle(
-                fontSize: context.responsive.value(kiosk: 36, tablet: 28, phone: 20),
+                fontSize: context.responsive.fontTitle,
                 fontWeight: FontWeight.w600,
                 color: ColorSet.light,
               ),
@@ -127,6 +127,41 @@ class _TabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tabs = ['Details', 'Variants', 'Modifiers', 'Availability'];
+    final isPhone = context.breakpoint.isPhone;
+
+    Widget buildTabItem(int index, String title) {
+      final isSelected = selectedTab.value == index;
+      return GestureDetector(
+        onTap: () => selectedTab.value = index,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            vertical: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
+            horizontal: isPhone ? context.responsive.spacingMd : 0,
+          ),
+          decoration: BoxDecoration(
+            color: isSelected ? ColorSet.primary.withValues(alpha: 0.1) : Colors.transparent,
+            border: Border(
+              bottom: BorderSide(
+                color: isSelected ? ColorSet.primary : Colors.transparent,
+                width: context.responsive.value(kiosk: 3, tablet: 2, phone: 2),
+              ),
+            ),
+          ),
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              color: isSelected ? ColorSet.primary : Colors.grey.shade600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    final tabItems = tabs.asMap().entries.map((e) => buildTabItem(e.key, e.value)).toList();
 
     return Container(
       decoration: BoxDecoration(
@@ -139,45 +174,12 @@ class _TabBar extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        children:
-            tabs.asMap().entries.map((entry) {
-              final index = entry.key;
-              final title = entry.value;
-              final isSelected = selectedTab.value == index;
-
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => selectedTab.value = index,
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      vertical: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
-                    ),
-                    decoration: BoxDecoration(
-                      color:
-                          isSelected ? ColorSet.primary.withValues(alpha: 0.1) : Colors.transparent,
-                      border: Border(
-                        bottom: BorderSide(
-                          color: isSelected ? ColorSet.primary : Colors.transparent,
-                          width: context.responsive.value(kiosk: 3, tablet: 2, phone: 2),
-                        ),
-                      ),
-                    ),
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                        color: isSelected ? ColorSet.primary : Colors.grey.shade600,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-      ),
+      child: isPhone
+          ? SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: tabItems),
+            )
+          : Row(children: tabItems.map((tab) => Expanded(child: tab)).toList()),
     );
   }
 }
@@ -189,12 +191,22 @@ class _DetailsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-      child: Column(
-        spacing: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-        children: [_ProductImage(product: product), _BasicInfo(product: product)],
-      ),
+    final isPhone = context.breakpoint.isPhone;
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(context.responsive.spacingLg),
+      child: isPhone
+          ? Column(
+              spacing: context.responsive.spacingLg,
+              children: [_ProductImage(product: product), _BasicInfo(product: product)],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: context.responsive.spacingLg,
+              children: [
+                _ProductImage(product: product),
+                Expanded(child: _BasicInfo(product: product)),
+              ],
+            ),
     );
   }
 }
@@ -233,7 +245,7 @@ class _ProductImage extends StatelessWidget {
                           size: context.responsive.value(kiosk: 48, tablet: 40, phone: 32),
                           color: Colors.grey.shade400,
                         ),
-                        Gap(context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
+                        Gap(context.responsive.spacingSm),
                         Text(
                           'Image unavailable',
                           style: TextStyle(
@@ -245,23 +257,23 @@ class _ProductImage extends StatelessWidget {
                     ),
                   )
                 : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.image,
-                      size: context.responsive.value(kiosk: 48, tablet: 40, phone: 32),
-                      color: Colors.grey.shade400,
-                    ),
-                    Gap(context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
-                    Text(
-                      'No Image',
-                      style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
-                        color: Colors.grey.shade500,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.image,
+                        size: context.responsive.value(kiosk: 48, tablet: 40, phone: 32),
+                        color: Colors.grey.shade400,
                       ),
-                    ),
-                  ],
-                ),
+                      Gap(context.responsive.spacingSm),
+                      Text(
+                        'No Image',
+                        style: TextStyle(
+                          fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
+                  ),
       ),
     );
   }
@@ -275,7 +287,7 @@ class _BasicInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      spacing: context.responsive.value(kiosk: 16, tablet: 14, phone: 12),
+      spacing: context.responsive.spacingMd,
       children: [
         TextBoxFormField.singleLine(
           label: 'Product Name',
@@ -314,22 +326,32 @@ class _VariantsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+    final isPhone = context.breakpoint.isPhone;
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(context.responsive.spacingLg),
       child: Column(
-        spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+        spacing: context.responsive.spacingMd,
         children: [
-          Row(
-            spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-            children: [
-              Expanded(
-                child: _VariantCard(variant: product.variants.first, price: '\$8.99', stock: 45),
-              ),
-              Expanded(
-                child: _VariantCard(variant: product.variants.last, price: '\$10.99', stock: 23),
-              ),
-            ],
-          ),
+          if (isPhone)
+            Column(
+              spacing: context.responsive.spacingMd,
+              children: [
+                _VariantCard(variant: product.variants.first, price: '\$8.99', stock: 45),
+                _VariantCard(variant: product.variants.last, price: '\$10.99', stock: 23),
+              ],
+            )
+          else
+            Row(
+              spacing: context.responsive.spacingMd,
+              children: [
+                Expanded(
+                  child: _VariantCard(variant: product.variants.first, price: '\$8.99', stock: 45),
+                ),
+                Expanded(
+                  child: _VariantCard(variant: product.variants.last, price: '\$10.99', stock: 23),
+                ),
+              ],
+            ),
           SizedBox(
             width: double.infinity,
             child: Button(
@@ -356,7 +378,7 @@ class _VariantCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+      padding: EdgeInsets.all(context.responsive.spacingMd),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(
@@ -372,7 +394,7 @@ class _VariantCard extends StatelessWidget {
         ],
       ),
       child: Column(
-        spacing: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
+        spacing: context.responsive.spacingMd,
         children: [
           Text(
             variant.name,
@@ -398,7 +420,7 @@ class _VariantCard extends StatelessWidget {
             ),
           ),
           Row(
-            spacing: context.responsive.value(kiosk: 8, tablet: 6, phone: 4),
+            spacing: context.responsive.spacingSm,
             children: [
               Expanded(
                 child: Button(
@@ -433,10 +455,10 @@ class _ModifiersTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(context.responsive.spacingLg),
       child: Column(
-        spacing: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+        spacing: context.responsive.spacingLg,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
@@ -460,7 +482,7 @@ class _ModifiersTab extends StatelessWidget {
             isSelected: false,
             onToggle: () {},
           ),
-          const Gap(16),
+          Gap(context.responsive.spacingMd),
           Text(
             'Applied Groups:',
             style: TextStyle(
@@ -471,8 +493,8 @@ class _ModifiersTab extends StatelessWidget {
           ),
           _AppliedModifierGroup(
             name: 'Sides',
-            variants: ['Regular', 'Large'],
-            modifiers: ['Fries (+\$1.50)', 'Onion Rings (+\$2.00)', 'Salad (+\$1.00)'],
+            variants: const ['Regular', 'Large'],
+            modifiers: const ['Fries (+\$1.50)', 'Onion Rings (+\$2.00)', 'Salad (+\$1.00)'],
           ),
         ],
       ),
@@ -502,7 +524,7 @@ class _ModifierGroupCheckbox extends StatelessWidget {
       child: Row(
         children: [
           Checkbox(value: isSelected, onChanged: (_) => onToggle(), activeColor: ColorSet.primary),
-          Gap(context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
+          Gap(context.responsive.spacingSm),
           Expanded(
             child: Text(
               '$name ($count modifiers)',
@@ -532,7 +554,7 @@ class _AppliedModifierGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+      padding: EdgeInsets.all(context.responsive.spacingMd),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(
@@ -541,7 +563,7 @@ class _AppliedModifierGroup extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
-        spacing: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
+        spacing: context.responsive.spacingMd,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
@@ -552,8 +574,8 @@ class _AppliedModifierGroup extends StatelessWidget {
             ),
           ),
           Wrap(
-            spacing: context.responsive.value(kiosk: 8, tablet: 6, phone: 4),
-            runSpacing: context.responsive.value(kiosk: 8, tablet: 6, phone: 4),
+            spacing: context.responsive.spacingSm,
+            runSpacing: context.responsive.spacingSm,
             children:
                 modifiers
                     .map(
@@ -590,10 +612,10 @@ class _AvailabilityTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(context.responsive.spacingLg),
       child: Column(
-        spacing: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+        spacing: context.responsive.spacingLg,
         children: [
           _AvailabilitySetting(title: 'Product Status', value: 'Active', onToggle: () {}),
           _AvailabilitySetting(title: 'Low Stock Alert', value: '10 units', onToggle: () {}),
@@ -614,7 +636,7 @@ class _AvailabilitySetting extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+      padding: EdgeInsets.all(context.responsive.spacingMd),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(
@@ -627,7 +649,7 @@ class _AvailabilitySetting extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: context.responsive.value(kiosk: 4, tablet: 3, phone: 2),
+              spacing: context.responsive.spacingSm,
               children: [
                 Text(
                   title,

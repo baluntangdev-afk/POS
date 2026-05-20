@@ -10,8 +10,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/payment.dart';
 import '../state/ordering_notifier.dart';
@@ -22,47 +24,85 @@ class PaymentScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WindowsScaffold(
-      backgroundColor: ColorSet.background,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const _PaymentHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(
-                context.responsive.value(kiosk: 40.0, tablet: 28.0, phone: 20.0),
-              ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: context.responsive.value(kiosk: 860.0, tablet: 680.0, phone: 480.0),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const _OrderTotalCard(),
-                      SizedBox(
-                        height: context.responsive.value(kiosk: 20.0, tablet: 16.0, phone: 12.0),
-                      ),
-                      const _PaymentSummaryRows(),
-                      SizedBox(
-                        height: context.responsive.value(kiosk: 32.0, tablet: 24.0, phone: 16.0),
-                      ),
-                      const _PaymentMethodGrid(),
-                      SizedBox(
-                        height: context.responsive.value(kiosk: 32.0, tablet: 24.0, phone: 16.0),
-                      ),
-                      const _ConfirmButton(),
-                    ],
-                  ),
+    final isAndroid = context.breakpoint.isAndroid;
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _PaymentHeader(),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(
+              context.responsive.value(kiosk: 40.0, tablet: 28.0, phone: 20.0),
+            ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: context.responsive.value(kiosk: 860.0, tablet: 680.0, phone: 480.0),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const _OrderTotalCard(),
+                    SizedBox(
+                      height: context.responsive.value(kiosk: 20.0, tablet: 16.0, phone: 12.0),
+                    ),
+                    const _PaymentSummaryRows(),
+                    SizedBox(
+                      height: context.responsive.value(kiosk: 32.0, tablet: 24.0, phone: 16.0),
+                    ),
+                    const _PaymentMethodGrid(),
+                    SizedBox(
+                      height: context.responsive.value(kiosk: 32.0, tablet: 24.0, phone: 16.0),
+                    ),
+                    const _ConfirmButton(),
+                  ],
                 ),
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
+
+    if (isAndroid) {
+      return PopScope(
+        // Android back gesture: ask "Cancel this payment?" before leaving
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) async {
+          if (didPop) return;
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder:
+                (ctx) => AlertDialog(
+                  title: const Text('Cancel Payment?'),
+                  content: const Text(
+                    'Going back will cancel the current payment selection.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Stay'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      style: FilledButton.styleFrom(backgroundColor: ColorSet.danger),
+                      child: const Text('Cancel Payment'),
+                    ),
+                  ],
+                ),
+          );
+          if ((confirmed ?? false) && context.mounted) {
+            Navigator.of(context).pop();
+          }
+        },
+        child: AndroidScaffold(
+          backgroundColor: ColorSet.background,
+          body: SafeArea(child: body),
+        ),
+      );
+    }
+
+    return WindowsScaffold(backgroundColor: ColorSet.background, body: body);
   }
 }
 
@@ -303,45 +343,44 @@ class _PaymentMethodCard extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef widgetRef) {
-    final cashPayment = index == 0 && payment is CashPayment ? payment as CashPayment : null;
+    final CashPayment? cashPayment = index == 0 && payment is CashPayment ? payment as CashPayment : null;
     final isSelected = cashPayment != null;
     final isEnabled = method.enabled && payment == null;
 
-    return GestureDetector(
-      onTap:
-          isEnabled
-              ? () async {
-                final collectibleAmount = widgetRef.read(
-                  orderingProvider.select(
-                    (it) => it.value?.sale.totalAmount ?? Decimal.zero,
-                  ),
-                );
-                final Payment? result;
-                switch (index) {
-                  case 0:
-                    result = await showCashPaymentDialog(
-                      context,
-                      collectibleAmount: collectibleAmount,
-                    );
-                  default:
-                    result = null;
-                }
-                if (result != null) {
-                  widgetRef.read(orderingProvider.notifier).addPayment(result);
-                }
-              }
-              : null,
-      child: Opacity(
-        opacity: isEnabled || isSelected ? 1.0 : 0.4,
-        child: Container(
+    Future<void> onTap() async {
+      final collectibleAmount = widgetRef.read(
+        orderingProvider.select(
+          (it) => it.value?.sale.totalAmount ?? Decimal.zero,
+        ),
+      );
+      final Payment? result;
+      switch (index) {
+        case 0:
+          result = await showCashPaymentDialog(
+            context,
+            collectibleAmount: collectibleAmount,
+          );
+        default:
+          result = null;
+      }
+      if (result != null) {
+        widgetRef.read(orderingProvider.notifier).addPayment(result);
+      }
+    }
+
+    return Opacity(
+      opacity: isEnabled || isSelected ? 1.0 : 0.4,
+      child: Material(
+        color: isSelected ? ColorSet.primary.withValues(alpha: 0.06) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: isEnabled ? onTap : null,
+          child: Container(
           padding: EdgeInsets.all(
             context.responsive.value(kiosk: 24.0, tablet: 18.0, phone: 14.0),
           ),
           decoration: BoxDecoration(
-            color:
-                isSelected
-                    ? ColorSet.primary.withValues(alpha: 0.06)
-                    : Colors.white,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isSelected ? ColorSet.primary : const Color(0xFFDDDDDD),
@@ -400,10 +439,11 @@ class _PaymentMethodCard extends HookConsumerWidget {
                 size: context.responsive.value(kiosk: 28.0, tablet: 24.0, phone: 20.0),
               ),
             ],
-          ),
-        ),
-      ),
-    );
+          ),        // Column
+          ),        // Container
+        ),          // InkWell
+      ),            // Material
+    );              // Opacity
   }
 }
 
@@ -428,35 +468,43 @@ class _ConfirmButton extends ConsumerWidget {
       }
     });
 
-    return GestureDetector(
-      onTap:
-          !isLoading && hasPayment ? () => ref.read(orderingProvider.notifier).confirmSale() : null,
-      child: Container(
-        height: context.responsive.value(kiosk: 72.0, tablet: 64.0, phone: 52.0),
-        decoration: BoxDecoration(
-          gradient:
+    final radius = context.responsive.value(kiosk: 36.0, tablet: 32.0, phone: 26.0);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient:
+            !isLoading && hasPayment
+                ? LinearGradient(
+                  colors: [
+                    ColorSet.secondary.withValues(alpha: 0.85),
+                    ColorSet.primary.withValues(alpha: 0.85),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+                : null,
+        color: !hasPayment ? const Color(0xFFE0E0E0) : null,
+        borderRadius: BorderRadius.circular(radius),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(radius),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(radius),
+          onTap:
               !isLoading && hasPayment
-                  ? LinearGradient(
-                    colors: [
-                      ColorSet.secondary.withValues(alpha: 0.85),
-                      ColorSet.primary.withValues(alpha: 0.85),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
+                  ? () => ref.read(orderingProvider.notifier).confirmSale()
                   : null,
-          color: !hasPayment ? const Color(0xFFE0E0E0) : null,
-          borderRadius: BorderRadius.circular(
-            context.responsive.value(kiosk: 36.0, tablet: 32.0, phone: 26.0),
-          ),
-        ),
-        child: Center(
-          child: Text(
-            isLoading ? 'Processing...' : 'Confirm Payment',
-            style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 20.0, tablet: 18.0, phone: 15.0),
-              fontWeight: FontWeight.w600,
-              color: !hasPayment ? const Color(0xFF9E9E9E) : ColorSet.light,
+          child: SizedBox(
+            height: context.responsive.value(kiosk: 72.0, tablet: 64.0, phone: 52.0),
+            child: Center(
+              child: Text(
+                isLoading ? 'Processing...' : 'Confirm Payment',
+                style: TextStyle(
+                  fontSize: context.responsive.value(kiosk: 20.0, tablet: 18.0, phone: 15.0),
+                  fontWeight: FontWeight.w600,
+                  color: !hasPayment ? const Color(0xFF9E9E9E) : ColorSet.light,
+                ),
+              ),
             ),
           ),
         ),

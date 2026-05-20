@@ -3,7 +3,6 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -65,9 +64,7 @@ class TransactionsScreen extends HookConsumerWidget {
           const TopAppBar(title: 'Transactions'),
           Expanded(
             child: Padding(
-              padding: EdgeInsets.all(
-                context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-              ),
+              padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
               child: Column(
                 spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
                 children: [
@@ -79,9 +76,20 @@ class TransactionsScreen extends HookConsumerWidget {
                     soDate: soDate,
                   ),
                   Expanded(
-                    child: isPhone
-                        ? _TransactionsMobileList(sort: sort)
-                        : _TransactionsTable(sort: sort),
+                    child:
+                        isAndroid
+                            // Android: use LayoutBuilder — card list in portrait, table in landscape ≥800dp
+                            ? LayoutBuilder(
+                              builder: (context, constraints) {
+                                final useTable = constraints.maxWidth >= 800;
+                                return useTable
+                                    ? _TransactionsTable(sort: sort)
+                                    : _TransactionsMobileList(sort: sort);
+                              },
+                            )
+                            : isPhone
+                            ? _TransactionsMobileList(sort: sort)
+                            : _TransactionsTable(sort: sort),
                   ),
                 ],
               ),
@@ -169,9 +177,7 @@ class _SearchField extends StatelessWidget {
             size: context.responsive.value(kiosk: 20, tablet: 18, phone: 16),
             color: Colors.grey.shade500,
           ),
-          style: TextStyle(
-            fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 13),
-          ),
+          style: TextStyle(fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 13)),
           onChanged: (value) {
             debounce(() {
               soNumber.value = value;
@@ -190,6 +196,33 @@ class _DateFilterField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return HookBuilder(
+      builder: (context) {
+        return TextBoxFormField.readOnly(
+          controller:
+              TextEditingController()
+                ..text =
+                    soDate.value != null
+                        ? DateFormat('MM/dd/yyyy').format(soDate.value!.toLocal())
+                        : 'Filter by date...',
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: soDate.value ?? DateTime.now(),
+              firstDate: DateTime(2020),
+              lastDate: DateTime.now(),
+            );
+            soDate.value = picked;
+          },
+          prefixIcon: Icon(
+            Icons.calendar_month,
+            size: context.responsive.value(kiosk: 20, tablet: 18, phone: 16),
+            color: Colors.grey.shade500,
+          ),
+          style: TextStyle(fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 13)),
+        );
+      },
+    );
     return GestureDetector(
       onTap: () async {
         final picked = await showDatePicker(
@@ -247,11 +280,7 @@ class _DateFilterField extends StatelessWidget {
 }
 
 class _PaginationRow extends StatelessWidget {
-  const _PaginationRow({
-    required this.page,
-    required this.limit,
-    required this.totalPages,
-  });
+  const _PaginationRow({required this.page, required this.limit, required this.totalPages});
 
   final ValueNotifier<int> page;
   final ValueNotifier<int> limit;
@@ -295,9 +324,10 @@ class _PaginationRow extends StatelessWidget {
               fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
               color: Colors.black87,
             ),
-            items: [10, 25, 50, 100].map((rows) {
-              return DropdownMenuItem(value: rows, child: Text('$rows rows'));
-            }).toList(),
+            items:
+                [10, 25, 50, 100].map((rows) {
+                  return DropdownMenuItem(value: rows, child: Text('$rows rows'));
+                }).toList(),
             onChanged: (value) {
               if (value != null) limit.value = value;
             },
@@ -380,21 +410,22 @@ class _TransactionsTable extends ConsumerWidget {
           Expanded(
             child: asyncState.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(
-                child: Padding(
-                  padding: EdgeInsets.all(
-                    context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-                  ),
-                  child: Text(
-                    'Error loading transactions:\n$error',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                      color: ColorSet.danger,
+              error:
+                  (error, _) => Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(
+                        context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+                      ),
+                      child: Text(
+                        'Error loading transactions:\n$error',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
+                          color: ColorSet.danger,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
               data: (data) {
                 if (data.data.isEmpty) {
                   return Center(
@@ -651,16 +682,17 @@ class _TransactionsMobileList extends ConsumerWidget {
     final asyncState = ref.watch(transactionsProvider);
     return asyncState.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            'Error loading transactions:\n$error',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 13, color: ColorSet.danger),
+      error:
+          (error, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Error loading transactions:\n$error',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, color: ColorSet.danger),
+              ),
+            ),
           ),
-        ),
-      ),
       data: (data) {
         if (data.data.isEmpty) {
           return Center(
@@ -712,11 +744,7 @@ class _TransactionCard extends HookConsumerWidget {
                         turns: isExpanded.value ? 0.25 : 0.0,
                         duration: const Duration(milliseconds: 250),
                         curve: Curves.easeInOut,
-                        child: Icon(
-                          Icons.keyboard_arrow_right,
-                          color: ColorSet.primary,
-                          size: 20,
-                        ),
+                        child: Icon(Icons.keyboard_arrow_right, color: ColorSet.primary, size: 20),
                       ),
                       const Gap(6),
                       Expanded(
@@ -805,70 +833,81 @@ class _ExpandedItems extends ConsumerWidget {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
       alignment: Alignment.topCenter,
-      child: isExpanded.value
-          ? Consumer(
-              builder: (context, ref, child) {
-                final state = ref.watch(
-                  receiptProvider(receipt.id).select((it) {
-                    return it.whenData((data) {
-                      return (items: data.items, refunds: data.refunds);
-                    });
-                  }),
-                );
-
-                if (state.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (state.hasError) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text('Failed to load items: ${state.error}'),
-                    ),
+      child:
+          isExpanded.value
+              ? Consumer(
+                builder: (context, ref, child) {
+                  final state = ref.watch(
+                    receiptProvider(receipt.id).select((it) {
+                      return it.whenData((data) {
+                        return (items: data.items, refunds: data.refunds);
+                      });
+                    }),
                   );
-                }
 
-                final items = state.value?.items ?? const IList.empty();
-                final refunds = state.value?.refunds ?? const IList.empty();
+                  if (state.isLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                if (items.isEmpty && refunds.isEmpty) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text('No item found'),
-                    ),
-                  );
-                }
-
-                return Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Line Items (${receipt.items.where((e) => e.isMain).length})',
-                        style: TextStyle(
-                          fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 13),
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
+                  if (state.hasError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text('Failed to load items: ${state.error}'),
                       ),
-                      ...items.map(
-                        (item) => Padding(
-                          padding: EdgeInsets.only(left: item.isMain ? 0 : 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '${item.quantity} ${item.description}',
+                    );
+                  }
+
+                  final items = state.value?.items ?? const IList.empty();
+                  final refunds = state.value?.refunds ?? const IList.empty();
+
+                  if (items.isEmpty && refunds.isEmpty) {
+                    return const Center(
+                      child: Padding(padding: EdgeInsets.all(16), child: Text('No item found')),
+                    );
+                  }
+
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Line Items (${receipt.items.where((e) => e.isMain).length})',
+                          style: TextStyle(
+                            fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 13),
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        ...items.map(
+                          (item) => Padding(
+                            padding: EdgeInsets.only(left: item.isMain ? 0 : 16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${item.quantity} ${item.description}',
+                                    style: TextStyle(
+                                      fontSize: context.responsive.value(
+                                        kiosk: 14,
+                                        tablet: 14,
+                                        phone: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  item.isMain || item.grossAmount > Decimal.zero
+                                      ? item.grossAmount.withCommas
+                                      : '',
                                   style: TextStyle(
                                     fontSize: context.responsive.value(
                                       kiosk: 14,
@@ -877,98 +916,85 @@ class _ExpandedItems extends ConsumerWidget {
                                     ),
                                   ),
                                 ),
-                              ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        ...refunds.map(
+                          (refund) => Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Gap(8),
                               Text(
-                                item.isMain || item.grossAmount > Decimal.zero
-                                    ? item.grossAmount.withCommas
-                                    : '',
+                                'Refund (${refund.items.where((e) => e.isMain).length})',
                                 style: TextStyle(
                                   fontSize: context.responsive.value(
                                     kiosk: 14,
                                     tablet: 14,
                                     phone: 13,
                                   ),
+                                  fontWeight: FontWeight.w600,
+                                  color: ColorSet.text,
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      ...refunds.map(
-                        (refund) => Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Gap(8),
-                            Text(
-                              'Refund (${refund.items.where((e) => e.isMain).length})',
-                              style: TextStyle(
-                                fontSize: context.responsive.value(
-                                  kiosk: 14,
-                                  tablet: 14,
-                                  phone: 13,
+                              Text(
+                                'Reason: ${refund.reason}',
+                                style: TextStyle(
+                                  fontSize: context.responsive.value(
+                                    kiosk: 12,
+                                    tablet: 12,
+                                    phone: 11,
+                                  ),
+                                  color: Colors.grey.shade600,
                                 ),
-                                fontWeight: FontWeight.w600,
-                                color: ColorSet.text,
                               ),
-                            ),
-                            Text(
-                              'Reason: ${refund.reason}',
-                              style: TextStyle(
-                                fontSize: context.responsive.value(
-                                  kiosk: 12,
-                                  tablet: 12,
-                                  phone: 11,
-                                ),
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                            ...refund.items.map(
-                              (refundItem) => Padding(
-                                padding: EdgeInsets.only(left: refundItem.isMain ? 0 : 16),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        '${refundItem.quantity} ${refundItem.description}',
+                              ...refund.items.map(
+                                (refundItem) => Padding(
+                                  padding: EdgeInsets.only(left: refundItem.isMain ? 0 : 16),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          '${refundItem.quantity} ${refundItem.description}',
+                                          style: TextStyle(
+                                            fontSize: context.responsive.value(
+                                              kiosk: 14,
+                                              tablet: 14,
+                                              phone: 13,
+                                            ),
+                                            color: ColorSet.text,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        (refundItem.isMain ||
+                                                refundItem.refundAmount > Decimal.zero)
+                                            ? '-${refundItem.refundAmount.withCommas}'
+                                            : '',
                                         style: TextStyle(
                                           fontSize: context.responsive.value(
                                             kiosk: 14,
                                             tablet: 14,
                                             phone: 13,
                                           ),
-                                          color: ColorSet.text,
+                                          color: ColorSet.danger,
                                         ),
                                       ),
-                                    ),
-                                    Text(
-                                      (refundItem.isMain ||
-                                              refundItem.refundAmount > Decimal.zero)
-                                          ? '-${refundItem.refundAmount.withCommas}'
-                                          : '',
-                                      style: TextStyle(
-                                        fontSize: context.responsive.value(
-                                          kiosk: 14,
-                                          tablet: 14,
-                                          phone: 13,
-                                        ),
-                                        color: ColorSet.danger,
-                                      ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            )
-          : const SizedBox.shrink(),
+                      ],
+                    ),
+                  );
+                },
+              )
+              : const SizedBox.shrink(),
     );
   }
 }

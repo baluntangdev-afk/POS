@@ -125,12 +125,14 @@ class LoginView extends HookConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Welcome Back',
-                style: TextStyle(
-                  color: ColorSet.dark,
-                  fontSize: context.responsive.value<double>(phone: 22, tablet: 26, kiosk: 28),
-                  fontWeight: FontWeight.bold,
+              Center(
+                child: Text(
+                  'Welcome Back',
+                  style: TextStyle(
+                    color: ColorSet.dark,
+                    fontSize: context.responsive.value<double>(phone: 22, tablet: 26, kiosk: 28),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               Gap(context.responsive.value<double>(phone: 16, tablet: 20, kiosk: 24)),

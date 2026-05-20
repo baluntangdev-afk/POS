@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
@@ -136,9 +138,12 @@ class _OnboardingContentsState extends State<OnboardingContents>
             left: 0,
             right: 0,
             child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: responsive.value<double>(phone: 16, tablet: 24, kiosk: 32),
-                vertical: responsive.value<double>(phone: 10, tablet: 12, kiosk: 16),
+              padding: EdgeInsets.only(
+                left: responsive.value<double>(phone: 16, tablet: 24, kiosk: 32),
+                right: responsive.value<double>(phone: 16, tablet: 24, kiosk: 32),
+                top: responsive.value<double>(phone: 10, tablet: 12, kiosk: 16),
+                bottom: responsive.value<double>(phone: 10, tablet: 12, kiosk: 16) +
+                    (Platform.isAndroid ? MediaQuery.of(context).viewPadding.bottom : 0),
               ),
               color: Colors.black.withValues(alpha: 0.2),
               child: Row(

@@ -7,9 +7,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../utils/decimal_formatter.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/product.dart';
 import '../state/ordering_notifier.dart';
@@ -20,6 +22,18 @@ class OrderingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (context.breakpoint.isAndroid) {
+      return AndroidScaffold(
+        backgroundColor: ColorSet.background,
+        body: SafeArea(
+          child: ResponsiveBuilder(
+            kiosk: (context) => const _KioskLayout(),
+            tablet: (context) => const _TabletLayout(),
+            phone: (context) => const _LandscapeLayout(),
+          ),
+        ),
+      );
+    }
     return WindowsScaffold(
       backgroundColor: ColorSet.background,
       body: ResponsiveBuilder(
@@ -191,6 +205,7 @@ class _CategoryChipRow extends ConsumerWidget {
 
     return ListView.builder(
       scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       itemCount: productGroups.length,
       itemBuilder: (context, index) {
@@ -387,25 +402,32 @@ class _MiniCartPanel extends ConsumerWidget {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: GestureDetector(
-                onTap: () => const CartRoute().push<void>(context),
-                child: Container(
-                  height: 64,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: ColorSet.gradientBg,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(32),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: ColorSet.gradientBg,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  child: const Center(
-                    child: Text(
-                      'View Cart',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                  borderRadius: BorderRadius.circular(32),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(32),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(32),
+                    onTap: () => const CartRoute().push<void>(context),
+                    child: const SizedBox(
+                      height: 64,
+                      child: Center(
+                        child: Text(
+                          'View Cart',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -498,12 +520,13 @@ class _CategoriesList extends ConsumerWidget {
       itemBuilder: (context, index) {
         final group = productGroups[index];
         final isSelected = group == selectedGroup;
-        return GestureDetector(
-          onTap: () {
-            ref.read(orderingProvider.notifier).selectGroup(group);
-          },
-          behavior: HitTestBehavior.opaque,
-          child: Container(
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              ref.read(orderingProvider.notifier).selectGroup(group);
+            },
+            child: Container(
             width:
                 scrollDirection == Axis.horizontal
                     ? context.responsive.value(kiosk: 160.0, tablet: 130.0, phone: 100.0)
@@ -566,8 +589,9 @@ class _CategoriesList extends ConsumerWidget {
                 ),
               ],
             ),
-          ),
-        );
+            ),  // Container
+          ),    // InkWell
+        );      // Material
       },
     );
   }
@@ -587,7 +611,8 @@ class _ProductGrid extends ConsumerWidget {
       AsyncData(:final value) => value,
       _ => const IList<Product>.empty(),
     };
-    return GridView.builder(
+    return RepaintBoundary(
+      child: GridView.builder(
       padding: EdgeInsets.only(
         top: context.responsive.value(kiosk: 16.0, tablet: 12.0, phone: 8.0),
         left: context.responsive.value(kiosk: 24.0, tablet: 20.0, phone: 12.0),
@@ -603,14 +628,16 @@ class _ProductGrid extends ConsumerWidget {
       itemCount: products.length,
       itemBuilder: (context, index) {
         final product = products[index];
-        return GestureDetector(
-          onTap: () async {
-            final lineItem = await showLineItemDialog(context, productId: product.id);
-            if (lineItem == null || !context.mounted) return;
-            ref.read(orderingProvider.notifier).addLineItem(lineItem);
-          },
-          behavior: HitTestBehavior.opaque,
-          child: Container(
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () async {
+              final lineItem = await showLineItemDialog(context, productId: product.id);
+              if (lineItem == null || !context.mounted) return;
+              ref.read(orderingProvider.notifier).addLineItem(lineItem);
+            },
+            child: Container(
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -689,10 +716,12 @@ class _ProductGrid extends ConsumerWidget {
                 ),
               ],
             ),
-          ),
-        );
+            ),    // Container
+          ),      // InkWell
+        );        // Material
       },
-    );
+      ),          // GridView.builder
+    );            // RepaintBoundary
   }
 }
 
@@ -712,10 +741,13 @@ class _CartButton extends ConsumerWidget {
       padding: EdgeInsets.all(context.responsive.value(kiosk: 24.0, tablet: 16.0, phone: 12.0)),
       child: Align(
         alignment: Alignment.bottomRight,
-        child: GestureDetector(
-          onTap: () => const CartRoute().push<void>(context),
-          behavior: HitTestBehavior.opaque,
-          child: Container(
+        child: Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () => const CartRoute().push<void>(context),
+            child: Container(
             width: context.responsive.value(kiosk: 80.0, tablet: 56.0, phone: 48.0),
             height: context.responsive.value(kiosk: 80.0, tablet: 56.0, phone: 48.0),
             decoration: BoxDecoration(
@@ -769,9 +801,10 @@ class _CartButton extends ConsumerWidget {
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
+            ),    // Container
+          ),      // InkWell
+        ),        // Material
+      ),          // Align
+    );            // Padding
   }
 }

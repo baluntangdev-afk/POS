@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/pos_design.dart';
+
 class Button extends StatelessWidget {
   const Button({
     super.key,
@@ -38,7 +40,7 @@ class Button extends StatelessWidget {
   final bool isOutlined;
 
   static const _shape = WidgetStatePropertyAll(
-    RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(14))),
+    RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(POSRadius.md))),
   );
   static const _minSize = WidgetStatePropertyAll(Size(0, 56));
   static const _padding = WidgetStatePropertyAll(

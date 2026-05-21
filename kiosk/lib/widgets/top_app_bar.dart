@@ -43,9 +43,9 @@ class TopAppBar extends StatelessWidget {
           if (showBack)
             Material(
               color: Colors.transparent,
-              borderRadius: const BorderRadius.all(Radius.circular(24)),
+              borderRadius: BorderRadius.circular(POSRadius.xl),
               child: InkWell(
-                borderRadius: const BorderRadius.all(Radius.circular(24)),
+                borderRadius: BorderRadius.circular(POSRadius.xl),
                 onTap: onBackPressed ?? () { if (context.canPop()) context.pop(); },
                 splashColor: Colors.white.withValues(alpha: 0.2),
                 child: Container(
@@ -174,7 +174,7 @@ class _BackButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           foregroundColor: ColorSet.primary,
           side: const BorderSide(color: ColorSet.primary, width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.md)),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),

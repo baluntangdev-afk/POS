@@ -137,7 +137,7 @@ class _BrandPanel extends StatelessWidget {
             height: 3,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(POSRadius.xs),
             ),
           ),
           const SizedBox(height: 10),
@@ -183,11 +183,7 @@ class _BrandPanel extends StatelessWidget {
       height: height,
       width: width,
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1B7A8C), Color(0xFF156070)],
-        ),
+        gradient: POSGradient.header,
       ),
       padding: EdgeInsets.all(isLandscape ? 32.0 : 24.0),
       child: content,

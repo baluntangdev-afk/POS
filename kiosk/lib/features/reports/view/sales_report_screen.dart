@@ -271,18 +271,16 @@ class _MetricCard extends StatelessWidget {
                 ],
               ),
               SizedBox(height: spacing),
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: valueFontSize,
-                      fontWeight: FontWeight.w800,
-                      color: POSColors.textPrimary,
-                      letterSpacing: -0.5,
-                    ),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: valueFontSize,
+                    fontWeight: FontWeight.w800,
+                    color: POSColors.textPrimary,
+                    letterSpacing: -0.5,
                   ),
                 ),
               ),

@@ -212,7 +212,7 @@ class _ReceiptPreview extends ConsumerWidget {
           ),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(POSRadius.xs),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.2),

@@ -213,105 +213,143 @@ class _MenuHeader extends StatelessWidget {
     final timeStr = DateFormat('hh:mm a').format(now);
     final dateStr = DateFormat('EEE, MMM d').format(now);
 
-    return Container(
-      height: headerHeight,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: POSColors.borderDefault)),
-        boxShadow: POSShadow.headerBottom,
-      ),
-      padding: EdgeInsets.symmetric(horizontal: r.value<double>(kiosk: 32, tablet: 24, phone: 16)),
-      child: Row(
-        children: [
-          Assets.images.png.appBarLogo.image(height: logoHeight, fit: BoxFit.contain, color: ColorSet.secondary),
-          SizedBox(width: r.value<double>(kiosk: 24, tablet: 16, phone: 12)),
-          Container(width: 1, height: 28, color: POSColors.borderDefault),
-          SizedBox(width: r.value<double>(kiosk: 24, tablet: 16, phone: 12)),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                timeStr,
-                style: TextStyle(
-                  fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
-                  fontWeight: FontWeight.w700,
-                  color: POSColors.textPrimary,
-                  letterSpacing: -0.3,
-                ),
-              ),
-              Text(
-                dateStr,
-                style: TextStyle(
-                  fontSize: r.value<double>(kiosk: 12, tablet: 11, phone: 10),
-                  color: POSColors.textTertiary,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final showDateTime = width >= 860;
+        final iconOnly = width < 580;
+
+        return Container(
+          height: headerHeight,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: POSColors.borderDefault)),
+            boxShadow: POSShadow.headerBottom,
           ),
-          const Spacer(),
-          Container(
-            height: r.value<double>(kiosk: 48, tablet: 42, phone: 36),
-            margin: EdgeInsets.symmetric(
-              horizontal: r.value<double>(kiosk: 16, tablet: 12, phone: 10),
-              vertical: r.value<double>(kiosk: 8, tablet: 6, phone: 5),
-            ),
-            padding: EdgeInsets.symmetric(
-              horizontal: r.value<double>(kiosk: 16, tablet: 12, phone: 10),
-            ),
-            decoration: BoxDecoration(
-              color: POSColors.surfaceSubtle,
-              borderRadius: BorderRadius.circular(POSRadius.full),
-              border: Border.all(color: POSColors.borderDefault),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _Avatar(name: access.fullName, size: avatarSize * 0.8, fontSize: r.value<double>(kiosk: 13, tablet: 11, phone: 10)),
-                SizedBox(width: r.value<double>(kiosk: 10, tablet: 8, phone: 6)),
+          padding: EdgeInsets.symmetric(horizontal: r.hPagePadding),
+          child: Row(
+            children: [
+              Assets.images.png.appBarLogo.image(height: logoHeight, fit: BoxFit.contain, color: ColorSet.secondary),
+              if (showDateTime) ...[
+                SizedBox(width: r.value<double>(kiosk: 24, tablet: 16, phone: 12)),
+                Container(width: 1, height: 28, color: POSColors.borderDefault),
+                SizedBox(width: r.value<double>(kiosk: 24, tablet: 16, phone: 12)),
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      access.fullName,
+                      timeStr,
                       style: TextStyle(
-                        fontSize: r.value<double>(kiosk: 14, tablet: 12, phone: 11),
-                        fontWeight: FontWeight.w600,
+                        fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
+                        fontWeight: FontWeight.w700,
                         color: POSColors.textPrimary,
+                        letterSpacing: -0.3,
                       ),
                     ),
                     Text(
-                      access.role.title,
+                      dateStr,
                       style: TextStyle(
-                        fontSize: r.value<double>(kiosk: 11, tablet: 10, phone: 9),
-                        color: ColorSet.primary,
-                        fontWeight: FontWeight.w500,
+                        fontSize: r.value<double>(kiosk: 12, tablet: 11, phone: 10),
+                        color: POSColors.textTertiary,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ],
                 ),
               ],
-            ),
+              const Spacer(),
+              if (iconOnly) ...[
+                _Avatar(
+                  name: access.fullName,
+                  size: avatarSize,
+                  fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
+                ),
+                SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                IconButton(
+                  onPressed: () => const OnboardingRoute().go(context),
+                  icon: Icon(Icons.logout_rounded, size: r.value<double>(kiosk: 20, tablet: 18, phone: 16)),
+                  color: ColorSet.danger,
+                  tooltip: 'Sign Out',
+                  style: IconButton.styleFrom(
+                    backgroundColor: ColorSet.danger.withValues(alpha: 0.08),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.md)),
+                  ),
+                ),
+              ] else ...[
+                Container(
+                  height: r.value<double>(kiosk: 48, tablet: 42, phone: 36),
+                  constraints: BoxConstraints(
+                    maxWidth: r.value<double>(kiosk: 220, tablet: 200, phone: 180),
+                  ),
+                  margin: EdgeInsets.symmetric(
+                    horizontal: r.value<double>(kiosk: 16, tablet: 12, phone: 10),
+                    vertical: r.value<double>(kiosk: 8, tablet: 6, phone: 5),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: r.value<double>(kiosk: 16, tablet: 12, phone: 10),
+                  ),
+                  decoration: BoxDecoration(
+                    color: POSColors.surfaceSubtle,
+                    borderRadius: BorderRadius.circular(POSRadius.full),
+                    border: Border.all(color: POSColors.borderDefault),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _Avatar(name: access.fullName, size: avatarSize * 0.8, fontSize: r.value<double>(kiosk: 13, tablet: 11, phone: 10)),
+                      SizedBox(width: r.value<double>(kiosk: 10, tablet: 8, phone: 6)),
+                      Flexible(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              access.fullName,
+                              style: TextStyle(
+                                fontSize: r.value<double>(kiosk: 14, tablet: 12, phone: 11),
+                                fontWeight: FontWeight.w600,
+                                color: POSColors.textPrimary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              access.role.title,
+                              style: TextStyle(
+                                fontSize: r.value<double>(kiosk: 11, tablet: 10, phone: 9),
+                                color: ColorSet.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                SizedBox(
+                  height: r.value<double>(kiosk: 48, tablet: 42, phone: 36),
+                  child: OutlinedButton.icon(
+                    onPressed: () => const OnboardingRoute().go(context),
+                    icon: Icon(Icons.logout_rounded, size: r.value<double>(kiosk: 16, tablet: 14, phone: 13)),
+                    label: Text('Sign Out', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 12, phone: 11))),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: ColorSet.danger,
+                      side: BorderSide(color: ColorSet.danger.withValues(alpha: 0.5), width: 1.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.md)),
+                      padding: EdgeInsets.symmetric(horizontal: r.value<double>(kiosk: 14, tablet: 12, phone: 10)),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
-          SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
-          SizedBox(
-            height: r.value<double>(kiosk: 48, tablet: 42, phone: 36),
-            child: OutlinedButton.icon(
-              onPressed: () => const OnboardingRoute().go(context),
-              icon: Icon(Icons.logout_rounded, size: r.value<double>(kiosk: 16, tablet: 14, phone: 13)),
-              label: Text('Sign Out', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 12, phone: 11))),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: ColorSet.danger,
-                side: BorderSide(color: ColorSet.danger.withValues(alpha: 0.5), width: 1.5),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.md)),
-                padding: EdgeInsets.symmetric(horizontal: r.value<double>(kiosk: 14, tablet: 12, phone: 10)),
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

@@ -156,7 +156,7 @@ class UserDataTable extends StatelessWidget {
     return DataColumn(
       label: InkWell(
         onTap: () => onSort(column),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(POSRadius.xs),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
           child: Row(
@@ -203,7 +203,9 @@ class UserDataTable extends StatelessWidget {
 
   DataRow _buildRow(BuildContext context, User user) {
     final r = context.responsive;
-    final initials = '${user.firstName[0]}${user.lastName[0]}'.toUpperCase();
+    final fn = user.firstName.isNotEmpty ? user.firstName[0] : '';
+    final ln = user.lastName.isNotEmpty ? user.lastName[0] : '';
+    final initials = '$fn$ln'.toUpperCase();
 
     return DataRow(
       onSelectChanged: (selected) {
@@ -217,7 +219,6 @@ class UserDataTable extends StatelessWidget {
             style: TextStyle(
               fontSize: r.scale(14),
               color: POSColors.textSecondary,
-              fontFamily: 'monospace',
             ),
           ),
         ),

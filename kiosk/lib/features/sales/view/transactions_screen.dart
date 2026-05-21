@@ -912,16 +912,22 @@ class _TransactionCard extends HookConsumerWidget {
                         const Gap(26),
                         const Icon(Icons.calendar_today_rounded, size: 12, color: POSColors.iconSubtle),
                         const Gap(4),
-                        Text(
-                          DateFormat('MM/dd/yyyy').format(receipt.docDate.toLocal()),
-                          style: const TextStyle(fontSize: 12, color: POSColors.textTertiary),
+                        Flexible(
+                          child: Text(
+                            DateFormat('MM/dd/yyyy').format(receipt.docDate.toLocal()),
+                            style: const TextStyle(fontSize: 12, color: POSColors.textTertiary),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                         const Gap(12),
                         const Icon(Icons.access_time_rounded, size: 12, color: POSColors.iconSubtle),
                         const Gap(4),
-                        Text(
-                          DateFormat('hh:mm a').format(receipt.docDate.toLocal()),
-                          style: const TextStyle(fontSize: 12, color: POSColors.textTertiary),
+                        Flexible(
+                          child: Text(
+                            DateFormat('hh:mm a').format(receipt.docDate.toLocal()),
+                            style: const TextStyle(fontSize: 12, color: POSColors.textTertiary),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),

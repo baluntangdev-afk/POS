@@ -107,6 +107,7 @@ class _KioskLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final r = context.responsive;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -116,7 +117,7 @@ class _KioskLayout extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                width: 200,
+                width: r.sidebarWidth,
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   border: Border(right: BorderSide(color: POSColors.borderDefault)),
@@ -169,7 +170,7 @@ class _TabletLayout extends StatelessWidget {
       children: [
         const _OrderingHeader(),
         Container(
-          height: 60,
+          height: context.responsive.value<double>(kiosk: 64, tablet: 60, phone: 52),
           decoration: const BoxDecoration(
             color: Colors.white,
             border: Border(bottom: BorderSide(color: POSColors.borderDefault)),
@@ -329,7 +330,7 @@ class _MiniCartPanel extends ConsumerWidget {
     );
 
     return Container(
-      width: 280,
+      width: context.responsive.cartPanelWidth,
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(left: BorderSide(color: POSColors.borderDefault)),

@@ -36,6 +36,7 @@ Future<ProviderContainer> bootstrap(AppEnv env) async {
     await windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.setResizable(kDebugMode);
       await windowManager.setMinimizable(kDebugMode);
+      await windowManager.setPreventClose(true);
       await windowManager.show();
       await windowManager.focus();
     });

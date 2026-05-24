@@ -48,6 +48,61 @@ class _SalesHealthPageState extends ConsumerState<SalesHealthPage> {
       );
     }
 
+    if (state.error != null) {
+      return Center(
+        child: Padding(
+          padding: responsive.value<EdgeInsets>(
+            phone: const EdgeInsets.all(24),
+            tablet: const EdgeInsets.all(32),
+            kiosk: const EdgeInsets.all(48),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: responsive.value<double>(kiosk: 80, tablet: 64, phone: 56),
+                height: responsive.value<double>(kiosk: 80, tablet: 64, phone: 56),
+                decoration: BoxDecoration(
+                  color: ColorSet.danger.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.cloud_off_rounded,
+                  color: ColorSet.danger,
+                  size: responsive.value<double>(kiosk: 40, tablet: 32, phone: 28),
+                ),
+              ),
+              SizedBox(height: responsive.value<double>(kiosk: 20, tablet: 16, phone: 12)),
+              Text(
+                'Failed to Load Report',
+                style: TextStyle(
+                  fontSize: responsive.value<double>(kiosk: 20, tablet: 17, phone: 15),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              SizedBox(height: responsive.value<double>(kiosk: 8, tablet: 6, phone: 4)),
+              Text(
+                state.error!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: responsive.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                  color: Colors.grey,
+                  height: 1.5,
+                ),
+              ),
+              SizedBox(height: responsive.value<double>(kiosk: 24, tablet: 20, phone: 16)),
+              FilledButton.icon(
+                onPressed: () => ref.invalidate(salesReportProvider),
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Retry'),
+                style: FilledButton.styleFrom(backgroundColor: ColorSet.primary),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Align(
       alignment: Alignment.topCenter,
       child: Column(

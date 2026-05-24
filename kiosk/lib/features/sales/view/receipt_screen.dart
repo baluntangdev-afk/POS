@@ -6,6 +6,7 @@ import 'package:hooks_riverpod/experimental/mutation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../exceptions/exception_extension.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
@@ -15,6 +16,7 @@ import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/message_dialog.dart';
+import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/cashier.dart';
 import '../entities/payment.dart';
@@ -35,7 +37,7 @@ class ReceiptScreen extends ConsumerWidget {
 
     ref.listen(receiptProvider(receiptId), (previous, next) async {
       if (next case AsyncError(:final error)) {
-        await showMessageDialog(context, type: DialogType.error, message: '$error');
+        await showMessageDialog(context, type: DialogType.error, message: error.message);
         if (context.mounted && context.canPop()) {
           context.pop();
         } else if (context.mounted) {
@@ -639,7 +641,7 @@ class _PrintButton extends ConsumerWidget {
 
     ref.listen(printAction, (prev, next) {
       if (next case MutationError(:final error)) {
-        showMessageDialog(context, type: DialogType.error, message: '$error');
+        showNetworkErrorDialog(context, error: error);
       }
     });
 

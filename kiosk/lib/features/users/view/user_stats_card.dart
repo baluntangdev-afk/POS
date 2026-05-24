@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 
@@ -10,7 +9,6 @@ class UserStatsCard extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.color,
-    this.compact = false,
     super.key,
   });
 
@@ -18,13 +16,12 @@ class UserStatsCard extends StatelessWidget {
   final String value;
   final IconData icon;
   final Color color;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final r = context.responsive;
     return Container(
-      padding: EdgeInsets.all(r.scale(compact ? 14 : 18)),
+      padding: EdgeInsets.all(r.value<double>(kiosk: 18, tablet: 14, phone: 14)),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(POSRadius.xl),
@@ -33,14 +30,14 @@ class UserStatsCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(r.scale(compact ? 10 : 12)),
+            padding: EdgeInsets.all(r.value<double>(kiosk: 12, tablet: 10, phone: 10)),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(POSRadius.md),
             ),
-            child: Icon(icon, color: color, size: r.scale(compact ? 20 : 24)),
+            child: Icon(icon, color: color, size: r.value<double>(kiosk: 24, tablet: 20, phone: 20)),
           ),
-          SizedBox(width: r.scale(12)),
+          SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 10)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,18 +49,18 @@ class UserStatsCard extends StatelessWidget {
                   child: Text(
                     value,
                     style: TextStyle(
-                      fontSize: r.scale(compact ? 20 : 24),
+                      fontSize: r.value<double>(kiosk: 24, tablet: 20, phone: 18),
                       fontWeight: FontWeight.w800,
                       color: POSColors.textPrimary,
                       letterSpacing: -0.5,
                     ),
                   ),
                 ),
-                SizedBox(height: r.scale(3)),
+                const SizedBox(height: 2),
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: r.scale(compact ? 11 : 13),
+                    fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 13),
                     color: POSColors.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),

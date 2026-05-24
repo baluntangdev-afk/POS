@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 import '../entities/user.dart';
 import 'user_role_badge.dart';
@@ -21,10 +22,13 @@ class UserMobileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials = '${user.firstName[0]}${user.lastName[0]}'.toUpperCase();
+    final fn = user.firstName.isNotEmpty ? user.firstName[0] : '';
+    final ln = user.lastName.isNotEmpty ? user.lastName[0] : '';
+    final initials = '$fn$ln'.toUpperCase();
+    final r = context.responsive;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: r.value<double>(kiosk: 16, tablet: 14, phone: 12)),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(POSRadius.xl),
@@ -37,22 +41,22 @@ class UserMobileCard extends StatelessWidget {
           child: InkWell(
             onTap: onTap,
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(r.value<double>(kiosk: 20, tablet: 18, phone: 16)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      _Avatar(initials: initials),
-                      const SizedBox(width: 12),
+                      _Avatar(initials: initials, size: r.value<double>(kiosk: 52, tablet: 48, phone: 44)),
+                      SizedBox(width: r.value<double>(kiosk: 16, tablet: 14, phone: 12)),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               '${user.firstName} ${user.lastName}',
-                              style: const TextStyle(
-                                fontSize: 15,
+                              style: TextStyle(
+                                fontSize: r.value<double>(kiosk: 18, tablet: 16, phone: 15),
                                 fontWeight: FontWeight.w700,
                                 color: POSColors.textPrimary,
                               ),
@@ -60,8 +64,8 @@ class UserMobileCard extends StatelessWidget {
                             const SizedBox(height: 2),
                             Text(
                               user.userId,
-                              style: const TextStyle(
-                                fontSize: 12,
+                              style: TextStyle(
+                                fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
                                 color: POSColors.textTertiary,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -72,15 +76,15 @@ class UserMobileCard extends StatelessWidget {
                       UserRoleBadge(isAdmin: user.systemAdmin),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: r.value<double>(kiosk: 16, tablet: 14, phone: 12)),
                   Container(height: 1, color: POSColors.borderSubtle),
-                  const SizedBox(height: 12),
-                  _buildInfoRow(Icons.email_rounded, user.email),
+                  SizedBox(height: r.value<double>(kiosk: 16, tablet: 14, phone: 12)),
+                  _buildInfoRow(context, Icons.email_rounded, user.email),
                   if (user.phone.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    _buildInfoRow(Icons.phone_rounded, user.phone),
+                    SizedBox(height: r.value<double>(kiosk: 8, tablet: 7, phone: 6)),
+                    _buildInfoRow(context, Icons.phone_rounded, user.phone),
                   ],
-                  const SizedBox(height: 12),
+                  SizedBox(height: r.value<double>(kiosk: 16, tablet: 14, phone: 12)),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -90,7 +94,7 @@ class UserMobileCard extends StatelessWidget {
                         color: ColorSet.primary,
                         onPressed: onEdit,
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
                       _ActionButton(
                         icon: Icons.delete_rounded,
                         label: 'Delete',
@@ -108,15 +112,19 @@ class UserMobileCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String text) {
+  Widget _buildInfoRow(BuildContext context, IconData icon, String text) {
+    final r = context.responsive;
     return Row(
       children: [
-        Icon(icon, size: 14, color: POSColors.iconSubtle),
-        const SizedBox(width: 8),
+        Icon(icon, size: r.value<double>(kiosk: 16, tablet: 15, phone: 14), color: POSColors.iconSubtle),
+        SizedBox(width: r.value<double>(kiosk: 10, tablet: 9, phone: 8)),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(fontSize: 13, color: POSColors.textSecondary),
+            style: TextStyle(
+              fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13),
+              color: POSColors.textSecondary,
+            ),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -126,15 +134,17 @@ class UserMobileCard extends StatelessWidget {
 }
 
 class _Avatar extends StatelessWidget {
-  const _Avatar({required this.initials});
+  const _Avatar({required this.initials, required this.size});
 
   final String initials;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
+    final fontSize = size * 0.34;
     return Container(
-      width: 44,
-      height: 44,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: ColorSet.primary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(POSRadius.md),
@@ -142,8 +152,8 @@ class _Avatar extends StatelessWidget {
       child: Center(
         child: Text(
           initials,
-          style: const TextStyle(
-            fontSize: 15,
+          style: TextStyle(
+            fontSize: fontSize,
             fontWeight: FontWeight.w800,
             color: ColorSet.primary,
             letterSpacing: 0.5,
@@ -169,17 +179,26 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final r = context.responsive;
     return OutlinedButton.icon(
       onPressed: onPressed,
-      icon: Icon(icon, size: 20),
-      label: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+      icon: Icon(icon, size: r.value<double>(kiosk: 20, tablet: 18, phone: 18)),
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 13),
+          fontWeight: FontWeight.w600,
+        ),
+      ),
       style: OutlinedButton.styleFrom(
         foregroundColor: color,
         side: BorderSide(color: color.withValues(alpha: 0.4)),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: r.value<double>(kiosk: 16, tablet: 14, phone: 14),
+          vertical: r.value<double>(kiosk: 12, tablet: 11, phone: 10),
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.sm)),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        minimumSize: Size.zero,
+        minimumSize: const Size(80, 44),
       ),
     );
   }

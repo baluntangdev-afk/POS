@@ -119,7 +119,7 @@ class UserManagementScreen extends HookConsumerWidget {
           TopAppBar(
             title: 'User Management',
             trailing: SizedBox(
-              height: context.responsive.value<double>(kiosk: 44, tablet: 40, phone: 36),
+              height: context.responsive.value<double>(kiosk: 48, tablet: 44, phone: 44),
               child: OutlinedButton.icon(
                 onPressed: () => _showAddUserDialog(context, ref, isFormDialogOpen),
                 icon: Icon(
@@ -171,15 +171,16 @@ class UserManagementScreen extends HookConsumerWidget {
     TextEditingController searchController,
     FocusNode searchFocusNode,
   ) {
+    final r = context.responsive;
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: EdgeInsets.all(r.value<double>(kiosk: 24, tablet: 20, phone: 16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSearchAndFilters(context, ref, searchController, searchFocusNode),
-          const SizedBox(height: 24),
+          SizedBox(height: r.value<double>(kiosk: 24, tablet: 20, phone: 16)),
           _buildStatsCards(ref),
-          const SizedBox(height: 24),
+          SizedBox(height: r.value<double>(kiosk: 24, tablet: 20, phone: 16)),
           Expanded(child: _buildDesktopTable(ref, context)),
         ],
       ),
@@ -192,21 +193,22 @@ class UserManagementScreen extends HookConsumerWidget {
     TextEditingController searchController,
     FocusNode searchFocusNode,
   ) {
+    final r = context.responsive;
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(r.value<double>(kiosk: 24, tablet: 20, phone: 16)),
           child: Column(
             children: [
               _buildSearchBar(context, searchController, searchFocusNode),
-              const SizedBox(height: 12),
+              SizedBox(height: r.spacingMd),
               _buildMobileFilters(ref),
-              const SizedBox(height: 12),
+              SizedBox(height: r.spacingMd),
               _buildStatsCards(ref),
             ],
           ),
         ),
-        Expanded(child: _buildMobileList(ref)),
+        Expanded(child: _buildMobileList(context, ref)),
       ],
     );
   }
@@ -312,27 +314,24 @@ class UserManagementScreen extends HookConsumerWidget {
                 value: totalUsers.toString(),
                 icon: Icons.people,
                 color: ColorSet.primary,
-                compact: context.breakpoint.isPhone,
               ),
             ),
-            SizedBox(width: context.responsive.scale(20)),
+            SizedBox(width: context.responsive.scale(16)),
             Expanded(
               child: UserStatsCard(
                 label: 'Admins',
                 value: adminUsers.toString(),
                 icon: Icons.admin_panel_settings,
-                color: ColorSet.secondary,
-                compact: context.breakpoint.isPhone,
+                color: ColorSet.tertiary,
               ),
             ),
-            SizedBox(width: context.responsive.scale(12)),
+            SizedBox(width: context.responsive.scale(16)),
             Expanded(
               child: UserStatsCard(
                 label: 'Users',
                 value: regularUsers.toString(),
                 icon: Icons.person,
                 color: ColorSet.success,
-                compact: context.breakpoint.isPhone,
               ),
             ),
           ],
@@ -355,11 +354,17 @@ class UserManagementScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _buildMobileList(WidgetRef ref) {
+  Widget _buildMobileList(BuildContext context, WidgetRef ref) {
     final state = ref.watch(userManagementPageProvider);
+    final r = context.responsive;
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.only(
+        top: r.spacingMd,
+        left: r.hPagePadding,
+        right: r.hPagePadding,
+        bottom: r.spacingXl,
+      ),
       itemCount: state.filteredUsers.length,
       itemBuilder: (context, index) {
         final user = state.filteredUsers[index];

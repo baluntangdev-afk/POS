@@ -14,10 +14,14 @@ class UserRoleBadge extends StatelessWidget {
     final color = isAdmin ? ColorSet.secondary : ColorSet.success;
     final iconData = isAdmin ? Icons.admin_panel_settings_rounded : Icons.person_rounded;
     final label = isAdmin ? 'Admin' : 'User';
-    final fontSize = context.responsive.scale(13);
+    final r = context.responsive;
+    final fontSize = r.value<double>(kiosk: 13, tablet: 12, phone: 12);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: EdgeInsets.symmetric(
+        horizontal: r.value<double>(kiosk: 10, tablet: 9, phone: 8),
+        vertical: 4,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(POSRadius.full),

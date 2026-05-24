@@ -9,6 +9,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../gen/assets.gen.dart';
 import '../../../navigation/router.dart';
+import '../../../widgets/network_error_dialog.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
@@ -564,9 +565,7 @@ class _ConfirmButton extends ConsumerWidget {
       if (next case AsyncData(value: final receipt) when receipt != null) {
         ReceiptRoute(receipt.id).go(context);
       } else if (next case AsyncError(:final error)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save sale: $error')),
-        );
+        showNetworkErrorDialog(context, error: error);
       }
     });
 

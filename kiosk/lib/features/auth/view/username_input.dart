@@ -40,6 +40,7 @@ class UsernameInput extends HookConsumerWidget {
               fontSize: responsive.value<double>(phone: 16, tablet: 20, kiosk: 24),
               fontWeight: FontWeight.w400,
             ),
+        
             inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\s'))],
             decoration: InputDecoration(
               hintText: 'Username',
@@ -48,9 +49,21 @@ class UsernameInput extends HookConsumerWidget {
                 fontSize: responsive.value<double>(phone: 16, tablet: 20, kiosk: 24),
                 fontWeight: FontWeight.w400,
               ),
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
+              
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(POSRadius.lg),
+                              borderSide: BorderSide.none,
+
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(POSRadius.lg),
+                            borderSide: BorderSide.none,
+
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(POSRadius.lg),
+                borderSide: BorderSide.none,
+              ),
               contentPadding: responsive.value<EdgeInsets>(
                 phone: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 tablet: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),

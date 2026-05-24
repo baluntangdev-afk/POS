@@ -9,6 +9,7 @@ import '../../../validation/rules/is_required.dart';
 import '../../../validation/validate.dart';
 import '../../../widgets/button.dart';
 import '../../../widgets/text_box_form_field.dart';
+import '../../../widgets/network_error_dialog.dart';
 import '../entities/franchisee_info.dart';
 import '../state/franchisee_info_notifier.dart';
 
@@ -176,11 +177,17 @@ class FranchiseeInfoDialog extends HookConsumerWidget {
                           addressLine1: addressLine1Controller.text.trim(),
                           addressLine2: addressLine2Controller.text.trim(),
                         );
-                        await ref
-                            .read(franchiseeInfoProvider.notifier)
-                            .updateFranchiseeInfo(franchiseeInfo);
-                        if (context.mounted) {
-                          Navigator.of(context).pop(true);
+                        try {
+                          await ref
+                              .read(franchiseeInfoProvider.notifier)
+                              .updateFranchiseeInfo(franchiseeInfo);
+                          if (context.mounted) {
+                            Navigator.of(context).pop(true);
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            await showNetworkErrorDialog(context, error: e);
+                          }
                         }
                       },
                       foregroundColor: ColorSet.background,

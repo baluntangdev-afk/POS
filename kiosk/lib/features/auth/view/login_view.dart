@@ -67,7 +67,7 @@ class LoginView extends HookConsumerWidget {
           }
         },
         error: (error, stackTrace) {
-          loginError.value = 'Invalid credentials. Please try again.';
+          loginError.value = error.message;
           pin.value = '';
         },
       );

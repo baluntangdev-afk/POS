@@ -55,8 +55,6 @@ class UserDataTable extends StatelessWidget {
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: ColorSet.gradientBg,
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
         ),
       ),
       padding: EdgeInsets.symmetric(
@@ -94,7 +92,7 @@ class UserDataTable extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.people_outline_rounded, size: 48, color: POSColors.textDisabled),
+          const Icon(Icons.people_outline_rounded, size: 48, color: POSColors.textDisabled),
           const SizedBox(height: 12),
           Text(
             'No users found',
@@ -183,7 +181,7 @@ class UserDataTable extends StatelessWidget {
           ),
         ),
       ),
-      onSort: (_, __) => onSort(column),
+      onSort: (_, _) => onSort(column),
     );
   }
 
@@ -319,10 +317,9 @@ class _TableActionBtn extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         foregroundColor: color,
         side: BorderSide(color: color.withValues(alpha: 0.5)),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.sm)),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        minimumSize: Size.zero,
+        minimumSize: const Size(64, 36),
       ),
     );
   }

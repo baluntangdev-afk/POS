@@ -203,8 +203,8 @@ class UserFormDialog extends HookConsumerWidget {
       child: _buildLayoutContainer(
         context: context,
         width: context.responsive.value(kiosk: 700.0, tablet: 560.0, phone: double.infinity),
-        maxHeight: context.responsive.scale(900),
-        padding: EdgeInsets.all(context.responsive.scale(24)),
+        maxHeight: context.responsive.value<double>(kiosk: 900, tablet: 720, phone: 680),
+        padding: EdgeInsets.all(context.responsive.value<double>(kiosk: 24, tablet: 20, phone: 16)),
         buildFormContent: (context, edgeInsets) {
           return buildFormContent(context, edgeInsets);
         },
@@ -239,10 +239,11 @@ class UserFormDialog extends HookConsumerWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final r = context.responsive;
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: context.responsive.scale(20),
-        vertical: context.responsive.scale(16),
+        horizontal: r.value<double>(kiosk: 24, tablet: 20, phone: 16),
+        vertical: r.value<double>(kiosk: 18, tablet: 16, phone: 14),
       ),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -254,7 +255,7 @@ class UserFormDialog extends HookConsumerWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(r.value<double>(kiosk: 10, tablet: 9, phone: 8)),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(POSRadius.sm),
@@ -262,10 +263,10 @@ class UserFormDialog extends HookConsumerWidget {
             child: Icon(
               isEditing ? Icons.edit_rounded : Icons.person_add_rounded,
               color: Colors.white,
-              size: context.responsive.scale(20),
+              size: r.value<double>(kiosk: 22, tablet: 20, phone: 18),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: r.value<double>(kiosk: 14, tablet: 12, phone: 10)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -274,7 +275,7 @@ class UserFormDialog extends HookConsumerWidget {
                   isEditing ? 'Edit User' : 'Create New User',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: context.responsive.scale(18),
+                    fontSize: r.value<double>(kiosk: 20, tablet: 18, phone: 16),
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.3,
                   ),
@@ -285,7 +286,7 @@ class UserFormDialog extends HookConsumerWidget {
                       : 'Fill in the details to add a new employee',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.8),
-                    fontSize: context.responsive.scale(12),
+                    fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
                     fontWeight: FontWeight.w400,
                   ),
                 ),
@@ -299,11 +300,11 @@ class UserFormDialog extends HookConsumerWidget {
               onTap: () => Navigator.of(context).pop(),
               borderRadius: BorderRadius.circular(POSRadius.sm),
               child: Padding(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(10),
                 child: Icon(
                   Icons.close_rounded,
                   color: Colors.white,
-                  size: context.responsive.scale(20),
+                  size: r.value<double>(kiosk: 22, tablet: 20, phone: 18),
                 ),
               ),
             ),
@@ -493,14 +494,15 @@ class UserFormDialog extends HookConsumerWidget {
   }
 
   Widget _buildSectionLabel(BuildContext context, String label, IconData icon) {
+    final r = context.responsive;
     return Row(
       children: [
-        Icon(icon, size: context.responsive.scale(16), color: ColorSet.primary),
+        Icon(icon, size: r.value<double>(kiosk: 18, tablet: 16, phone: 15), color: ColorSet.primary),
         const SizedBox(width: 6),
         Text(
           label,
           style: TextStyle(
-            fontSize: context.responsive.scale(13),
+            fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
             fontWeight: FontWeight.w700,
             color: ColorSet.primary,
             letterSpacing: 0.3,
@@ -566,7 +568,7 @@ class UserFormDialog extends HookConsumerWidget {
           style: TextStyle(
             fontWeight: FontWeight.w600,
             color: POSColors.textSecondary,
-            fontSize: r.scale(14),
+            fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13),
           ),
         ),
         const SizedBox(height: 6),
@@ -578,7 +580,7 @@ class UserFormDialog extends HookConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextField(
-                style: TextStyle(fontSize: r.scale(14), color: POSColors.textPrimary),
+                style: TextStyle(fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13), color: POSColors.textPrimary),
                 focusNode: focusNode,
                 controller: controller,
                 keyboardType: keyboardType,
@@ -619,7 +621,7 @@ class UserFormDialog extends HookConsumerWidget {
           style: TextStyle(
             fontWeight: FontWeight.w600,
             color: POSColors.textSecondary,
-            fontSize: r.scale(14),
+            fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 13),
           ),
         ),
         const SizedBox(height: 6),
@@ -653,7 +655,7 @@ class UserFormDialog extends HookConsumerWidget {
                       (item) => PopupMenuItem<String>(
                         value: item,
                         child: Text(
-                          item,
+                          item.isEmpty ? 'None' : item,
                           style: TextStyle(
                             fontWeight: item == value ? FontWeight.w700 : FontWeight.normal,
                             color: item == value ? ColorSet.primary : POSColors.textPrimary,
@@ -670,8 +672,8 @@ class UserFormDialog extends HookConsumerWidget {
             child: Container(
               width: double.infinity,
               padding: EdgeInsets.symmetric(
-                horizontal: r.scale(14),
-                vertical: r.scale(12),
+                horizontal: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                vertical: r.value<double>(kiosk: 12, tablet: 11, phone: 10),
               ),
               decoration: BoxDecoration(
                 color: POSColors.surfaceSubtle,
@@ -684,13 +686,13 @@ class UserFormDialog extends HookConsumerWidget {
               ),
               child: Row(
                 children: [
-                  Icon(icon, color: ColorSet.primary, size: r.scale(18)),
+                  Icon(icon, color: ColorSet.primary, size: r.value<double>(kiosk: 18, tablet: 17, phone: 16)),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       value,
                       style: TextStyle(
-                        fontSize: r.scale(14),
+                        fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 13),
                         color: isSelected ? POSColors.textPrimary : POSColors.textTertiary,
                       ),
                     ),
@@ -698,7 +700,7 @@ class UserFormDialog extends HookConsumerWidget {
                   Icon(
                     Icons.keyboard_arrow_down_rounded,
                     color: POSColors.iconSubtle,
-                    size: r.scale(18),
+                    size: r.value<double>(kiosk: 18, tablet: 17, phone: 16),
                   ),
                 ],
               ),
@@ -709,7 +711,7 @@ class UserFormDialog extends HookConsumerWidget {
           const SizedBox(height: 4),
           Text(
             errorText,
-            style: TextStyle(color: ColorSet.danger, fontSize: r.scale(12)),
+            style: TextStyle(color: ColorSet.danger, fontSize: r.value<double>(kiosk: 12, tablet: 12, phone: 11)),
           ),
         ],
       ],
@@ -734,7 +736,7 @@ class UserFormDialog extends HookConsumerWidget {
           style: TextStyle(
             fontWeight: FontWeight.w600,
             color: POSColors.textSecondary,
-            fontSize: r.scale(14),
+            fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 13),
           ),
         ),
         const SizedBox(height: 6),
@@ -745,7 +747,10 @@ class UserFormDialog extends HookConsumerWidget {
             borderRadius: BorderRadius.circular(POSRadius.md),
             child: Container(
               width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: r.scale(14), vertical: r.scale(8)),
+              padding: EdgeInsets.symmetric(
+                horizontal: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                vertical: r.value<double>(kiosk: 12, tablet: 11, phone: 10),
+              ),
               decoration: BoxDecoration(
                 color: POSColors.surfaceSubtle,
                 borderRadius: BorderRadius.circular(POSRadius.md),
@@ -753,14 +758,14 @@ class UserFormDialog extends HookConsumerWidget {
               ),
               child: Row(
                 children: [
-                  Icon(icon, color: ColorSet.primary, size: r.scale(18)),
+                  Icon(icon, color: ColorSet.primary, size: r.value<double>(kiosk: 18, tablet: 17, phone: 16)),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       selectedStatus.value,
                       style: TextStyle(
                         color: isActive ? ColorSet.success : ColorSet.danger,
-                        fontSize: r.scale(14),
+                        fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 13),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -825,7 +830,7 @@ class UserFormDialog extends HookConsumerWidget {
           style: TextStyle(
             fontWeight: FontWeight.w600,
             color: POSColors.textSecondary,
-            fontSize: r.scale(14),
+            fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 13),
           ),
         ),
         const SizedBox(height: 6),
@@ -844,7 +849,10 @@ class UserFormDialog extends HookConsumerWidget {
             borderRadius: BorderRadius.circular(POSRadius.md),
             child: Container(
               width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: r.scale(14), vertical: r.scale(12)),
+              padding: EdgeInsets.symmetric(
+                horizontal: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                vertical: r.value<double>(kiosk: 12, tablet: 11, phone: 10),
+              ),
               decoration: BoxDecoration(
                 color: POSColors.surfaceSubtle,
                 borderRadius: BorderRadius.circular(POSRadius.md),
@@ -854,7 +862,7 @@ class UserFormDialog extends HookConsumerWidget {
               ),
               child: Row(
                 children: [
-                  Icon(icon, color: ColorSet.primary, size: r.scale(18)),
+                  Icon(icon, color: ColorSet.primary, size: r.value<double>(kiosk: 18, tablet: 17, phone: 16)),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -862,7 +870,7 @@ class UserFormDialog extends HookConsumerWidget {
                           ? DateFormat('MMM dd, yyyy').format(selectedDate.value!)
                           : 'Select date',
                       style: TextStyle(
-                        fontSize: r.scale(14),
+                        fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 13),
                         color: selectedDate.value != null
                             ? POSColors.textPrimary
                             : POSColors.textTertiary,
@@ -872,7 +880,7 @@ class UserFormDialog extends HookConsumerWidget {
                   Icon(
                     Icons.calendar_today_rounded,
                     color: POSColors.iconSubtle,
-                    size: r.scale(16),
+                    size: r.value<double>(kiosk: 16, tablet: 15, phone: 14),
                   ),
                 ],
               ),
@@ -883,7 +891,7 @@ class UserFormDialog extends HookConsumerWidget {
           const SizedBox(height: 4),
           Text(
             errorText,
-            style: TextStyle(color: ColorSet.danger, fontSize: r.scale(12)),
+            style: TextStyle(color: ColorSet.danger, fontSize: r.value<double>(kiosk: 12, tablet: 12, phone: 11)),
           ),
         ],
       ],
@@ -893,7 +901,7 @@ class UserFormDialog extends HookConsumerWidget {
   InputDecoration _inputDecoration(BuildContext context, IconData icon) {
     final r = context.responsive;
     return InputDecoration(
-      prefixIcon: Icon(icon, color: ColorSet.primary, size: r.scale(18)),
+      prefixIcon: Icon(icon, color: ColorSet.primary, size: r.value<double>(kiosk: 20, tablet: 18, phone: 16)),
       filled: true,
       fillColor: POSColors.surfaceSubtle,
       border: OutlineInputBorder(
@@ -921,8 +929,8 @@ class UserFormDialog extends HookConsumerWidget {
         borderSide: const BorderSide(color: POSColors.borderSubtle),
       ),
       contentPadding: EdgeInsets.symmetric(
-        horizontal: r.scale(14),
-        vertical: r.scale(12),
+        horizontal: r.value<double>(kiosk: 16, tablet: 14, phone: 14),
+        vertical: r.value<double>(kiosk: 14, tablet: 12, phone: 12),
       ),
     );
   }
@@ -938,7 +946,7 @@ class UserFormDialog extends HookConsumerWidget {
     final cancelBtn = OutlinedButton(
       onPressed: isLoading.value ? null : () => Navigator.of(context).pop(),
       style: OutlinedButton.styleFrom(
-        padding: EdgeInsets.symmetric(vertical: r.scale(14)),
+        padding: EdgeInsets.symmetric(vertical: r.value<double>(kiosk: 14, tablet: 13, phone: 12)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.md)),
         side: const BorderSide(color: POSColors.borderStrong),
         foregroundColor: POSColors.textSecondary,
@@ -966,7 +974,7 @@ class UserFormDialog extends HookConsumerWidget {
           borderRadius: BorderRadius.circular(POSRadius.md),
           child: Container(
             width: double.infinity,
-            padding: EdgeInsets.symmetric(vertical: r.scale(14)),
+            padding: EdgeInsets.symmetric(vertical: r.value<double>(kiosk: 14, tablet: 13, phone: 12)),
             child: Center(
               child: isLoading.value
                   ? const SizedBox(
@@ -983,7 +991,7 @@ class UserFormDialog extends HookConsumerWidget {
                         Icon(
                           isEditing ? Icons.check_rounded : Icons.person_add_rounded,
                           color: Colors.white,
-                          size: r.scale(16),
+                          size: r.value<double>(kiosk: 16, tablet: 15, phone: 14),
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -1006,12 +1014,12 @@ class UserFormDialog extends HookConsumerWidget {
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: handleReset,
-              icon: Icon(Icons.lock_reset_rounded, size: r.scale(16)),
+              icon: Icon(Icons.lock_reset_rounded, size: r.value<double>(kiosk: 16, tablet: 15, phone: 14)),
               label: const Text('Reset Pin', style: TextStyle(fontWeight: FontWeight.w600)),
               style: OutlinedButton.styleFrom(
                 foregroundColor: ColorSet.danger,
                 side: BorderSide(color: ColorSet.danger.withValues(alpha: 0.5)),
-                padding: EdgeInsets.symmetric(vertical: r.scale(14)),
+                padding: EdgeInsets.symmetric(vertical: r.value<double>(kiosk: 14, tablet: 13, phone: 12)),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(POSRadius.md),
                 ),

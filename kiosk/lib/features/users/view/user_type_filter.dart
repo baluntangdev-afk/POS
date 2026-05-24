@@ -29,7 +29,7 @@ class UserTypeFilter extends StatelessWidget {
         onTap: () => _showFilterMenu(context, key),
         borderRadius: BorderRadius.circular(POSRadius.lg),
         child: Container(
-          height: r.value<double>(kiosk: 44, tablet: 40, phone: 36),
+          height: r.value<double>(kiosk: 48, tablet: 44, phone: 44),
           padding: EdgeInsets.symmetric(horizontal: r.scale(14)),
           decoration: BoxDecoration(
             color: _isFiltered ? ColorSet.primary.withValues(alpha: 0.08) : POSColors.surfaceSubtle,

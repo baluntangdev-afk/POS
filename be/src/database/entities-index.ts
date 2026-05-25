@@ -30,6 +30,11 @@ import { UserDetails } from '../user-details/entities/user-details.entity';
 import { UserGroup } from '../user-groups/entities/user-group.entity';
 import { UserPermission } from '../user-permissions/entities/user-permission.entity';
 import { Uom } from '../uom/entities/uom.entity';
+import { CatalogCategory } from '../catalog/entities/catalog-category.entity';
+import { CatalogModifier } from '../catalog/entities/catalog-modifier.entity';
+import { CatalogModifierGroup } from '../catalog/entities/catalog-modifier-group.entity';
+import { CatalogProduct } from '../catalog/entities/catalog-product.entity';
+import { CatalogProductModifierGroup } from '../catalog/entities/catalog-product-modifier-group.entity';
 
 /** Entity constructor type for TypeORM (avoids generic Function). */
 type EntityCtor = new (...args: unknown[]) => object;
@@ -71,4 +76,9 @@ export const entities: EntityCtor[] = [
   UserGroup,
   UserPermission,
   Uom,
+  CatalogCategory,
+  CatalogModifier,
+  CatalogModifierGroup,
+  CatalogProduct,
+  CatalogProductModifierGroup,
 ];

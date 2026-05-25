@@ -38,6 +38,7 @@
     "migration:down": "typeorm-ts-node-commonjs migration:revert -d src/database/config/typeorm.config.ts",
     "migration:show": "typeorm-ts-node-commonjs migration:show -d src/database/config/typeorm.config.ts",
     "migration:sync-index": "node scripts/sync-migrations-index.js",
+    "seed": "node scripts/seed.js",
     "seed:create": "node scripts/seed-create.js",
     "seed:run": "npx ts-node src/database/run-seeders-cli.ts",
     "seed:sync-index": "node scripts/sync-seeders-index.js",

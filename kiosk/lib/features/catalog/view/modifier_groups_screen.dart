@@ -1,4 +1,3 @@
-﻿import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
@@ -11,36 +10,9 @@ import '../../../theme/pos_design.dart';
 import '../../../utils/debounce.dart';
 import '../../../widgets/button.dart';
 import '../../../widgets/text_box_form_field.dart';
-import '../entities/modifier_group.dart';
-
-// Mock data for demonstration
-final mockModifierGroups = [
-  ModifierGroup(
-    id: 1,
-    name: 'Sides',
-    modifiers: IList(const [
-      Modifier(id: 1, name: 'Fries', price: 1.50),
-      Modifier(id: 2, name: 'Onion Rings', price: 2.00),
-      Modifier(id: 3, name: 'Salad', price: 1.00),
-    ]),
-  ),
-  ModifierGroup(
-    id: 2,
-    name: 'Drink Upgrades',
-    modifiers: IList(const [
-      Modifier(id: 4, name: 'Large', price: 0.50),
-      Modifier(id: 5, name: 'Premium', price: 1.00),
-    ]),
-  ),
-  ModifierGroup(
-    id: 3,
-    name: 'Extra Toppings',
-    modifiers: IList(const [
-      Modifier(id: 6, name: 'Cheese', price: 0.75),
-      Modifier(id: 7, name: 'Bacon', price: 1.50),
-    ]),
-  ),
-];
+import '../data/models/modifier.dart';
+import '../data/models/modifier_group.dart';
+import '../state/catalog_modifier_groups_notifier.dart';
 
 class ModifierGroupsScreen extends HookConsumerWidget {
   const ModifierGroupsScreen({super.key});
@@ -48,8 +20,10 @@ class ModifierGroupsScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final searchQuery = useState<String?>(null);
-    final expandedGroups = useState<Set<int>>(<int>{});
+    final expandedGroups = useState<Set<String>>(<String>{});
     final isPhone = context.breakpoint.isPhone;
+
+    final state = ref.watch(catalogModifierGroupsProvider);
 
     return Padding(
       padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
@@ -58,15 +32,53 @@ class ModifierGroupsScreen extends HookConsumerWidget {
         children: [
           _SearchAndAddControls(searchQuery: searchQuery),
           Expanded(
-            child: isPhone
-                ? _ModifierGroupsMobileList(
-                    searchQuery: searchQuery,
-                    expandedGroups: expandedGroups,
-                  )
-                : _ModifierGroupsTable(
-                    searchQuery: searchQuery,
-                    expandedGroups: expandedGroups,
-                  ),
+            child: state.when(
+              loading: () => const Center(
+                child: CircularProgressIndicator(
+                  color: ColorSet.primary,
+                  strokeWidth: 3,
+                  strokeCap: StrokeCap.round,
+                ),
+              ),
+              error: (error, _) => Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline_rounded,
+                      size: context.responsive.value(kiosk: 64.0, tablet: 52.0, phone: 40.0),
+                      color: POSColors.textDisabled,
+                    ),
+                    Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+                    Text(
+                      error.toString(),
+                      style: TextStyle(
+                        fontSize: context.responsive.value(kiosk: 14, tablet: 13, phone: 12),
+                        color: POSColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+                    Button(
+                      label: const Text('Retry'),
+                      leading: const Icon(Icons.refresh_rounded),
+                      onPressed: () => ref.read(catalogModifierGroupsProvider.notifier).refresh(),
+                    ),
+                  ],
+                ),
+              ),
+              data: (groups) => isPhone
+                  ? _ModifierGroupsMobileList(
+                      groups: groups,
+                      searchQuery: searchQuery,
+                      expandedGroups: expandedGroups,
+                    )
+                  : _ModifierGroupsTable(
+                      groups: groups,
+                      searchQuery: searchQuery,
+                      expandedGroups: expandedGroups,
+                    ),
+            ),
           ),
         ],
       ),
@@ -180,21 +192,26 @@ class _EmptyGroupsState extends StatelessWidget {
 // ── Phone: card list ──────────────────────────────────────────────────────────
 
 class _ModifierGroupsMobileList extends StatelessWidget {
-  const _ModifierGroupsMobileList({required this.searchQuery, required this.expandedGroups});
+  const _ModifierGroupsMobileList({
+    required this.groups,
+    required this.searchQuery,
+    required this.expandedGroups,
+  });
 
+  final List<CatalogModifierGroup> groups;
   final ValueNotifier<String?> searchQuery;
-  final ValueNotifier<Set<int>> expandedGroups;
+  final ValueNotifier<Set<String>> expandedGroups;
 
   @override
   Widget build(BuildContext context) {
-    final filteredGroups =
-        searchQuery.value == null
-            ? mockModifierGroups
-            : mockModifierGroups
-                .where(
-                  (group) => group.name.toLowerCase().contains(searchQuery.value!.toLowerCase()),
-                )
-                .toList();
+    final filteredGroups = searchQuery.value == null
+        ? groups
+        : groups
+            .where(
+              (group) =>
+                  group.name.toLowerCase().contains(searchQuery.value!.toLowerCase()),
+            )
+            .toList();
 
     if (filteredGroups.isEmpty) {
       return _EmptyGroupsState();
@@ -208,7 +225,7 @@ class _ModifierGroupsMobileList extends StatelessWidget {
           group: group,
           isExpanded: expandedGroups.value.contains(group.id),
           onToggle: () {
-            final newExpanded = Set<int>.from(expandedGroups.value);
+            final newExpanded = Set<String>.from(expandedGroups.value);
             if (newExpanded.contains(group.id)) {
               newExpanded.remove(group.id);
             } else {
@@ -229,7 +246,7 @@ class _ModifierGroupCard extends StatelessWidget {
     required this.onToggle,
   });
 
-  final ModifierGroup group;
+  final CatalogModifierGroup group;
   final bool isExpanded;
   final VoidCallback onToggle;
 
@@ -322,22 +339,26 @@ class _ModifierGroupCard extends StatelessWidget {
 // ── Tablet / Kiosk: table ─────────────────────────────────────────────────────
 
 class _ModifierGroupsTable extends StatelessWidget {
-  const _ModifierGroupsTable({required this.searchQuery, required this.expandedGroups});
+  const _ModifierGroupsTable({
+    required this.groups,
+    required this.searchQuery,
+    required this.expandedGroups,
+  });
 
+  final List<CatalogModifierGroup> groups;
   final ValueNotifier<String?> searchQuery;
-  final ValueNotifier<Set<int>> expandedGroups;
+  final ValueNotifier<Set<String>> expandedGroups;
 
   @override
   Widget build(BuildContext context) {
-    // Filter groups based on search
-    final filteredGroups =
-        searchQuery.value == null
-            ? mockModifierGroups
-            : mockModifierGroups
-                .where(
-                  (group) => group.name.toLowerCase().contains(searchQuery.value!.toLowerCase()),
-                )
-                .toList();
+    final filteredGroups = searchQuery.value == null
+        ? groups
+        : groups
+            .where(
+              (group) =>
+                  group.name.toLowerCase().contains(searchQuery.value!.toLowerCase()),
+            )
+            .toList();
 
     if (filteredGroups.isEmpty) {
       return _EmptyGroupsState();
@@ -369,7 +390,7 @@ class _ModifierGroupsTable extends StatelessWidget {
                   group: group,
                   isExpanded: expandedGroups.value.contains(group.id),
                   onToggle: () {
-                    final newExpanded = Set<int>.from(expandedGroups.value);
+                    final newExpanded = Set<String>.from(expandedGroups.value);
                     if (newExpanded.contains(group.id)) {
                       newExpanded.remove(group.id);
                     } else {
@@ -433,7 +454,7 @@ class _HeaderCell extends StatelessWidget {
 class _ModifierGroupRow extends StatelessWidget {
   const _ModifierGroupRow({required this.group, required this.isExpanded, required this.onToggle});
 
-  final ModifierGroup group;
+  final CatalogModifierGroup group;
   final bool isExpanded;
   final VoidCallback onToggle;
 
@@ -493,7 +514,7 @@ class _ModifierGroupRow extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    _getUsedByCount(group),
+                    '${group.selectionType} • ${group.isRequired ? 'required' : 'optional'}',
                     style: TextStyle(
                       fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
                       color: POSColors.textSecondary,
@@ -545,26 +566,12 @@ class _ModifierGroupRow extends StatelessWidget {
       ],
     );
   }
-
-  String _getUsedByCount(ModifierGroup group) {
-    // Mock data - in real implementation, this would come from the backend
-    switch (group.name) {
-      case 'Sides':
-        return 'Burger Meal, Hot Dog (2)';
-      case 'Drink Upgrades':
-        return 'Burger Meal (1)';
-      case 'Extra Toppings':
-        return 'Sandwich (1)';
-      default:
-        return '0 products';
-    }
-  }
 }
 
 class _ModifiersList extends StatelessWidget {
   const _ModifiersList({required this.group});
 
-  final ModifierGroup group;
+  final CatalogModifierGroup group;
 
   @override
   Widget build(BuildContext context) {
@@ -608,7 +615,7 @@ class _ModifiersList extends StatelessWidget {
 class _ModifierItem extends StatelessWidget {
   const _ModifierItem({required this.modifier});
 
-  final Modifier modifier;
+  final CatalogModifier modifier;
 
   @override
   Widget build(BuildContext context) {
@@ -628,7 +635,7 @@ class _ModifierItem extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              '${modifier.name} (+\$${modifier.price.toStringAsFixed(2)})',
+              '${modifier.name} (+PHP ${modifier.priceAdjustment.toStringAsFixed(2)})',
               style: TextStyle(
                 fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
                 color: POSColors.textPrimary,
@@ -675,4 +682,3 @@ class _ModifierItem extends StatelessWidget {
     );
   }
 }
-

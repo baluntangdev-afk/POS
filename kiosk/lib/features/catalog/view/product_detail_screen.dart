@@ -336,8 +336,8 @@ class _VariantsTab extends StatelessWidget {
             Column(
               spacing: context.responsive.spacingMd,
               children: [
-                _VariantCard(variant: product.variants.first, price: r'$8.99', stock: 45),
-                _VariantCard(variant: product.variants.last, price: r'$10.99', stock: 23),
+                _VariantCard(variant: product.variants.first, price: r'PHP 8.99', stock: 45),
+                _VariantCard(variant: product.variants.last, price: r'PHP 10.99', stock: 23),
               ],
             )
           else
@@ -345,10 +345,10 @@ class _VariantsTab extends StatelessWidget {
               spacing: context.responsive.spacingMd,
               children: [
                 Expanded(
-                  child: _VariantCard(variant: product.variants.first, price: r'$8.99', stock: 45),
+                  child: _VariantCard(variant: product.variants.first, price: r'PHP 8.99', stock: 45),
                 ),
                 Expanded(
-                  child: _VariantCard(variant: product.variants.last, price: r'$10.99', stock: 23),
+                  child: _VariantCard(variant: product.variants.last, price: r'PHP 10.99', stock: 23),
                 ),
               ],
             ),
@@ -487,7 +487,7 @@ class _ModifiersTab extends StatelessWidget {
           _AppliedModifierGroup(
             name: 'Sides',
             variants: const ['Regular', 'Large'],
-            modifiers: const [r'Fries (+$1.50)', r'Onion Rings (+$2.00)', r'Salad (+$1.00)'],
+            modifiers: const [r'Fries (+PHP 1.50)', r'Onion Rings (+PHP 2.00)', r'Salad (+PHP 1.00)'],
           ),
         ],
       ),

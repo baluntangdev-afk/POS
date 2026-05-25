@@ -3,7 +3,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
@@ -13,58 +12,48 @@ import '../../../utils/debounce.dart';
 import '../../../widgets/button.dart';
 import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/text_box_form_field.dart';
-import '../entities/product.dart';
-import '../state/products_notifier.dart';
+import '../data/models/category.dart';
+import '../data/models/product.dart';
+import '../state/catalog_categories_notifier.dart';
+import '../state/catalog_products_notifier.dart';
 
 class CatalogGridScreen extends HookConsumerWidget {
   const CatalogGridScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final page = useState(1);
-    final limit = useState(20);
+    final categoryId = useState<String?>(null);
     final searchQuery = useState<String?>(null);
-    final sort = useState<String?>(null);
 
-    final totalPages = ref.watch(productsProvider.select((it) => it.value?.data.totalPages ?? 1));
-
-    ref.listen(productsProvider, (previous, next) {
+    ref.listen(catalogProductsProvider, (_, next) {
       if (next case AsyncError(:final error)) {
         showNetworkErrorDialog(context, error: error);
       }
     });
 
-    useEffect(() {
-      page.value = 1;
-      return null;
-    }, [limit.value, searchQuery.value]);
+    final isFirstBuild = useRef(true);
 
     useEffect(() {
+      if (isFirstBuild.value) {
+        isFirstBuild.value = false;
+        return null;
+      }
       Future.microtask(() {
-        ref
-            .read(productsProvider.notifier)
-            .getResults(
-              page: page.value,
-              limit: limit.value,
-              name: searchQuery.value,
-              description: null,
-              sort: sort.value,
+        ref.read(catalogProductsProvider.notifier).getResults(
+              categoryId: categoryId.value,
+              search: searchQuery.value,
             );
       });
       return null;
-    }, [page.value, limit.value, searchQuery.value, sort.value]);
+    }, [categoryId.value, searchQuery.value]);
 
     return Padding(
       padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
       child: Column(
         spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
         children: [
-          _SearchAndFilterControls(
-            page: page,
-            limit: limit,
-            totalPages: totalPages,
-            searchQuery: searchQuery,
-          ),
+          _FilterBar(categoryId: categoryId, searchQuery: searchQuery),
+          _CategoryChips(selectedCategoryId: categoryId),
           Expanded(child: _ProductsGrid()),
         ],
       ),
@@ -72,159 +61,178 @@ class CatalogGridScreen extends HookConsumerWidget {
   }
 }
 
-class _SearchAndFilterControls extends StatelessWidget {
-  const _SearchAndFilterControls({
-    required this.page,
-    required this.limit,
-    required this.totalPages,
-    required this.searchQuery,
-  });
+// ── Filter bar: search + add button ──────────────────────────────────────────
 
-  final ValueNotifier<int> page;
-  final ValueNotifier<int> limit;
-  final int totalPages;
+class _FilterBar extends StatelessWidget {
+  const _FilterBar({required this.categoryId, required this.searchQuery});
+
+  final ValueNotifier<String?> categoryId;
   final ValueNotifier<String?> searchQuery;
 
   @override
   Widget build(BuildContext context) {
     final isPhone = context.breakpoint.isPhone;
+
     return Container(
-      padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+      padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 10)),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(POSRadius.xl),
         boxShadow: POSShadow.card,
       ),
-      child: Column(
+      child: Row(
         spacing: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
         children: [
-          Row(
-            spacing: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
-            children: [
-              Expanded(
-                child: HookBuilder(
-                  builder: (context) {
-                    final debounce = useDebounce(const Duration(milliseconds: 300));
-                    return TextBoxFormField.singleLine(
-                      hint: 'Search products...',
-                      prefixIcon: Icon(
-                        Icons.search_rounded,
-                        size: context.responsive.value(kiosk: 20, tablet: 18, phone: 16),
-                        color: POSColors.iconSubtle,
-                      ),
-                      style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                      ),
-                      onChanged: (value) {
-                        debounce(() {
-                          searchQuery.value = (value?.isEmpty ?? true) ? null : value;
-                        });
-                      },
-                    );
-                  },
-                ),
-              ),
-              if (isPhone)
-                FilledButton(
-                  onPressed: () {
-                    // TODO: Navigate to add product screen
-                  },
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(48, 48),
-                    padding: EdgeInsets.zero,
+          Expanded(
+            child: HookBuilder(
+              builder: (context) {
+                final debounce = useDebounce(const Duration(milliseconds: 350));
+                return TextBoxFormField.singleLine(
+                  hint: 'Search products...',
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    size: context.responsive.value(kiosk: 20, tablet: 18, phone: 16),
+                    color: POSColors.iconSubtle,
                   ),
-                  child: const Icon(Icons.add, size: 20),
-                )
-              else
-                Button(
-                  label: const Text('Add Product'),
-                  leading: const Icon(Icons.add),
-                  onPressed: () {
-                    // TODO: Navigate to add product screen
-                  },
-                ),
-            ],
-          ),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final compact = constraints.maxWidth < 460;
-              final dropdownBorderRadius = BorderRadius.circular(POSRadius.md);
-              final dropdownChild = Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: context.responsive.value(kiosk: 16, tablet: 16, phone: 12),
-                  vertical: context.responsive.value(kiosk: 12, tablet: 10, phone: 8),
-                ),
-                decoration: BoxDecoration(
-                  color: POSColors.surfaceSubtle,
-                  border: Border.all(color: POSColors.borderDefault),
-                  borderRadius: dropdownBorderRadius,
-                ),
-                child: DropdownButton<int>(
-                  value: limit.value,
-                  underline: const SizedBox(),
-                  isDense: true,
                   style: TextStyle(
                     fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                    color: Colors.black87,
                   ),
-                  items: [20, 50, 100].map((rows) {
-                    return DropdownMenuItem(value: rows, child: Text('$rows items'));
-                  }).toList(),
                   onChanged: (value) {
-                    if (value != null) limit.value = value;
+                    debounce(() {
+                      searchQuery.value = (value?.isEmpty ?? true) ? null : value;
+                    });
                   },
-                ),
-              );
-
-              return Row(
-                children: [
-                  if (compact)
-                    FilledButton(
-                      onPressed: page.value > 1 ? () => page.value-- : null,
-                      child: const Icon(Icons.keyboard_arrow_left),
-                    )
-                  else
-                    Button(
-                      label: const Text('Previous'),
-                      onPressed: page.value > 1 ? () => page.value-- : null,
-                      leading: const Icon(Icons.keyboard_arrow_left),
-                    ),
-                  const Spacer(),
-                  Text(
-                    'Page ${totalPages > 0 ? page.value : 0} of $totalPages',
-                    style: TextStyle(
-                      fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const Spacer(),
-                  dropdownChild,
-                  Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-                  if (compact)
-                    FilledButton(
-                      onPressed: page.value < totalPages ? () => page.value++ : null,
-                      child: const Icon(Icons.keyboard_arrow_right),
-                    )
-                  else
-                    Button(
-                      label: const Text('Next'),
-                      onPressed: page.value < totalPages ? () => page.value++ : null,
-                      trailing: const Icon(Icons.keyboard_arrow_right),
-                    ),
-                ],
-              );
-            },
+                );
+              },
+            ),
           ),
+          if (isPhone)
+            FilledButton(
+              onPressed: () {
+                // TODO: Navigate to add product screen
+              },
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(48, 48),
+                padding: EdgeInsets.zero,
+              ),
+              child: const Icon(Icons.add, size: 20),
+            )
+          else
+            Button(
+              label: const Text('Add Product'),
+              leading: const Icon(Icons.add),
+              onPressed: () {
+                // TODO: Navigate to add product screen
+              },
+            ),
         ],
       ),
     );
   }
 }
 
+// ── Category filter chips ─────────────────────────────────────────────────────
+
+class _CategoryChips extends ConsumerWidget {
+  const _CategoryChips({required this.selectedCategoryId});
+
+  final ValueNotifier<String?> selectedCategoryId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final categoriesState = ref.watch(catalogCategoriesProvider);
+
+    return categoriesState.maybeWhen(
+      data: (categories) {
+        if (categories.isEmpty) return const SizedBox.shrink();
+
+        return SizedBox(
+          height: context.responsive.value(kiosk: 40.0, tablet: 36.0, phone: 32.0),
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: categories.length + 1,
+            separatorBuilder: (_, __) => Gap(
+              context.responsive.value(kiosk: 8, tablet: 6, phone: 6),
+            ),
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return _Chip(
+                  label: 'All',
+                  isSelected: selectedCategoryId.value == null,
+                  onTap: () => selectedCategoryId.value = null,
+                  context: context,
+                );
+              }
+              final cat = categories[index - 1];
+              return _Chip(
+                label: '${cat.name} (${cat.productCount})',
+                isSelected: selectedCategoryId.value == cat.id,
+                onTap: () => selectedCategoryId.value = cat.id,
+                context: context,
+              );
+            },
+          ),
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  const _Chip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    required this.context,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final BuildContext context;
+
+  @override
+  Widget build(BuildContext outerContext) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: POSAnimation.fast,
+        padding: EdgeInsets.symmetric(
+          horizontal: outerContext.responsive.value(kiosk: 16, tablet: 14, phone: 12),
+        ),
+        decoration: BoxDecoration(
+          color: isSelected ? ColorSet.primary : Colors.white,
+          borderRadius: BorderRadius.circular(POSRadius.full),
+          border: Border.all(
+            color: isSelected ? ColorSet.primary : POSColors.borderDefault,
+            width: 1.5,
+          ),
+          boxShadow: isSelected ? [] : POSShadow.card,
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: outerContext.responsive.value(kiosk: 13.0, tablet: 12.0, phone: 11.0),
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected ? Colors.white : POSColors.textSecondary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Products grid ─────────────────────────────────────────────────────────────
+
 class _ProductsGrid extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(productsProvider.select((it) => it.whenData((data) => data.data)));
+    final state = ref.watch(
+      catalogProductsProvider.select((it) => it.whenData((d) => d.products)),
+    );
 
     return state.when(
       loading: () => const Center(
@@ -234,103 +242,93 @@ class _ProductsGrid extends ConsumerWidget {
           strokeCap: StrokeCap.round,
         ),
       ),
-      error: (error, _) => const Center(child: SizedBox.shrink()),
-      data: (data) {
-        if (data.data.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.inventory_2_rounded,
-                  size: context.responsive.value(kiosk: 64, tablet: 52, phone: 40),
-                  color: POSColors.textDisabled,
-                ),
-                Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-                Text(
-                  'No products found',
-                  style: TextStyle(
-                    fontSize: context.responsive.value(kiosk: 18, tablet: 15, phone: 13),
-                    fontWeight: FontWeight.w700,
-                    color: POSColors.textSecondary,
-                  ),
-                ),
-                Gap(context.responsive.value(kiosk: 6, tablet: 4, phone: 3)),
-                Text(
-                  'Try adjusting your search or add new products',
-                  style: TextStyle(
-                    fontSize: context.responsive.value(kiosk: 13, tablet: 12, phone: 11),
-                    color: POSColors.textDisabled,
-                  ),
-                ),
-              ],
-            ),
-          );
+      error: (_, __) => const Center(child: SizedBox.shrink()),
+      data: (products) {
+        if (products.isEmpty) {
+          return _EmptyProductsState();
         }
 
         return ResponsiveBuilder(
-          kiosk:
-              (context) => _ProductGrid(
-                products: data.data.toList(),
-                crossAxisCount: 4,
-                childAspectRatio: 0.8,
-              ),
-          tablet:
-              (context) => _ProductGrid(
-                products: data.data.toList(),
-                crossAxisCount: 3,
-                childAspectRatio: 0.75,
-              ),
-          phone:
-              (context) => _ProductGrid(
-                products: data.data.toList(),
-                crossAxisCount: 2,
-                childAspectRatio: 0.7,
-              ),
+          kiosk: (context) => _Grid(products: products, crossAxisCount: 4, ratio: 0.72),
+          tablet: (context) => _Grid(products: products, crossAxisCount: 3, ratio: 0.72),
+          phone: (context) => _Grid(products: products, crossAxisCount: 2, ratio: 0.70),
         );
       },
     );
   }
 }
 
-class _ProductGrid extends StatelessWidget {
-  const _ProductGrid({
+class _EmptyProductsState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.inventory_2_rounded,
+            size: context.responsive.value(kiosk: 64, tablet: 52, phone: 40),
+            color: POSColors.textDisabled,
+          ),
+          Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+          Text(
+            'No products found',
+            style: TextStyle(
+              fontSize: context.responsive.value(kiosk: 18, tablet: 15, phone: 13),
+              fontWeight: FontWeight.w700,
+              color: POSColors.textSecondary,
+            ),
+          ),
+          Gap(context.responsive.value(kiosk: 6, tablet: 4, phone: 3)),
+          Text(
+            'Try adjusting your search or category filter',
+            style: TextStyle(
+              fontSize: context.responsive.value(kiosk: 13, tablet: 12, phone: 11),
+              color: POSColors.textDisabled,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Grid extends StatelessWidget {
+  const _Grid({
     required this.products,
     required this.crossAxisCount,
-    required this.childAspectRatio,
+    required this.ratio,
   });
 
-  final List<Product> products;
+  final List<CatalogProduct> products;
   final int crossAxisCount;
-  final double childAspectRatio;
+  final double ratio;
 
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
-        childAspectRatio: childAspectRatio,
+        childAspectRatio: ratio,
         crossAxisSpacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
         mainAxisSpacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
       ),
       itemCount: products.length,
-      itemBuilder: (context, index) {
-        final product = products[index];
-        return _ProductCard(product: product);
-      },
+      itemBuilder: (context, index) => _ProductCard(product: products[index]),
     );
   }
 }
 
+// ── Product card ──────────────────────────────────────────────────────────────
+
 class _ProductCard extends StatelessWidget {
   const _ProductCard({required this.product});
 
-  final Product product;
+  final CatalogProduct product;
 
   @override
   Widget build(BuildContext context) {
-    final priceRange = _getPriceRange(product);
-    final modifierGroupCount = _getModifierGroupCount(product);
+    final r = context.responsive;
 
     return Container(
       decoration: BoxDecoration(
@@ -341,108 +339,102 @@ class _ProductCard extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(POSRadius.xl),
         child: InkWell(
-          onTap: () => ProductDetailRoute(product.id).push<void>(context),
+          onTap: () {
+            // TODO: ProductDetailRoute(product.id).push<void>(context)
+          },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Image area ──────────────────────────────────────────
               Expanded(
-                child: Container(
-                  width: double.infinity,
-                  color: POSColors.surfaceSubtle,
-                  child: Image.memory(
-                    product.image,
-                    fit: BoxFit.cover,
-                    // Decode at display size to avoid uploading full-res textures to GPU.
-                    // Without this, 20 large images in the grid can exhaust GPU memory
-                    // and freeze the rasterizer during navigation transitions.
-                    cacheWidth: 600,
-                    errorBuilder: (context, error, stackTrace) {
-                      return ColoredBox(
-                        color: POSColors.surfaceOverlay,
-                        child: Icon(
-                          Icons.image_rounded,
-                          size: context.responsive.value(kiosk: 40, tablet: 32, phone: 24),
-                          color: POSColors.textDisabled,
-                        ),
-                      );
-                    },
-                  ),
+                flex: 5,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _ProductImage(imageUrl: product.imageUrl),
+                    // Category badge overlay
+                    if (product.category != null)
+                      Positioned(
+                        left: r.value(kiosk: 8, tablet: 7, phone: 6),
+                        bottom: r.value(kiosk: 8, tablet: 7, phone: 6),
+                        child: _CategoryBadge(name: product.category!.name),
+                      ),
+                  ],
                 ),
               ),
-              Padding(
-                padding: EdgeInsets.all(context.responsive.value(kiosk: 12, tablet: 10, phone: 8)),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product.name,
-                      style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 10),
-                        fontWeight: FontWeight.w700,
-                        color: POSColors.textPrimary,
+              // ── Info area ────────────────────────────────────────────
+              Expanded(
+                flex: 4,
+                child: Padding(
+                  padding: EdgeInsets.all(r.value(kiosk: 12, tablet: 10, phone: 8)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.name,
+                        style: TextStyle(
+                          fontSize: r.value(kiosk: 14, tablet: 12, phone: 10),
+                          fontWeight: FontWeight.w700,
+                          color: POSColors.textPrimary,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: context.responsive.value(kiosk: 3, tablet: 2, phone: 2)),
-                    Text(
-                      priceRange,
-                      style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 15, tablet: 13, phone: 11),
-                        fontWeight: FontWeight.w800,
-                        color: ColorSet.primary,
-                        letterSpacing: -0.3,
+                      Gap(r.value(kiosk: 2, tablet: 2, phone: 2)),
+                      Text(
+                        'PHP ${product.price.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: r.value(kiosk: 15, tablet: 13, phone: 11),
+                          fontWeight: FontWeight.w800,
+                          color: ColorSet.primary,
+                          letterSpacing: -0.3,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: context.responsive.value(kiosk: 3, tablet: 2, phone: 2)),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.layers_rounded,
-                          size: context.responsive.value(kiosk: 11, tablet: 10, phone: 9),
-                          color: POSColors.iconSubtle,
-                        ),
-                        Gap(context.responsive.value(kiosk: 3, tablet: 2, phone: 2)),
-                        Text(
-                          '${product.variants.length} variant${product.variants.length == 1 ? '' : 's'}',
-                          style: TextStyle(
-                            fontSize: context.responsive.value(kiosk: 11, tablet: 10, phone: 9),
-                            color: POSColors.textTertiary,
+                      const Spacer(),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.tune_rounded,
+                            size: r.value(kiosk: 11, tablet: 10, phone: 9),
+                            color: POSColors.iconSubtle,
                           ),
-                        ),
-                        Gap(context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
-                        Icon(
-                          Icons.tune_rounded,
-                          size: context.responsive.value(kiosk: 11, tablet: 10, phone: 9),
-                          color: POSColors.iconSubtle,
-                        ),
-                        Gap(context.responsive.value(kiosk: 3, tablet: 2, phone: 2)),
-                        Text(
-                          '$modifierGroupCount mod${modifierGroupCount == 1 ? '' : 's'}',
-                          style: TextStyle(
-                            fontSize: context.responsive.value(kiosk: 11, tablet: 10, phone: 9),
-                            color: POSColors.textTertiary,
+                          Gap(r.value(kiosk: 3, tablet: 2, phone: 2)),
+                          Text(
+                            '${product.modifierGroups.length} '
+                            'mod${product.modifierGroups.length == 1 ? '' : 's'}',
+                            style: TextStyle(
+                              fontSize: r.value(kiosk: 11, tablet: 10, phone: 9),
+                              color: POSColors.textTertiary,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
-                    SizedBox(
-                      width: double.infinity,
-                      child: Button(
-                        label: Text(
-                          'Manage',
-                          style: TextStyle(
-                            fontSize: context.responsive.value(kiosk: 12, tablet: 11, phone: 10),
-                          ),
-                        ),
-                        onPressed: () => ProductDetailRoute(product.id).push<void>(context),
-                        backgroundColor: ColorSet.primary,
-                        foregroundColor: Colors.white,
+                          if (product.description != null &&
+                              product.description!.isNotEmpty) ...[
+                            Gap(r.value(kiosk: 8, tablet: 6, phone: 4)),
+                            Icon(
+                              Icons.notes_rounded,
+                              size: r.value(kiosk: 11, tablet: 10, phone: 9),
+                              color: POSColors.iconSubtle,
+                            ),
+                          ],
+                        ],
                       ),
-                    ),
-                  ],
+                      Gap(r.value(kiosk: 8, tablet: 6, phone: 4)),
+                      SizedBox(
+                        width: double.infinity,
+                        child: Button(
+                          label: Text(
+                            'Manage',
+                            style: TextStyle(
+                              fontSize: r.value(kiosk: 12, tablet: 11, phone: 10),
+                            ),
+                          ),
+                          // onPressed: () => ProductDetailRoute(product.id).push<void>(context),
+                          backgroundColor: ColorSet.primary,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -451,18 +443,67 @@ class _ProductCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  String _getPriceRange(Product product) {
-    if (product.variants.isEmpty) {
-      return r'$0.00';
+class _ProductImage extends StatelessWidget {
+  const _ProductImage({required this.imageUrl});
+
+  final String? imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return Image.network(
+        imageUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _ImagePlaceholder(),
+      );
     }
-
-    // Since ProductVariant doesn't have price, return placeholder
-    return r'$0.00';
+    return _ImagePlaceholder();
   }
+}
 
-  int _getModifierGroupCount(Product product) {
-    // TODO: Implement when modifier assignments are available
-    return 0;
+class _ImagePlaceholder extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: POSColors.surfaceOverlay,
+      child: Center(
+        child: Icon(
+          Icons.image_rounded,
+          size: context.responsive.value(kiosk: 40, tablet: 32, phone: 24),
+          color: POSColors.textDisabled,
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryBadge extends StatelessWidget {
+  const _CategoryBadge({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: context.responsive.value(kiosk: 8, tablet: 7, phone: 6),
+        vertical: context.responsive.value(kiosk: 3, tablet: 3, phone: 2),
+      ),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(POSRadius.full),
+      ),
+      child: Text(
+        name,
+        style: TextStyle(
+          fontSize: context.responsive.value(kiosk: 10, tablet: 9, phone: 8),
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
   }
 }

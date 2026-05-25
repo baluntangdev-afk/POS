@@ -19,7 +19,10 @@
       "PowerShell(Get-Content *)",
       "PowerShell(Get-Process *)",
       "PowerShell(\\([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent\\(\\)\\).IsInRole\\([Security.Principal.WindowsBuiltInRole]::Administrator\\))",
-      "PowerShell(explorer \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\output\")"
+      "PowerShell(explorer \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\output\")",
+      "Bash(flutter analyze *)",
+      "Bash(flutter run *)",
+      "Bash(docker compose *)"
     ]
   }
 }

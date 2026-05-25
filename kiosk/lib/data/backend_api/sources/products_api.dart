@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../utils/file_sniffer.dart';
@@ -67,9 +68,9 @@ class ProductsApi {
       '/api/v1/products',
       queryParameters: query.toMap(),
     );
-    final json = jsonEncode(response.data);
-    ProductDtoMapper.ensureInitialized();
-    return PaginatedResponseDtoMapper.fromJson<ProductDto>(json);
+    // Pass raw response data to the isolate so jsonEncode + base64Decode
+    // both happen off the main thread.
+    return compute(_parseProductsData, response.data);
   }
 
   Future<ProductDetailsDto> getById(int id) async {
@@ -77,4 +78,10 @@ class ProductsApi {
     final json = jsonEncode(response.data);
     return ProductDetailsDto.fromJson(json);
   }
+}
+
+PaginatedResponseDto<ProductDto> _parseProductsData(dynamic data) {
+  ProductDtoMapper.ensureInitialized();
+  final json = jsonEncode(data);
+  return PaginatedResponseDtoMapper.fromJson<ProductDto>(json);
 }

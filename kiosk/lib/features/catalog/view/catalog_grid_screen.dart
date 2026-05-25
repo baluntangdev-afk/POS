@@ -352,6 +352,10 @@ class _ProductCard extends StatelessWidget {
                   child: Image.memory(
                     product.image,
                     fit: BoxFit.cover,
+                    // Decode at display size to avoid uploading full-res textures to GPU.
+                    // Without this, 20 large images in the grid can exhaust GPU memory
+                    // and freeze the rasterizer during navigation transitions.
+                    cacheWidth: 600,
                     errorBuilder: (context, error, stackTrace) {
                       return ColoredBox(
                         color: POSColors.surfaceOverlay,

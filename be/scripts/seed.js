@@ -4,115 +4,269 @@ require('dotenv').config();
 const { Pool } = require('pg');
 
 const pool = new Pool({
-  host: process.env.POSTGRES_HOST || 'localhost',
-  port: parseInt(process.env.POSTGRES_PORT || '5432', 10),
-  user: process.env.POSTGRES_USER || 'postgres',
+  host:     process.env.POSTGRES_HOST     || 'localhost',
+  port:     parseInt(process.env.POSTGRES_PORT || '5432', 10),
+  user:     process.env.POSTGRES_USER     || 'postgres',
   password: process.env.POSTGRES_PASSWORD || 'postgres',
-  database: process.env.POSTGRES_DB || 'pos_db',
+  database: process.env.POSTGRES_DB       || 'pos_db',
 });
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+async function upsertProductGroup(client, adminId, name, description) {
+  const ex = await client.query(
+    `SELECT id FROM product_groups WHERE name = $1 AND deleted_at IS NULL LIMIT 1`,
+    [name],
+  );
+  if (ex.rows.length > 0) {
+    await client.query(
+      `UPDATE product_groups SET description=$2, status='Active' WHERE id=$1`,
+      [ex.rows[0].id, description],
+    );
+    return ex.rows[0].id;
+  }
+  const r = await client.query(
+    `INSERT INTO product_groups (name, description, status, created_by, updated_by)
+     VALUES ($1, $2, 'Active', $3, $3) RETURNING id`,
+    [name, description, adminId],
+  );
+  return r.rows[0].id;
+}
+
+async function upsertModifierGroup(client, adminId, name, minSel, maxSel, selType, isRequired, description) {
+  const ex = await client.query(
+    `SELECT id FROM modifier_groups WHERE name = $1 AND deleted_at IS NULL LIMIT 1`,
+    [name],
+  );
+  if (ex.rows.length > 0) {
+    await client.query(
+      `UPDATE modifier_groups
+         SET selection_type=$2, is_required=$3, description=$4,
+             min_selection=$5, max_selection=$6
+       WHERE id=$1`,
+      [ex.rows[0].id, selType, isRequired, description, minSel, maxSel],
+    );
+    return ex.rows[0].id;
+  }
+  const r = await client.query(
+    `INSERT INTO modifier_groups
+       (name, min_selection, max_selection, selection_type, is_required, description, created_by, updated_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $7) RETURNING id`,
+    [name, minSel, maxSel, selType, isRequired, description, adminId],
+  );
+  return r.rows[0].id;
+}
+
+async function upsertModifierOption(client, adminId, mgId, name, priceAddOn, sortOrder) {
+  const ex = await client.query(
+    `SELECT id FROM modifier_options
+      WHERE modifier_group_id = $1 AND name = $2 AND deleted_at IS NULL LIMIT 1`,
+    [mgId, name],
+  );
+  if (ex.rows.length > 0) {
+    await client.query(
+      `UPDATE modifier_options SET price_add_on=$2, sort_order=$3, is_available=true WHERE id=$1`,
+      [ex.rows[0].id, priceAddOn, sortOrder],
+    );
+    return ex.rows[0].id;
+  }
+  const r = await client.query(
+    `INSERT INTO modifier_options
+       (modifier_group_id, name, price_add_on, is_available, sort_order, created_by, updated_by)
+     VALUES ($1, $2, $3, true, $4, $5, $5) RETURNING id`,
+    [mgId, name, priceAddOn, sortOrder, adminId],
+  );
+  return r.rows[0].id;
+}
+
+async function upsertProduct(client, adminId, groupId, name, description, price, sortOrder) {
+  const ex = await client.query(
+    `SELECT id FROM products WHERE name = $1 AND deleted_at IS NULL LIMIT 1`,
+    [name],
+  );
+  if (ex.rows.length > 0) {
+    await client.query(
+      `UPDATE products
+         SET group_id=$2, description=$3, price=$4, sort_order=$5,
+             is_available=true, status='Active'
+       WHERE id=$1`,
+      [ex.rows[0].id, groupId, description, price, sortOrder],
+    );
+    return ex.rows[0].id;
+  }
+  const r = await client.query(
+    `INSERT INTO products
+       (group_id, name, description, price, is_available, sort_order, status, created_by, updated_by)
+     VALUES ($1, $2, $3, $4, true, $5, 'Active', $6, $6) RETURNING id`,
+    [groupId, name, description, price, sortOrder, adminId],
+  );
+  return r.rows[0].id;
+}
+
+async function linkProductModifier(client, productId, mgId, sortOrder) {
+  await client.query(
+    `INSERT INTO product_modifier_groups (product_id, modifier_group_id, sort_order)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (product_id, modifier_group_id)
+     DO UPDATE SET sort_order = EXCLUDED.sort_order`,
+    [productId, mgId, sortOrder],
+  );
+}
+
+// ── Seed ───────────────────────────────────────────────────────────────────────
 
 async function seed() {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    // Truncate in safe dependency order
-    console.log('Truncating catalog tables...');
-    await client.query(`
-      TRUNCATE TABLE
-        catalog_product_modifier_groups,
-        catalog_modifiers,
-        catalog_modifier_groups,
-        catalog_products,
-        catalog_categories
-      RESTART IDENTITY CASCADE
-    `);
-    console.log('  ✓ Tables truncated');
+    // Admin user (required for created_by / updated_by FKs)
+    const userResult = await client.query(
+      `SELECT id FROM users WHERE deleted_at IS NULL ORDER BY id ASC LIMIT 1`,
+    );
+    if (userResult.rows.length === 0) {
+      throw new Error('No users found – run UsersSeeder first (npm run seed:run).');
+    }
+    const adminId = userResult.rows[0].id;
+    console.log(`  Admin user id=${adminId}`);
 
-    // Categories
-    const categoriesResult = await client.query(`
-      INSERT INTO catalog_categories (id, name, sort_order) VALUES
-        ('10000000-0000-0000-0000-000000000001', 'Burgers', 0),
-        ('10000000-0000-0000-0000-000000000002', 'Drinks',  1),
-        ('10000000-0000-0000-0000-000000000003', 'Sides',   2)
-      ON CONFLICT (name) DO NOTHING
-      RETURNING id
-    `);
-    console.log(`  ✓ Categories: ${categoriesResult.rowCount} inserted`);
+    // ── Product groups (kiosk categories) ─────────────────────────────────────
+    const PG = {};
+    PG.burgers    = await upsertProductGroup(client, adminId, 'Burgers',    'All our signature beef and chicken burgers');
+    PG.chicken    = await upsertProductGroup(client, adminId, 'Chicken',    'Crispy and grilled chicken dishes');
+    PG.riceMeals  = await upsertProductGroup(client, adminId, 'Rice Meals', 'Hearty rice bowls and Filipino favourites');
+    PG.sides      = await upsertProductGroup(client, adminId, 'Sides',      'Perfect add-ons to complete your meal');
+    PG.beverages  = await upsertProductGroup(client, adminId, 'Beverages',  'Cold drinks and refreshing beverages');
+    console.log(`  ✓ Product groups: ${Object.keys(PG).length}`);
 
-    // Modifier groups
-    const modGroupsResult = await client.query(`
-      INSERT INTO catalog_modifier_groups (id, name, selection_type, is_required, min_selections, max_selections) VALUES
-        ('30000000-0000-0000-0000-000000000001', 'Size',    'single',   true,  1, 1),
-        ('30000000-0000-0000-0000-000000000002', 'Add-ons', 'multiple', false, 0, 5),
-        ('30000000-0000-0000-0000-000000000003', 'Sauce',   'single',   false, 0, 1)
-      ON CONFLICT (name) DO NOTHING
-      RETURNING id
-    `);
-    console.log(`  ✓ Modifier groups: ${modGroupsResult.rowCount} inserted`);
+    // ── Modifier groups ────────────────────────────────────────────────────────
+    const MG = {};
+    MG.size       = await upsertModifierGroup(client, adminId, 'Size',        1, 1, 'single',   true,  'Choose your size');
+    MG.spice      = await upsertModifierGroup(client, adminId, 'Spice Level', 0, 1, 'single',   false, 'How spicy do you like it?');
+    MG.addons     = await upsertModifierGroup(client, adminId, 'Add-ons',     0, 5, 'multiple', false, 'Customise your meal');
+    MG.sauce      = await upsertModifierGroup(client, adminId, 'Sauce',       0, 1, 'single',   false, 'Choose a dipping sauce');
+    MG.sugarLevel = await upsertModifierGroup(client, adminId, 'Sugar Level', 1, 1, 'single',   true,  'Choose your sugar level');
+    console.log(`  ✓ Modifier groups: ${Object.keys(MG).length}`);
 
-    // Modifiers
-    const modifiersResult = await client.query(`
-      INSERT INTO catalog_modifiers (id, modifier_group_id, name, price_adjustment, sort_order) VALUES
-        ('40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'Regular',       0.00, 0),
-        ('40000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', 'Large',         25.00, 1),
-        ('40000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000001', 'Extra Large',   45.00, 2),
-        ('40000000-0000-0000-0000-000000000004', '30000000-0000-0000-0000-000000000002', 'Extra Cheese',  15.00, 0),
-        ('40000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000002', 'Bacon',         25.00, 1),
-        ('40000000-0000-0000-0000-000000000006', '30000000-0000-0000-0000-000000000002', 'Avocado',       30.00, 2),
-        ('40000000-0000-0000-0000-000000000007', '30000000-0000-0000-0000-000000000002', 'Fried Egg',     20.00, 3),
-        ('40000000-0000-0000-0000-000000000008', '30000000-0000-0000-0000-000000000002', 'Jalapeños',     10.00, 4),
-        ('40000000-0000-0000-0000-000000000009', '30000000-0000-0000-0000-000000000003', 'Ketchup',        0.00, 0),
-        ('40000000-0000-0000-0000-000000000010', '30000000-0000-0000-0000-000000000003', 'Mustard',        0.00, 1),
-        ('40000000-0000-0000-0000-000000000011', '30000000-0000-0000-0000-000000000003', 'Mayo',           0.00, 2),
-        ('40000000-0000-0000-0000-000000000012', '30000000-0000-0000-0000-000000000003', 'BBQ Sauce',      0.00, 3),
-        ('40000000-0000-0000-0000-000000000013', '30000000-0000-0000-0000-000000000003', 'Hot Sauce',      0.00, 4)
-      ON CONFLICT (modifier_group_id, name) DO NOTHING
-      RETURNING id
-    `);
-    console.log(`  ✓ Modifiers: ${modifiersResult.rowCount} inserted`);
+    // ── Modifier options ───────────────────────────────────────────────────────
+    // Size
+    await upsertModifierOption(client, adminId, MG.size, 'Regular',      0.00, 0);
+    await upsertModifierOption(client, adminId, MG.size, 'Large',       25.00, 1);
+    await upsertModifierOption(client, adminId, MG.size, 'Extra Large', 45.00, 2);
 
-    // Products
-    const productsResult = await client.query(`
-      INSERT INTO catalog_products (id, category_id, name, price, sort_order) VALUES
-        ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'Classic Burger',    149.00, 0),
-        ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'Cheese Burger',     169.00, 1),
-        ('20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', 'BBQ Bacon Burger',  199.00, 2),
-        ('20000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 'Veggie Burger',     139.00, 3),
-        ('20000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000002', 'Lemonade',           65.00, 0),
-        ('20000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000002', 'Iced Tea',           55.00, 1),
-        ('20000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000002', 'Bottled Water',      35.00, 2),
-        ('20000000-0000-0000-0000-000000000008', '10000000-0000-0000-0000-000000000003', 'French Fries',       75.00, 0)
-      ON CONFLICT (name) DO NOTHING
-      RETURNING id
-    `);
-    console.log(`  ✓ Products: ${productsResult.rowCount} inserted`);
+    // Spice Level
+    await upsertModifierOption(client, adminId, MG.spice, 'Mild',   0.00, 0);
+    await upsertModifierOption(client, adminId, MG.spice, 'Medium', 0.00, 1);
+    await upsertModifierOption(client, adminId, MG.spice, 'Hot',    0.00, 2);
 
-    // Product-modifier-group links
-    const linksResult = await client.query(`
-      INSERT INTO catalog_product_modifier_groups (product_id, modifier_group_id, sort_order) VALUES
-        ('20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 0),
-        ('20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', 1),
-        ('20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000003', 2),
-        ('20000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', 0),
-        ('20000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000002', 1),
-        ('20000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000003', 2),
-        ('20000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000001', 0),
-        ('20000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000002', 1),
-        ('20000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000003', 2),
-        ('20000000-0000-0000-0000-000000000004', '30000000-0000-0000-0000-000000000001', 0),
-        ('20000000-0000-0000-0000-000000000004', '30000000-0000-0000-0000-000000000003', 1),
-        ('20000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000001', 0),
-        ('20000000-0000-0000-0000-000000000006', '30000000-0000-0000-0000-000000000001', 0),
-        ('20000000-0000-0000-0000-000000000008', '30000000-0000-0000-0000-000000000001', 0),
-        ('20000000-0000-0000-0000-000000000008', '30000000-0000-0000-0000-000000000003', 1)
-      ON CONFLICT DO NOTHING
-      RETURNING product_id
-    `);
-    console.log(`  ✓ Product-modifier-group links: ${linksResult.rowCount} inserted`);
+    // Add-ons
+    await upsertModifierOption(client, adminId, MG.addons, 'Extra Cheese', 15.00, 0);
+    await upsertModifierOption(client, adminId, MG.addons, 'Bacon',        25.00, 1);
+    await upsertModifierOption(client, adminId, MG.addons, 'Fried Egg',    20.00, 2);
+    await upsertModifierOption(client, adminId, MG.addons, 'Avocado',      30.00, 3);
+    await upsertModifierOption(client, adminId, MG.addons, 'Jalapeños',    10.00, 4);
+
+    // Sauce
+    await upsertModifierOption(client, adminId, MG.sauce, 'Ketchup',   0.00, 0);
+    await upsertModifierOption(client, adminId, MG.sauce, 'Mustard',   0.00, 1);
+    await upsertModifierOption(client, adminId, MG.sauce, 'Aioli',     0.00, 2);
+    await upsertModifierOption(client, adminId, MG.sauce, 'BBQ Sauce', 0.00, 3);
+    await upsertModifierOption(client, adminId, MG.sauce, 'Hot Sauce', 0.00, 4);
+
+    // Sugar Level
+    await upsertModifierOption(client, adminId, MG.sugarLevel, '0%',   0.00, 0);
+    await upsertModifierOption(client, adminId, MG.sugarLevel, '25%',  0.00, 1);
+    await upsertModifierOption(client, adminId, MG.sugarLevel, '50%',  0.00, 2);
+    await upsertModifierOption(client, adminId, MG.sugarLevel, '75%',  0.00, 3);
+    await upsertModifierOption(client, adminId, MG.sugarLevel, '100%', 0.00, 4);
+    console.log('  ✓ Modifier options seeded');
+
+    // ── Products ───────────────────────────────────────────────────────────────
+    const P = {};
+
+    // Burgers
+    P.classicBurger  = await upsertProduct(client, adminId, PG.burgers,   'Classic Burger',     'Juicy beef patty with lettuce, tomato, and pickles',       149.00, 0);
+    P.cheeseBurger   = await upsertProduct(client, adminId, PG.burgers,   'Cheese Burger',      'Classic burger topped with melted cheddar cheese',         169.00, 1);
+    P.bbqBaconBurger = await upsertProduct(client, adminId, PG.burgers,   'BBQ Bacon Burger',   'Smoky BBQ sauce, crispy bacon, and caramelised onions',    199.00, 2);
+    P.doublePatty    = await upsertProduct(client, adminId, PG.burgers,   'Double Patty Burger','Two beef patties stacked with all the fixings',            219.00, 3);
+    P.spicyBurger    = await upsertProduct(client, adminId, PG.burgers,   'Spicy Burger',       'Fiery burger with chili mayo and pepper jack cheese',      179.00, 4);
+
+    // Chicken
+    P.friedChicken    = await upsertProduct(client, adminId, PG.chicken,   'Crispy Fried Chicken', 'Golden crispy chicken with a seasoned herb coating',    169.00, 0);
+    P.grilledChicken  = await upsertProduct(client, adminId, PG.chicken,   'Grilled Chicken',      'Chargrilled chicken breast served with dipping sauce',  189.00, 1);
+    P.chickenSandwich = await upsertProduct(client, adminId, PG.chicken,   'Chicken Sandwich',     'Tender crispy chicken fillet on a toasted brioche bun', 159.00, 2);
+
+    // Rice Meals
+    P.chickenRiceBowl = await upsertProduct(client, adminId, PG.riceMeals, 'Chicken Rice Bowl', 'Seasoned chicken over steamed rice with garlic sauce',    179.00, 0);
+    P.beefRiceBowl    = await upsertProduct(client, adminId, PG.riceMeals, 'Beef Rice Bowl',    'Tender beef strips on a bed of garlic fried rice',        189.00, 1);
+    P.sisig            = await upsertProduct(client, adminId, PG.riceMeals, 'Pork Sisig',        'Sizzling chopped pork with calamansi, chili, and egg',    199.00, 2);
+
+    // Sides
+    P.frenchFries = await upsertProduct(client, adminId, PG.sides,     'French Fries', 'Golden crispy fries, perfectly salted',         79.00, 0);
+    P.onionRings  = await upsertProduct(client, adminId, PG.sides,     'Onion Rings',  'Beer-battered onion rings with dipping sauce',  89.00, 1);
+    P.coleslaw    = await upsertProduct(client, adminId, PG.sides,     'Coleslaw',     'Creamy coleslaw with a tangy dressing',          59.00, 2);
+    P.garlicBread = await upsertProduct(client, adminId, PG.sides,     'Garlic Bread', 'Toasted bread with herb garlic butter',          49.00, 3);
+
+    // Beverages
+    P.lemonade   = await upsertProduct(client, adminId, PG.beverages, 'Lemonade',         'Freshly squeezed lemonade, sweet and tart',         65.00, 0);
+    P.icedTea    = await upsertProduct(client, adminId, PG.beverages, 'Iced Tea',         'Chilled brewed tea served over ice',                55.00, 1);
+    P.coldCoffee = await upsertProduct(client, adminId, PG.beverages, 'Cold Brew Coffee', 'Smooth cold-steeped coffee concentrate over ice',   85.00, 2);
+    P.water      = await upsertProduct(client, adminId, PG.beverages, 'Mineral Water',    'Chilled bottled mineral water',                     35.00, 3);
+
+    console.log(`  ✓ Products: ${Object.keys(P).length}`);
+
+    // ── Product ↔ Modifier Group links ────────────────────────────────────────
+    // Burgers
+    await linkProductModifier(client, P.classicBurger,  MG.size,  0);
+    await linkProductModifier(client, P.classicBurger,  MG.addons,1);
+    await linkProductModifier(client, P.classicBurger,  MG.sauce, 2);
+
+    await linkProductModifier(client, P.cheeseBurger,   MG.size,  0);
+    await linkProductModifier(client, P.cheeseBurger,   MG.addons,1);
+    await linkProductModifier(client, P.cheeseBurger,   MG.sauce, 2);
+
+    await linkProductModifier(client, P.bbqBaconBurger, MG.size,  0);
+    await linkProductModifier(client, P.bbqBaconBurger, MG.addons,1);
+    await linkProductModifier(client, P.bbqBaconBurger, MG.sauce, 2);
+
+    await linkProductModifier(client, P.doublePatty, MG.size,  0);
+    await linkProductModifier(client, P.doublePatty, MG.sauce, 1);
+
+    await linkProductModifier(client, P.spicyBurger, MG.size,  0);
+    await linkProductModifier(client, P.spicyBurger, MG.spice, 1);
+    await linkProductModifier(client, P.spicyBurger, MG.sauce, 2);
+
+    // Chicken
+    await linkProductModifier(client, P.friedChicken,    MG.size,  0);
+    await linkProductModifier(client, P.friedChicken,    MG.spice, 1);
+    await linkProductModifier(client, P.grilledChicken,  MG.spice, 0);
+    await linkProductModifier(client, P.grilledChicken,  MG.sauce, 1);
+    await linkProductModifier(client, P.chickenSandwich, MG.addons,0);
+    await linkProductModifier(client, P.chickenSandwich, MG.sauce, 1);
+
+    // Rice Meals
+    await linkProductModifier(client, P.chickenRiceBowl, MG.spice,  0);
+    await linkProductModifier(client, P.chickenRiceBowl, MG.addons, 1);
+    await linkProductModifier(client, P.beefRiceBowl,    MG.addons, 0);
+    await linkProductModifier(client, P.sisig,            MG.spice,  0);
+
+    // Sides
+    await linkProductModifier(client, P.frenchFries, MG.size,  0);
+    await linkProductModifier(client, P.frenchFries, MG.sauce, 1);
+    await linkProductModifier(client, P.onionRings,  MG.sauce, 0);
+
+    // Beverages
+    await linkProductModifier(client, P.lemonade,   MG.size,       0);
+    await linkProductModifier(client, P.lemonade,   MG.sugarLevel, 1);
+    await linkProductModifier(client, P.icedTea,    MG.size,       0);
+    await linkProductModifier(client, P.icedTea,    MG.sugarLevel, 1);
+    await linkProductModifier(client, P.coldCoffee, MG.size,       0);
+    await linkProductModifier(client, P.coldCoffee, MG.sugarLevel, 1);
+
+    console.log('  ✓ Product–modifier-group links seeded');
 
     await client.query('COMMIT');
-    console.log('\nCatalog seed completed successfully.');
+    console.log('\nKiosk catalog seed completed successfully.');
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Seed failed:', err.message);

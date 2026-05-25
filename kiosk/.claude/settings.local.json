@@ -40,7 +40,10 @@
       "Bash(grep -v \"\\\\.mapper\\\\.dart\\\\|_\\\\$\\\\|#[a-zA-Z]\")",
       "Bash(grep -rn \"r'[^']*\\\\$\\\\|r\\\\\"[^\\\\\"]*\\\\$\" lib --include=\"*.dart\")",
       "Bash(grep -E \"\\(\\\\$[0-9]|PHP|\\\\+\\\\$\\)\")",
-      "Bash(grep -rn \"r'PHP\\\\|r\\\\\"PHP\\\\|\\\\\\\\\\\\$[0-9]\\\\|\\\\+\\\\\\\\\\\\$\" lib --include=\"*.dart\")"
+      "Bash(grep -rn \"r'PHP\\\\|r\\\\\"PHP\\\\|\\\\\\\\\\\\$[0-9]\\\\|\\\\+\\\\\\\\\\\\$\" lib --include=\"*.dart\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\jufie\\\\Documents\\\\POS\\\\kiosk\" -Recurse -Include \"*.dart\")",
+      "Bash(Measure-Object)",
+      "Bash(grep *)"
     ]
   }
 }

@@ -9,5 +9,8 @@ import 'config/environment/env.dart';
 
 Future<void> main() async {
   final container = await bootstrap(Env());
-  runApp(UncontrolledProviderScope(container: container, child: const App()));
+  runApp(UncontrolledProviderScope(
+    container: container,
+    child: App(container: container),
+  ));
 }

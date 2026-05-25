@@ -585,6 +585,11 @@ class _CategoriesList extends ConsumerWidget {
                       fit: BoxFit.contain,
                       color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
                       colorBlendMode: BlendMode.srcIn,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.image_not_supported_outlined,
+                        size: context.responsive.value(kiosk: 28.0, tablet: 24.0, phone: 20.0),
+                        color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
+                      ),
                     ),
                     Gap(context.responsive.value(kiosk: 4.0, tablet: 3.0, phone: 2.0)),
                   ],
@@ -595,6 +600,11 @@ class _CategoriesList extends ConsumerWidget {
                         fit: BoxFit.contain,
                         color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
                         colorBlendMode: BlendMode.srcIn,
+                        errorBuilder: (_, __, ___) => Icon(
+                          Icons.image_not_supported_outlined,
+                          size: context.responsive.value(kiosk: 28.0, tablet: 24.0, phone: 20.0),
+                          color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
+                        ),
                       ),
                     ),
                     Gap(context.responsive.value(kiosk: 4.0, tablet: 3.0, phone: 2.0)),
@@ -744,7 +754,17 @@ class _ProductCard extends StatelessWidget {
                           borderRadius: const BorderRadius.vertical(top: Radius.circular(POSRadius.xl)),
                           child: Padding(
                             padding: EdgeInsets.all(context.responsive.value(kiosk: 14.0, tablet: 10.0, phone: 8.0)),
-                            child: Image.memory(product.image, fit: BoxFit.contain),
+                            child: Image.memory(
+                              product.image,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => Center(
+                                child: Icon(
+                                  Icons.image_not_supported_outlined,
+                                  size: context.responsive.value(kiosk: 48.0, tablet: 40.0, phone: 32.0),
+                                  color: POSColors.iconSubtle,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                         Positioned(

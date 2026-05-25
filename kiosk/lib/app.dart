@@ -10,7 +10,9 @@ import 'styles/color_set.dart';
 import 'styles/fallback_theme.dart';
 
 class App extends ConsumerWidget {
-  const App({super.key});
+  const App({super.key, required this.container});
+
+  final ProviderContainer container;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,7 +23,10 @@ class App extends ConsumerWidget {
       theme: fallbackTheme,
       builder: (context, child) {
         if (!kIsWeb && Platform.isWindows) {
-          return _WindowCloseGuard(child: child ?? const SizedBox.shrink());
+          return _WindowCloseGuard(
+            container: container,
+            child: child ?? const SizedBox.shrink(),
+          );
         }
         return child ?? const SizedBox.shrink();
       },
@@ -30,8 +35,9 @@ class App extends ConsumerWidget {
 }
 
 class _WindowCloseGuard extends StatefulWidget {
-  const _WindowCloseGuard({required this.child});
+  const _WindowCloseGuard({required this.child, required this.container});
   final Widget child;
+  final ProviderContainer container;
 
   @override
   State<_WindowCloseGuard> createState() => _WindowCloseGuardState();
@@ -52,9 +58,17 @@ class _WindowCloseGuardState extends State<_WindowCloseGuard> with WindowListene
 
   @override
   Future<void> onWindowClose() async {
-    final confirmed = await _showExitDialog();
-    if (confirmed ?? false) {
+    try {
+      final confirmed = await _showExitDialog();
+      if (confirmed ?? false) {
+        widget.container.dispose();
+        await windowManager.destroy();
+        exit(0);
+      }
+    } catch (_) {
+      widget.container.dispose();
       await windowManager.destroy();
+      exit(0);
     }
   }
 

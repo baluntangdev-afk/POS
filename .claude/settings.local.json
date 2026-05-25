@@ -22,7 +22,9 @@
       "PowerShell(explorer \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\output\")",
       "Bash(flutter analyze *)",
       "Bash(flutter run *)",
-      "Bash(docker compose *)"
+      "Bash(docker compose *)",
+      "Bash(Remove-Item -Path \"C:\\\\Users\\\\jufie\\\\Documents\\\\POS\\\\be\\\\src\\\\catalog\\\\entities\\\\catalog-category.entity.ts\", \"C:\\\\Users\\\\jufie\\\\Documents\\\\POS\\\\be\\\\src\\\\catalog\\\\entities\\\\catalog-product.entity.ts\", \"C:\\\\Users\\\\jufie\\\\Documents\\\\POS\\\\be\\\\src\\\\catalog\\\\entities\\\\catalog-modifier-group.entity.ts\", \"C:\\\\Users\\\\jufie\\\\Documents\\\\POS\\\\be\\\\src\\\\catalog\\\\entities\\\\catalog-modifier.entity.ts\", \"C:\\\\Users\\\\jufie\\\\Documents\\\\POS\\\\be\\\\src\\\\catalog\\\\entities\\\\catalog-product-modifier-group.entity.ts\" -Force)",
+      "Bash(Write-Host \"Deleted 5 catalog entity files\")"
     ]
   }
 }

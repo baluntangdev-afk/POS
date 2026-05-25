@@ -17,6 +17,7 @@ final httpClientProvider = Provider.family<Dio, ({String baseUrl, List<Intercept
       final logInterceptor = ref.watch(logInterceptorProvider);
       client.interceptors.add(logInterceptor);
     }
+    ref.onDispose(() => client.close(force: true));
     return client;
   },
 );

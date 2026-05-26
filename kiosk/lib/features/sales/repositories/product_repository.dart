@@ -8,14 +8,12 @@ import '../../../data/backend_api/schemas/menu_item_modifier_group_dto.dart';
 import '../../../data/backend_api/schemas/menu_item_modifier_option_dto.dart';
 import '../../../data/backend_api/schemas/product_details_dto.dart';
 import '../../../data/backend_api/schemas/product_list_item_dto.dart';
-import '../../../data/backend_api/schemas/product_variant_details_dto.dart';
 import '../../../data/backend_api/sources/product_groups_api.dart';
 import '../../../data/backend_api/sources/products_api.dart';
 import '../entities/modifier_group.dart';
 import '../entities/modifier_option.dart';
 import '../entities/product.dart';
 import '../entities/product_group.dart';
-import '../entities/product_variant.dart';
 
 abstract class ProductRepository {
   Future<IList<Product>> getByGroup(ProductGroup group);
@@ -42,17 +40,21 @@ class ProductRepositoryImpl implements ProductRepository {
 
   @override
   Future<Product> getById(int id) async {
-    final dto = await _productsApi.getById(id);
-    return _productFromDetailsDto(dto);
+    try {
+      final dto = await _productsApi.getById(id);
+      return _productFromDetailsDto(dto);
+    } catch (e) {
+      throw Exception(e);
+    }
   }
 
   Product _productFromListItemDto(ProductListItemDto dto) {
     return Product(
       id: dto.id,
       name: dto.name,
-      price: Decimal.zero,
+      price: Decimal.parse(dto.price),
       image: dto.imageUrl ?? Uint8List(0),
-      variants: const IList.empty(),
+      modifierGroups: const IList.empty(),
     );
   }
 
@@ -60,19 +62,10 @@ class ProductRepositoryImpl implements ProductRepository {
     return Product(
       id: dto.id,
       name: dto.name,
-      image: dto.imageUrl,
+      image: dto.imageUrl ?? Uint8List(0),
       price: Decimal.parse(dto.displayPrice),
-      variants: dto.variants.map(_productVariantFromDto).toIList(),
-    );
-  }
-
-  ProductVariant _productVariantFromDto(ProductVariantDetailsDto dto) {
-    return ProductVariant(
-      id: dto.id,
-      name: dto.name,
-      price: Decimal.parse(dto.displayPrice),
-      isDefault: false,
       modifierGroups: dto.modifierGroups.map(_modifierGroupFromDto).toIList(),
+      defaultVariantId: dto.defaultVariantId ?? 0,
     );
   }
 

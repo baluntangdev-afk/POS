@@ -13,11 +13,11 @@ export class SalesOrderItemResponseDto {
   @ApiPropertyOptional({ description: 'Line item sequence', example: 1, nullable: true })
   itemSequence: number | null;
 
-  @ApiProperty({ description: 'Product variant ID', example: 1 })
-  productVariantId: number;
+  @ApiPropertyOptional({ description: 'Product variant ID', example: 1, nullable: true })
+  productVariantId: number | null;
 
-  @ApiProperty({ description: 'Recipe ID', example: 1 })
-  recipeId: number;
+  @ApiPropertyOptional({ description: 'Recipe ID', example: 1, nullable: true })
+  recipeId: number | null;
 
   @ApiProperty({ description: 'Quantity', example: '1' })
   qty: string;

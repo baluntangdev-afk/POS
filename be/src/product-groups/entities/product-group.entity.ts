@@ -5,11 +5,14 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  ManyToMany,
   JoinColumn,
+  JoinTable,
   DeleteDateColumn,
 } from 'typeorm';
 import { BaseStatus } from '../../utils/shared-enums';
 import { User } from '../../users/entities/user.entity';
+import { ModifierGroup } from '../../modifier-groups/entities/modifier-group.entity';
 
 @Entity('product_groups')
 export class ProductGroup {
@@ -61,4 +64,13 @@ export class ProductGroup {
 
   @DeleteDateColumn({ type: 'timestamp', nullable: true, name: 'deleted_at' })
   deletedAt: Date | null;
+
+  // Relations
+  @ManyToMany(() => ModifierGroup)
+  @JoinTable({
+    name: 'product_group_modifier_groups',
+    joinColumn: { name: 'product_group_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'modifier_group_id', referencedColumnName: 'id' },
+  })
+  modifiers: ModifierGroup[];
 }

@@ -27,6 +27,15 @@ export class ModifierGroup {
   @Column({ type: 'int', name: 'max_selection', default: 1 })
   maxSelection: number;
 
+  @Column({ type: 'text', nullable: true })
+  description: string | null;
+
+  @Column({ type: 'varchar', length: 10, name: 'selection_type', default: 'single' })
+  selectionType: string;
+
+  @Column({ type: 'boolean', name: 'is_required', default: false })
+  isRequired: boolean;
+
   @ManyToOne(() => User, (user) => user.id)
   @JoinColumn({ name: 'created_by' })
   createdBy: User;

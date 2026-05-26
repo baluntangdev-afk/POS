@@ -8,7 +8,6 @@ import { Product } from './entities/product.entity';
 import { ProductVariant } from './entities/product-variant.entity';
 import { ProductGroup } from '../product-groups/entities/product-group.entity';
 import { CurrenciesModule } from '../currencies/currencies.module';
-import { StoreMenusModule } from '../store-menus/store-menus.module';
 import { CreateProductService } from './services/create-product.service';
 import { FindProductsService } from './services/find-products.service';
 import { FindProductService } from './services/find-product.service';
@@ -27,7 +26,6 @@ import { DeleteProductVariantService } from './services/delete-product-variant.s
   imports: [
     TypeOrmModule.forFeature([Product, ProductVariant, ProductGroup]),
     CurrenciesModule,
-    StoreMenusModule,
   ],
   controllers: [ProductsController, ProductVariantsController],
   providers: [

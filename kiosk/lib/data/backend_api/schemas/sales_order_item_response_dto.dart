@@ -7,8 +7,8 @@ class SalesOrderItemResponseDto with SalesOrderItemResponseDtoMappable {
   const SalesOrderItemResponseDto({
     required this.id,
     this.itemSequence,
-    required this.productVariantId,
-    required this.recipeId,
+    this.productVariantId,
+    this.recipeId,
     required this.qty,
     this.uomId,
     required this.unitPrice,
@@ -26,8 +26,8 @@ class SalesOrderItemResponseDto with SalesOrderItemResponseDtoMappable {
 
   final String id;
   final int? itemSequence;
-  final int productVariantId;
-  final int recipeId;
+  final int? productVariantId;
+  final int? recipeId;
   final String qty;
   final int? uomId;
   final double unitPrice;

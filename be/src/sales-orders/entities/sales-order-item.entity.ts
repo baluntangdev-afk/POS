@@ -36,13 +36,13 @@ export class SalesOrderItem extends UuidIdEntity {
   @Column({ type: 'int', nullable: true, name: 'item_sequence' })
   itemSequence: number | null;
 
-  @ManyToOne(() => ProductVariant, { nullable: false })
+  @ManyToOne(() => ProductVariant, { nullable: true })
   @JoinColumn({ name: 'product_variant_id' })
-  productVariant: ProductVariant;
+  productVariant: ProductVariant | null;
 
-  @ManyToOne(() => Recipe, { nullable: false })
+  @ManyToOne(() => Recipe, { nullable: true })
   @JoinColumn({ name: 'recipe_id' })
-  recipe: Recipe;
+  recipe: Recipe | null;
 
   @Column({
     type: 'varchar',

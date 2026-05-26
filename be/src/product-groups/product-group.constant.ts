@@ -5,4 +5,5 @@ export const PRODUCT_LIST_SELECT: FindOptionsSelect<Product> = {
   id: true,
   name: true,
   imageUrl: true,
+  price: true,
 };

@@ -8,7 +8,7 @@ export class ProductMapper {
       groupId: entity.productGroup.id,
       name: entity.name,
       description: entity.description ?? undefined,
-      imageUrl: entity.imageUrl ? entity.imageUrl.toString('base64') : undefined,
+      imageUrl: entity.imageUrl ?? undefined,
     };
   }
 }

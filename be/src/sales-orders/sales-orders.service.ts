@@ -223,16 +223,17 @@ export class SalesOrdersService {
     });
     const addOnNames = new Set(salesOrderItemAddon.map((addon) => addon.description));
 
+    if (!salesOrderItem.productVariant) {
+      throw new NotFoundException('Product variant not found for this sales order item');
+    }
+
     const productDetails = await this.productsService.findOne(
       salesOrderItem.productVariant.product.id,
     );
 
-    productDetails.variants.forEach((variant) => {
-      variant.isSelected = variant.id === salesOrderItem.productVariant.id;
-      variant.modifierGroups.forEach((modifierGroup) => {
-        modifierGroup.options.forEach((option) => {
-          option.isSelected = addOnNames.has(option.name);
-        });
+    productDetails.modifierGroups.forEach((modifierGroup) => {
+      modifierGroup.options.forEach((option) => {
+        option.isSelected = addOnNames.has(option.name);
       });
     });
 

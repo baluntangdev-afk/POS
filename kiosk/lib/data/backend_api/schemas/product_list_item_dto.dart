@@ -8,10 +8,11 @@ part 'product_list_item_dto.mapper.dart';
 
 @MappableClass(includeCustomMappers: [ImageUrlMapper()])
 class ProductListItemDto with ProductListItemDtoMappable {
-  const ProductListItemDto({required this.id, required this.name, this.imageUrl});
+  const ProductListItemDto({required this.id, required this.name, required this.price, this.imageUrl});
 
   final int id;
   final String name;
+  final String price;
   final Uint8List? imageUrl;
 
   static const fromJson = ProductListItemDtoMapper.fromJson;

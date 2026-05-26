@@ -5,37 +5,52 @@ import { SeederHelper } from '../../utils/seeder.helper';
 import { User } from '../../users/entities/user.entity';
 import { MODIFIER_GROUPS_FIXTURE } from './fixtures/modifier-groups.fixture';
 
-/**
- * Seeder: ModifierGroupsSeeder
- */
 export class ModifierGroupsSeeder implements Seeder {
   public async run(dataSource: DataSource): Promise<void> {
     const seederHelper = new SeederHelper(dataSource);
     const adminUser = await seederHelper.getAdminUser();
-    const data = this.getData(adminUser);
     const repo = dataSource.getRepository(ModifierGroup);
-    const existingNames = await repo
-      .createQueryBuilder('mg')
-      .select('mg.name')
-      .getMany()
-      .then((rows) => new Set(rows.map((r) => r.name)));
-    const toInsert = data.filter((d) => !existingNames.has(d.name!));
-    if (toInsert.length === 0) {
-      console.log('Modifier groups already seeded, skip');
-      return;
+
+    const existingGroups = await repo.find({ withDeleted: true });
+    const existingByName = new Map(existingGroups.map((g) => [g.name.toLowerCase(), g]));
+
+    const toInsert: Partial<ModifierGroup>[] = [];
+    const toUpdate: ModifierGroup[] = [];
+
+    for (const item of MODIFIER_GROUPS_FIXTURE) {
+      const existing = existingByName.get(item.name.toLowerCase());
+      if (existing) {
+        existing.description = item.description;
+        existing.selectionType = item.selectionType;
+        existing.isRequired = item.isRequired;
+        existing.minSelection = item.minSelection;
+        existing.maxSelection = item.maxSelection;
+        existing.deletedAt = null;
+        existing.updatedBy = adminUser;
+        toUpdate.push(existing);
+      } else {
+        toInsert.push(this.buildGroup(adminUser, item));
+      }
     }
-    const persistedData = await repo.save(toInsert);
-    await repo.save(persistedData);
-    console.log(`${persistedData.length} modifier groups seeded`);
+
+    if (toInsert.length > 0) await repo.save(toInsert);
+    if (toUpdate.length > 0) await repo.save(toUpdate);
+
+    console.log(
+      `Modifier groups: ${toInsert.length} inserted, ${toUpdate.length} updated`,
+    );
   }
 
-  private getData(adminUser: User): Partial<ModifierGroup>[] {
-    const base = { createdBy: adminUser, updatedBy: adminUser };
-    return MODIFIER_GROUPS_FIXTURE.map((item) => ({
-      ...base,
+  private buildGroup(adminUser: User, item: (typeof MODIFIER_GROUPS_FIXTURE)[number]): Partial<ModifierGroup> {
+    return {
       name: item.name,
-      minSelection: item.minSelection ?? 0,
-      maxSelection: item.maxSelection ?? 1,
-    }));
+      description: item.description,
+      selectionType: item.selectionType,
+      isRequired: item.isRequired,
+      minSelection: item.minSelection,
+      maxSelection: item.maxSelection,
+      createdBy: adminUser,
+      updatedBy: adminUser,
+    };
   }
 }

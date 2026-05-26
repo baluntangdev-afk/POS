@@ -24,7 +24,17 @@
       "Bash(flutter run *)",
       "Bash(docker compose *)",
       "Bash(Remove-Item -Path \"C:\\\\Users\\\\jufie\\\\Documents\\\\POS\\\\be\\\\src\\\\catalog\\\\entities\\\\catalog-category.entity.ts\", \"C:\\\\Users\\\\jufie\\\\Documents\\\\POS\\\\be\\\\src\\\\catalog\\\\entities\\\\catalog-product.entity.ts\", \"C:\\\\Users\\\\jufie\\\\Documents\\\\POS\\\\be\\\\src\\\\catalog\\\\entities\\\\catalog-modifier-group.entity.ts\", \"C:\\\\Users\\\\jufie\\\\Documents\\\\POS\\\\be\\\\src\\\\catalog\\\\entities\\\\catalog-modifier.entity.ts\", \"C:\\\\Users\\\\jufie\\\\Documents\\\\POS\\\\be\\\\src\\\\catalog\\\\entities\\\\catalog-product-modifier-group.entity.ts\" -Force)",
-      "Bash(Write-Host \"Deleted 5 catalog entity files\")"
+      "Bash(Write-Host \"Deleted 5 catalog entity files\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\jufie\\\\Documents\\\\POS\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(npm run *)",
+      "Bash(node scripts/seed.js)",
+      "Bash(node -e ' *)",
+      "Bash(fvm flutter *)",
+      "Bash(curl -s -X POST http://localhost:3000/api/v1/auth/login -H 'Content-Type: application/json' -d '{\\\\\"email\\\\\":\\\\\"admin@example.com\\\\\",\\\\\"password\\\\\":\\\\\"admin123\\\\\"}')",
+      "Bash(curl -s \"http://localhost:3000/api/v1/product-groups/2/products\" -H \"Authorization: Bearer $\\(curl -s -X POST http://localhost:3000/api/v1/auth/login -H 'Content-Type: application/json' -d '{\\\\\"email\\\\\":\\\\\"admin@example.com\\\\\",\\\\\"password\\\\\":\\\\\"admin123\\\\\"}')",
+      "Bash(node -e \"let d=''; process.stdin.on\\('data',c=>d+=c\\); process.stdin.on\\('end',\\(\\)=>{ const r=JSON.parse\\(d\\); console.log\\(JSON.stringify\\(r.data?.[0],null,2\\)\\); }\\)\")",
+      "Bash(curl -s -X POST http://localhost:3000/api/v1/auth/login-by-email -H \"Content-Type: application/json\" -d \"{\\\\\"email\\\\\":\\\\\"admin@example.com\\\\\",\\\\\"password\\\\\":\\\\\"admin123\\\\\"}\")"
     ]
   }
 }

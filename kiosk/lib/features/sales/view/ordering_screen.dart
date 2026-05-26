@@ -46,7 +46,6 @@ class OrderingScreen extends ConsumerWidget {
   }
 }
 
-// ── Premium shared header ─────────────────────────────────────────────────────
 class _OrderingHeader extends StatelessWidget {
   const _OrderingHeader();
 
@@ -86,7 +85,9 @@ class _HeaderBackButton extends StatelessWidget {
     return SizedBox(
       height: size,
       child: OutlinedButton.icon(
-        onPressed: () { if (context.canPop()) context.pop(); },
+        onPressed: () {
+          if (context.canPop()) context.pop();
+        },
         icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 14),
         label: const Text('Back'),
         style: OutlinedButton.styleFrom(
@@ -225,7 +226,10 @@ class _CategoryChipRow extends ConsumerWidget {
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 fontSize: 13,
               ),
-              side: BorderSide(color: isSelected ? ColorSet.primary : POSColors.borderStrong, width: 1.5),
+              side: BorderSide(
+                color: isSelected ? ColorSet.primary : POSColors.borderStrong,
+                width: 1.5,
+              ),
               showCheckmark: false,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.sm)),
             ),
@@ -243,10 +247,9 @@ class _StickyCartBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(
-      orderingProvider.select((it) => (
-        count: it.value?.sale.items.length ?? 0,
-        total: it.value?.sale.totalAmount,
-      )),
+      orderingProvider.select(
+        (it) => (count: it.value?.sale.items.length ?? 0, total: it.value?.sale.totalAmount),
+      ),
     );
 
     if (state.count <= 0) return const SizedBox.shrink();
@@ -266,12 +269,20 @@ class _StickyCartBar extends ConsumerWidget {
             children: [
               Text(
                 '${state.count} item${state.count != 1 ? 's' : ''}',
-                style: const TextStyle(fontSize: 12, color: POSColors.textTertiary, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: POSColors.textTertiary,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               if (state.total != null)
                 Text(
                   state.total!.pesoFormatted,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: ColorSet.primary),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: ColorSet.primary,
+                  ),
                 ),
             ],
           ),
@@ -300,7 +311,11 @@ class _StickyCartBar extends ConsumerWidget {
                           SizedBox(width: 8),
                           Text(
                             'View Cart',
-                            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ],
                       ),
@@ -323,10 +338,12 @@ class _MiniCartPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final (:lineItemCount, :totalAmount) = ref.watch(
-      orderingProvider.select((it) => (
-        lineItemCount: it.value?.sale.items.length ?? 0,
-        totalAmount: it.value?.sale.totalAmount,
-      )),
+      orderingProvider.select(
+        (it) => (
+          lineItemCount: it.value?.sale.items.length ?? 0,
+          totalAmount: it.value?.sale.totalAmount,
+        ),
+      ),
     );
 
     return Container(
@@ -349,7 +366,11 @@ class _MiniCartPanel extends ConsumerWidget {
                 const SizedBox(width: 8),
                 const Text(
                   'Cart',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: POSColors.textPrimary),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: POSColors.textPrimary,
+                  ),
                 ),
                 const Spacer(),
                 if (lineItemCount > 0)
@@ -361,37 +382,47 @@ class _MiniCartPanel extends ConsumerWidget {
                     ),
                     child: Text(
                       '$lineItemCount',
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
               ],
             ),
           ),
-          Expanded(
-            child: lineItemCount == 0
-                ? const _EmptyCartState()
-                : _MiniCartItemList(),
-          ),
+          Expanded(child: lineItemCount == 0 ? const _EmptyCartState() : _MiniCartItemList()),
           if (lineItemCount > 0) ...[
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              decoration: const BoxDecoration(border: Border(top: BorderSide(color: POSColors.borderSubtle))),
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: POSColors.borderSubtle)),
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Total', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: POSColors.textSecondary)),
+                  const Text(
+                    'Total',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: POSColors.textSecondary,
+                    ),
+                  ),
                   if (totalAmount != null)
                     Text(
                       totalAmount.pesoFormatted,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: ColorSet.primary),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: ColorSet.primary,
+                      ),
                     ),
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-              child: _ViewCartButton(),
-            ),
+            Padding(padding: const EdgeInsets.fromLTRB(12, 8, 12, 12), child: _ViewCartButton()),
           ],
         ],
       ),
@@ -417,12 +448,20 @@ class _EmptyCartState extends StatelessWidget {
                 color: POSColors.surfaceSubtle,
                 borderRadius: BorderRadius.circular(POSRadius.lg),
               ),
-              child: const Icon(Icons.shopping_cart_outlined, size: 28, color: POSColors.textTertiary),
+              child: const Icon(
+                Icons.shopping_cart_outlined,
+                size: 28,
+                color: POSColors.textTertiary,
+              ),
             ),
             const SizedBox(height: 12),
             const Text(
               'Cart is empty',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: POSColors.textSecondary),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: POSColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 4),
             const Text(
@@ -460,7 +499,14 @@ class _ViewCartButton extends StatelessWidget {
                 children: [
                   Icon(Icons.shopping_cart_rounded, color: Colors.white, size: 16),
                   SizedBox(width: 8),
-                  Text('View Cart', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                  Text(
+                    'View Cart',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -497,20 +543,32 @@ class _MiniCartItemList extends ConsumerWidget {
                   children: [
                     Text(
                       item.productName,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: POSColors.textPrimary),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: POSColors.textPrimary,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       'x${item.quantity}',
-                      style: const TextStyle(fontSize: 11, color: POSColors.textTertiary, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: POSColors.textTertiary,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
               ),
               Text(
                 item.grossAmount.pesoFormatted,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: ColorSet.primary),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: ColorSet.primary,
+                ),
               ),
             ],
           ),
@@ -553,27 +611,30 @@ class _CategoriesList extends ConsumerWidget {
             onTap: () => ref.read(orderingProvider.notifier).selectGroup(group),
             child: AnimatedContainer(
               duration: POSAnimation.fast,
-              width: scrollDirection == Axis.horizontal
-                  ? context.responsive.value(kiosk: 150.0, tablet: 120.0, phone: 100.0)
-                  : null,
-              height: scrollDirection == Axis.vertical
-                  ? context.responsive.value(kiosk: 76.0, tablet: 68.0, phone: 58.0)
-                  : null,
+              width:
+                  scrollDirection == Axis.horizontal
+                      ? context.responsive.value(kiosk: 150.0, tablet: 120.0, phone: 100.0)
+                      : null,
+              height:
+                  scrollDirection == Axis.vertical
+                      ? context.responsive.value(kiosk: 76.0, tablet: 68.0, phone: 58.0)
+                      : null,
               padding: EdgeInsets.symmetric(
                 horizontal: context.responsive.value(kiosk: 14.0, tablet: 10.0, phone: 8.0),
                 vertical: context.responsive.value(kiosk: 8.0, tablet: 6.0, phone: 5.0),
               ),
               decoration: BoxDecoration(
                 color: isSelected ? ColorSet.primary.withValues(alpha: 0.08) : Colors.transparent,
-                border: scrollDirection == Axis.vertical
-                    ? Border(
-                        left: BorderSide(
-                          color: isSelected ? ColorSet.primary : Colors.transparent,
-                          width: 3,
-                        ),
-                        bottom: const BorderSide(color: POSColors.borderSubtle),
-                      )
-                    : null,
+                border:
+                    scrollDirection == Axis.vertical
+                        ? Border(
+                          left: BorderSide(
+                            color: isSelected ? ColorSet.primary : Colors.transparent,
+                            width: 3,
+                          ),
+                          bottom: const BorderSide(color: POSColors.borderSubtle),
+                        )
+                        : null,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -585,11 +646,12 @@ class _CategoriesList extends ConsumerWidget {
                       fit: BoxFit.contain,
                       color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
                       colorBlendMode: BlendMode.srcIn,
-                      errorBuilder: (_, __, ___) => Icon(
-                        Icons.image_not_supported_outlined,
-                        size: context.responsive.value(kiosk: 28.0, tablet: 24.0, phone: 20.0),
-                        color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
-                      ),
+                      errorBuilder:
+                          (_, __, ___) => Icon(
+                            Icons.image_not_supported_outlined,
+                            size: context.responsive.value(kiosk: 28.0, tablet: 24.0, phone: 20.0),
+                            color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
+                          ),
                     ),
                     Gap(context.responsive.value(kiosk: 4.0, tablet: 3.0, phone: 2.0)),
                   ],
@@ -600,11 +662,16 @@ class _CategoriesList extends ConsumerWidget {
                         fit: BoxFit.contain,
                         color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
                         colorBlendMode: BlendMode.srcIn,
-                        errorBuilder: (_, __, ___) => Icon(
-                          Icons.image_not_supported_outlined,
-                          size: context.responsive.value(kiosk: 28.0, tablet: 24.0, phone: 20.0),
-                          color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
-                        ),
+                        errorBuilder:
+                            (_, __, ___) => Icon(
+                              Icons.image_not_supported_outlined,
+                              size: context.responsive.value(
+                                kiosk: 28.0,
+                                tablet: 24.0,
+                                phone: 20.0,
+                              ),
+                              color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
+                            ),
                       ),
                     ),
                     Gap(context.responsive.value(kiosk: 4.0, tablet: 3.0, phone: 2.0)),
@@ -687,10 +754,17 @@ class _LoadingState extends StatelessWidget {
             shape: BoxShape.circle,
           ),
           padding: const EdgeInsets.all(14),
-          child: const CircularProgressIndicator(strokeWidth: 2.5, color: ColorSet.primary, strokeCap: StrokeCap.round),
+          child: const CircularProgressIndicator(
+            strokeWidth: 2.5,
+            color: ColorSet.primary,
+            strokeCap: StrokeCap.round,
+          ),
         ),
         const SizedBox(height: 12),
-        const Text('Loading menu...', style: TextStyle(fontSize: 14, color: POSColors.textTertiary)),
+        const Text(
+          'Loading menu...',
+          style: TextStyle(fontSize: 14, color: POSColors.textTertiary),
+        ),
       ],
     );
   }
@@ -707,13 +781,26 @@ class _EmptyProductsState extends StatelessWidget {
         Container(
           width: 64,
           height: 64,
-          decoration: BoxDecoration(color: POSColors.surfaceSubtle, borderRadius: BorderRadius.circular(POSRadius.lg)),
+          decoration: BoxDecoration(
+            color: POSColors.surfaceSubtle,
+            borderRadius: BorderRadius.circular(POSRadius.lg),
+          ),
           child: const Icon(Icons.restaurant_menu_rounded, size: 32, color: POSColors.textTertiary),
         ),
         const SizedBox(height: 12),
-        const Text('No products in this category', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: POSColors.textSecondary)),
+        const Text(
+          'No products in this category',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: POSColors.textSecondary,
+          ),
+        ),
         const SizedBox(height: 4),
-        const Text('Select another category', style: TextStyle(fontSize: 13, color: POSColors.textTertiary)),
+        const Text(
+          'Select another category',
+          style: TextStyle(fontSize: 13, color: POSColors.textTertiary),
+        ),
       ],
     );
   }
@@ -751,19 +838,28 @@ class _ProductCard extends StatelessWidget {
                       alignment: Alignment.center,
                       children: [
                         ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(POSRadius.xl)),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(POSRadius.xl),
+                          ),
                           child: Padding(
-                            padding: EdgeInsets.all(context.responsive.value(kiosk: 14.0, tablet: 10.0, phone: 8.0)),
+                            padding: EdgeInsets.all(
+                              context.responsive.value(kiosk: 14.0, tablet: 10.0, phone: 8.0),
+                            ),
                             child: Image.memory(
                               product.image,
                               fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => Center(
-                                child: Icon(
-                                  Icons.image_not_supported_outlined,
-                                  size: context.responsive.value(kiosk: 48.0, tablet: 40.0, phone: 32.0),
-                                  color: POSColors.iconSubtle,
-                                ),
-                              ),
+                              errorBuilder:
+                                  (_, __, ___) => Center(
+                                    child: Icon(
+                                      Icons.image_not_supported_outlined,
+                                      size: context.responsive.value(
+                                        kiosk: 48.0,
+                                        tablet: 40.0,
+                                        phone: 32.0,
+                                      ),
+                                      color: POSColors.iconSubtle,
+                                    ),
+                                  ),
                             ),
                           ),
                         ),
@@ -772,7 +868,11 @@ class _ProductCard extends StatelessWidget {
                           right: 8,
                           child: Container(
                             width: context.responsive.value(kiosk: 38.0, tablet: 32.0, phone: 28.0),
-                            height: context.responsive.value(kiosk: 38.0, tablet: 32.0, phone: 28.0),
+                            height: context.responsive.value(
+                              kiosk: 38.0,
+                              tablet: 32.0,
+                              phone: 28.0,
+                            ),
                             decoration: const BoxDecoration(
                               gradient: POSGradient.primary,
                               shape: BoxShape.circle,
@@ -781,7 +881,11 @@ class _ProductCard extends StatelessWidget {
                             child: Icon(
                               Icons.add_rounded,
                               color: Colors.white,
-                              size: context.responsive.value(kiosk: 22.0, tablet: 18.0, phone: 16.0),
+                              size: context.responsive.value(
+                                kiosk: 22.0,
+                                tablet: 18.0,
+                                phone: 16.0,
+                              ),
                             ),
                           ),
                         ),
@@ -801,7 +905,11 @@ class _ProductCard extends StatelessWidget {
                         Text(
                           product.name,
                           style: TextStyle(
-                            fontSize: context.responsive.value(kiosk: 14.0, tablet: 12.0, phone: 11.0),
+                            fontSize: context.responsive.value(
+                              kiosk: 14.0,
+                              tablet: 12.0,
+                              phone: 11.0,
+                            ),
                             fontWeight: FontWeight.w700,
                             color: POSColors.textPrimary,
                             letterSpacing: -0.2,
@@ -813,7 +921,11 @@ class _ProductCard extends StatelessWidget {
                         Text(
                           product.price.pesoFormatted,
                           style: TextStyle(
-                            fontSize: context.responsive.value(kiosk: 14.0, tablet: 12.0, phone: 11.0),
+                            fontSize: context.responsive.value(
+                              kiosk: 14.0,
+                              tablet: 12.0,
+                              phone: 11.0,
+                            ),
                             fontWeight: FontWeight.w800,
                             color: ColorSet.primary,
                           ),
@@ -838,10 +950,12 @@ class _CartButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final (:lineItemCount, :total) = ref.watch(
-      orderingProvider.select((it) => (
-        lineItemCount: it.value?.sale.items.length ?? 0,
-        total: it.value?.sale.totalAmount,
-      )),
+      orderingProvider.select(
+        (it) => (
+          lineItemCount: it.value?.sale.items.length ?? 0,
+          total: it.value?.sale.totalAmount,
+        ),
+      ),
     );
     if (lineItemCount <= 0) return const SizedBox.shrink();
 
@@ -873,7 +987,11 @@ class _CartButton extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Text(
                     'View Cart ($lineItemCount)',
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   if (total != null) ...[
                     const SizedBox(width: 16),
@@ -881,7 +999,11 @@ class _CartButton extends ConsumerWidget {
                     const SizedBox(width: 16),
                     Text(
                       total.pesoFormatted,
-                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ],

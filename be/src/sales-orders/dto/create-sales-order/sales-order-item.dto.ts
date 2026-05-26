@@ -57,8 +57,8 @@ export class CreateSalesOrderItemDto {
 
   // Hidden from dto
   causer: User;
-  productVariant: ProductVariant;
-  recipeId: number;
+  productVariant: ProductVariant | null;
+  recipeId: number | null;
   itemSequence: number;
   description: string;
   addOn: boolean;

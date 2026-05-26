@@ -31,8 +31,8 @@ export class SalesOrderWithItemsMapper {
     return {
       id: item.id,
       itemSequence: item.itemSequence,
-      productVariantId: item.productVariant.id,
-      recipeId: item.recipe.id,
+      productVariantId: item.productVariant?.id ?? null,
+      recipeId: item.recipe?.id ?? null,
       qty: item.qty,
       uomId: item.uom?.id ?? null,
       unitPrice: parseFloat(item.unitPrice),

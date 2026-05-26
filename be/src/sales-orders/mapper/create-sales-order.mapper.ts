@@ -71,11 +71,20 @@ export class CreateSalesOrderMapper {
     const salesOrderItem = new SalesOrderItem();
 
     salesOrderItem.itemSequence = dto.itemSequence;
-    salesOrderItem.productVariant = new ProductVariant();
-    salesOrderItem.productVariant.id = dto.productVariantId;
-    salesOrderItem.recipe = new Recipe();
-    salesOrderItem.recipe.id = dto.recipeId;
-    salesOrderItem.description = `${dto.productVariant.name} ${dto.productVariant.product.name}`;
+
+    if (dto.productVariant && dto.recipeId) {
+      salesOrderItem.productVariant = new ProductVariant();
+      salesOrderItem.productVariant.id = dto.productVariantId;
+      salesOrderItem.recipe = new Recipe();
+      salesOrderItem.recipe.id = dto.recipeId;
+    } else {
+      salesOrderItem.productVariant = null;
+      salesOrderItem.recipe = null;
+    }
+
+    salesOrderItem.description = dto.productVariant
+      ? `${dto.productVariant.name} ${dto.productVariant.product.name}`
+      : dto.description || 'Item';
     salesOrderItem.qty = dto.quantity.toString();
     salesOrderItem.unitPrice = dto.price.toString();
 
@@ -111,8 +120,12 @@ export class CreateSalesOrderMapper {
     if (dto.createSoItem) {
       salesOrderItem.itemSequence = dto.createSoItem.itemSequence;
       salesOrderItem.productVariant = dto.createSoItem.productVariant;
-      salesOrderItem.recipe = new Recipe();
-      salesOrderItem.recipe.id = dto.createSoItem.recipeId;
+      if (dto.createSoItem.recipeId) {
+        salesOrderItem.recipe = new Recipe();
+        salesOrderItem.recipe.id = dto.createSoItem.recipeId;
+      } else {
+        salesOrderItem.recipe = null;
+      }
       salesOrderItem.createdBy = dto.createSoItem.causer;
       salesOrderItem.updatedBy = dto.createSoItem.causer;
     }

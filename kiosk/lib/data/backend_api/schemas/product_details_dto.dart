@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:dart_mappable/dart_mappable.dart';
 
 import '../mappers/image_url_mapper.dart';
-import 'product_variant_details_dto.dart';
+import 'menu_item_modifier_group_dto.dart';
 
 part 'product_details_dto.mapper.dart';
 
@@ -13,19 +13,21 @@ class ProductDetailsDto with ProductDetailsDtoMappable {
     required this.id,
     required this.name,
     required this.description,
-    required this.imageUrl,
+    this.imageUrl,
     required this.currencySign,
     required this.displayPrice,
-    required this.variants,
+    this.defaultVariantId,
+    required this.modifierGroups,
   });
 
   final int id;
   final String name;
   final String description;
-  final Uint8List imageUrl;
+  final Uint8List? imageUrl;
   final String currencySign;
   final String displayPrice;
-  final List<ProductVariantDetailsDto> variants;
+  final int? defaultVariantId;
+  final List<MenuItemModifierGroupDto> modifierGroups;
 
   static const fromJson = ProductDetailsDtoMapper.fromJson;
 }

@@ -30,16 +30,33 @@ export class Product {
   description: string | null;
 
   @Column({
-    type: 'bytea',
+    type: 'text',
     nullable: true,
     name: 'image_url',
     transformer: {
-      to: (value: Buffer | string | null): Buffer | null =>
-        value == null ? null : typeof value === 'string' ? Buffer.from(value, 'base64') : value,
-      from: (value: Buffer | null): Buffer | null => value,
+      to: (value: Buffer | string | null): string | null => {
+        if (value == null) return null;
+        if (typeof value === 'string') return value;
+        return value.toString('base64');
+      },
+      from: (value: string | null): string | null => value,
     },
   })
-  imageUrl: Buffer | null;
+  imageUrl: string | null;
+
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0,
+  })
+  price: string;
+
+  @Column({ type: 'boolean', name: 'is_available', default: true })
+  isAvailable: boolean;
+
+  @Column({ type: 'int', name: 'sort_order', default: 0 })
+  sortOrder: number;
 
   @Column({
     type: 'enum',

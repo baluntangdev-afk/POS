@@ -8,17 +8,16 @@ import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../styles/color_set.dart';
-import '../../../theme/pos_design.dart';
 import '../../../styles/responsive/responsive_value.dart';
-import '../../../widgets/android_bottom_sheet.dart';
+import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../utils/uuidv7.dart';
+import '../../../widgets/android_bottom_sheet.dart';
 import '../../../widgets/button.dart';
 import '../entities/line_item.dart';
 import '../entities/modifier_group.dart';
 import '../entities/modifier_option.dart';
 import '../entities/product.dart';
-import '../entities/product_variant.dart';
 import '../entities/selected_modifier.dart';
 import '../entities/selected_option.dart';
 import '../entities/selected_variant.dart';
@@ -39,21 +38,9 @@ Future<LineItem?> showLineItemDialog(
         case AsyncError():
           return const Center(child: Text('Cannot load product'));
         case AsyncData(value: final product):
-          final defaultVariant =
-              product.variants.isEmpty
-                  ? null
-                  : product.variants.firstWhere(
-                    (variant) => variant.isDefault,
-                    orElse: () => product.variants.first,
-                  );
-          if (defaultVariant != null) {
-            final ProductVariant(:id, :name, :price) = defaultVariant;
-            initialVariant ??= SelectedVariant(id: id, name: name, price: price);
-          }
           return LineItemDialog(
             product: product,
             initialQuantity: initialQuantity,
-            initialVariant: initialVariant,
             initialModifiers: initialModifiers,
           );
       }
@@ -90,19 +77,16 @@ class LineItemDialog extends HookConsumerWidget {
     super.key,
     required this.product,
     this.initialQuantity = 1,
-    this.initialVariant,
     this.initialModifiers = const IList.empty(),
   });
 
   final Product product;
   final int initialQuantity;
-  final SelectedVariant? initialVariant;
   final IList<SelectedModifier> initialModifiers;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedQuantity = useState(initialQuantity);
-    final selectedVariant = useState(initialVariant);
     final selectedModifiers = useState<IList<SelectedModifier>>(initialModifiers);
 
     void onQuantityChanged(int? value) {
@@ -111,21 +95,15 @@ class LineItemDialog extends HookConsumerWidget {
     }
 
     Decimal calculateCurrentPrice() {
-      final basePrice = selectedVariant.value?.price ?? product.price;
       final modifiersPrice = selectedModifiers.value.fold(
         Decimal.zero,
         (total, modifier) => total + modifier.price,
       );
       final quantity = Decimal.fromInt(selectedQuantity.value);
-      return (basePrice + modifiersPrice) * quantity;
+      return (product.price + modifiersPrice) * quantity;
     }
 
-    final modifierGroups =
-        selectedVariant.value != null
-            ? product.variants
-                .firstWhere((variant) => variant.id == selectedVariant.value!.id)
-                .modifierGroups
-            : const IList<ModifierGroup>.empty();
+    final modifierGroups = product.modifierGroups;
     final currentPrice = calculateCurrentPrice();
 
     void toggleModifierOption(ModifierOption option) {
@@ -266,7 +244,7 @@ class LineItemDialog extends HookConsumerWidget {
         productName: product.name,
         productImage: product.image,
         quantity: selectedQuantity.value,
-        variant: selectedVariant.value!,
+        variant: SelectedVariant(id: product.defaultVariantId, name: product.name, price: product.price),
         modifiers: selectedModifiers.value,
       );
     }
@@ -282,31 +260,8 @@ class LineItemDialog extends HookConsumerWidget {
               _ProductDetails(
                 product: product,
                 selectedQuantity: selectedQuantity.value,
-                selectedVariant: selectedVariant.value,
                 onIncrease: () => onQuantityChanged(selectedQuantity.value + 1),
                 onDecrease: () => onQuantityChanged(selectedQuantity.value - 1),
-              ),
-              Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-              Padding(
-                padding: EdgeInsetsGeometry.symmetric(
-                  horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-                ),
-                child: _VariantSelector(
-                  variants: product.variants,
-                  selectedVariant:
-                      selectedVariant.value != null
-                          ? product.variants.firstWhere(
-                            (variant) => variant.id == selectedVariant.value!.id,
-                          )
-                          : null,
-                  onVariantSelected: (variant) {
-                    selectedVariant.value = SelectedVariant(
-                      id: variant.id,
-                      name: variant.name,
-                      price: variant.price,
-                    );
-                  },
-                ),
               ),
               Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
               Padding(
@@ -340,14 +295,12 @@ class _ProductDetails extends StatelessWidget {
   const _ProductDetails({
     required this.product,
     required this.selectedQuantity,
-    this.selectedVariant,
     required this.onIncrease,
     required this.onDecrease,
   });
 
   final Product product;
   final int selectedQuantity;
-  final SelectedVariant? selectedVariant;
   final VoidCallback onIncrease;
   final VoidCallback onDecrease;
 
@@ -410,7 +363,7 @@ class _ProductDetails extends StatelessWidget {
                 ),
               ),
               Text(
-                (selectedVariant?.price ?? product.price).pesoFormatted,
+                product.price.pesoFormatted,
                 style: TextStyle(
                   fontSize: context.responsive.value(kiosk: 30, tablet: 20, phone: 16),
                   color: ColorSet.primary,
@@ -485,77 +438,6 @@ class _QuantityControls extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _VariantSelector extends StatelessWidget {
-  const _VariantSelector({
-    required this.variants,
-    required this.selectedVariant,
-    required this.onVariantSelected,
-  });
-
-  final IList<ProductVariant> variants;
-  final ProductVariant? selectedVariant;
-  final ValueChanged<ProductVariant> onVariantSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-      runSpacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-      children:
-          variants.map((variant) {
-            final isSelected = variant == selectedVariant;
-            return Material(
-              color: isSelected ? ColorSet.primary.withValues(alpha: 0.1) : Colors.white,
-              borderRadius: BorderRadius.circular(POSRadius.md),
-              child: InkWell(
-                onTap: () => onVariantSelected(variant),
-                borderRadius: BorderRadius.circular(POSRadius.md),
-                child: Container(
-                  width: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
-                  padding: EdgeInsets.all(
-                    context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: isSelected ? ColorSet.primary : POSColors.borderDefault,
-                      width: isSelected ? 2 : 1,
-                    ),
-                    borderRadius: BorderRadius.circular(POSRadius.md),
-                  ),
-                  alignment: Alignment.center,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        variant.name,
-                        style: TextStyle(
-                          fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isSelected ? ColorSet.primary : POSColors.textPrimary,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      if (variant.price != Decimal.zero) ...[
-                        const Gap(4),
-                        Text(
-                          variant.price.pesoFormatted,
-                          style: TextStyle(
-                            fontSize: context.responsive.value(kiosk: 16, tablet: 12, phone: 12),
-                            color: ColorSet.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
     );
   }
 }

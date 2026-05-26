@@ -335,9 +335,15 @@ export class SalesOrderItemBuildService {
   }
 
   private async loadLookupData(products: CreateSalesOrderDto['products']): Promise<LookupData> {
+    const variantIds = products.map((p) => p.productVariantId).filter((id) => id > 0);
+
     const [recipeIds, productVariants, modifierOptionMap] = await Promise.all([
-      this.recipesService.findRecipeIdsByProductVariantIds(products.map((p) => p.productVariantId)),
-      this.productsService.findProductVariantsByIds(products.map((p) => p.productVariantId)),
+      variantIds.length > 0
+        ? this.recipesService.findRecipeIdsByProductVariantIds(variantIds)
+        : Promise.resolve(new Map()),
+      variantIds.length > 0
+        ? this.productsService.findProductVariantsByIds(variantIds)
+        : Promise.resolve(new Map()),
       this.modifierGroupsService.findModifierOptionWithRelationById(getModifierOptionIds(products)),
     ]);
 
@@ -350,8 +356,17 @@ export class SalesOrderItemBuildService {
     causer: User,
     itemSequence: number,
   ): void {
-    const recipeId = lookup.recipeIds.get(product.productVariantId);
+    product.causer = causer;
+    product.itemSequence = itemSequence;
+
+    if (product.productVariantId === 0) {
+      product.productVariant = null;
+      product.recipeId = null;
+      return;
+    }
+
     const productVariant = lookup.productVariants.get(product.productVariantId);
+    const recipeId = lookup.recipeIds.get(product.productVariantId);
 
     if (!productVariant) {
       throw new Error(`Product variant not found for product ${product.productVariantId}`);
@@ -362,8 +377,6 @@ export class SalesOrderItemBuildService {
 
     product.productVariant = productVariant;
     product.recipeId = recipeId;
-    product.causer = causer;
-    product.itemSequence = itemSequence;
   }
 
   private buildAddOnItemsForProduct(

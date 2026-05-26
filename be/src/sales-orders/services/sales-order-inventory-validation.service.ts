@@ -20,12 +20,15 @@ export class SalesOrderInventoryValidationService {
    * @throws InsufficientInventoryException when one or more materials have insufficient stock
    */
   async validateInventoryAvailability(soItems: SalesOrderItem[]): Promise<void> {
+    const itemsWithRecipe = soItems.filter((soi) => soi.recipe != null);
+    if (itemsWithRecipe.length === 0) return;
+
     const recipeItemsByRecipeId = await this.recipesService.findRecipeItemsByRecipeIds(
-      soItems.map((soi) => soi.recipe.id),
+      itemsWithRecipe.map((soi) => soi.recipe!.id),
     );
     const demands: MaterialDemandDto[] = [];
-    for (const soi of soItems) {
-      const baseRecipeItems = recipeItemsByRecipeId.get(soi.recipe.id) ?? [];
+    for (const soi of itemsWithRecipe) {
+      const baseRecipeItems = recipeItemsByRecipeId.get(soi.recipe!.id) ?? [];
       for (const recipeItem of baseRecipeItems) {
         demands.push({
           materialId: recipeItem.material.id,

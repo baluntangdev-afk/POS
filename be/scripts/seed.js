@@ -185,33 +185,49 @@ async function seed() {
     const P = {};
 
     // Burgers
-    P.classicBurger  = await upsertProduct(client, adminId, PG.burgers,   'Classic Burger',     'Juicy beef patty with lettuce, tomato, and pickles',       149.00, 0);
-    P.cheeseBurger   = await upsertProduct(client, adminId, PG.burgers,   'Cheese Burger',      'Classic burger topped with melted cheddar cheese',         169.00, 1);
-    P.bbqBaconBurger = await upsertProduct(client, adminId, PG.burgers,   'BBQ Bacon Burger',   'Smoky BBQ sauce, crispy bacon, and caramelised onions',    199.00, 2);
-    P.doublePatty    = await upsertProduct(client, adminId, PG.burgers,   'Double Patty Burger','Two beef patties stacked with all the fixings',            219.00, 3);
-    P.spicyBurger    = await upsertProduct(client, adminId, PG.burgers,   'Spicy Burger',       'Fiery burger with chili mayo and pepper jack cheese',      179.00, 4);
+    P.classicBurger      = await upsertProduct(client, adminId, PG.burgers,   'Classic Burger',       'Juicy beef patty with lettuce, tomato, and pickles',         149.00, 0);
+    P.cheeseBurger       = await upsertProduct(client, adminId, PG.burgers,   'Cheese Burger',        'Classic burger topped with melted cheddar cheese',           169.00, 1);
+    P.bbqBaconBurger     = await upsertProduct(client, adminId, PG.burgers,   'BBQ Bacon Burger',     'Smoky BBQ sauce, crispy bacon, and caramelised onions',      199.00, 2);
+    P.doublePatty        = await upsertProduct(client, adminId, PG.burgers,   'Double Patty Burger',  'Two beef patties stacked with all the fixings',              219.00, 3);
+    P.spicyBurger        = await upsertProduct(client, adminId, PG.burgers,   'Spicy Burger',         'Fiery burger with chili mayo and pepper jack cheese',        179.00, 4);
+    P.mushroomBurger     = await upsertProduct(client, adminId, PG.burgers,   'Mushroom Swiss Burger','Beef patty topped with sautéed mushrooms and Swiss cheese',  189.00, 5);
+    P.fishBurger         = await upsertProduct(client, adminId, PG.burgers,   'Fish Fillet Burger',   'Crispy fish fillet with tartar sauce on a soft bun',         159.00, 6);
+    P.crispyChickenBurger= await upsertProduct(client, adminId, PG.burgers,   'Crispy Chicken Burger','Crunchy fried chicken fillet with honey mustard dressing',   175.00, 7);
 
     // Chicken
-    P.friedChicken    = await upsertProduct(client, adminId, PG.chicken,   'Crispy Fried Chicken', 'Golden crispy chicken with a seasoned herb coating',    169.00, 0);
-    P.grilledChicken  = await upsertProduct(client, adminId, PG.chicken,   'Grilled Chicken',      'Chargrilled chicken breast served with dipping sauce',  189.00, 1);
-    P.chickenSandwich = await upsertProduct(client, adminId, PG.chicken,   'Chicken Sandwich',     'Tender crispy chicken fillet on a toasted brioche bun', 159.00, 2);
+    P.friedChicken       = await upsertProduct(client, adminId, PG.chicken,   'Crispy Fried Chicken', 'Golden crispy chicken with a seasoned herb coating',         169.00, 0);
+    P.grilledChicken     = await upsertProduct(client, adminId, PG.chicken,   'Grilled Chicken',      'Chargrilled chicken breast served with dipping sauce',       189.00, 1);
+    P.chickenSandwich    = await upsertProduct(client, adminId, PG.chicken,   'Chicken Sandwich',     'Tender crispy chicken fillet on a toasted brioche bun',      159.00, 2);
+    P.chickenWings       = await upsertProduct(client, adminId, PG.chicken,   'Chicken Wings (6 pcs)','Crispy wings tossed in your choice of sauce',                199.00, 3);
+    P.spicyChickenSandwich= await upsertProduct(client, adminId, PG.chicken,  'Spicy Chicken Sandwich','Fiery fried chicken with sriracha mayo and pickled slaw',   175.00, 4);
+    P.chickenStrips      = await upsertProduct(client, adminId, PG.chicken,   'Chicken Strips (4 pcs)','Tender breaded chicken strips with your choice of dip',     159.00, 5);
 
     // Rice Meals
-    P.chickenRiceBowl = await upsertProduct(client, adminId, PG.riceMeals, 'Chicken Rice Bowl', 'Seasoned chicken over steamed rice with garlic sauce',    179.00, 0);
-    P.beefRiceBowl    = await upsertProduct(client, adminId, PG.riceMeals, 'Beef Rice Bowl',    'Tender beef strips on a bed of garlic fried rice',        189.00, 1);
-    P.sisig            = await upsertProduct(client, adminId, PG.riceMeals, 'Pork Sisig',        'Sizzling chopped pork with calamansi, chili, and egg',    199.00, 2);
+    P.chickenRiceBowl    = await upsertProduct(client, adminId, PG.riceMeals, 'Chicken Rice Bowl',    'Seasoned chicken over steamed rice with garlic sauce',       179.00, 0);
+    P.beefRiceBowl       = await upsertProduct(client, adminId, PG.riceMeals, 'Beef Rice Bowl',       'Tender beef strips on a bed of garlic fried rice',           189.00, 1);
+    P.sisig              = await upsertProduct(client, adminId, PG.riceMeals, 'Pork Sisig',           'Sizzling chopped pork with calamansi, chili, and egg',       199.00, 2);
+    P.tapsilog           = await upsertProduct(client, adminId, PG.riceMeals, 'Tapsilog',             'Marinated beef tapa, sinangag, and fried egg',               189.00, 3);
+    P.longganisaRice     = await upsertProduct(client, adminId, PG.riceMeals, 'Longganisa Rice',      'Sweet pork longganisa served with garlic fried rice and egg',169.00, 4);
+    P.bangusRice         = await upsertProduct(client, adminId, PG.riceMeals, 'Bangus Rice Bowl',     'Grilled milkfish belly on steamed rice with sawsawan',       185.00, 5);
 
     // Sides
-    P.frenchFries = await upsertProduct(client, adminId, PG.sides,     'French Fries', 'Golden crispy fries, perfectly salted',         79.00, 0);
-    P.onionRings  = await upsertProduct(client, adminId, PG.sides,     'Onion Rings',  'Beer-battered onion rings with dipping sauce',  89.00, 1);
-    P.coleslaw    = await upsertProduct(client, adminId, PG.sides,     'Coleslaw',     'Creamy coleslaw with a tangy dressing',          59.00, 2);
-    P.garlicBread = await upsertProduct(client, adminId, PG.sides,     'Garlic Bread', 'Toasted bread with herb garlic butter',          49.00, 3);
+    P.frenchFries        = await upsertProduct(client, adminId, PG.sides,     'French Fries',         'Golden crispy fries, perfectly salted',                       79.00, 0);
+    P.onionRings         = await upsertProduct(client, adminId, PG.sides,     'Onion Rings',          'Beer-battered onion rings with dipping sauce',                89.00, 1);
+    P.coleslaw           = await upsertProduct(client, adminId, PG.sides,     'Coleslaw',             'Creamy coleslaw with a tangy dressing',                       59.00, 2);
+    P.garlicBread        = await upsertProduct(client, adminId, PG.sides,     'Garlic Bread',         'Toasted bread with herb garlic butter',                       49.00, 3);
+    P.mozSticks          = await upsertProduct(client, adminId, PG.sides,     'Mozzarella Sticks',    'Crispy breaded mozzarella sticks with marinara dip',          99.00, 4);
+    P.loadedFries        = await upsertProduct(client, adminId, PG.sides,     'Loaded Fries',         'Crispy fries topped with cheese sauce, bacon, and jalapeños', 119.00, 5);
+    P.cornSoup           = await upsertProduct(client, adminId, PG.sides,     'Corn Soup',            'Creamy sweet corn soup, a Filipino comfort classic',           69.00, 6);
 
     // Beverages
-    P.lemonade   = await upsertProduct(client, adminId, PG.beverages, 'Lemonade',         'Freshly squeezed lemonade, sweet and tart',         65.00, 0);
-    P.icedTea    = await upsertProduct(client, adminId, PG.beverages, 'Iced Tea',         'Chilled brewed tea served over ice',                55.00, 1);
-    P.coldCoffee = await upsertProduct(client, adminId, PG.beverages, 'Cold Brew Coffee', 'Smooth cold-steeped coffee concentrate over ice',   85.00, 2);
-    P.water      = await upsertProduct(client, adminId, PG.beverages, 'Mineral Water',    'Chilled bottled mineral water',                     35.00, 3);
+    P.lemonade           = await upsertProduct(client, adminId, PG.beverages, 'Lemonade',             'Freshly squeezed lemonade, sweet and tart',                   65.00, 0);
+    P.icedTea            = await upsertProduct(client, adminId, PG.beverages, 'Iced Tea',             'Chilled brewed tea served over ice',                          55.00, 1);
+    P.coldCoffee         = await upsertProduct(client, adminId, PG.beverages, 'Cold Brew Coffee',     'Smooth cold-steeped coffee concentrate over ice',             85.00, 2);
+    P.water              = await upsertProduct(client, adminId, PG.beverages, 'Mineral Water',        'Chilled bottled mineral water',                               35.00, 3);
+    P.mangoShake         = await upsertProduct(client, adminId, PG.beverages, 'Mango Shake',          'Thick and creamy shake made from ripe Philippine mangoes',     95.00, 4);
+    P.chocolateMilkshake = await upsertProduct(client, adminId, PG.beverages, 'Chocolate Milkshake',  'Rich and indulgent chocolate milkshake',                      109.00, 5);
+    P.sodaCan            = await upsertProduct(client, adminId, PG.beverages, 'Soda (Can)',           'Assorted canned sodas — ask your cashier for available flavors', 45.00, 6);
+    P.calamansijuice     = await upsertProduct(client, adminId, PG.beverages, 'Calamansi Juice',      'Refreshing juice from fresh Philippine calamansi',             65.00, 7);
 
     console.log(`  ✓ Products: ${Object.keys(P).length}`);
 
@@ -236,32 +252,60 @@ async function seed() {
     await linkProductModifier(client, P.spicyBurger, MG.spice, 1);
     await linkProductModifier(client, P.spicyBurger, MG.sauce, 2);
 
+    await linkProductModifier(client, P.mushroomBurger,      MG.size,  0);
+    await linkProductModifier(client, P.mushroomBurger,      MG.addons,1);
+    await linkProductModifier(client, P.mushroomBurger,      MG.sauce, 2);
+    await linkProductModifier(client, P.fishBurger,          MG.size,  0);
+    await linkProductModifier(client, P.fishBurger,          MG.sauce, 1);
+    await linkProductModifier(client, P.crispyChickenBurger, MG.size,  0);
+    await linkProductModifier(client, P.crispyChickenBurger, MG.addons,1);
+    await linkProductModifier(client, P.crispyChickenBurger, MG.sauce, 2);
+
     // Chicken
-    await linkProductModifier(client, P.friedChicken,    MG.size,  0);
-    await linkProductModifier(client, P.friedChicken,    MG.spice, 1);
-    await linkProductModifier(client, P.grilledChicken,  MG.spice, 0);
-    await linkProductModifier(client, P.grilledChicken,  MG.sauce, 1);
-    await linkProductModifier(client, P.chickenSandwich, MG.addons,0);
-    await linkProductModifier(client, P.chickenSandwich, MG.sauce, 1);
+    await linkProductModifier(client, P.friedChicken,        MG.size,  0);
+    await linkProductModifier(client, P.friedChicken,        MG.spice, 1);
+    await linkProductModifier(client, P.grilledChicken,      MG.spice, 0);
+    await linkProductModifier(client, P.grilledChicken,      MG.sauce, 1);
+    await linkProductModifier(client, P.chickenSandwich,     MG.addons,0);
+    await linkProductModifier(client, P.chickenSandwich,     MG.sauce, 1);
+    await linkProductModifier(client, P.chickenWings,        MG.size,  0);
+    await linkProductModifier(client, P.chickenWings,        MG.spice, 1);
+    await linkProductModifier(client, P.chickenWings,        MG.sauce, 2);
+    await linkProductModifier(client, P.spicyChickenSandwich,MG.spice, 0);
+    await linkProductModifier(client, P.spicyChickenSandwich,MG.addons,1);
+    await linkProductModifier(client, P.spicyChickenSandwich,MG.sauce, 2);
+    await linkProductModifier(client, P.chickenStrips,       MG.spice, 0);
+    await linkProductModifier(client, P.chickenStrips,       MG.sauce, 1);
 
     // Rice Meals
     await linkProductModifier(client, P.chickenRiceBowl, MG.spice,  0);
     await linkProductModifier(client, P.chickenRiceBowl, MG.addons, 1);
     await linkProductModifier(client, P.beefRiceBowl,    MG.addons, 0);
-    await linkProductModifier(client, P.sisig,            MG.spice,  0);
+    await linkProductModifier(client, P.sisig,           MG.spice,  0);
+    await linkProductModifier(client, P.tapsilog,        MG.spice,  0);
+    await linkProductModifier(client, P.bangusRice,      MG.spice,  0);
 
     // Sides
     await linkProductModifier(client, P.frenchFries, MG.size,  0);
     await linkProductModifier(client, P.frenchFries, MG.sauce, 1);
     await linkProductModifier(client, P.onionRings,  MG.sauce, 0);
+    await linkProductModifier(client, P.mozSticks,   MG.sauce, 0);
+    await linkProductModifier(client, P.loadedFries, MG.size,  0);
+    await linkProductModifier(client, P.loadedFries, MG.sauce, 1);
 
     // Beverages
-    await linkProductModifier(client, P.lemonade,   MG.size,       0);
-    await linkProductModifier(client, P.lemonade,   MG.sugarLevel, 1);
-    await linkProductModifier(client, P.icedTea,    MG.size,       0);
-    await linkProductModifier(client, P.icedTea,    MG.sugarLevel, 1);
-    await linkProductModifier(client, P.coldCoffee, MG.size,       0);
-    await linkProductModifier(client, P.coldCoffee, MG.sugarLevel, 1);
+    await linkProductModifier(client, P.lemonade,           MG.size,       0);
+    await linkProductModifier(client, P.lemonade,           MG.sugarLevel, 1);
+    await linkProductModifier(client, P.icedTea,            MG.size,       0);
+    await linkProductModifier(client, P.icedTea,            MG.sugarLevel, 1);
+    await linkProductModifier(client, P.coldCoffee,         MG.size,       0);
+    await linkProductModifier(client, P.coldCoffee,         MG.sugarLevel, 1);
+    await linkProductModifier(client, P.mangoShake,         MG.size,       0);
+    await linkProductModifier(client, P.mangoShake,         MG.sugarLevel, 1);
+    await linkProductModifier(client, P.chocolateMilkshake, MG.size,       0);
+    await linkProductModifier(client, P.chocolateMilkshake, MG.sugarLevel, 1);
+    await linkProductModifier(client, P.calamansijuice,     MG.size,       0);
+    await linkProductModifier(client, P.calamansijuice,     MG.sugarLevel, 1);
 
     console.log('  ✓ Product–modifier-group links seeded');
 

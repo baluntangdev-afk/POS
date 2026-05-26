@@ -34,6 +34,12 @@ export class ModifierOption {
   })
   priceAddOn: string;
 
+  @Column({ type: 'boolean', name: 'is_available', default: true })
+  isAvailable: boolean;
+
+  @Column({ type: 'int', name: 'sort_order', default: 0 })
+  sortOrder: number;
+
   @ManyToOne(() => Material, { nullable: true })
   @JoinColumn({ name: 'material_id' })
   material: Material | null;

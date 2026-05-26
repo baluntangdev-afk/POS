@@ -29,59 +29,63 @@ class SalesReportScreen extends ConsumerWidget {
     final selectedTab = state.selectedTab;
     final isAndroid = context.breakpoint.isAndroid;
 
-    Widget content = Column(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: TopAppBar(
-            onBackPressed: () {
-              if (context.canPop()) context.pop();
-            },
-            title: 'Sales Report',
-          ),
-        ),
-        Container(
-          padding: context.responsive.value<EdgeInsets>(
-            phone: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            tablet: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            kiosk: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-          ),
-          color: Colors.white,
-          child: ReportTabSelector(
-            selectedTab: selectedTab,
-            onTabChanged: (tab) => ref.read(salesReportProvider.notifier).updateTab(tab),
-          ),
-        ),
-        Expanded(
-          child: state.error != null && !state.isLoading
-              ? _ReportErrorView(
-                  error: state.error!,
-                  onRetry: () => ref.invalidate(salesReportProvider),
-                )
-              : AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  transitionBuilder: (child, animation) =>
-                      FadeTransition(opacity: animation, child: child),
-                  child: selectedTab == ReportTab.dashboard
-                      ? _DashboardContent(
-                          key: const ValueKey('dashboard'),
-                          state: state,
-                          selectedDateFilter: selectedDateFilter,
-                          isAndroid: isAndroid,
-                        )
-                      : const SalesHealthPage(),
+    Widget content = ColoredBox(
+      color: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
                 ),
-        ),
-      ],
+              ],
+            ),
+            child: TopAppBar(
+              onBackPressed: () {
+                if (context.canPop()) context.pop();
+              },
+              title: 'Sales Report',
+            ),
+          ),
+          const Gap(10),
+          Container(
+            padding: context.responsive.value<EdgeInsets>(
+              phone: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              tablet: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              kiosk: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+            ),
+            child: ReportTabSelector(
+              selectedTab: selectedTab,
+              onTabChanged: (tab) => ref.read(salesReportProvider.notifier).updateTab(tab),
+            ),
+          ),
+          Expanded(
+            child: state.error != null && !state.isLoading
+                ? _ReportErrorView(
+                    error: state.error!,
+                    onRetry: () => ref.invalidate(salesReportProvider),
+                  )
+                : AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    transitionBuilder: (child, animation) =>
+                        FadeTransition(opacity: animation, child: child),
+                    child: selectedTab == ReportTab.dashboard
+                        ? _DashboardContent(
+                            key: const ValueKey('dashboard'),
+                            state: state,
+                            selectedDateFilter: selectedDateFilter,
+                            isAndroid: isAndroid,
+                          )
+                        : const SalesHealthPage(),
+                  ),
+          ),
+        ],
+      ),
     );
 
     // Android: pull-to-refresh reloads the report data.

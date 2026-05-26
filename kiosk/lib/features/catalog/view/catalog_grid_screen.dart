@@ -133,7 +133,7 @@ class _FilterBar extends StatelessWidget {
 
 // ── Category filter chips ─────────────────────────────────────────────────────
 
-class _CategoryChips extends ConsumerWidget {
+class _CategoryChips extends HookConsumerWidget {
   const _CategoryChips({required this.selectedCategoryId});
 
   final ValueNotifier<String?> selectedCategoryId;
@@ -141,36 +141,120 @@ class _CategoryChips extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categoriesState = ref.watch(catalogCategoriesProvider);
+    final scrollController = useScrollController();
+    final canScrollLeft = useState(false);
+    final canScrollRight = useState(false);
+
+    useEffect(() {
+      void update() {
+        if (!scrollController.hasClients) return;
+        final pos = scrollController.position;
+        canScrollLeft.value = pos.pixels > 0;
+        canScrollRight.value = pos.pixels < pos.maxScrollExtent;
+      }
+
+      scrollController.addListener(update);
+      WidgetsBinding.instance.addPostFrameCallback((_) => update());
+
+      return () => scrollController.removeListener(update);
+    }, [scrollController]);
+
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!scrollController.hasClients) return;
+        final pos = scrollController.position;
+        canScrollLeft.value = pos.pixels > 0;
+        canScrollRight.value = pos.pixels < pos.maxScrollExtent;
+      });
+      return null;
+    }, [categoriesState]);
 
     return categoriesState.maybeWhen(
       data: (categories) {
         if (categories.isEmpty) return const SizedBox.shrink();
 
+        final bgColor = Theme.of(context).scaffoldBackgroundColor;
+
         return SizedBox(
           height: context.responsive.value(kiosk: 40.0, tablet: 36.0, phone: 32.0),
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: categories.length + 1,
-            separatorBuilder: (_, __) => Gap(
-              context.responsive.value(kiosk: 8, tablet: 6, phone: 6),
-            ),
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                return _Chip(
-                  label: 'All',
-                  isSelected: selectedCategoryId.value == null,
-                  onTap: () => selectedCategoryId.value = null,
-                  context: context,
-                );
-              }
-              final cat = categories[index - 1];
-              return _Chip(
-                label: '${cat.name} (${cat.productCount})',
-                isSelected: selectedCategoryId.value == cat.id,
-                onTap: () => selectedCategoryId.value = cat.id,
-                context: context,
-              );
-            },
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: ListView.separated(
+                  controller: scrollController,
+                  scrollDirection: Axis.horizontal,
+                  itemCount: categories.length + 1,
+                  separatorBuilder: (_, __) => Gap(
+                    context.responsive.value(kiosk: 8, tablet: 6, phone: 6),
+                  ),
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return _Chip(
+                        label: 'All',
+                        isSelected: selectedCategoryId.value == null,
+                        onTap: () => selectedCategoryId.value = null,
+                        context: context,
+                      );
+                    }
+                    final cat = categories[index - 1];
+                    return _Chip(
+                      label: '${cat.name} (${cat.productCount})',
+                      isSelected: selectedCategoryId.value == cat.id,
+                      onTap: () => selectedCategoryId.value = cat.id,
+                      context: context,
+                    );
+                  },
+                ),
+              ),
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                child: AnimatedOpacity(
+                  opacity: canScrollLeft.value ? 1.0 : 0.0,
+                  duration: POSAnimation.fast,
+                  child: IgnorePointer(
+                    ignoring: !canScrollLeft.value,
+                    child: _ScrollArrow(
+                      direction: _ArrowDirection.left,
+                      bgColor: bgColor,
+                      onTap: () => scrollController.animateTo(
+                        (scrollController.offset - 160).clamp(
+                          0.0,
+                          scrollController.position.maxScrollExtent,
+                        ),
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: AnimatedOpacity(
+                  opacity: canScrollRight.value ? 1.0 : 0.0,
+                  duration: POSAnimation.fast,
+                  child: IgnorePointer(
+                    ignoring: !canScrollRight.value,
+                    child: _ScrollArrow(
+                      direction: _ArrowDirection.right,
+                      bgColor: bgColor,
+                      onTap: () => scrollController.animateTo(
+                        (scrollController.offset + 160).clamp(
+                          0.0,
+                          scrollController.position.maxScrollExtent,
+                        ),
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -217,6 +301,63 @@ class _Chip extends StatelessWidget {
               fontSize: outerContext.responsive.value(kiosk: 13.0, tablet: 12.0, phone: 11.0),
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               color: isSelected ? Colors.white : POSColors.textSecondary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Scroll arrow indicator ────────────────────────────────────────────────────
+
+enum _ArrowDirection { left, right }
+
+class _ScrollArrow extends StatelessWidget {
+  const _ScrollArrow({
+    required this.direction,
+    required this.bgColor,
+    required this.onTap,
+  });
+
+  final _ArrowDirection direction;
+  final Color bgColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLeft = direction == _ArrowDirection.left;
+    final circleSize = context.responsive.value(kiosk: 30.0, tablet: 26.0, phone: 22.0);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: context.responsive.value(kiosk: 64.0, tablet: 52.0, phone: 44.0),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: isLeft ? Alignment.centerRight : Alignment.centerLeft,
+            end: isLeft ? Alignment.centerLeft : Alignment.centerRight,
+            colors: [
+              bgColor.withValues(alpha: 0.0),
+              bgColor.withValues(alpha: 0.95),
+            ],
+            stops: const [0.0, 0.6],
+          ),
+        ),
+        child: Center(
+          child: Container(
+            width: circleSize,
+            height: circleSize,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: POSShadow.card,
+            ),
+            child: Center(
+              child: Icon(
+                isLeft ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
+                size: context.responsive.value(kiosk: 18.0, tablet: 16.0, phone: 14.0),
+                color: POSColors.textSecondary,
+              ),
             ),
           ),
         ),

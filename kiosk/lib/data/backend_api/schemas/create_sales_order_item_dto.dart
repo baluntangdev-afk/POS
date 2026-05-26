@@ -13,6 +13,7 @@ class CreateSalesOrderItemDto with CreateSalesOrderItemDtoMappable {
     required this.price,
     required this.modifierGroups,
     this.discount,
+    this.description,
   });
 
   final int productVariantId;
@@ -20,6 +21,7 @@ class CreateSalesOrderItemDto with CreateSalesOrderItemDtoMappable {
   final double price;
   final List<CreateSalesOrderModifierGroupDto> modifierGroups;
   final ApplyDiscountItemDiscountDto? discount;
+  final String? description;
 
   static const fromJson = CreateSalesOrderItemDtoMapper.fromJson;
 }

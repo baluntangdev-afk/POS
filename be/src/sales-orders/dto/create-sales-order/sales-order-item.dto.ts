@@ -1,10 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
   IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
+  IsString,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -55,12 +56,16 @@ export class CreateSalesOrderItemDto {
   @Type(() => ApplyDiscountItemDiscountDto)
   discount?: ApplyDiscountItemDiscountDto;
 
+  @ApiPropertyOptional({ description: 'Item display name sent from client', example: 'Chickenjoy' })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
   // Hidden from dto
   causer: User;
   productVariant: ProductVariant | null;
   recipeId: number | null;
   itemSequence: number;
-  description: string;
   addOn: boolean;
   recipeItem: RecipeItem;
 }

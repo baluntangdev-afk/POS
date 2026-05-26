@@ -1,5 +1,8 @@
+import 'dart:ui';
+
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -30,7 +33,7 @@ class OrderingScreen extends ConsumerWidget {
           child: ResponsiveBuilder(
             kiosk: (context) => const _KioskLayout(),
             tablet: (context) => const _TabletLayout(),
-            phone: (context) => const _LandscapeLayout(),
+            phone: (context) => const _TabletLayout(),
           ),
         ),
       );
@@ -40,7 +43,7 @@ class OrderingScreen extends ConsumerWidget {
       body: ResponsiveBuilder(
         kiosk: (context) => const _KioskLayout(),
         tablet: (context) => const _TabletLayout(),
-        phone: (context) => const _LandscapeLayout(),
+        phone: (context) => const _TabletLayout(),
       ),
     );
   }
@@ -186,7 +189,7 @@ class _TabletLayout extends StatelessWidget {
 }
 
 // ── Category chip row for tablet ──────────────────────────────────────────────
-class _CategoryChipRow extends ConsumerWidget {
+class _CategoryChipRow extends HookConsumerWidget {
   const _CategoryChipRow();
 
   @override
@@ -203,39 +206,174 @@ class _CategoryChipRow extends ConsumerWidget {
     final productGroups = state.productGroups;
     final selectedGroup = state.selectedGroup;
 
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      itemCount: productGroups.length,
-      itemBuilder: (context, index) {
-        final group = productGroups[index];
-        final isSelected = group == selectedGroup;
-        return Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: AnimatedContainer(
-            duration: POSAnimation.fast,
-            child: FilterChip(
-              label: Text(group.name),
-              selected: isSelected,
-              onSelected: (_) => ref.read(orderingProvider.notifier).selectGroup(group),
-              selectedColor: ColorSet.primary,
-              backgroundColor: Colors.white,
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : POSColors.textSecondary,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                fontSize: 13,
+    final scrollController = useScrollController();
+    final canScrollLeft = useState(false);
+    final canScrollRight = useState(false);
+
+    void updateScrollState() {
+      if (!scrollController.hasClients) return;
+      final pos = scrollController.position;
+      canScrollLeft.value = pos.pixels > 2;
+      canScrollRight.value = pos.pixels < pos.maxScrollExtent - 2;
+    }
+
+    useEffect(() {
+      scrollController.addListener(updateScrollState);
+      WidgetsBinding.instance.addPostFrameCallback((_) => updateScrollState());
+      return () => scrollController.removeListener(updateScrollState);
+    }, const []);
+
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) => updateScrollState());
+      return null;
+    }, [productGroups.length]);
+
+    const arrowWidth = 60.0;
+    const animDuration = Duration(milliseconds: 250);
+    const scrollStep = 240.0;
+
+    return Stack(
+      children: [
+        ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(
+            physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+            dragDevices: {
+              PointerDeviceKind.touch,
+              PointerDeviceKind.mouse,
+              PointerDeviceKind.stylus,
+            },
+          ),
+          child: ListView.builder(
+          controller: scrollController,
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          itemCount: productGroups.length,
+          itemBuilder: (context, index) {
+            final group = productGroups[index];
+            final isSelected = group == selectedGroup;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: AnimatedContainer(
+                duration: POSAnimation.fast,
+                child: FilterChip(
+                  label: Text(group.name),
+                  selected: isSelected,
+                  onSelected: (_) => ref.read(orderingProvider.notifier).selectGroup(group),
+                  selectedColor: ColorSet.primary,
+                  backgroundColor: Colors.white,
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : POSColors.textSecondary,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                  side: BorderSide(
+                    color: isSelected ? ColorSet.primary : POSColors.borderStrong,
+                    width: 1.5,
+                  ),
+                  showCheckmark: false,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.sm)),
+                ),
               ),
-              side: BorderSide(
-                color: isSelected ? ColorSet.primary : POSColors.borderStrong,
-                width: 1.5,
+            );
+          },
+        ),
+        ),
+        // Left arrow
+        IgnorePointer(
+          ignoring: !canScrollLeft.value,
+          child: AnimatedOpacity(
+            opacity: canScrollLeft.value ? 1.0 : 0.0,
+            duration: animDuration,
+            curve: Curves.easeInOut,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: GestureDetector(
+                onTap: () => scrollController.animateTo(
+                  scrollController.offset - scrollStep,
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.decelerate,
+                ),
+                child: Container(
+                  width: arrowWidth,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.white, Colors.white.withValues(alpha: 0)],
+                      stops: const [0.4, 1.0],
+                    ),
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: POSShadow.card,
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.chevron_left_rounded,
+                          color: POSColors.textSecondary,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
-              showCheckmark: false,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.sm)),
             ),
           ),
-        );
-      },
+        ),
+        // Right arrow
+        IgnorePointer(
+          ignoring: !canScrollRight.value,
+          child: AnimatedOpacity(
+            opacity: canScrollRight.value ? 1.0 : 0.0,
+            duration: animDuration,
+            curve: Curves.easeInOut,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: GestureDetector(
+                onTap: () => scrollController.animateTo(
+                  scrollController.offset + scrollStep,
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.decelerate,
+                ),
+                child: Container(
+                  width: arrowWidth,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Colors.white.withValues(alpha: 0), Colors.white],
+                      stops: const [0.0, 0.6],
+                    ),
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: POSShadow.card,
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.chevron_right_rounded,
+                          color: POSColors.textSecondary,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -640,40 +778,40 @@ class _CategoriesList extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (scrollDirection == Axis.vertical) ...[
-                    Image.memory(
-                      group.image,
-                      height: context.responsive.value(kiosk: 28.0, tablet: 24.0, phone: 20.0),
-                      fit: BoxFit.contain,
-                      color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
-                      colorBlendMode: BlendMode.srcIn,
-                      errorBuilder:
-                          (_, __, ___) => Icon(
-                            Icons.image_not_supported_outlined,
-                            size: context.responsive.value(kiosk: 28.0, tablet: 24.0, phone: 20.0),
-                            color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
-                          ),
-                    ),
+                    // Image.memory(
+                    //   group.image,
+                    //   height: context.responsive.value(kiosk: 28.0, tablet: 24.0, phone: 20.0),
+                    //   fit: BoxFit.contain,
+                    //   color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
+                    //   colorBlendMode: BlendMode.srcIn,
+                    //   errorBuilder:
+                    //       (_, __, ___) => Icon(
+                    //         Icons.image_not_supported_outlined,
+                    //         size: context.responsive.value(kiosk: 28.0, tablet: 24.0, phone: 20.0),
+                    //         color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
+                    //       ),
+                    // ),
                     Gap(context.responsive.value(kiosk: 4.0, tablet: 3.0, phone: 2.0)),
                   ],
                   if (scrollDirection == Axis.horizontal) ...[
-                    Expanded(
-                      child: Image.memory(
-                        group.image,
-                        fit: BoxFit.contain,
-                        color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
-                        colorBlendMode: BlendMode.srcIn,
-                        errorBuilder:
-                            (_, __, ___) => Icon(
-                              Icons.image_not_supported_outlined,
-                              size: context.responsive.value(
-                                kiosk: 28.0,
-                                tablet: 24.0,
-                                phone: 20.0,
-                              ),
-                              color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
-                            ),
-                      ),
-                    ),
+                    // Expanded(
+                    //   child: Image.memory(
+                    //     group.image,
+                    //     fit: BoxFit.contain,
+                    //     color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
+                    //     colorBlendMode: BlendMode.srcIn,
+                    //     errorBuilder:
+                    //         (_, __, ___) => Icon(
+                    //           Icons.image_not_supported_outlined,
+                    //           size: context.responsive.value(
+                    //             kiosk: 28.0,
+                    //             tablet: 24.0,
+                    //             phone: 20.0,
+                    //           ),
+                    //           color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
+                    //         ),
+                    //   ),
+                    // ),
                     Gap(context.responsive.value(kiosk: 4.0, tablet: 3.0, phone: 2.0)),
                   ],
                   Text(

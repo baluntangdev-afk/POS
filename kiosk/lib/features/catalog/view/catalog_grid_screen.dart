@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
@@ -180,30 +182,39 @@ class _CategoryChips extends HookConsumerWidget {
           child: Stack(
             children: [
               Positioned.fill(
-                child: ListView.separated(
-                  controller: scrollController,
-                  scrollDirection: Axis.horizontal,
-                  itemCount: categories.length + 1,
-                  separatorBuilder: (_, __) => Gap(
-                    context.responsive.value(kiosk: 8, tablet: 6, phone: 6),
+                child: ScrollConfiguration(
+                  behavior: ScrollConfiguration.of(context).copyWith(
+                    dragDevices: {
+                      PointerDeviceKind.touch,
+                      PointerDeviceKind.mouse,
+                      PointerDeviceKind.stylus,
+                    },
                   ),
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
+                  child: ListView.separated(
+                    controller: scrollController,
+                    scrollDirection: Axis.horizontal,
+                    itemCount: categories.length + 1,
+                    separatorBuilder: (_, __) => Gap(
+                      context.responsive.value(kiosk: 8, tablet: 6, phone: 6),
+                    ),
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return _Chip(
+                          label: 'All',
+                          isSelected: selectedCategoryId.value == null,
+                          onTap: () => selectedCategoryId.value = null,
+                          context: context,
+                        );
+                      }
+                      final cat = categories[index - 1];
                       return _Chip(
-                        label: 'All',
-                        isSelected: selectedCategoryId.value == null,
-                        onTap: () => selectedCategoryId.value = null,
+                        label: '${cat.name} (${cat.productCount})',
+                        isSelected: selectedCategoryId.value == cat.id,
+                        onTap: () => selectedCategoryId.value = cat.id,
                         context: context,
                       );
-                    }
-                    final cat = categories[index - 1];
-                    return _Chip(
-                      label: '${cat.name} (${cat.productCount})',
-                      isSelected: selectedCategoryId.value == cat.id,
-                      onTap: () => selectedCategoryId.value = cat.id,
-                      context: context,
-                    );
-                  },
+                    },
+                  ),
                 ),
               ),
               Positioned(

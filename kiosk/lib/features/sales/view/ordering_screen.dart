@@ -236,7 +236,6 @@ class _CategoryChipRow extends HookConsumerWidget {
       children: [
         ScrollConfiguration(
           behavior: ScrollConfiguration.of(context).copyWith(
-            physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
             dragDevices: {
               PointerDeviceKind.touch,
               PointerDeviceKind.mouse,
@@ -244,40 +243,40 @@ class _CategoryChipRow extends HookConsumerWidget {
             },
           ),
           child: ListView.builder(
-          controller: scrollController,
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          itemCount: productGroups.length,
-          itemBuilder: (context, index) {
-            final group = productGroups[index];
-            final isSelected = group == selectedGroup;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: AnimatedContainer(
-                duration: POSAnimation.fast,
-                child: FilterChip(
-                  label: Text(group.name),
-                  selected: isSelected,
-                  onSelected: (_) => ref.read(orderingProvider.notifier).selectGroup(group),
-                  selectedColor: ColorSet.primary,
-                  backgroundColor: Colors.white,
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : POSColors.textSecondary,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    fontSize: 13,
+            controller: scrollController,
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            itemCount: productGroups.length,
+            itemBuilder: (context, index) {
+              final group = productGroups[index];
+              final isSelected = group == selectedGroup;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: AnimatedContainer(
+                  duration: POSAnimation.fast,
+                  child: FilterChip(
+                    label: Text(group.name),
+                    selected: isSelected,
+                    onSelected: (_) => ref.read(orderingProvider.notifier).selectGroup(group),
+                    selectedColor: ColorSet.primary,
+                    backgroundColor: Colors.white,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : POSColors.textSecondary,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                    side: BorderSide(
+                      color: isSelected ? ColorSet.primary : POSColors.borderStrong,
+                      width: 1.5,
+                    ),
+                    showCheckmark: false,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.sm)),
                   ),
-                  side: BorderSide(
-                    color: isSelected ? ColorSet.primary : POSColors.borderStrong,
-                    width: 1.5,
-                  ),
-                  showCheckmark: false,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.sm)),
                 ),
-              ),
-            );
-          },
-        ),
+              );
+            },
+          ),
         ),
         // Left arrow
         IgnorePointer(

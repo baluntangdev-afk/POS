@@ -40,7 +40,18 @@
       "Bash(Select-Object -ExpandProperty FullName)",
       "PowerShell($env:PATH; where.exe dart 2>&1; where.exe flutter 2>&1)",
       "Bash(xargs grep -l \"product-groups\")",
-      "Bash(xargs ls -la)"
+      "Bash(xargs ls -la)",
+      "Bash(Select-Object Name, LastWriteTime)",
+      "Bash(Sort-Object LastWriteTime -Descending)",
+      "Bash(Sort-Object)",
+      "Bash(xargs grep -l \"PosTerminal\\\\|pos_terminal\\\\|terminal.*dialog\")",
+      "Bash(xargs grep -l \"PosTerminal\\\\|getMyTerminal\")",
+      "Bash(dart analyze *)",
+      "Bash(xargs grep -l \"pos.terminal\\\\|register.*pos\\\\|pos.*register\\\\|PosTerminal\")",
+      "Bash(xargs grep -l \"PaymentMethod\")",
+      "Bash(xargs grep -l \"admin\\\\|Admin\\\\|role\\\\|Role\")",
+      "Bash(xargs ls -1)",
+      "Bash(xargs grep -A5 \"JWT\\\\|JwtAuth\\\\|global\")"
     ]
   }
 }

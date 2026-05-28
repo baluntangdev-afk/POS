@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -8,20 +9,74 @@ import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
-import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/android_bottom_sheet.dart';
+import '../../../widgets/android_scaffold.dart';
+import '../../../widgets/message_dialog.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/access.dart';
+import '../enums/role.dart';
 import '../state/access_notifier.dart';
+import '../state/pos_terminal_notifier.dart';
 import '../view/menu_grid.dart';
+import '../view/register_pos_terminal_dialog.dart';
 
-class MenuScreen extends ConsumerWidget {
+class MenuScreen extends HookConsumerWidget {
   const MenuScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final access = ref.watch(accessProvider.select((it) => it.value ?? Access.unknown()));
     final isAndroid = context.breakpoint.isAndroid;
+    final hasShownPosDialog = useRef(false);
+
+    void checkAndShowPosDialog() {
+      if (hasShownPosDialog.value) return;
+      final posState = ref.read(posTerminalProvider);
+      final accessState = ref.read(accessProvider);
+      if (posState.isLoading || accessState.isLoading) return;
+      if (!posState.hasError) return;
+
+      hasShownPosDialog.value = true;
+      final isAdmin = accessState.value?.role == Role.admin;
+
+      if (isAdmin) {
+        showMessageDialog(
+          context,
+          title: 'No POS Terminal Assigned',
+          message:
+              'No POS terminal is assigned to this account. Register a new terminal or sign out.',
+          type: DialogType.error,
+          primaryButtonText: 'Register POS',
+          secondaryButtonText: 'Sign Out',
+          barrierDismissible: false,
+          onPrimaryPressed: () {
+            Navigator.of(context, rootNavigator: true).pop();
+            showRegisterPosTerminalDialog(context, ref);
+          },
+          onSecondaryPressed: () {
+            Navigator.of(context, rootNavigator: true).pop();
+            const OnboardingRoute().go(context);
+          },
+        );
+      } else {
+        showMessageDialog(
+          context,
+          title: 'No POS Terminal Assigned',
+          message:
+              'This account does not have a POS terminal assigned. Please contact your administrator.',
+          type: DialogType.error,
+          primaryButtonText: 'Sign Out',
+          barrierDismissible: false,
+          onPrimaryPressed: () {
+            Navigator.of(context, rootNavigator: true).pop();
+            const OnboardingRoute().go(context);
+          },
+        );
+      }
+    }
+
+    ref.listen(posTerminalProvider, (prev, next) => checkAndShowPosDialog());
+    ref.listen(accessProvider, (prev, next) => checkAndShowPosDialog());
 
     if (isAndroid) {
       return _AndroidMenuScreen(access: access);

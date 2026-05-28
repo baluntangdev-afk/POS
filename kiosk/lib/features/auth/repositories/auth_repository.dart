@@ -22,7 +22,11 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final authApi = ref.watch(authApiProvider);
   final authStorage = ref.watch(authStorageProvider);
   final userApi = ref.watch(userApiProvider);
-  return AuthRepositoryImpl(authApi: authApi, authStorage: authStorage, userApi: userApi);
+  return AuthRepositoryImpl(
+    authApi: authApi,
+    authStorage: authStorage,
+    userApi: userApi,
+  );
 });
 
 class AuthRepositoryImpl implements AuthRepository {

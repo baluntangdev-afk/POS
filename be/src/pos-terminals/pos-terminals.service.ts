@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PosTerminal } from './entities/pos-terminal.entity';
 import { CreatePosTerminalDto } from './dto/create-pos-terminal.dto';
+import { UpdatePosTerminalDto } from './dto/update-pos-terminal.dto';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class PosTerminalsService {
@@ -41,6 +43,19 @@ export class PosTerminalsService {
       assignedUser: { id: userId },
       createdBy: { id: userId },
     });
+
+    return this.posTerminalRepository.save(terminal);
+  }
+
+  async updateForUser(userId: number, dto: UpdatePosTerminalDto): Promise<PosTerminal> {
+    const terminal = await this.findAssignedToUser(userId);
+
+    if (dto.legalName !== undefined) terminal.legalName = dto.legalName;
+    if (dto.address !== undefined) terminal.address = dto.address;
+    if (dto.tinNumber !== undefined) terminal.tinNumber = dto.tinNumber;
+    if (dto.paymentMethod !== undefined) terminal.paymentMethod = dto.paymentMethod;
+    terminal.paymentNumber = dto.paymentNumber ?? null;
+    terminal.updatedBy = { id: userId } as User;
 
     return this.posTerminalRepository.save(terminal);
   }

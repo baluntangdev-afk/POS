@@ -23,6 +23,27 @@ class PosTerminalsApi {
     return PosTerminalDto.fromJson(json);
   }
 
+  Future<PosTerminalDto> updateMyTerminal({
+    required String legalName,
+    required String address,
+    required String tinNumber,
+    required PaymentMethod paymentMethod,
+    String? paymentNumber,
+  }) async {
+    final response = await _secureClient.patch<dynamic>(
+      '/api/v1/pos-terminals/my-terminal',
+      data: {
+        'legalName': legalName,
+        'address': address,
+        'tinNumber': tinNumber,
+        'paymentMethod': paymentMethod.toValue(),
+        'paymentNumber': paymentNumber,
+      },
+    );
+    final json = jsonEncode(response.data);
+    return PosTerminalDto.fromJson(json);
+  }
+
   Future<PosTerminalDto> registerMyTerminal({
     required String legalName,
     required String address,

@@ -10,6 +10,7 @@ import '../../../data/backend_api/schemas/confirm_sales_order_dto.dart';
 import '../../../data/backend_api/schemas/payment_details_dto.dart';
 import '../../../data/backend_api/schemas/payment_query_dto.dart';
 import '../../../data/backend_api/schemas/payment_response_dto.dart';
+import '../../../data/backend_api/schemas/pos_terminal_dto.dart';
 import '../../../data/backend_api/schemas/refund_item_response_dto.dart';
 import '../../../data/backend_api/schemas/refund_query_dto.dart';
 import '../../../data/backend_api/schemas/refund_with_items_response_dto.dart';
@@ -18,11 +19,10 @@ import '../../../data/backend_api/schemas/sales_order_query_dto.dart';
 import '../../../data/backend_api/schemas/sales_order_with_items_response_dto.dart';
 import '../../../data/backend_api/schemas/user_dto.dart';
 import '../../../data/backend_api/sources/payments_api.dart';
+import '../../../data/backend_api/sources/pos_terminals_api.dart';
 import '../../../data/backend_api/sources/refunds_api.dart';
 import '../../../data/backend_api/sources/sales_orders_api.dart';
 import '../../../data/backend_api/sources/user_api.dart';
-import '../../../data/shared_preferences/schemas/franchisee_info_pref.dart';
-import '../../../data/shared_preferences/sources/franchisee_info_storage.dart';
 import '../../../utils/paginated_data.dart';
 import '../entities/cashier.dart';
 import '../entities/payment.dart';
@@ -53,7 +53,7 @@ final receiptRepositoryProvider = Provider<ReceiptRepository>((ref) {
     ref.watch(userApiProvider),
     ref.watch(paymentsApiProvider),
     ref.watch(refundsApiProvider),
-    ref.watch(franchiseeInfoStorageProvider),
+    ref.watch(posTerminalsApiProvider),
   );
 });
 
@@ -63,14 +63,14 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
     this._usersApi,
     this._paymentsApi,
     this._refundsApi,
-    this._franchiseeInfoStorage,
+    this._posTerminalsApi,
   );
 
   final SalesOrdersApi _salesOrdersApi;
   final UserApi _usersApi;
   final PaymentsApi _paymentsApi;
   final RefundsApi _refundsApi;
-  final FranchiseeInfoStorage _franchiseeInfoStorage;
+  final PosTerminalsApi _posTerminalsApi;
 
   @override
   Future<Receipt> save(Receipt receipt) async {
@@ -95,19 +95,19 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
   Future<Receipt> getById(String id) async {
     final getResponse = await _salesOrdersApi.getById(id);
 
-    final (userDto, paginatedPaymentDto, paginatedRefundDto, franchiseeInfoPref) =
+    final (userDto, paginatedPaymentDto, paginatedRefundDto, posTerminalDto) =
         await (
           _usersApi.getUserById(getResponse.createdBy),
           _paymentsApi.getAll(PaymentQueryDto(soNumber: getResponse.soNumber)),
           _refundsApi.getAll(RefundQueryDto(originalSalesOrderId: getResponse.id)),
-          _franchiseeInfoStorage.fetch(),
+          _posTerminalsApi.getMyTerminal(),
         ).wait;
 
     return _receiptFromSalesOrderWithItemsDto(
       getResponse,
       cashier: _cashierFromUserDto(userDto),
       payment: _paymentFromPaymentResponseDto(paginatedPaymentDto.data.firstOrNull),
-      store: _storeFromFranchiseeInfoPref(franchiseeInfoPref),
+      store: _storeFromPosTerminalDto(posTerminalDto),
       refunds:
           paginatedRefundDto.data
               .map((dto) => _refundFromRefundWithItemsResponseDto(dto, salesOrder: getResponse))
@@ -132,8 +132,8 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
       status: SalesOrderStatus.confirmed,
     );
 
-    final (salesOrdersResponse, franchiseeInfoPref) =
-        await (_salesOrdersApi.getAll(salesOrdersQuery), _franchiseeInfoStorage.fetch()).wait;
+    final (salesOrdersResponse, posTerminalDto) =
+        await (_salesOrdersApi.getAll(salesOrdersQuery), _posTerminalsApi.getMyTerminal()).wait;
 
     return PaginatedData(
       page: page,
@@ -143,7 +143,7 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
           salesOrdersResponse.data.map((dto) {
             return _receiptFromSalesOrderWithItemsDto(
               dto,
-              store: _storeFromFranchiseeInfoPref(franchiseeInfoPref),
+              store: _storeFromPosTerminalDto(posTerminalDto),
               cashier: Cashier.unknown(),
               payment: ZeroPayment(),
             );
@@ -265,13 +265,12 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
     );
   }
 
-  Store _storeFromFranchiseeInfoPref(FranchiseeInfoPref pref) {
+  Store _storeFromPosTerminalDto(PosTerminalDto dto) {
     return Store(
-      legalName: pref.legalName,
-      tin: pref.tin,
-      addressLine1: pref.addressLine1,
-      addressLine2: pref.addressLine2,
-      logo: pref.franchiseLogo,
+      legalName: dto.legalName ?? '',
+      tin: dto.tinNumber,
+      addressLine1: dto.address,
+      addressLine2: '',
     );
   }
 

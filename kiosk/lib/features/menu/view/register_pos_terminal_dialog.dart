@@ -82,118 +82,120 @@ class RegisterPosTerminalDialog extends HookConsumerWidget {
         ),
         child: Form(
           key: formKey.value,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _DialogHeader(),
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _PosFormField(
-                      label: 'Legal Name',
-                      controller: legalNameController,
-                      hint: 'e.g. ABC Corporation',
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Legal Name is required' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    _PosFormField(
-                      label: 'Address',
-                      controller: addressController,
-                      hint: 'e.g. 123 Main St., City',
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Address is required' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    _PosFormField(
-                      label: 'TIN Number',
-                      controller: tinController,
-                      hint: 'e.g. 123-456-789-000',
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'TIN Number is required' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    _PaymentMethodField(
-                      value: paymentMethod.value,
-                      onChanged: (m) {
-                        paymentMethod.value = m!;
-                        paymentNumberController.clear();
-                      },
-                    ),
-                    if (paymentMethod.value != PaymentMethod.cash) ...[
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _DialogHeader(),
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _PosFormField(
+                        label: 'Legal Name',
+                        controller: legalNameController,
+                        hint: 'e.g. ABC Corporation',
+                        validator: (v) =>
+                            (v == null || v.trim().isEmpty) ? 'Legal Name is required' : null,
+                      ),
                       const SizedBox(height: 16),
                       _PosFormField(
-                        label: 'Payment Number',
-                        controller: paymentNumberController,
-                        hint: 'e.g. 09171234567',
+                        label: 'Address',
+                        controller: addressController,
+                        hint: 'e.g. 123 Main St., City',
+                        validator: (v) =>
+                            (v == null || v.trim().isEmpty) ? 'Address is required' : null,
                       ),
-                    ],
-                    if (errorMessage.value != null) ...[
                       const SizedBox(height: 16),
-                      _RegisterErrorBanner(message: errorMessage.value!),
-                    ],
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: isSubmitting.value ? null : onCancel,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: ColorSet.danger,
-                              side: BorderSide(
-                                color: ColorSet.danger.withValues(alpha: 0.5),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(POSRadius.md),
-                              ),
-                            ),
-                            child: const Text(
-                              'Sign Out',
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: FilledButton(
-                            onPressed: isSubmitting.value ? null : onRegister,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: ColorSet.primary,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(POSRadius.md),
-                              ),
-                            ),
-                            child: isSubmitting.value
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                      strokeCap: StrokeCap.round,
-                                    ),
-                                  )
-                                : const Text(
-                                    'Register Terminal',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                          ),
+                      _PosFormField(
+                        label: 'TIN Number',
+                        controller: tinController,
+                        hint: 'e.g. 123-456-789-000',
+                        validator: (v) =>
+                            (v == null || v.trim().isEmpty) ? 'TIN Number is required' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      _PaymentMethodField(
+                        value: paymentMethod.value,
+                        onChanged: (m) {
+                          paymentMethod.value = m!;
+                          paymentNumberController.clear();
+                        },
+                      ),
+                      if (paymentMethod.value != PaymentMethod.cash) ...[
+                        const SizedBox(height: 16),
+                        _PosFormField(
+                          label: 'Payment Number',
+                          controller: paymentNumberController,
+                          hint: 'e.g. 09171234567',
                         ),
                       ],
-                    ),
-                  ],
+                      if (errorMessage.value != null) ...[
+                        const SizedBox(height: 16),
+                        _RegisterErrorBanner(message: errorMessage.value!),
+                      ],
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: isSubmitting.value ? null : onCancel,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: ColorSet.danger,
+                                side: BorderSide(
+                                  color: ColorSet.danger.withValues(alpha: 0.5),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(POSRadius.md),
+                                ),
+                              ),
+                              child: const Text(
+                                'Sign Out',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: FilledButton(
+                              onPressed: isSubmitting.value ? null : onRegister,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: ColorSet.primary,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(POSRadius.md),
+                                ),
+                              ),
+                              child: isSubmitting.value
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                        strokeCap: StrokeCap.round,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Register Terminal',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

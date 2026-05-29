@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiConflictResponse, ApiForbiddenResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PosTerminalsService } from './pos-terminals.service';
 import { CurrentUser } from '../utils/decorators/current-user.decorator';
 import { MeDto } from '../auth/dto/me.dto';
 import { PosTerminalDto } from './dto/pos-terminal.dto';
 import { CreatePosTerminalDto } from './dto/create-pos-terminal.dto';
+import { UpdatePosTerminalDto } from './dto/update-pos-terminal.dto';
 import { SystemAdminGuard } from '../auth/guards/system-admin.guard';
 
 @ApiTags('POS Terminals')
@@ -19,6 +20,17 @@ export class PosTerminalsController {
   @ApiResponse({ status: 404, description: 'No POS terminal is assigned to your account' })
   async getMyTerminal(@CurrentUser() user: MeDto): Promise<PosTerminalDto> {
     const terminal = await this.posTerminalsService.findAssignedToUser(user.id);
+    return PosTerminalDto.from(terminal);
+  }
+
+  @Patch('my-terminal')
+  @UseGuards(SystemAdminGuard)
+  @ApiOperation({ summary: 'Update the POS terminal details for the current admin user' })
+  @ApiResponse({ status: 200, description: 'POS terminal updated successfully', type: PosTerminalDto })
+  @ApiResponse({ status: 404, description: 'No POS terminal is assigned to your account' })
+  @ApiForbiddenResponse({ description: 'System admin access required' })
+  async updateMyTerminal(@CurrentUser() user: MeDto, @Body() dto: UpdatePosTerminalDto): Promise<PosTerminalDto> {
+    const terminal = await this.posTerminalsService.updateForUser(user.id, dto);
     return PosTerminalDto.from(terminal);
   }
 

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../navigation/router.dart';
 import '../../../widgets/resposive_wrap_container.dart';
-import '../../settings/view/franchisee_info_dialog.dart';
+import '../../settings/view/pos_terminal_details_dialog.dart';
 import '../entities/menu_item.dart';
 import '../enums/menu_type.dart';
 import '../enums/role.dart';
@@ -52,7 +52,7 @@ class MenuGrid extends StatelessWidget {
                         return;
                       }
                       if (type == MenuType.settings) {
-                        showFranchiseeInfoDialog(context);
+                        showPosTerminalDetailsDialog(context);
                         return;
                       }
                       if (type == MenuType.inventory) {

@@ -12,6 +12,7 @@ import {
 import { UserSuffix } from '../users.enum';
 import { BaseStatus } from '../../utils/shared-enums';
 import { UserDetails } from '../../user-details/entities/user-details.entity';
+import { PosTerminal } from '../../pos-terminals/entities/pos-terminal.entity';
 
 @Entity('users')
 export class User {
@@ -107,6 +108,10 @@ export class User {
 
   @DeleteDateColumn({ type: 'timestamptz', nullable: true, name: 'deleted_at' })
   deletedAt: Date | null;
+
+  @ManyToOne(() => PosTerminal, { nullable: true })
+  @JoinColumn({ name: 'pos_terminal_id' })
+  posTerminal: PosTerminal | null;
 
   // relations
   @OneToOne(() => UserDetails, (userDetails) => userDetails.user)

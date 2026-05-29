@@ -1,6 +1,5 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PaymentMethod } from '../../payments/payments.enum';
+import { IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreatePosTerminalDto {
   @ApiProperty({ example: 'ABC Corporation' })
@@ -17,13 +16,4 @@ export class CreatePosTerminalDto {
   @IsString()
   @IsNotEmpty()
   tinNumber: string;
-
-  @ApiProperty({ enum: PaymentMethod })
-  @IsEnum(PaymentMethod)
-  paymentMethod: PaymentMethod;
-
-  @ApiPropertyOptional({ example: '09171234567' })
-  @IsString()
-  @IsOptional()
-  paymentNumber?: string;
 }

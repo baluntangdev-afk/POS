@@ -27,19 +27,6 @@ export class UsersSeeder implements Seeder {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-      {
-        userId: 'user',
-        email: 'user@cody.inc',
-        password,
-        salt,
-        firstName: 'User',
-        lastName: 'User',
-        devicePin: await bcrypt.hash('654321', salt),
-        status: BaseStatus.ACTIVE,
-        systemAdmin: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
     ];
 
     const repo = dataSource.getRepository(User);

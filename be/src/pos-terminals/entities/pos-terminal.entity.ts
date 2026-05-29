@@ -6,12 +6,13 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   ManyToOne,
+  OneToMany,
   JoinColumn,
   BeforeInsert,
 } from 'typeorm';
 import { uuidv7 } from 'uuidv7';
 import { User } from '../../users/entities/user.entity';
-import { PaymentMethod } from '../../payments/payments.enum';
+import { PosTerminalPaymentMethod } from './pos-terminal-payment-method.entity';
 
 @Entity('pos_terminals')
 export class PosTerminal {
@@ -35,16 +36,8 @@ export class PosTerminal {
   @Column({ type: 'varchar', length: 50, name: 'tin_number' })
   tinNumber: string;
 
-  @Column({
-    type: 'enum',
-    enum: PaymentMethod,
-    enumName: 'payments_payment_method_enum',
-    name: 'payment_method',
-  })
-  paymentMethod: PaymentMethod;
-
-  @Column({ type: 'varchar', length: 50, nullable: true, name: 'payment_number' })
-  paymentNumber: string | null;
+  @OneToMany(() => PosTerminalPaymentMethod, (pm) => pm.posTerminal)
+  paymentMethods: PosTerminalPaymentMethod[];
 
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'assigned_user_id' })

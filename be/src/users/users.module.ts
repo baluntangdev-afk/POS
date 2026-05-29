@@ -4,8 +4,9 @@ import { UsersController } from './users.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { UserDetailsModule } from '../user-details/user-details.module';
+import { PosTerminal } from '../pos-terminals/entities/pos-terminal.entity';
 @Module({
-  imports: [TypeOrmModule.forFeature([User]), UserDetailsModule],
+  imports: [TypeOrmModule.forFeature([User, PosTerminal]), UserDetailsModule],
   controllers: [UsersController],
   providers: [UsersService],
   exports: [UsersService],

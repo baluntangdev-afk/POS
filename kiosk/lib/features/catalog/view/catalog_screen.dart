@@ -9,6 +9,9 @@ import '../../../theme/pos_design.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
+import '../state/catalog_categories_notifier.dart';
+import '../state/catalog_modifier_groups_notifier.dart';
+import '../state/catalog_products_notifier.dart';
 import 'catalog_grid_screen.dart';
 import 'categories_tab.dart';
 import 'modifier_groups_screen.dart';
@@ -18,6 +21,15 @@ class CatalogScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.invalidate(catalogProductsProvider);
+        ref.invalidate(catalogCategoriesProvider);
+        ref.invalidate(catalogModifierGroupsProvider);
+      });
+      return null;
+    }, []);
+
     final isAndroid = context.breakpoint.isAndroid;
 
     if (isAndroid) {

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PaymentMethod } from '../../payments/payments.enum';
+import { PaymentMethodEntryDto } from './payment-method-entry.dto';
 import type { PosTerminal } from '../entities/pos-terminal.entity';
 
 export class PosTerminalDto {
@@ -18,11 +18,8 @@ export class PosTerminalDto {
   @ApiProperty({ example: '123-456-789-000' })
   tinNumber: string;
 
-  @ApiProperty({ enum: PaymentMethod })
-  paymentMethod: PaymentMethod;
-
-  @ApiPropertyOptional({ example: '09171234567' })
-  paymentNumber: string | null;
+  @ApiProperty({ type: [PaymentMethodEntryDto] })
+  paymentMethods: PaymentMethodEntryDto[];
 
   static from(terminal: PosTerminal): PosTerminalDto {
     const dto = new PosTerminalDto();
@@ -31,8 +28,7 @@ export class PosTerminalDto {
     dto.address = terminal.address;
     dto.legalName = terminal.legalName;
     dto.tinNumber = terminal.tinNumber;
-    dto.paymentMethod = terminal.paymentMethod;
-    dto.paymentNumber = terminal.paymentNumber;
+    dto.paymentMethods = (terminal.paymentMethods ?? []).map(PaymentMethodEntryDto.from);
     return dto;
   }
 }

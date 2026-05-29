@@ -14,12 +14,15 @@ import { USER_LIST_SELECT } from './dto/user-list-item.dto';
 import * as bcrypt from 'bcryptjs';
 import { UserDetailsService } from '../user-details/user-details.service';
 import { EntityHelper } from '../utils/entity.helper';
+import { PosTerminal } from '../pos-terminals/entities/pos-terminal.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(PosTerminal)
+    private readonly posTerminalRepository: Repository<PosTerminal>,
     private readonly userDetailsService: UserDetailsService,
   ) {}
 
@@ -59,6 +62,17 @@ export class UsersService {
     });
 
     const savedUser = await this.userRepository.save(user);
+
+    // Auto-assign the new user to the same POS terminal as the creating admin
+    const adminTerminal = await this.posTerminalRepository.findOne({
+      where: { assignedUser: { id: causer.id } },
+      select: { id: true },
+    });
+    if (adminTerminal) {
+      await this.userRepository.update(savedUser.id, {
+        posTerminal: { id: adminTerminal.id },
+      });
+    }
 
     // Create user_details if any detail field is provided
     if (

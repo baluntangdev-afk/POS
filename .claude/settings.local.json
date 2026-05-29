@@ -51,7 +51,8 @@
       "Bash(xargs grep -l \"PaymentMethod\")",
       "Bash(xargs grep -l \"admin\\\\|Admin\\\\|role\\\\|Role\")",
       "Bash(xargs ls -1)",
-      "Bash(xargs grep -A5 \"JWT\\\\|JwtAuth\\\\|global\")"
+      "Bash(xargs grep -A5 \"JWT\\\\|JwtAuth\\\\|global\")",
+      "Bash(Select-Object FullName)"
     ]
   }
 }

@@ -135,24 +135,6 @@ class _SalesHealthPageState extends ConsumerState<SalesHealthPage> {
                 spacing: 12,
                 items: [
                   _SalesDonutChart(
-                    title: 'Sales by Category',
-                    data: groupedData[SalesDataItemType.productGroup]?.toList() ?? [],
-                    dateRange: _getDateRangeText(
-                      selectedDateFilter,
-                      customStartDate,
-                      customEndDate,
-                    ),
-                  ),
-                  _SalesDonutChart(
-                    title: 'Sales by Item',
-                    data: groupedData[SalesDataItemType.product]?.toList() ?? [],
-                    dateRange: _getDateRangeText(
-                      selectedDateFilter,
-                      customStartDate,
-                      customEndDate,
-                    ),
-                  ),
-                  _SalesDonutChart(
                     title: 'Sales by Cashier',
                     data: groupedData[SalesDataItemType.user]?.toList() ?? [],
                     dateRange: _getDateRangeText(

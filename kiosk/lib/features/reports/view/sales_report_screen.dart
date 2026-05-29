@@ -208,13 +208,6 @@ class _MetricsCards extends StatelessWidget {
         icon: Icons.receipt,
         color: Colors.purple,
       ),
-      Metric(
-        isMonetary: false,
-        title: 'No. of Items',
-        value: state.totalItems.toString(),
-        icon: Icons.inventory_2,
-        color: Colors.teal,
-      ),
     ];
 
     return ResponsiveWrapContainer(

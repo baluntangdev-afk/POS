@@ -64,6 +64,8 @@ import { PaymentsChangeForTransaction1770874200000 } from './migrations/17708742
 import { SalesOrdersDecimalPrecisionScale1770874300000 } from './migrations/1770874300000-sales-orders-decimal-precision-scale';
 import { AddRefundItemRelations1772524305356 } from './migrations/1772524305356-add-refund-item-relations';
 import { Catalog1779580800000 } from './migrations/1779580800000-catalog';
+import { UsersPosTerminalId1779583300000 } from './migrations/1779583300000-users-pos-terminal-id';
+import { PosTerminalPaymentMethods1779583400000 } from './migrations/1779583400000-pos-terminal-payment-methods';
 
 /**
  * Migration classes for POSBackend.exe --migrate (same as npm run migration:up).
@@ -135,4 +137,6 @@ export const migrations: Array<new () => MigrationInterface> = [
   SalesOrdersDecimalPrecisionScale1770874300000,
   AddRefundItemRelations1772524305356,
   Catalog1779580800000,
+  UsersPosTerminalId1779583300000,
+  PosTerminalPaymentMethods1779583400000,
 ];

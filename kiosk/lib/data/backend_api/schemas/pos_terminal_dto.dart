@@ -1,5 +1,7 @@
 import 'package:dart_mappable/dart_mappable.dart';
 
+import 'payment_method_entry_dto.dart';
+
 part 'pos_terminal_dto.mapper.dart';
 
 @MappableClass()
@@ -10,8 +12,7 @@ class PosTerminalDto with PosTerminalDtoMappable {
     this.legalName,
     required this.address,
     required this.tinNumber,
-    required this.paymentMethod,
-    this.paymentNumber,
+    required this.paymentMethods,
   });
 
   final int id;
@@ -19,8 +20,7 @@ class PosTerminalDto with PosTerminalDtoMappable {
   final String? legalName;
   final String address;
   final String tinNumber;
-  final String paymentMethod;
-  final String? paymentNumber;
+  final List<PaymentMethodEntryDto> paymentMethods;
 
   static const fromJson = PosTerminalDtoMapper.fromJson;
 }

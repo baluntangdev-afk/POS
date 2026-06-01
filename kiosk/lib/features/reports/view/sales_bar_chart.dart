@@ -71,7 +71,12 @@ class SalesBarChart extends ConsumerWidget {
                         constraints: BoxConstraints(
                           minWidth: constraints.maxWidth,
                           maxWidth: constraints.maxWidth <= 800 ? 1000 : constraints.maxWidth,
-                          minHeight: constraints.maxHeight - 100,
+                          minHeight: constraints.maxHeight.isFinite
+                              ? (constraints.maxHeight - 100).clamp(
+                                  responsive.value<double>(kiosk: 200, tablet: 180, phone: 160),
+                                  double.infinity,
+                                )
+                              : responsive.value<double>(kiosk: 300, tablet: 250, phone: 200),
                         ),
                         child: IntrinsicHeight(
                           child: Padding(
@@ -252,7 +257,7 @@ class SalesBarChart extends ConsumerWidget {
                 BarChartRodData(
                   toY: entry.value,
                   color: _getBarColor(index),
-                  width: groupedData.length > 10 ? 30 : 100,
+                  width: groupedData.length > 10 ? 20 : (groupedData.length > 5 ? 40 : 60),
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
                   borderSide: BorderSide(
                     color: _getBarColor(index).withValues(alpha: 0.8),

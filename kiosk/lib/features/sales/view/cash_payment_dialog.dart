@@ -14,6 +14,7 @@ import '../../../validation/rules/min_value.dart';
 import '../../../validation/validate.dart';
 import '../../../widgets/android_bottom_sheet.dart';
 import '../../../widgets/button.dart';
+import '../../../widgets/resposive_wrap_container.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../entities/payment.dart';
 
@@ -156,10 +157,12 @@ class _CashPaymentContent extends HookWidget {
                     fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
                   ),
                 ),
-                Wrap(
+                ResponsiveWrapContainer(
                   spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-                  runSpacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-                  children:
+                  equalWidth: true,
+                  rowItems: 3,
+                  // runSpacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+                  items:
                       [20, 50, 100, 200, 500, 1000].map((denomination) {
                         return Material(
                           color: Colors.white,

@@ -61,7 +61,7 @@ class RefundScreen extends HookConsumerWidget {
                 : ResponsiveBuilder(
                     kiosk: (context) => _LandscapeLayout(receiptId: receiptId),
                     tablet: (context) => _LandscapeLayout(receiptId: receiptId),
-                    phone: (context) => _PortraitLayout(receiptId: receiptId),
+                    phone: (context) => _LandscapeLayout(receiptId: receiptId),
                   ),
           ),
         ],
@@ -216,26 +216,30 @@ class _ItemSelectionView extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: ColorSet.danger.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(POSRadius.xs),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: ColorSet.danger.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(POSRadius.xs),
+                        ),
+                        child: const Icon(Icons.assignment_return_rounded, color: ColorSet.danger, size: 16),
                       ),
-                      child: Icon(Icons.assignment_return_rounded, color: ColorSet.danger, size: 16),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Select Items to Refund',
-                      style: TextStyle(
-                        fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
-                        fontWeight: FontWeight.w700,
-                        color: POSColors.textPrimary,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Select Items to Refund',
+                          style: TextStyle(
+                            fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
+                            fontWeight: FontWeight.w700,
+                            color: POSColors.textPrimary,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 TextButton(
                   onPressed: () {
@@ -293,7 +297,6 @@ class _ItemSelectionView extends ConsumerWidget {
                         horizontal: r.value<double>(kiosk: 16, tablet: 14, phone: 12),
                       ),
                       child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           SizedBox(
                             width: 24,
@@ -491,7 +494,7 @@ class _RefundControlsView extends HookConsumerWidget {
     return Container(
       margin: EdgeInsets.fromLTRB(
         r.value<double>(kiosk: 0, tablet: 0, phone: 12),
-        r.value<double>(kiosk: 20, tablet: 16, phone: 0),
+        r.value<double>(kiosk: 20, tablet: 16, phone: 12),
         r.value<double>(kiosk: 20, tablet: 16, phone: 12),
         r.value<double>(kiosk: 20, tablet: 16, phone: 12),
       ),
@@ -537,7 +540,7 @@ class _RefundControlsView extends HookConsumerWidget {
                             color: ColorSet.danger.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(POSRadius.xs),
                           ),
-                          child: Icon(Icons.payments_outlined, color: ColorSet.danger, size: 16),
+                          child: const Icon(Icons.payments_outlined, color: ColorSet.danger, size: 16),
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -670,7 +673,6 @@ class _RefundControlsView extends HookConsumerWidget {
                       );
                     }),
 
-                    const Spacer(),
 
                     // Summary
                     _SummarySection(receiptId: receiptId),
@@ -723,7 +725,7 @@ class _SummarySection extends ConsumerWidget {
         borderRadius: BorderRadius.circular(POSRadius.md),
         border: Border.all(color: ColorSet.danger.withValues(alpha: 0.2)),
       ),
-      child: Row(
+      child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(

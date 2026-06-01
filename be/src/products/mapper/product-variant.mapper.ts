@@ -7,6 +7,7 @@ export class ProductVariantMapper {
       id: entity.id,
       productId: entity.product.id,
       name: entity.name,
+      price: Number(entity.price),
       isDefault: entity.isDefault,
     };
   }

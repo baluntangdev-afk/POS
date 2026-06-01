@@ -34,7 +34,7 @@ export class MenuItemsSeeder implements Seeder {
       );
     }
     const variantKeySet = new Set(
-      PRODUCT_VARIANTS_FIXTURE.flatMap((f) => f.variantNames.map((vn) => `${f.productName}:${vn}`)),
+      PRODUCT_VARIANTS_FIXTURE.flatMap((f) => f.variants.map((v) => `${f.productName}:${v.name}`)),
     );
     const variants = await variantRepo.find({
       relations: { product: { productGroup: true } },

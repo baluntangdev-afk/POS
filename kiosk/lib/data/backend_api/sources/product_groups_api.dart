@@ -73,7 +73,10 @@ class ProductGroupsApi {
   }
 
   Future<PaginatedResponseDto<ProductListItemDto>> getProductsByGroup(int id) async {
-    final response = await _httpClient.get<dynamic>('/api/v1/product-groups/$id/products');
+    final response = await _httpClient.get<dynamic>(
+      '/api/v1/product-groups/$id/products',
+      queryParameters: {'limit': 100},
+    );
     final json = jsonEncode(response.data);
     ProductListItemDtoMapper.ensureInitialized();
     return PaginatedResponseDtoMapper.fromJson<ProductListItemDto>(json);

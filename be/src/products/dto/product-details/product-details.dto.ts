@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ModifierGroupDto } from './modifier-group.dto';
+import { ProductVariantDetailsDto } from './variant.dto';
 
 export class ProductDetailsDto {
   @ApiProperty({ description: 'Product ID', example: 1 })
@@ -25,6 +26,9 @@ export class ProductDetailsDto {
 
   @ApiProperty({ description: 'Default product variant ID for order placement', example: 1, nullable: true })
   defaultVariantId: number | null;
+
+  @ApiProperty({ type: () => [ProductVariantDetailsDto] })
+  variants: ProductVariantDetailsDto[];
 
   @ApiProperty({ type: () => [ModifierGroupDto] })
   modifierGroups: ModifierGroupDto[];

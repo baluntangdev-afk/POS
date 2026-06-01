@@ -3,7 +3,9 @@ import { ModifierOption } from '../../modifier-groups/entities/modifier-option.e
 import { ModifierGroupDto } from '../dto/product-details/modifier-group.dto';
 import { ModifierOptionDto } from '../dto/product-details/modifier-options.dto';
 import { ProductDetailsDto } from '../dto/product-details/product-details.dto';
+import { ProductVariantDetailsDto } from '../dto/product-details/variant.dto';
 import { Product } from '../entities/product.entity';
+import { ProductVariant } from '../entities/product-variant.entity';
 
 export class ProductDetailMapper {
   static toDto(product: Product, args?: { currencySign?: string }): ProductDetailsDto {
@@ -16,6 +18,7 @@ export class ProductDetailMapper {
     dto.currencySign = args?.currencySign ?? '₱';
     dto.displayPrice = product.price ?? '0';
     dto.defaultVariantId = product.productVariants?.[0]?.id ?? null;
+    dto.variants = (product.productVariants ?? []).map((pv) => this.toVariantDto(pv, args?.currencySign ?? '₱'));
     dto.modifierGroups = [];
 
     const modifiers = product.productGroup?.modifiers;
@@ -25,6 +28,15 @@ export class ProductDetailMapper {
       }
     }
 
+    return dto;
+  }
+
+  static toVariantDto(variant: ProductVariant, currencySign: string): ProductVariantDetailsDto {
+    const dto = new ProductVariantDetailsDto();
+    dto.id = variant.id;
+    dto.name = variant.name;
+    dto.displayPrice = Number(variant.price).toFixed(2);
+    dto.isDefault = variant.isDefault;
     return dto;
   }
 

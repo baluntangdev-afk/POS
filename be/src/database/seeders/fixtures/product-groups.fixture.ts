@@ -14,33 +14,18 @@ const TINY_PNG_BASE64 =
 
 export const PRODUCT_GROUPS_FIXTURE: ProductGroupFixtureItem[] = [
   {
-    name: 'Burgers',
-    description: 'All our signature beef and chicken burgers',
-    imageFileName: 'burgers.png',
+    name: 'Food',
+    description: 'Main food dishes and meals',
     imageBase64: TINY_PNG_BASE64,
   },
   {
-    name: 'Chicken',
-    description: 'Crispy and grilled chicken dishes',
-    imageFileName: 'chicken.png',
+    name: 'Coffee, Drinks & Ice Cream',
+    description: 'Hot and cold beverages and gelato',
     imageBase64: TINY_PNG_BASE64,
   },
   {
-    name: 'Rice Meals',
-    description: 'Hearty rice bowls and Filipino favourites',
-    imageFileName: 'rice-meals.png',
-    imageBase64: TINY_PNG_BASE64,
-  },
-  {
-    name: 'Sides',
-    description: 'Perfect add-ons to complete your meal',
-    imageFileName: 'sides.png',
-    imageBase64: TINY_PNG_BASE64,
-  },
-  {
-    name: 'Beverages',
-    description: 'Cold drinks and refreshing beverages',
-    imageFileName: 'beverages.png',
+    name: 'Baking & Pastry',
+    description: 'Baked goods and pastry items',
     imageBase64: TINY_PNG_BASE64,
   },
 ];

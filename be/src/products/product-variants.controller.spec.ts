@@ -21,6 +21,7 @@ describe('ProductVariantsController', () => {
     id: 1,
     productId: 1,
     name: 'Large',
+    price: 0,
     isDefault: false,
   };
 

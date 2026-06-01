@@ -8,12 +8,14 @@ import '../../../data/backend_api/schemas/menu_item_modifier_group_dto.dart';
 import '../../../data/backend_api/schemas/menu_item_modifier_option_dto.dart';
 import '../../../data/backend_api/schemas/product_details_dto.dart';
 import '../../../data/backend_api/schemas/product_list_item_dto.dart';
+import '../../../data/backend_api/schemas/product_variant_details_dto.dart';
 import '../../../data/backend_api/sources/product_groups_api.dart';
 import '../../../data/backend_api/sources/products_api.dart';
 import '../entities/modifier_group.dart';
 import '../entities/modifier_option.dart';
 import '../entities/product.dart';
 import '../entities/product_group.dart';
+import '../entities/product_variant.dart';
 
 abstract class ProductRepository {
   Future<IList<Product>> getByGroup(ProductGroup group);
@@ -65,7 +67,17 @@ class ProductRepositoryImpl implements ProductRepository {
       image: dto.imageUrl ?? Uint8List(0),
       price: Decimal.parse(dto.displayPrice),
       modifierGroups: dto.modifierGroups.map(_modifierGroupFromDto).toIList(),
+      variants: dto.variants.map(_productVariantFromDto).toIList(),
       defaultVariantId: dto.defaultVariantId ?? 0,
+    );
+  }
+
+  ProductVariant _productVariantFromDto(ProductVariantDetailsDto dto) {
+    return ProductVariant(
+      id: dto.id,
+      name: dto.name,
+      price: Decimal.parse(dto.displayPrice),
+      isDefault: dto.isDefault,
     );
   }
 

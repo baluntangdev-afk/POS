@@ -4,6 +4,7 @@ import 'package:dart_mappable/dart_mappable.dart';
 
 import '../mappers/image_url_mapper.dart';
 import 'menu_item_modifier_group_dto.dart';
+import 'product_variant_details_dto.dart';
 
 part 'product_details_dto.mapper.dart';
 
@@ -17,6 +18,7 @@ class ProductDetailsDto with ProductDetailsDtoMappable {
     required this.currencySign,
     required this.displayPrice,
     this.defaultVariantId,
+    required this.variants,
     required this.modifierGroups,
   });
 
@@ -27,6 +29,7 @@ class ProductDetailsDto with ProductDetailsDtoMappable {
   final String currencySign;
   final String displayPrice;
   final int? defaultVariantId;
+  final List<ProductVariantDetailsDto> variants;
   final List<MenuItemModifierGroupDto> modifierGroups;
 
   static const fromJson = ProductDetailsDtoMapper.fromJson;

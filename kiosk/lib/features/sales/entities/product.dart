@@ -5,6 +5,7 @@ import 'package:decimal/decimal.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 
 import 'modifier_group.dart';
+import 'product_variant.dart';
 
 part 'product.mapper.dart';
 
@@ -16,6 +17,7 @@ class Product with ProductMappable {
     required this.image,
     required this.price,
     required this.modifierGroups,
+    this.variants = const IList.empty(),
     this.defaultVariantId = 0,
   });
 
@@ -24,5 +26,6 @@ class Product with ProductMappable {
   final Uint8List image;
   final Decimal price;
   final IList<ModifierGroup> modifierGroups;
+  final IList<ProductVariant> variants;
   final int defaultVariantId;
 }

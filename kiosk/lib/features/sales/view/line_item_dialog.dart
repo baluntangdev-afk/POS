@@ -18,6 +18,7 @@ import '../entities/line_item.dart';
 import '../entities/modifier_group.dart';
 import '../entities/modifier_option.dart';
 import '../entities/product.dart';
+import '../entities/product_variant.dart';
 import '../entities/selected_modifier.dart';
 import '../entities/selected_option.dart';
 import '../entities/selected_variant.dart';
@@ -84,10 +85,16 @@ class LineItemDialog extends HookConsumerWidget {
   final int initialQuantity;
   final IList<SelectedModifier> initialModifiers;
 
+  ProductVariant? _defaultVariant(IList<ProductVariant> variants) {
+    if (variants.isEmpty) return null;
+    return variants.firstWhere((v) => v.isDefault, orElse: () => variants.first);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedQuantity = useState(initialQuantity);
     final selectedModifiers = useState<IList<SelectedModifier>>(initialModifiers);
+    final selectedVariant = useState<ProductVariant?>(_defaultVariant(product.variants));
 
     void onQuantityChanged(int? value) {
       if (value == null || value < 1) return;
@@ -95,15 +102,17 @@ class LineItemDialog extends HookConsumerWidget {
     }
 
     Decimal calculateCurrentPrice() {
+      final basePrice = selectedVariant.value?.price ?? product.price;
       final modifiersPrice = selectedModifiers.value.fold(
         Decimal.zero,
         (total, modifier) => total + modifier.price,
       );
       final quantity = Decimal.fromInt(selectedQuantity.value);
-      return (product.price + modifiersPrice) * quantity;
+      return (basePrice + modifiersPrice) * quantity;
     }
 
     final modifierGroups = product.modifierGroups;
+    final variants = product.variants;
     final currentPrice = calculateCurrentPrice();
 
     void toggleModifierOption(ModifierOption option) {
@@ -238,13 +247,18 @@ class LineItemDialog extends HookConsumerWidget {
     }
 
     LineItem buildLineItem() {
+      final variant = selectedVariant.value;
       return LineItem(
         id: UuidV7.generate(),
         productId: product.id,
         productName: product.name,
         productImage: product.image,
         quantity: selectedQuantity.value,
-        variant: SelectedVariant(id: product.defaultVariantId, name: product.name, price: product.price),
+        variant: SelectedVariant(
+          id: variant?.id ?? product.defaultVariantId,
+          name: variant?.name ?? product.name,
+          price: variant?.price ?? product.price,
+        ),
         modifiers: selectedModifiers.value,
       );
     }
@@ -260,9 +274,23 @@ class LineItemDialog extends HookConsumerWidget {
               _ProductDetails(
                 product: product,
                 selectedQuantity: selectedQuantity.value,
+                basePrice: selectedVariant.value?.price ?? product.price,
                 onIncrease: () => onQuantityChanged(selectedQuantity.value + 1),
                 onDecrease: () => onQuantityChanged(selectedQuantity.value - 1),
               ),
+              if (variants.isNotEmpty) ...[
+                Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+                Padding(
+                  padding: EdgeInsetsGeometry.symmetric(
+                    horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+                  ),
+                  child: _VariantSelector(
+                    variants: variants,
+                    selectedVariant: selectedVariant.value,
+                    onSelect: (v) => selectedVariant.value = v,
+                  ),
+                ),
+              ],
               Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
               Padding(
                 padding: EdgeInsetsGeometry.symmetric(
@@ -295,12 +323,14 @@ class _ProductDetails extends StatelessWidget {
   const _ProductDetails({
     required this.product,
     required this.selectedQuantity,
+    required this.basePrice,
     required this.onIncrease,
     required this.onDecrease,
   });
 
   final Product product;
   final int selectedQuantity;
+  final Decimal basePrice;
   final VoidCallback onIncrease;
   final VoidCallback onDecrease;
 
@@ -363,7 +393,7 @@ class _ProductDetails extends StatelessWidget {
                 ),
               ),
               Text(
-                product.price.pesoFormatted,
+                basePrice.pesoFormatted,
                 style: TextStyle(
                   fontSize: context.responsive.value(kiosk: 30, tablet: 20, phone: 16),
                   color: ColorSet.primary,
@@ -438,6 +468,119 @@ class _QuantityControls extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _VariantSelector extends StatelessWidget {
+  const _VariantSelector({
+    required this.variants,
+    required this.selectedVariant,
+    required this.onSelect,
+  });
+
+  final IList<ProductVariant> variants;
+  final ProductVariant? selectedVariant;
+  final ValueChanged<ProductVariant> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Size',
+          style: TextStyle(
+            fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
+            fontWeight: FontWeight.w700,
+            color: POSColors.textPrimary,
+          ),
+        ),
+        Gap(context.responsive.value(kiosk: 12, tablet: 8, phone: 8)),
+        Wrap(
+          spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+          runSpacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+          children: variants.map((variant) {
+            final isSelected = selectedVariant?.id == variant.id;
+            return _VariantCard(
+              variant: variant,
+              isSelected: isSelected,
+              onTap: () => onSelect(variant),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _VariantCard extends StatelessWidget {
+  const _VariantCard({
+    required this.variant,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final ProductVariant variant;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: isSelected ? ColorSet.primary.withValues(alpha: 0.08) : Colors.white,
+      borderRadius: BorderRadius.circular(POSRadius.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(POSRadius.md),
+        child: Container(
+          width: context.responsive.value(kiosk: 160, tablet: 120, phone: 96),
+          height: context.responsive.value(kiosk: 80, tablet: 60, phone: 60),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: isSelected ? ColorSet.primary : POSColors.borderDefault,
+              width: isSelected ? 2 : 1,
+            ),
+            borderRadius: BorderRadius.circular(POSRadius.md),
+          ),
+          padding: EdgeInsets.all(context.responsive.value(kiosk: 12, tablet: 8, phone: 8)),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      variant.name,
+                      style: TextStyle(
+                        fontSize: context.responsive.value(kiosk: 16, tablet: 12, phone: 12),
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const Gap(4),
+                    Text(
+                      variant.price.pesoFormatted,
+                      style: TextStyle(
+                        fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 12),
+                        color: ColorSet.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isSelected)
+                Icon(
+                  Icons.check_circle_rounded,
+                  color: ColorSet.primary,
+                  size: context.responsive.value(kiosk: 20, tablet: 15, phone: 12),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

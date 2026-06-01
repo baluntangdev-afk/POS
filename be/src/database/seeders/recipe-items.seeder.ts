@@ -28,7 +28,7 @@ export class RecipeItemsSeeder implements Seeder {
     const recipeItemRepo = dataSource.getRepository(RecipeItem);
 
     const variantKeySet = new Set(
-      PRODUCT_VARIANTS_FIXTURE.flatMap((f) => f.variantNames.map((vn) => `${f.productName}:${vn}`)),
+      PRODUCT_VARIANTS_FIXTURE.flatMap((f) => f.variants.map((v) => `${f.productName}:${v.name}`)),
     );
 
     const recipes = await recipeRepo.find({

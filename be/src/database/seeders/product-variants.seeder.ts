@@ -36,8 +36,8 @@ export class ProductVariantsSeeder implements Seeder {
       }
 
       const productId = product.id;
-      item.variantNames.forEach((variantName, index) => {
-        const key = `${productId}:${variantName}`;
+      item.variants.forEach(({ name, price }, index) => {
+        const key = `${productId}:${name}`;
 
         if (existingKeySet.has(key)) {
           return;
@@ -46,7 +46,8 @@ export class ProductVariantsSeeder implements Seeder {
         existingKeySet.add(key);
         toInsert.push({
           product,
-          name: variantName,
+          name,
+          price,
           status: ProductVariantStatus.ACTIVE,
           isDefault: index === 0,
           createdBy: adminUser,

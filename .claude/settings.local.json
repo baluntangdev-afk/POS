@@ -56,7 +56,16 @@
       "PowerShell(fvm dart *)",
       "PowerShell(dart *)",
       "PowerShell(Get-Command *)",
-      "PowerShell(dart analyze *)"
+      "PowerShell(dart analyze *)",
+      "Bash(docker exec pos-backend-postgres *)",
+      "Bash(grep -v '\\\\\\\\restrict')",
+      "Bash(xargs grep -l \"catalog\")",
+      "Bash(xargs grep -l \"product\\\\|catalog\\\\|menu\")",
+      "Bash(xargs grep -l \"catalog\\\\|getProduct\\\\|ProductApi\\\\|products_api\")",
+      "Bash(xargs grep -n \"DEFAULT_LIMIT\\\\|MAX_LIMIT\\\\|DEFAULT_PAGE\")",
+      "Bash(curl -s http://localhost:3000/api/v1/products/33)",
+      "Bash(xargs grep -l \"ProductDetails\\\\|product_detail\\\\|product-detail\")",
+      "Bash(xargs grep -l \"dialog\\\\|Dialog\")"
     ]
   }
 }

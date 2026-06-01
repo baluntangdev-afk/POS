@@ -32,8 +32,8 @@ class OrderingScreen extends ConsumerWidget {
         body: SafeArea(
           child: ResponsiveBuilder(
             kiosk: (context) => const _KioskLayout(),
-            tablet: (context) => const _TabletLayout(),
-            phone: (context) => const _TabletLayout(),
+            tablet: (context) => const _KioskLayout(),
+            phone: (context) => const _KioskLayout(),
           ),
         ),
       );
@@ -41,7 +41,7 @@ class OrderingScreen extends ConsumerWidget {
     return WindowsScaffold(
       backgroundColor: ColorSet.background,
       body: ResponsiveBuilder(
-        kiosk: (context) => const _KioskLayout(),
+        kiosk: (context) => const _TabletLayout(),
         tablet: (context) => const _TabletLayout(),
         phone: (context) => const _TabletLayout(),
       ),

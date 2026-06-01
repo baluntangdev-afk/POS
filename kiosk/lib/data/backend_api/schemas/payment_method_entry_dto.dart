@@ -7,11 +7,13 @@ class PaymentMethodEntryDto with PaymentMethodEntryDtoMappable {
   const PaymentMethodEntryDto({
     required this.id,
     required this.paymentMethod,
+    this.paymentMethodName,
     this.paymentNumber,
   });
 
   final int id;
   final String paymentMethod;
+  final String? paymentMethodName;
   final String? paymentNumber;
 
   static const fromJson = PaymentMethodEntryDtoMapper.fromJson;

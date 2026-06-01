@@ -52,7 +52,11 @@
       "Bash(xargs grep -l \"admin\\\\|Admin\\\\|role\\\\|Role\")",
       "Bash(xargs ls -1)",
       "Bash(xargs grep -A5 \"JWT\\\\|JwtAuth\\\\|global\")",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "PowerShell(fvm dart *)",
+      "PowerShell(dart *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(dart analyze *)"
     ]
   }
 }

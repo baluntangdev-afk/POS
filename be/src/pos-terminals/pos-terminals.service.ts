@@ -91,6 +91,7 @@ export class PosTerminalsService {
     const entry = this.paymentMethodRepository.create({
       posTerminal: { id: terminal.id },
       paymentMethod: dto.paymentMethod,
+      paymentMethodName: dto.paymentMethodName ?? null,
       paymentNumber: dto.paymentNumber ?? null,
     });
 
@@ -113,6 +114,7 @@ export class PosTerminalsService {
     }
 
     if (dto.paymentMethod !== undefined) entry.paymentMethod = dto.paymentMethod;
+    if (dto.paymentMethodName !== undefined) entry.paymentMethodName = dto.paymentMethodName ?? null;
     entry.paymentNumber = dto.paymentNumber !== undefined ? (dto.paymentNumber ?? null) : entry.paymentNumber;
 
     return this.paymentMethodRepository.save(entry);

@@ -69,8 +69,12 @@ class PosTerminalDetailsDialog extends HookConsumerWidget {
       await showDialog<void>(
         context: context,
         builder: (_) => _PaymentMethodFormDialog(
-          onConfirm: (method, number) async {
-            await api.addPaymentMethod(paymentMethod: method, paymentNumber: number);
+          onConfirm: (method, methodName, number) async {
+            await api.addPaymentMethod(
+              paymentMethod: method,
+              paymentMethodName: methodName,
+              paymentNumber: number,
+            );
             ref.invalidate(posTerminalProvider);
           },
         ),
@@ -83,8 +87,13 @@ class PosTerminalDetailsDialog extends HookConsumerWidget {
         context: context,
         builder: (_) => _PaymentMethodFormDialog(
           initial: entry,
-          onConfirm: (method, number) async {
-            await api.updatePaymentMethod(entry.id, paymentMethod: method, paymentNumber: number);
+          onConfirm: (method, methodName, number) async {
+            await api.updatePaymentMethod(
+              entry.id,
+              paymentMethod: method,
+              paymentMethodName: methodName,
+              paymentNumber: number,
+            );
             ref.invalidate(posTerminalProvider);
           },
         ),
@@ -355,7 +364,9 @@ class _PaymentMethodTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(POSRadius.sm),
             ),
             child: Text(
-              entry.paymentMethod,
+              entry.paymentMethod == 'Other' && entry.paymentMethodName != null
+                  ? entry.paymentMethodName!
+                  : entry.paymentMethod,
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -404,7 +415,7 @@ class _PaymentMethodFormDialog extends HookWidget {
   });
 
   final PaymentMethodEntryDto? initial;
-  final Future<void> Function(PaymentMethod method, String? number) onConfirm;
+  final Future<void> Function(PaymentMethod method, String? methodName, String? number) onConfirm;
 
   static const _labels = {
     PaymentMethod.cash: 'Cash',
@@ -413,8 +424,33 @@ class _PaymentMethodFormDialog extends HookWidget {
     PaymentMethod.other: 'Other',
   };
 
+  static InputDecoration _fieldDecoration({String? hint}) => InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: POSColors.textTertiary),
+        filled: true,
+        fillColor: POSColors.surfaceSubtle,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(POSRadius.md),
+          borderSide: const BorderSide(color: POSColors.borderDefault),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(POSRadius.md),
+          borderSide: const BorderSide(color: POSColors.borderDefault),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(POSRadius.md),
+          borderSide: const BorderSide(color: ColorSet.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(POSRadius.md),
+          borderSide: const BorderSide(color: ColorSet.danger),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      );
+
   @override
   Widget build(BuildContext context) {
+    final formKey = useRef(GlobalKey<FormState>());
     final selectedMethod = useState(
       initial != null
           ? PaymentMethod.values.firstWhere(
@@ -423,16 +459,22 @@ class _PaymentMethodFormDialog extends HookWidget {
             )
           : PaymentMethod.cash,
     );
+    final methodNameController = useTextEditingController(text: initial?.paymentMethodName ?? '');
     final numberController = useTextEditingController(text: initial?.paymentNumber ?? '');
     final isSubmitting = useState(false);
     final errorMessage = useState<String?>(null);
 
     Future<void> onSubmit() async {
+      if (!formKey.value.currentState!.validate()) return;
       isSubmitting.value = true;
       errorMessage.value = null;
       try {
+        final methodName = selectedMethod.value == PaymentMethod.other &&
+                methodNameController.text.trim().isNotEmpty
+            ? methodNameController.text.trim()
+            : null;
         final number = numberController.text.trim().isNotEmpty ? numberController.text.trim() : null;
-        await onConfirm(selectedMethod.value, number);
+        await onConfirm(selectedMethod.value, methodName, number);
         if (context.mounted) Navigator.of(context).pop();
       } catch (e) {
         errorMessage.value = e.message;
@@ -454,68 +496,24 @@ class _PaymentMethodFormDialog extends HookWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                isEdit ? 'Edit Payment Method' : 'Add Payment Method',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: POSColors.textPrimary,
-                  letterSpacing: -0.2,
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Payment Method',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: POSColors.textSecondary,
-                  letterSpacing: 0.2,
-                ),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<PaymentMethod>(
-                value: selectedMethod.value,
-                onChanged: (m) {
-                  if (m != null) {
-                    selectedMethod.value = m;
-                    numberController.clear();
-                  }
-                },
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: POSColors.surfaceSubtle,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(POSRadius.md),
-                    borderSide: const BorderSide(color: POSColors.borderDefault),
+          child: Form(
+            key: formKey.value,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  isEdit ? 'Edit Payment Method' : 'Add Payment Method',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: POSColors.textPrimary,
+                    letterSpacing: -0.2,
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(POSRadius.md),
-                    borderSide: const BorderSide(color: POSColors.borderDefault),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(POSRadius.md),
-                    borderSide: const BorderSide(color: ColorSet.primary, width: 1.5),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                 ),
-                items: PaymentMethod.values
-                    .map(
-                      (m) => DropdownMenuItem(
-                        value: m,
-                        child: Text(_labels[m] ?? m.name),
-                      ),
-                    )
-                    .toList(),
-              ),
-              if (selectedMethod.value != PaymentMethod.cash) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 const Text(
-                  'Payment Number',
+                  'Payment Method',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -524,80 +522,113 @@ class _PaymentMethodFormDialog extends HookWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                TextField(
-                  controller: numberController,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. 09171234567',
-                    hintStyle: TextStyle(color: POSColors.textTertiary.withValues(alpha: 0.6)),
-                    filled: true,
-                    fillColor: POSColors.surfaceSubtle,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(POSRadius.md),
-                      borderSide: const BorderSide(color: POSColors.borderDefault),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(POSRadius.md),
-                      borderSide: const BorderSide(color: POSColors.borderDefault),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(POSRadius.md),
-                      borderSide: const BorderSide(color: ColorSet.primary, width: 1.5),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  ),
+                DropdownButtonFormField<PaymentMethod>(
+                  value: selectedMethod.value,
+                  onChanged: (m) {
+                    if (m != null) {
+                      selectedMethod.value = m;
+                      methodNameController.clear();
+                      numberController.clear();
+                    }
+                  },
+                  decoration: _fieldDecoration(),
+                  items: PaymentMethod.values
+                      .map(
+                        (m) => DropdownMenuItem(
+                          value: m,
+                          child: Text(_labels[m] ?? m.name),
+                        ),
+                      )
+                      .toList(),
                 ),
-              ],
-              if (errorMessage.value != null) ...[
-                const SizedBox(height: 16),
-                _ErrorBanner(message: errorMessage.value!),
-              ],
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: isSubmitting.value ? null : () => Navigator.of(context).pop(),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: POSColors.textSecondary,
-                        side: const BorderSide(color: POSColors.borderDefault),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(POSRadius.md),
-                        ),
-                      ),
-                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+                if (selectedMethod.value == PaymentMethod.other) ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Payment Method Name',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: POSColors.textSecondary,
+                      letterSpacing: 0.2,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: isSubmitting.value ? null : onSubmit,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: ColorSet.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(POSRadius.md),
-                        ),
-                      ),
-                      child: isSubmitting.value
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                                strokeCap: StrokeCap.round,
-                              ),
-                            )
-                          : Text(
-                              isEdit ? 'Update' : 'Add',
-                              style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
-                            ),
-                    ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: methodNameController,
+                    decoration: _fieldDecoration(hint: 'e.g. PayMaya, Bitcoin'),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Payment method name is required' : null,
                   ),
                 ],
-              ),
-            ],
+                if (selectedMethod.value != PaymentMethod.cash) ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Payment Number',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: POSColors.textSecondary,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: numberController,
+                    decoration: _fieldDecoration(hint: 'e.g. 09171234567'),
+                  ),
+                ],
+                if (errorMessage.value != null) ...[
+                  const SizedBox(height: 16),
+                  _ErrorBanner(message: errorMessage.value!),
+                ],
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: isSubmitting.value ? null : () => Navigator.of(context).pop(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: POSColors.textSecondary,
+                          side: const BorderSide(color: POSColors.borderDefault),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(POSRadius.md),
+                          ),
+                        ),
+                        child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: isSubmitting.value ? null : onSubmit,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: ColorSet.primary,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(POSRadius.md),
+                          ),
+                        ),
+                        child: isSubmitting.value
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                  strokeCap: StrokeCap.round,
+                                ),
+                              )
+                            : Text(
+                                isEdit ? 'Update' : 'Add',
+                                style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

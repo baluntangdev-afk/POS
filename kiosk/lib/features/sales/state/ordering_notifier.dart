@@ -185,6 +185,12 @@ class OrderingNotifier extends AsyncNotifier<OrderingData> {
     state = AsyncData(state.requireValue.copyWith(sale: sale.copyWith(payment: payment)));
   }
 
+  void clearPayment() {
+    if (!state.hasValue) return;
+    final sale = state.requireValue.sale;
+    state = AsyncData(state.requireValue.copyWith(sale: sale.copyWith(payment: null)));
+  }
+
   Future<void> confirmSale() async {
     if (!state.hasValue) return;
 

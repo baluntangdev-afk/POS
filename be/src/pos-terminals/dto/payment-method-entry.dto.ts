@@ -9,6 +9,9 @@ export class PaymentMethodEntryDto {
   @ApiProperty({ enum: PaymentMethod })
   paymentMethod: PaymentMethod;
 
+  @ApiPropertyOptional({ example: 'PayMaya' })
+  paymentMethodName: string | null;
+
   @ApiPropertyOptional({ example: '09171234567' })
   paymentNumber: string | null;
 
@@ -16,6 +19,7 @@ export class PaymentMethodEntryDto {
     const dto = new PaymentMethodEntryDto();
     dto.id = entry.id;
     dto.paymentMethod = entry.paymentMethod;
+    dto.paymentMethodName = entry.paymentMethodName;
     dto.paymentNumber = entry.paymentNumber;
     return dto;
   }

@@ -169,8 +169,26 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
         amountPaid: cashReceived.toString(),
         change: change.toString(),
       ),
-      CardPayment() => throw 'Card payment is unsupported.',
-      QRPayment() => throw 'QR payment is unsupported.',
+      CardPayment(:final paidAmount, :final referenceNumber) => PaymentDetailsDto(
+        payeeName: '',
+        method: PaymentMethod.creditCard,
+        grossAmount: receipt.grossAmount.toString(),
+        taxAmount: receipt.vatAmount.toString(),
+        netAmount: receipt.totalAmount.toString(),
+        amountPaid: paidAmount.toString(),
+        change: '0',
+        transactionReference: referenceNumber,
+      ),
+      QRPayment(:final paidAmount, :final referenceNumber, :final walletProvider) => PaymentDetailsDto(
+        payeeName: '',
+        method: walletProvider == 'GCash' ? PaymentMethod.gCash : PaymentMethod.other,
+        grossAmount: receipt.grossAmount.toString(),
+        taxAmount: receipt.vatAmount.toString(),
+        netAmount: receipt.totalAmount.toString(),
+        amountPaid: paidAmount.toString(),
+        change: '0',
+        transactionReference: referenceNumber,
+      ),
       ZeroPayment() => throw 'Zero payment is unsupported.',
     };
   }
@@ -220,9 +238,26 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
         paidAmount: Decimal.parse(amountPaid) - Decimal.parse(change),
         cashReceived: Decimal.parse(amountPaid),
       ),
-      CreditCardPaymentDto() => throw 'CreditCardPayment is unsupported.',
-      GCashPaymentDto() => throw 'GCashPayment is unsupported.',
-      OtherPaymentDto() => throw 'OtherPayment is unsupported.',
+      CreditCardPaymentDto(:final id, :final amountPaid, :final transactionReference) =>
+        CardPayment(
+          id: id,
+          paidAmount: Decimal.parse(amountPaid),
+          referenceNumber: transactionReference,
+          cardType: 'Credit/Debit',
+          cardNumber: '0000',
+        ),
+      GCashPaymentDto(:final id, :final amountPaid, :final transactionReference) => QRPayment(
+        id: id,
+        paidAmount: Decimal.parse(amountPaid),
+        referenceNumber: transactionReference,
+        walletProvider: 'GCash',
+      ),
+      OtherPaymentDto(:final id, :final amountPaid) => QRPayment(
+        id: id,
+        paidAmount: Decimal.parse(amountPaid),
+        referenceNumber: '',
+        walletProvider: 'Other',
+      ),
     };
   }
 

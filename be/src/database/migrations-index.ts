@@ -66,6 +66,7 @@ import { AddRefundItemRelations1772524305356 } from './migrations/1772524305356-
 import { Catalog1779580800000 } from './migrations/1779580800000-catalog';
 import { UsersPosTerminalId1779583300000 } from './migrations/1779583300000-users-pos-terminal-id';
 import { PosTerminalPaymentMethods1779583400000 } from './migrations/1779583400000-pos-terminal-payment-methods';
+import { PosTerminalPaymentMethodName1779583500000 } from './migrations/1779583500000-pos-terminal-payment-method-name';
 
 /**
  * Migration classes for POSBackend.exe --migrate (same as npm run migration:up).
@@ -139,4 +140,5 @@ export const migrations: Array<new () => MigrationInterface> = [
   Catalog1779580800000,
   UsersPosTerminalId1779583300000,
   PosTerminalPaymentMethods1779583400000,
+  PosTerminalPaymentMethodName1779583500000,
 ];

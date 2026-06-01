@@ -60,12 +60,14 @@ class PosTerminalsApi {
 
   Future<PaymentMethodEntryDto> addPaymentMethod({
     required PaymentMethod paymentMethod,
+    String? paymentMethodName,
     String? paymentNumber,
   }) async {
     final response = await _secureClient.post<dynamic>(
       '/api/v1/pos-terminals/my-terminal/payment-methods',
       data: {
         'paymentMethod': paymentMethod.toValue(),
+        if (paymentMethodName != null) 'paymentMethodName': paymentMethodName,
         if (paymentNumber != null) 'paymentNumber': paymentNumber,
       },
     );
@@ -76,12 +78,14 @@ class PosTerminalsApi {
   Future<PaymentMethodEntryDto> updatePaymentMethod(
     int id, {
     PaymentMethod? paymentMethod,
+    String? paymentMethodName,
     String? paymentNumber,
   }) async {
     final response = await _secureClient.patch<dynamic>(
       '/api/v1/pos-terminals/my-terminal/payment-methods/$id',
       data: {
         if (paymentMethod != null) 'paymentMethod': paymentMethod.toValue(),
+        'paymentMethodName': paymentMethodName,
         'paymentNumber': paymentNumber,
       },
     );

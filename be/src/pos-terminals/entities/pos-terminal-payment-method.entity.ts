@@ -30,6 +30,9 @@ export class PosTerminalPaymentMethod {
   })
   paymentMethod: PaymentMethod;
 
+  @Column({ type: 'varchar', length: 100, nullable: true, name: 'payment_method_name' })
+  paymentMethodName: string | null;
+
   @Column({ type: 'varchar', length: 50, nullable: true, name: 'payment_number' })
   paymentNumber: string | null;
 

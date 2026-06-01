@@ -1,31 +1,32 @@
 import 'package:decimal/decimal.dart';
-import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../data/backend_api/schemas/payment_method_entry_dto.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../navigation/router.dart';
-import '../../../widgets/network_error_dialog.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../widgets/android_scaffold.dart';
+import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/windows_scaffold.dart';
+import '../../menu/state/pos_terminal_notifier.dart';
 import '../entities/payment.dart';
 import '../state/ordering_notifier.dart';
 import 'cash_payment_dialog.dart';
+import 'reference_payment_dialog.dart';
 
-class PaymentScreen extends StatelessWidget {
+class PaymentScreen extends ConsumerWidget {
   const PaymentScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isAndroid = context.breakpoint.isAndroid;
     final r = context.responsive;
 
@@ -86,6 +87,7 @@ class PaymentScreen extends StatelessWidget {
             ),
           );
           if ((confirmed ?? false) && context.mounted) {
+            ref.read(orderingProvider.notifier).clearPayment();
             Navigator.of(context).pop();
           }
         },
@@ -101,11 +103,11 @@ class PaymentScreen extends StatelessWidget {
 }
 
 // ── Header ────────────────────────────────────────────────────────────────────
-class _PaymentHeader extends StatelessWidget {
+class _PaymentHeader extends ConsumerWidget {
   const _PaymentHeader();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final r = context.responsive;
     final height = r.value<double>(kiosk: 68, tablet: 60, phone: 52);
     final btnH = r.value<double>(kiosk: 44, tablet: 40, phone: 36);
@@ -126,7 +128,10 @@ class _PaymentHeader extends StatelessWidget {
             height: btnH,
             child: OutlinedButton.icon(
               onPressed: () {
-                if (context.canPop()) context.pop();
+                if (context.canPop()) {
+                  ref.read(orderingProvider.notifier).clearPayment();
+                  context.pop();
+                }
               },
               icon: Icon(
                 Icons.arrow_back_ios_new_rounded,
@@ -190,11 +195,7 @@ class _OrderTotalCard extends ConsumerWidget {
           Container(
             height: 4,
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: ColorSet.gradientBg,
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
+              gradient: LinearGradient(colors: ColorSet.gradientBg),
             ),
           ),
           Padding(
@@ -303,23 +304,13 @@ class _PaymentSummaryRows extends ConsumerWidget {
 }
 
 // ── Payment method grid ───────────────────────────────────────────────────────
-class _PaymentMethodGrid extends HookConsumerWidget {
+class _PaymentMethodGrid extends ConsumerWidget {
   const _PaymentMethodGrid();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final r = context.responsive;
-    final paymentMethods = useMemoized(
-      () => <({String image, String name, bool enabled})>[
-        (image: Assets.images.svg.icPaymentCash.path, name: 'Cash Payment', enabled: true),
-        (
-          image: Assets.images.svg.icPaymentCard.path,
-          name: 'Credit or Debit Card',
-          enabled: false,
-        ),
-        (image: Assets.images.svg.icPaymentQr.path, name: 'E-wallet Payment', enabled: false),
-      ].toIList(),
-    );
+    final terminalAsync = ref.watch(posTerminalProvider);
     final payment = ref.watch(orderingProvider.select((it) => it.value?.sale.payment));
 
     return Column(
@@ -335,23 +326,52 @@ class _PaymentMethodGrid extends HookConsumerWidget {
           ),
         ),
         SizedBox(height: r.value<double>(kiosk: 14, tablet: 12, phone: 10)),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (int i = 0; i < paymentMethods.length; i++) ...[
-              if (i > 0)
-                SizedBox(width: r.value<double>(kiosk: 16, tablet: 12, phone: 10)),
-              Expanded(
-                child: _PaymentMethodCard(
-                  method: paymentMethods[i],
-                  index: i,
-                  payment: payment,
-                  paymentMethods: paymentMethods,
-                  ref: ref,
+        terminalAsync.when(
+          loading: () => SizedBox(
+            height: r.value<double>(kiosk: 160, tablet: 140, phone: 120),
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+          error: (_, _) => SizedBox(
+            height: r.value<double>(kiosk: 100, tablet: 90, phone: 80),
+            child: Center(
+              child: Text(
+                'Unable to load payment methods.',
+                style: TextStyle(
+                  fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                  color: POSColors.textSecondary,
                 ),
               ),
-            ],
-          ],
+            ),
+          ),
+          data: (terminal) {
+            final methods = terminal.paymentMethods;
+            if (methods.isEmpty) {
+              return SizedBox(
+                height: r.value<double>(kiosk: 100, tablet: 90, phone: 80),
+                child: Center(
+                  child: Text(
+                    'No payment methods configured for this terminal.',
+                    style: TextStyle(
+                      fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                      color: POSColors.textSecondary,
+                    ),
+                  ),
+                ),
+              );
+            }
+            final spacing = r.value<double>(kiosk: 12, tablet: 10, phone: 8);
+            return Column(
+              children: [
+                for (int i = 0; i < methods.length; i++) ...[
+                  if (i > 0) SizedBox(height: spacing),
+                  _PaymentMethodCard(
+                    entry: methods[i],
+                    payment: payment,
+                  ),
+                ],
+              ],
+            );
+          },
         ),
       ],
     );
@@ -360,49 +380,69 @@ class _PaymentMethodGrid extends HookConsumerWidget {
 
 class _PaymentMethodCard extends HookConsumerWidget {
   const _PaymentMethodCard({
-    required this.method,
-    required this.index,
+    required this.entry,
     required this.payment,
-    required this.paymentMethods,
-    required this.ref,
   });
 
-  final ({String image, String name, bool enabled}) method;
-  final int index;
+  final PaymentMethodEntryDto entry;
   final Payment? payment;
-  final IList<({String image, String name, bool enabled})> paymentMethods;
-  final WidgetRef ref;
+
+  bool get _isCash => entry.paymentMethod == 'Cash';
+  bool get _isCard => entry.paymentMethod == 'Credit Card';
+
+  String get _displayName =>
+      (entry.paymentMethodName?.isNotEmpty ?? false)
+          ? entry.paymentMethodName!
+          : switch (entry.paymentMethod) {
+            'Cash' => 'Cash Payment',
+            'Credit Card' => 'Credit / Debit Card',
+            'GCash' => 'E-wallet / GCash',
+            _ => entry.paymentMethod,
+          };
+
+  String get _iconPath => switch (entry.paymentMethod) {
+    'Cash' => Assets.images.svg.icPaymentCash.path,
+    'Credit Card' => Assets.images.svg.icPaymentCard.path,
+    _ => Assets.images.svg.icPaymentQr.path,
+  };
 
   @override
   Widget build(BuildContext context, WidgetRef widgetRef) {
     final isHovered = useState(false);
     final r = context.responsive;
 
-    final CashPayment? cashPayment =
-        index == 0 && payment is CashPayment ? payment as CashPayment : null;
-    final isSelected = cashPayment != null;
-    final isEnabled = method.enabled && payment == null;
+    final p = payment; // local copy so Dart can promote the nullable type
+    final cashPayment = _isCash && p is CashPayment ? p : null;
+    final cardPayment = _isCard && p is CardPayment ? p : null;
+    final qrPayment = !_isCash && !_isCard && p is QRPayment && p.walletProvider == entry.paymentMethod ? p : null;
+    final isSelected = cashPayment != null || cardPayment != null || qrPayment != null;
+    final isEnabled = payment == null;
 
     Future<void> onTap() async {
       final collectibleAmount = widgetRef.read(
         orderingProvider.select((it) => it.value?.sale.totalAmount ?? Decimal.zero),
       );
       final Payment? result;
-      switch (index) {
-        case 0:
-          result = await showCashPaymentDialog(
-            context,
-            collectibleAmount: collectibleAmount,
-          );
-        default:
-          result = null;
+      if (_isCash) {
+        result = await showCashPaymentDialog(
+          context,
+          collectibleAmount: collectibleAmount,
+        );
+      } else {
+        result = await showReferencePaymentDialog(
+          context,
+          entry: entry,
+          collectibleAmount: collectibleAmount,
+        );
       }
       if (result != null) {
         widgetRef.read(orderingProvider.notifier).addPayment(result);
       }
     }
 
-    final accent = isSelected ? ColorSet.primary : POSColors.borderDefault;
+    final iconSize = r.value<double>(kiosk: 56, tablet: 48, phone: 40);
+    final iconInner = r.value<double>(kiosk: 32, tablet: 26, phone: 22);
+    final radioSize = r.value<double>(kiosk: 26, tablet: 22, phone: 20);
 
     return Opacity(
       opacity: isEnabled || isSelected ? 1.0 : 0.45,
@@ -443,17 +483,17 @@ class _PaymentMethodCard extends HookConsumerWidget {
               borderRadius: BorderRadius.circular(POSRadius.xl),
               onTap: isEnabled ? onTap : null,
               child: Padding(
-                padding: EdgeInsets.all(
-                  r.value<double>(kiosk: 24, tablet: 18, phone: 14),
+                padding: EdgeInsets.symmetric(
+                  horizontal: r.value<double>(kiosk: 20, tablet: 16, phone: 14),
+                  vertical: r.value<double>(kiosk: 18, tablet: 14, phone: 12),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Row(
                   children: [
-                    // Icon container
+                    // Icon
                     AnimatedContainer(
                       duration: POSAnimation.normal,
-                      width: r.value<double>(kiosk: 72, tablet: 60, phone: 50),
-                      height: r.value<double>(kiosk: 72, tablet: 60, phone: 50),
+                      width: iconSize,
+                      height: iconSize,
                       decoration: BoxDecoration(
                         color: isSelected
                             ? ColorSet.primary.withValues(alpha: 0.1)
@@ -462,69 +502,85 @@ class _PaymentMethodCard extends HookConsumerWidget {
                       ),
                       child: Center(
                         child: SvgPicture.asset(
-                          method.image,
-                          width: r.value<double>(kiosk: 40, tablet: 32, phone: 28),
-                          height: r.value<double>(kiosk: 40, tablet: 32, phone: 28),
+                          _iconPath,
+                          width: iconInner,
+                          height: iconInner,
                           colorFilter: isSelected
-                              ? const ColorFilter.mode(
-                                  ColorSet.primary,
-                                  BlendMode.srcIn,
-                                )
+                              ? const ColorFilter.mode(ColorSet.primary, BlendMode.srcIn)
                               : null,
                         ),
                       ),
                     ),
-                    SizedBox(height: r.value<double>(kiosk: 14, tablet: 12, phone: 10)),
-                    Text(
-                      method.name,
-                      style: TextStyle(
-                        fontSize: r.value<double>(kiosk: 15, tablet: 13, phone: 12),
-                        fontWeight: FontWeight.w600,
-                        color: isSelected ? ColorSet.primary : POSColors.textPrimary,
+                    SizedBox(width: r.value<double>(kiosk: 16, tablet: 14, phone: 12)),
+                    // Labels
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _displayName,
+                            style: TextStyle(
+                              fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
+                              fontWeight: FontWeight.w600,
+                              color: isSelected ? ColorSet.primary : POSColors.textPrimary,
+                            ),
+                          ),
+                          if (entry.paymentNumber?.isNotEmpty ?? false) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              entry.paymentNumber!,
+                              style: TextStyle(
+                                fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                                color: POSColors.textTertiary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                          if (cashPayment != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              '${cashPayment.cashReceived.pesoFormatted}  ·  Change: ${cashPayment.change.pesoFormatted}',
+                              style: TextStyle(
+                                fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                                color: ColorSet.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                          if (cardPayment != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Ref: ${cardPayment.referenceNumber}  ·  ****${cardPayment.cardNumber}',
+                              style: TextStyle(
+                                fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                                color: ColorSet.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                          if (qrPayment != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Ref: ${qrPayment.referenceNumber}',
+                              style: TextStyle(
+                                fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                                color: ColorSet.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                    if (!method.enabled) ...[
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: POSColors.surfaceSubtle,
-                          borderRadius: BorderRadius.circular(POSRadius.full),
-                        ),
-                        child: Text(
-                          'Coming soon',
-                          style: TextStyle(
-                            fontSize: r.value<double>(kiosk: 11, tablet: 10, phone: 9),
-                            color: POSColors.textTertiary,
-                          ),
-                        ),
-                      ),
-                    ],
-                    if (cashPayment != null) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: ColorSet.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(POSRadius.sm),
-                        ),
-                        child: Text(
-                          '${cashPayment.cashReceived.pesoFormatted} | Change: ${cashPayment.change.pesoFormatted}',
-                          style: TextStyle(
-                            fontSize: r.value<double>(kiosk: 12, tablet: 11, phone: 10),
-                            color: ColorSet.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ],
-                    SizedBox(height: r.value<double>(kiosk: 14, tablet: 12, phone: 10)),
+                    SizedBox(width: r.value<double>(kiosk: 16, tablet: 14, phone: 12)),
+                    // Radio indicator
                     AnimatedContainer(
                       duration: POSAnimation.fast,
-                      width: r.value<double>(kiosk: 28, tablet: 24, phone: 20),
-                      height: r.value<double>(kiosk: 28, tablet: 24, phone: 20),
+                      width: radioSize,
+                      height: radioSize,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: isSelected ? ColorSet.primary : Colors.transparent,
@@ -534,7 +590,7 @@ class _PaymentMethodCard extends HookConsumerWidget {
                         ),
                       ),
                       child: isSelected
-                          ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)
+                          ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
                           : null,
                     ),
                   ],

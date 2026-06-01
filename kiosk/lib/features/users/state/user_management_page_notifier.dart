@@ -27,7 +27,7 @@ class UserManagementPageNotifier extends Notifier<UserManagementPageState> {
     _filterAndSortUsers();
   }
 
-  void updateUserTypeFilter({bool? userType}) {
+  void updateUserTypeFilter({String? userType}) {
     state = state.copyWith(selectedUserType: userType);
     _filterAndSortUsers();
   }
@@ -79,9 +79,7 @@ class UserManagementPageNotifier extends Notifier<UserManagementPageState> {
               user.userId.toLowerCase().contains(searchTerm);
 
           final matchesType =
-              state.selectedUserType == null ||
-              ((state.selectedUserType ?? false) && user.systemAdmin) ||
-              (state.selectedUserType == false && !user.systemAdmin);
+              state.selectedUserType == null || user.role == state.selectedUserType;
 
           return matchesSearch && matchesType;
         })
@@ -96,7 +94,7 @@ class UserManagementPageNotifier extends Notifier<UserManagementPageState> {
             case 'id':
               comparison = a.userId.compareTo(b.userId);
             case 'role':
-              comparison = a.systemAdmin.toString().compareTo(b.systemAdmin.toString());
+              comparison = a.role.compareTo(b.role);
             default:
               comparison = 0;
           }

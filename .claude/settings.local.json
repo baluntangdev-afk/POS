@@ -65,7 +65,9 @@
       "Bash(xargs grep -n \"DEFAULT_LIMIT\\\\|MAX_LIMIT\\\\|DEFAULT_PAGE\")",
       "Bash(curl -s http://localhost:3000/api/v1/products/33)",
       "Bash(xargs grep -l \"ProductDetails\\\\|product_detail\\\\|product-detail\")",
-      "Bash(xargs grep -l \"dialog\\\\|Dialog\")"
+      "Bash(xargs grep -l \"dialog\\\\|Dialog\")",
+      "Bash(grep -E \"\\\\.ts$\")",
+      "PowerShell(Get-ChildItem *)"
     ]
   }
 }

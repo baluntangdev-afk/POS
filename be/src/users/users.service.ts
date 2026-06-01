@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { UserRole } from './users.enum';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import {
@@ -60,6 +61,10 @@ export class UsersService {
       createdBy: causer,
       updatedBy: causer,
     });
+
+    if (createUserDto.role !== undefined) {
+      user.systemAdmin = createUserDto.role === UserRole.ADMIN;
+    }
 
     const savedUser = await this.userRepository.save(user);
 
@@ -169,6 +174,10 @@ export class UsersService {
 
   async update(id: number, updateUserDto: UpdateUserDto) {
     const payload = this.userRepository.create(updateUserDto);
+
+    if (updateUserDto.role !== undefined) {
+      payload.systemAdmin = updateUserDto.role === UserRole.ADMIN;
+    }
 
     if (payload.password) {
       const salt = await bcrypt.genSalt();

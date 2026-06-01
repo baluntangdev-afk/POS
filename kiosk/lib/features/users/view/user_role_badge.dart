@@ -5,15 +5,18 @@ import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 
 class UserRoleBadge extends StatelessWidget {
-  const UserRoleBadge({required this.isAdmin, super.key});
+  const UserRoleBadge({required this.role, super.key});
 
-  final bool isAdmin;
+  final String role;
 
   @override
   Widget build(BuildContext context) {
-    final color = isAdmin ? ColorSet.secondary : ColorSet.success;
-    final iconData = isAdmin ? Icons.admin_panel_settings_rounded : Icons.person_rounded;
-    final label = isAdmin ? 'Admin' : 'User';
+    final (color, iconData, label) = switch (role) {
+      'admin' => (ColorSet.secondary, Icons.admin_panel_settings_rounded, 'Admin'),
+      'supervisor' => (ColorSet.tertiary, Icons.supervised_user_circle_rounded, 'Supervisor'),
+      _ => (ColorSet.success, Icons.person_rounded, 'User'),
+    };
+
     final r = context.responsive;
     final fontSize = r.value<double>(kiosk: 13, tablet: 12, phone: 12);
 

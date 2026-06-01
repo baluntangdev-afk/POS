@@ -11,7 +11,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { BaseStatus } from '../../utils/shared-enums';
-import { UserSuffix } from '../users.enum';
+import { UserRole, UserSuffix } from '../users.enum';
 import { UserDetailsGender } from '../../user-details/user-details.enum';
 
 const lowerCaseTransformer = ({ value }: { value: unknown }) =>
@@ -96,6 +96,16 @@ export class CreateUserDto {
   @IsOptional()
   @IsBoolean()
   systemAdmin?: boolean;
+
+  @ApiPropertyOptional({
+    enum: UserRole,
+    description: 'User role (user, admin, supervisor)',
+    example: UserRole.USER,
+    default: UserRole.USER,
+  })
+  @IsOptional()
+  @IsEnum(UserRole, { message: 'role must be one of: user, admin, supervisor' })
+  role?: UserRole;
 
   @ApiPropertyOptional({
     type: String,

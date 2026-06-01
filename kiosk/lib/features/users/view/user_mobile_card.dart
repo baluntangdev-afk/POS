@@ -12,6 +12,7 @@ class UserMobileCard extends StatelessWidget {
     required this.onTap,
     required this.onEdit,
     required this.onDelete,
+    this.canDelete = true,
     super.key,
   });
 
@@ -19,6 +20,7 @@ class UserMobileCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final bool canDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +75,7 @@ class UserMobileCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      UserRoleBadge(isAdmin: user.systemAdmin),
+                      UserRoleBadge(role: user.role),
                     ],
                   ),
                   SizedBox(height: r.value<double>(kiosk: 16, tablet: 14, phone: 12)),
@@ -94,13 +96,15 @@ class UserMobileCard extends StatelessWidget {
                         color: ColorSet.primary,
                         onPressed: onEdit,
                       ),
-                      SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
-                      _ActionButton(
-                        icon: Icons.delete_rounded,
-                        label: 'Delete',
-                        color: ColorSet.danger,
-                        onPressed: onDelete,
-                      ),
+                      if (canDelete) ...[
+                        SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                        _ActionButton(
+                          icon: Icons.delete_rounded,
+                          label: 'Delete',
+                          color: ColorSet.danger,
+                          onPressed: onDelete,
+                        ),
+                      ],
                     ],
                   ),
                 ],

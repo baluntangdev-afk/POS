@@ -14,6 +14,7 @@ class CreateUserDto with CreateUserDtoMappable {
     this.image = '',
     required this.status,
     required this.systemAdmin,
+    required this.role,
     required this.phone,
     this.emailVerified = false,
     this.phoneVerified = false,
@@ -34,6 +35,7 @@ class CreateUserDto with CreateUserDtoMappable {
   final String image;
   final String status;
   final bool systemAdmin;
+  final String role;
   final String phone;
   final bool emailVerified;
   final bool phoneVerified;

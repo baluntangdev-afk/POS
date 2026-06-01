@@ -14,6 +14,7 @@ import '../../../utils/decimal_formatter.dart';
 import '../../../utils/uuidv7.dart';
 import '../../../widgets/android_bottom_sheet.dart';
 import '../../../widgets/button.dart';
+import '../../../widgets/resposive_wrap_container.dart';
 import '../entities/line_item.dart';
 import '../entities/modifier_group.dart';
 import '../entities/modifier_option.dart';
@@ -35,7 +36,13 @@ Future<LineItem?> showLineItemDialog(
     builder: (context, ref, child) {
       switch (ref.watch(lineItemProvider(productId))) {
         case AsyncLoading():
-          return const Center(child: CircularProgressIndicator(color: ColorSet.primary, strokeWidth: 3, strokeCap: StrokeCap.round));
+          return const Center(
+            child: CircularProgressIndicator(
+              color: ColorSet.primary,
+              strokeWidth: 3,
+              strokeCap: StrokeCap.round,
+            ),
+          );
         case AsyncError():
           return const Center(child: Text('Cannot load product'));
         case AsyncData(value: final product):
@@ -57,19 +64,20 @@ Future<LineItem?> showLineItemDialog(
   }
   return showDialog<LineItem>(
     context: context,
-    builder: (context) => Dialog(
-      backgroundColor: ColorSet.light,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+    builder:
+        (context) => Dialog(
+          backgroundColor: ColorSet.light,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+              context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+            ),
+          ),
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+            vertical: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+          ),
+          child: content(context),
         ),
-      ),
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-        vertical: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-      ),
-      child: content(context),
-    ),
   );
 }
 
@@ -267,52 +275,52 @@ class LineItemDialog extends HookConsumerWidget {
       child: SizedBox(
         width: context.responsive.value(kiosk: 1200, tablet: 600, phone: double.infinity),
         child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-              _ProductDetails(
-                product: product,
-                selectedQuantity: selectedQuantity.value,
-                basePrice: selectedVariant.value?.price ?? product.price,
-                onIncrease: () => onQuantityChanged(selectedQuantity.value + 1),
-                onDecrease: () => onQuantityChanged(selectedQuantity.value - 1),
-              ),
-              if (variants.isNotEmpty) ...[
-                Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-                Padding(
-                  padding: EdgeInsetsGeometry.symmetric(
-                    horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-                  ),
-                  child: _VariantSelector(
-                    variants: variants,
-                    selectedVariant: selectedVariant.value,
-                    onSelect: (v) => selectedVariant.value = v,
-                  ),
-                ),
-              ],
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+            _ProductDetails(
+              product: product,
+              selectedQuantity: selectedQuantity.value,
+              basePrice: selectedVariant.value?.price ?? product.price,
+              onIncrease: () => onQuantityChanged(selectedQuantity.value + 1),
+              onDecrease: () => onQuantityChanged(selectedQuantity.value - 1),
+            ),
+            if (variants.isNotEmpty) ...[
               Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
               Padding(
                 padding: EdgeInsetsGeometry.symmetric(
                   horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
                 ),
-                child: _ModifierGroupSelector(
-                  modifierGroups: modifierGroups,
-                  selectedOptions: getSelectedModifierOptions(),
-                  onToggleOption: toggleModifierOption,
+                child: _VariantSelector(
+                  variants: variants,
+                  selectedVariant: selectedVariant.value,
+                  onSelect: (v) => selectedVariant.value = v,
                 ),
               ),
-              Gap(context.responsive.value(kiosk: 64, tablet: 48, phone: 32)),
-              _ActionControls(
-                totalAmount: currentPrice,
-                onCancel: () => Navigator.of(context).pop(),
-                onConfirm:
-                    areModifierSelectionsValid()
-                        ? () => Navigator.of(context).pop(buildLineItem())
-                        : null,
-              ),
-              Gap(context.responsive.value(kiosk: 64, tablet: 48, phone: 32)),
             ],
+            Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+            Padding(
+              padding: EdgeInsetsGeometry.symmetric(
+                horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+              ),
+              child: _ModifierGroupSelector(
+                modifierGroups: modifierGroups,
+                selectedOptions: getSelectedModifierOptions(),
+                onToggleOption: toggleModifierOption,
+              ),
+            ),
+            Gap(context.responsive.value(kiosk: 64, tablet: 48, phone: 32)),
+            _ActionControls(
+              totalAmount: currentPrice,
+              onCancel: () => Navigator.of(context).pop(),
+              onConfirm:
+                  areModifierSelectionsValid()
+                      ? () => Navigator.of(context).pop(buildLineItem())
+                      : null,
+            ),
+            Gap(context.responsive.value(kiosk: 64, tablet: 48, phone: 32)),
+          ],
         ),
       ),
     );
@@ -344,15 +352,16 @@ class _ProductDetails extends StatelessWidget {
           width: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
           height: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
           fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) => SizedBox(
-            width: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
-            height: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
-            child: Icon(
-              Icons.image_not_supported_outlined,
-              color: POSColors.textDisabled,
-              size: context.responsive.value(kiosk: 64, tablet: 48, phone: 32),
-            ),
-          ),
+          errorBuilder:
+              (context, error, stackTrace) => SizedBox(
+                width: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
+                height: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
+                child: Icon(
+                  Icons.image_not_supported_outlined,
+                  color: POSColors.textDisabled,
+                  size: context.responsive.value(kiosk: 64, tablet: 48, phone: 32),
+                ),
+              ),
         ),
         Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
         Expanded(
@@ -489,7 +498,7 @@ class _VariantSelector extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Size',
+          'Variants',
           style: TextStyle(
             fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
             fontWeight: FontWeight.w700,
@@ -497,17 +506,18 @@ class _VariantSelector extends StatelessWidget {
           ),
         ),
         Gap(context.responsive.value(kiosk: 12, tablet: 8, phone: 8)),
-        Wrap(
-          spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-          runSpacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-          children: variants.map((variant) {
-            final isSelected = selectedVariant?.id == variant.id;
-            return _VariantCard(
-              variant: variant,
-              isSelected: isSelected,
-              onTap: () => onSelect(variant),
-            );
-          }).toList(),
+        ResponsiveWrapContainer(
+          rowItems: 3,
+          equalWidth: true,
+          items:
+              variants.map((variant) {
+                final isSelected = selectedVariant?.id == variant.id;
+                return _VariantCard(
+                  variant: variant,
+                  isSelected: isSelected,
+                  onTap: () => onSelect(variant),
+                );
+              }).toList(),
         ),
       ],
     );
@@ -515,11 +525,7 @@ class _VariantSelector extends StatelessWidget {
 }
 
 class _VariantCard extends StatelessWidget {
-  const _VariantCard({
-    required this.variant,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _VariantCard({required this.variant, required this.isSelected, required this.onTap});
 
   final ProductVariant variant;
   final bool isSelected;
@@ -534,8 +540,7 @@ class _VariantCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(POSRadius.md),
         child: Container(
-          width: context.responsive.value(kiosk: 160, tablet: 120, phone: 96),
-          height: context.responsive.value(kiosk: 80, tablet: 60, phone: 60),
+          width: context.responsive.value(kiosk: 160, tablet: 130, phone: 110),
           decoration: BoxDecoration(
             border: Border.all(
               color: isSelected ? ColorSet.primary : POSColors.borderDefault,
@@ -543,40 +548,44 @@ class _VariantCard extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(POSRadius.md),
           ),
-          padding: EdgeInsets.all(context.responsive.value(kiosk: 12, tablet: 8, phone: 8)),
-          child: Row(
+          padding: EdgeInsets.all(context.responsive.value(kiosk: 12, tablet: 10, phone: 8)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
                       variant.name,
                       style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 16, tablet: 12, phone: 12),
+                        fontSize: context.responsive.value(kiosk: 15, tablet: 12, phone: 12),
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        color: POSColors.textPrimary,
+                        height: 1.3,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const Gap(4),
-                    Text(
-                      variant.price.pesoFormatted,
-                      style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 12),
-                        color: ColorSet.primary,
-                      ),
+                  ),
+                  if (isSelected) ...[
+                    Gap(context.responsive.value(kiosk: 4, tablet: 4, phone: 2)),
+                    Icon(
+                      Icons.check_circle_rounded,
+                      color: ColorSet.primary,
+                      size: context.responsive.value(kiosk: 18, tablet: 14, phone: 12),
                     ),
                   ],
+                ],
+              ),
+              Gap(context.responsive.value(kiosk: 6, tablet: 4, phone: 4)),
+              Text(
+                variant.price.pesoFormatted,
+                style: TextStyle(
+                  fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 11),
+                  color: ColorSet.primary,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              if (isSelected)
-                Icon(
-                  Icons.check_circle_rounded,
-                  color: ColorSet.primary,
-                  size: context.responsive.value(kiosk: 20, tablet: 15, phone: 12),
-                ),
             ],
           ),
         ),
@@ -695,8 +704,7 @@ class _ModifierOptionCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(POSRadius.md),
         child: Container(
-          width: context.responsive.value(kiosk: 160, tablet: 120, phone: 96),
-          height: context.responsive.value(kiosk: 80, tablet: 60, phone: 60),
+          width: context.responsive.value(kiosk: 160, tablet: 130, phone: 110),
           decoration: BoxDecoration(
             border: Border.all(
               color: isSelected ? ColorSet.primary : POSColors.borderDefault,
@@ -704,68 +712,76 @@ class _ModifierOptionCard extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(POSRadius.md),
           ),
-          padding: EdgeInsets.all(context.responsive.value(kiosk: 12, tablet: 8, phone: 8)),
-        child: Row(
-          children: [
-            if (option.image != null) ...[
-              Image.memory(
-                option.image!,
-                width: context.responsive.value(kiosk: 40, tablet: 32, phone: 24),
-                height: context.responsive.value(kiosk: 40, tablet: 32, phone: 24),
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => SizedBox(
-                  width: context.responsive.value(kiosk: 40, tablet: 32, phone: 24),
-                  height: context.responsive.value(kiosk: 40, tablet: 32, phone: 24),
-                  child: Icon(
-                    Icons.image_not_supported_outlined,
-                    color: POSColors.textDisabled,
-                    size: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
+          padding: EdgeInsets.all(context.responsive.value(kiosk: 12, tablet: 10, phone: 8)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (option.image != null) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(POSRadius.sm),
+                  child: Image.memory(
+                    option.image!,
+                    width: double.infinity,
+                    height: context.responsive.value(kiosk: 64, tablet: 48, phone: 40),
+                    fit: BoxFit.cover,
+                    errorBuilder:
+                        (context, error, stackTrace) => SizedBox(
+                          height: context.responsive.value(kiosk: 64, tablet: 48, phone: 40),
+                          child: Center(
+                            child: Icon(
+                              Icons.image_not_supported_outlined,
+                              color: POSColors.textDisabled,
+                              size: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+                            ),
+                          ),
+                        ),
                   ),
                 ),
-              ),
-              Gap(context.responsive.value(kiosk: 8, tablet: 4, phone: 4)),
-            ],
-            Expanded(
-              child: Column(
+                Gap(context.responsive.value(kiosk: 8, tablet: 6, phone: 6)),
+              ],
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    option.name,
-                    style: TextStyle(
-                      fontSize: context.responsive.value(kiosk: 16, tablet: 12, phone: 12),
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (option.price != Decimal.zero) ...[
-                    const Gap(4),
-                    Text(
-                      option.price.pesoFormatted,
+                  Expanded(
+                    child: Text(
+                      option.name,
                       style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 12),
-                        color: ColorSet.primary,
+                        fontSize: context.responsive.value(kiosk: 15, tablet: 12, phone: 12),
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        color: POSColors.textPrimary,
+                        height: 1.3,
                       ),
+                    ),
+                  ),
+                  if (isSelected) ...[
+                    Gap(context.responsive.value(kiosk: 4, tablet: 4, phone: 2)),
+                    Icon(
+                      Icons.check_circle_rounded,
+                      color: ColorSet.primary,
+                      size: context.responsive.value(kiosk: 18, tablet: 14, phone: 12),
                     ),
                   ],
                 ],
               ),
-            ),
-            if (isSelected)
-              Icon(
-                Icons.check_circle_rounded,
-                color: ColorSet.primary,
-                size: context.responsive.value(kiosk: 20, tablet: 15, phone: 12),
-              ),
-          ],
+              if (option.price != Decimal.zero) ...[
+                Gap(context.responsive.value(kiosk: 6, tablet: 4, phone: 4)),
+                Text(
+                  option.price.pesoFormatted,
+                  style: TextStyle(
+                    fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 11),
+                    color: ColorSet.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }
-
 
 class _ActionControls extends StatelessWidget {
   const _ActionControls({required this.totalAmount, required this.onCancel, this.onConfirm});
@@ -847,4 +863,3 @@ class _ActionControls extends StatelessWidget {
     );
   }
 }
-

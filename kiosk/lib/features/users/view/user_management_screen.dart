@@ -10,8 +10,10 @@ import '../../../theme/pos_design.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/message_dialog.dart';
 import '../../../widgets/network_error_dialog.dart';
+import '../../../widgets/resposive_wrap_container.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
+import '../../auth/state/login_state_notifier.dart';
 import '../entities/user.dart';
 import '../state/get_users_notifier.dart';
 import '../state/modify_user_notifier.dart';
@@ -112,6 +114,9 @@ class UserManagementScreen extends HookConsumerWidget {
         },
       );
     });
+    final currentUserId = ref.watch(loginStateProvider).value?.id.toString();
+
+    debugPrint('CURRENT ${currentUserId}');
     final isAndroid = context.breakpoint.isAndroid;
     final body = SizedBox.expand(
       child: Column(
@@ -149,11 +154,11 @@ class UserManagementScreen extends HookConsumerWidget {
           Expanded(
             child: ResponsiveBuilder(
               kiosk:
-                  (context) => _buildDesktopLayout(context, ref, searchController, searchFocusNode),
+                  (context) => _buildDesktopLayout(context, ref, searchController, searchFocusNode, currentUserId),
               tablet:
-                  (context) => _buildDesktopLayout(context, ref, searchController, searchFocusNode),
+                  (context) => _buildDesktopLayout(context, ref, searchController, searchFocusNode, currentUserId),
               phone:
-                  (context) => _buildMobileLayout(context, ref, searchController, searchFocusNode),
+                  (context) => _buildMobileLayout(context, ref, searchController, searchFocusNode, currentUserId),
             ),
           ),
         ],
@@ -170,6 +175,7 @@ class UserManagementScreen extends HookConsumerWidget {
     WidgetRef ref,
     TextEditingController searchController,
     FocusNode searchFocusNode,
+    String? currentUserId,
   ) {
     final r = context.responsive;
     return Padding(
@@ -181,7 +187,7 @@ class UserManagementScreen extends HookConsumerWidget {
           SizedBox(height: r.value<double>(kiosk: 24, tablet: 20, phone: 16)),
           _buildStatsCards(ref),
           SizedBox(height: r.value<double>(kiosk: 24, tablet: 20, phone: 16)),
-          Expanded(child: _buildDesktopTable(ref, context)),
+          Expanded(child: _buildDesktopTable(ref, context, currentUserId)),
         ],
       ),
     );
@@ -192,6 +198,7 @@ class UserManagementScreen extends HookConsumerWidget {
     WidgetRef ref,
     TextEditingController searchController,
     FocusNode searchFocusNode,
+    String? currentUserId,
   ) {
     final r = context.responsive;
     return Column(
@@ -208,7 +215,7 @@ class UserManagementScreen extends HookConsumerWidget {
             ],
           ),
         ),
-        Expanded(child: _buildMobileList(context, ref)),
+        Expanded(child: _buildMobileList(context, ref, currentUserId)),
       ],
     );
   }
@@ -301,38 +308,38 @@ class UserManagementScreen extends HookConsumerWidget {
   Widget _buildStatsCards(WidgetRef ref) {
     final state = ref.watch(userManagementPageProvider);
     final totalUsers = state.allUsers.length;
-    final adminUsers = state.allUsers.where((u) => u.systemAdmin).length;
-    final regularUsers = state.allUsers.where((u) => !u.systemAdmin).length;
+    final adminUsers = state.allUsers.where((u) => u.role == 'admin').length;
+    final supervisorUsers = state.allUsers.where((u) => u.role == 'supervisor').length;
+    final regularUsers = state.allUsers.where((u) => u.role == 'user').length;
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        return Row(
-          children: [
-            Expanded(
-              child: UserStatsCard(
-                label: 'Total Users',
-                value: totalUsers.toString(),
-                icon: Icons.people,
-                color: ColorSet.primary,
-              ),
+        return ResponsiveWrapContainer(
+          rowItems: 2,
+          items: [
+            UserStatsCard(
+              label: 'Total Users',
+              value: totalUsers.toString(),
+              icon: Icons.people,
+              color: ColorSet.primary,
             ),
-            SizedBox(width: context.responsive.scale(16)),
-            Expanded(
-              child: UserStatsCard(
-                label: 'Admins',
-                value: adminUsers.toString(),
-                icon: Icons.admin_panel_settings,
-                color: ColorSet.tertiary,
-              ),
+            UserStatsCard(
+              label: 'Admins',
+              value: adminUsers.toString(),
+              icon: Icons.admin_panel_settings,
+              color: ColorSet.tertiary,
             ),
-            SizedBox(width: context.responsive.scale(16)),
-            Expanded(
-              child: UserStatsCard(
-                label: 'Users',
-                value: regularUsers.toString(),
-                icon: Icons.person,
-                color: ColorSet.success,
-              ),
+            UserStatsCard(
+              label: 'Supervisors',
+              value: supervisorUsers.toString(),
+              icon: Icons.supervised_user_circle_rounded,
+              color: ColorSet.secondary,
+            ),
+            UserStatsCard(
+              label: 'Users',
+              value: regularUsers.toString(),
+              icon: Icons.person,
+              color: ColorSet.success,
             ),
           ],
         );
@@ -340,7 +347,7 @@ class UserManagementScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _buildDesktopTable(WidgetRef ref, BuildContext context) {
+  Widget _buildDesktopTable(WidgetRef ref, BuildContext context, String? currentUserId) {
     final state = ref.watch(userManagementPageProvider);
     final notifier = ref.read(userManagementPageProvider.notifier);
 
@@ -351,10 +358,11 @@ class UserManagementScreen extends HookConsumerWidget {
       onSort: (column) => notifier.updateSort(column),
       onEdit: (user) => ref.read(modifyUserProvider.notifier).getUser(user),
       onDelete: (user) => _showDeleteConfirmation(context, ref, user),
+      currentUserId: currentUserId,
     );
   }
 
-  Widget _buildMobileList(BuildContext context, WidgetRef ref) {
+  Widget _buildMobileList(BuildContext context, WidgetRef ref, String? currentUserId) {
     final state = ref.watch(userManagementPageProvider);
     final r = context.responsive;
 
@@ -373,6 +381,7 @@ class UserManagementScreen extends HookConsumerWidget {
           onTap: () => ref.read(modifyUserProvider.notifier).getUser(user),
           onEdit: () => ref.read(modifyUserProvider.notifier).getUser(user),
           onDelete: () => _showDeleteConfirmation(context, ref, user),
+          canDelete: user.id != currentUserId,
         );
       },
     );

@@ -3,7 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../entities/auth.dart';
 import '../repositories/auth_repository.dart';
 
-final loginStateProvider = AsyncNotifierProvider.autoDispose(
+final loginStateProvider = AsyncNotifierProvider<LoginStateNotifier, Auth?>(
   LoginStateNotifier.new,
   name: 'loginStateProvider',
 );

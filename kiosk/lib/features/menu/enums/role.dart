@@ -1,6 +1,7 @@
 enum Role {
   user('User'),
-  admin('Admin');
+  admin('Admin'),
+  supervisor('Supervisor');
 
   const Role(this.title);
 

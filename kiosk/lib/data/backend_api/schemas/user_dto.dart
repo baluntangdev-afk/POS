@@ -13,6 +13,7 @@ class UserDto with UserDtoMappable {
     required this.lastName,
     required this.suffix,
     required this.systemAdmin,
+    this.role = 'user',
     this.image,
     this.phone,
     required this.emailVerified,
@@ -34,6 +35,7 @@ class UserDto with UserDtoMappable {
   final String suffix;
   final bool isPinChanged;
   final bool systemAdmin;
+  final String role;
   final String? image;
   final String? phone;
   final bool emailVerified;

@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { BaseStatus } from '../../utils/shared-enums';
-import { UserSuffix } from '../users.enum';
+import { UserRole, UserSuffix } from '../users.enum';
 import type { FindOptionsSelect } from 'typeorm';
 import type { User } from '../entities/user.entity';
 import { UserDetailsListItemDto } from '../../user-details/dto/user-details-list-item.dto';
@@ -32,6 +32,9 @@ export class UserListItemDto {
 
   @ApiProperty({ description: 'System admin flag', example: false })
   systemAdmin: boolean;
+
+  @ApiProperty({ description: 'User role', enum: UserRole, example: UserRole.USER })
+  role: UserRole;
 
   @ApiPropertyOptional({ description: 'Profile image URL' })
   image: string | null;
@@ -76,6 +79,7 @@ export const USER_LIST_SELECT: FindOptionsSelect<User> = {
   lastName: true,
   suffix: true,
   systemAdmin: true,
+  role: true,
   image: true,
   phone: true,
   emailVerified: true,

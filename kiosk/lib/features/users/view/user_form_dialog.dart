@@ -39,7 +39,7 @@ class UserFormDialog extends HookConsumerWidget {
     final phoneController = useTextEditingController(text: user?.phone ?? '');
     final addressController = useTextEditingController(text: user?.address ?? '');
     final imageController = useTextEditingController(text: user?.image ?? '');
-    final selectedUserType = useState<bool>(user?.systemAdmin ?? false);
+    final selectedUserType = useState<String>(user?.role ?? 'user');
     final selectedGender = useState<String>(user?.gender ?? '');
     final selectedStatus = useState<String>(user?.status ?? 'Active');
     final selectedDateOfBirth = useState<DateTime?>(user?.dateOfBirth);
@@ -142,7 +142,8 @@ class UserFormDialog extends HookConsumerWidget {
           address: addressController.text.trim(),
           gender: selectedGender.value,
           dateOfBirth: selectedDateOfBirth.value,
-          systemAdmin: selectedUserType.value,
+          systemAdmin: selectedUserType.value == 'admin',
+          role: selectedUserType.value,
           emailVerified: user?.emailVerified ?? false,
           phoneVerified: user?.phoneVerified ?? false,
           locked: user?.locked ?? false,
@@ -326,7 +327,7 @@ class UserFormDialog extends HookConsumerWidget {
     required TextEditingController phoneController,
     required TextEditingController addressController,
     required TextEditingController imageController,
-    required ValueNotifier<bool> selectedUserType,
+    required ValueNotifier<String> selectedUserType,
     required ValueNotifier<String> selectedGender,
     required ValueNotifier<String> selectedStatus,
     required ValueNotifier<DateTime?> selectedDateOfBirth,
@@ -475,9 +476,9 @@ class UserFormDialog extends HookConsumerWidget {
               context: context,
               label: 'User Type',
               icon: Icons.security_rounded,
-              value: selectedUserType.value ? 'Admin' : 'User',
-              items: const ['User', 'Admin'],
-              onChanged: (value) => selectedUserType.value = value == 'Admin',
+              value: _roleLabel(selectedUserType.value),
+              items: const ['User', 'Supervisor', 'Admin'],
+              onChanged: (value) => selectedUserType.value = _roleValue(value),
               validationAttempted: validationAttempted,
             ),
           ]),
@@ -491,6 +492,28 @@ class UserFormDialog extends HookConsumerWidget {
         ],
       ),
     );
+  }
+
+  String _roleLabel(String role) {
+    switch (role) {
+      case 'admin':
+        return 'Admin';
+      case 'supervisor':
+        return 'Supervisor';
+      default:
+        return 'User';
+    }
+  }
+
+  String _roleValue(String label) {
+    switch (label) {
+      case 'Admin':
+        return 'admin';
+      case 'Supervisor':
+        return 'supervisor';
+      default:
+        return 'user';
+    }
   }
 
   Widget _buildSectionLabel(BuildContext context, String label, IconData icon) {

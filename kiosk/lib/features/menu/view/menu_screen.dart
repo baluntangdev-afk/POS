@@ -37,7 +37,8 @@ class MenuScreen extends HookConsumerWidget {
       if (!posState.hasError) return;
 
       hasShownPosDialog.value = true;
-      final isAdmin = accessState.value?.role == Role.admin;
+      final role = accessState.value?.role;
+      final isAdmin = role == Role.admin || role == Role.supervisor;
 
       if (isAdmin) {
         showMessageDialog(

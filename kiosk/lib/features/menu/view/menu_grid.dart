@@ -118,7 +118,7 @@ class MenuGrid extends StatelessWidget {
           )
           .toList();
     }
-    return baseItems;
+    return baseItems; // admin and supervisor see all menus
   }
 
   int getCrossAxisCount(double width) {

@@ -14,6 +14,7 @@ class UserDataTable extends StatelessWidget {
     required this.onSort,
     required this.onEdit,
     required this.onDelete,
+    this.currentUserId,
     super.key,
   });
 
@@ -23,6 +24,7 @@ class UserDataTable extends StatelessWidget {
   final ValueChanged<String> onSort;
   final ValueChanged<User> onEdit;
   final ValueChanged<User> onDelete;
+  final String? currentUserId;
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +142,7 @@ class UserDataTable extends StatelessWidget {
                   _sortableColumn(context, 'Role', 'role'),
                   _staticColumn(context, 'Actions'),
                 ],
-                rows: users.map((user) => _buildRow(context, user)).toList(),
+                rows: users.map((user) => _buildRow(context, user, r)).toList(),
               ),
             ),
           ),
@@ -199,8 +201,7 @@ class UserDataTable extends StatelessWidget {
     );
   }
 
-  DataRow _buildRow(BuildContext context, User user) {
-    final r = context.responsive;
+  DataRow _buildRow(BuildContext context, User user, ResponsiveValue r) {
     final fn = user.firstName.isNotEmpty ? user.firstName[0] : '';
     final ln = user.lastName.isNotEmpty ? user.lastName[0] : '';
     final initials = '$fn$ln'.toUpperCase();
@@ -269,7 +270,7 @@ class UserDataTable extends StatelessWidget {
             style: TextStyle(fontSize: r.scale(14), color: POSColors.textSecondary),
           ),
         ),
-        DataCell(UserRoleBadge(isAdmin: user.systemAdmin)),
+        DataCell(UserRoleBadge(role: user.role)),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -280,13 +281,15 @@ class UserDataTable extends StatelessWidget {
                 color: ColorSet.primary,
                 onPressed: () => onEdit(user),
               ),
-              const SizedBox(width: 6),
-              _TableActionBtn(
-                icon: Icons.delete_rounded,
-                label: 'Delete',
-                color: ColorSet.danger,
-                onPressed: () => onDelete(user),
-              ),
+              if (user.id != currentUserId) ...[
+                const SizedBox(width: 6),
+                _TableActionBtn(
+                  icon: Icons.delete_rounded,
+                  label: 'Delete',
+                  color: ColorSet.danger,
+                  onPressed: () => onDelete(user),
+                ),
+              ],
             ],
           ),
         ),

@@ -18,6 +18,7 @@ class User with UserMappable {
     required this.locked,
     required this.status,
     required this.createdAt,
+    this.role = 'user',
     this.isPinChanged = false,
     this.middleName,
     this.image,
@@ -47,6 +48,7 @@ class User with UserMappable {
 
   final String id;
   final String userId;
+  final String role;
   final String email;
   final String firstName;
   final String? middleName;

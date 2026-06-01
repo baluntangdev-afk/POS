@@ -7,12 +7,20 @@ import '../../../theme/pos_design.dart';
 class UserTypeFilter extends StatelessWidget {
   const UserTypeFilter({required this.selectedUserType, required this.onChanged, super.key});
 
-  final bool? selectedUserType;
-  final ValueChanged<bool?> onChanged;
+  final String? selectedUserType;
+  final ValueChanged<String?> onChanged;
 
   String get _label {
-    if (selectedUserType == null) return 'All Roles';
-    return selectedUserType! ? 'Admin' : 'User';
+    switch (selectedUserType) {
+      case 'admin':
+        return 'Admin';
+      case 'supervisor':
+        return 'Supervisor';
+      case 'user':
+        return 'User';
+      default:
+        return 'All Roles';
+    }
   }
 
   bool get _isFiltered => selectedUserType != null;
@@ -76,7 +84,7 @@ class UserTypeFilter extends StatelessWidget {
 
     if (!context.mounted) return;
 
-    final selected = await showMenu<bool?>(
+    final selected = await showMenu<String?>(
       context: context,
       position: RelativeRect.fromLTRB(
         offset.dx,
@@ -90,22 +98,23 @@ class UserTypeFilter extends StatelessWidget {
       menuPadding: const EdgeInsets.symmetric(vertical: 8),
       items: [
         _menuItem(context, null, 'All Roles', Icons.people_rounded),
-        _menuItem(context, false, 'User', Icons.person_rounded),
-        _menuItem(context, true, 'Admin', Icons.admin_panel_settings_rounded),
+        _menuItem(context, 'user', 'User', Icons.person_rounded),
+        _menuItem(context, 'supervisor', 'Supervisor', Icons.supervised_user_circle_rounded),
+        _menuItem(context, 'admin', 'Admin', Icons.admin_panel_settings_rounded),
       ],
     );
 
     onChanged(selected);
   }
 
-  PopupMenuItem<bool?> _menuItem(
+  PopupMenuItem<String?> _menuItem(
     BuildContext context,
-    bool? value,
+    String? value,
     String label,
     IconData icon,
   ) {
     final isSelected = selectedUserType == value;
-    return PopupMenuItem<bool?>(
+    return PopupMenuItem<String?>(
       value: value,
       child: Row(
         children: [

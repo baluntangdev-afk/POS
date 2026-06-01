@@ -64,11 +64,28 @@ class PosTerminalDetailsDialog extends HookConsumerWidget {
       }
     }
 
+    List<PaymentMethod> resolveExistingMethods({int? excludeId}) {
+      final terminal = switch (ref.read(posTerminalProvider)) {
+        AsyncData(:final value) => value,
+        _ => null,
+      };
+      final methods = terminal?.paymentMethods ?? <PaymentMethodEntryDto>[];
+      return methods
+          .where((e) => excludeId == null || e.id != excludeId)
+          .map((e) => PaymentMethod.values.firstWhere(
+                (m) => m.toValue() == e.paymentMethod,
+                orElse: () => PaymentMethod.other,
+              ))
+          .toList();
+    }
+
     Future<void> onAddPaymentMethod() async {
       final api = ref.read(posTerminalsApiProvider);
+      final existingMethods = resolveExistingMethods();
       await showDialog<void>(
         context: context,
         builder: (_) => _PaymentMethodFormDialog(
+          existingMethods: existingMethods,
           onConfirm: (method, methodName, number) async {
             await api.addPaymentMethod(
               paymentMethod: method,
@@ -83,10 +100,12 @@ class PosTerminalDetailsDialog extends HookConsumerWidget {
 
     Future<void> onEditPaymentMethod(PaymentMethodEntryDto entry) async {
       final api = ref.read(posTerminalsApiProvider);
+      final otherMethods = resolveExistingMethods(excludeId: entry.id);
       await showDialog<void>(
         context: context,
         builder: (_) => _PaymentMethodFormDialog(
           initial: entry,
+          existingMethods: otherMethods,
           onConfirm: (method, methodName, number) async {
             await api.updatePaymentMethod(
               entry.id,
@@ -412,14 +431,15 @@ class _PaymentMethodFormDialog extends HookWidget {
   const _PaymentMethodFormDialog({
     required this.onConfirm,
     this.initial,
+    this.existingMethods = const <PaymentMethod>[],
   });
 
   final PaymentMethodEntryDto? initial;
   final Future<void> Function(PaymentMethod method, String? methodName, String? number) onConfirm;
+  final List<PaymentMethod> existingMethods;
 
   static const _labels = {
     PaymentMethod.cash: 'Cash',
-    PaymentMethod.creditCard: 'Credit Card',
     PaymentMethod.gCash: 'GCash',
     PaymentMethod.other: 'Other',
   };
@@ -451,13 +471,16 @@ class _PaymentMethodFormDialog extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final formKey = useRef(GlobalKey<FormState>());
+    final availableMethods = PaymentMethod.values
+        .where((m) => m != PaymentMethod.creditCard && !existingMethods.contains(m))
+        .toList();
     final selectedMethod = useState(
       initial != null
           ? PaymentMethod.values.firstWhere(
               (m) => m.toValue() == initial!.paymentMethod,
-              orElse: () => PaymentMethod.cash,
+              orElse: () => availableMethods.isNotEmpty ? availableMethods.first : PaymentMethod.gCash,
             )
-          : PaymentMethod.cash,
+          : (availableMethods.isNotEmpty ? availableMethods.first : PaymentMethod.gCash),
     );
     final methodNameController = useTextEditingController(text: initial?.paymentMethodName ?? '');
     final numberController = useTextEditingController(text: initial?.paymentNumber ?? '');
@@ -532,7 +555,7 @@ class _PaymentMethodFormDialog extends HookWidget {
                     }
                   },
                   decoration: _fieldDecoration(),
-                  items: PaymentMethod.values
+                  items: availableMethods
                       .map(
                         (m) => DropdownMenuItem(
                           value: m,

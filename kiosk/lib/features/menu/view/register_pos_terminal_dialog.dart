@@ -50,9 +50,11 @@ class RegisterPosTerminalDialog extends HookConsumerWidget {
     final errorMessage = useState<String?>(null);
 
     Future<void> onAddPaymentMethod() async {
+      final existingMethods = pendingMethods.value.map((e) => e.method).toList();
       await showDialog<void>(
         context: context,
         builder: (_) => _PaymentMethodFormDialog(
+          existingMethods: existingMethods,
           onConfirm: (method, methodName, number) async {
             pendingMethods.value = [
               ...pendingMethods.value,
@@ -230,7 +232,6 @@ class _PendingPaymentMethodsSection extends StatelessWidget {
 
   static const _labels = {
     PaymentMethod.cash: 'Cash',
-    PaymentMethod.creditCard: 'Credit Card',
     PaymentMethod.gCash: 'GCash',
     PaymentMethod.other: 'Other',
   };
@@ -341,13 +342,16 @@ class _PendingPaymentMethodsSection extends StatelessWidget {
 // ── Payment Method Form Dialog ────────────────────────────────────────────────
 
 class _PaymentMethodFormDialog extends HookWidget {
-  const _PaymentMethodFormDialog({required this.onConfirm});
+  const _PaymentMethodFormDialog({
+    required this.onConfirm,
+    this.existingMethods = const <PaymentMethod>[],
+  });
 
   final Future<void> Function(PaymentMethod method, String? methodName, String? number) onConfirm;
+  final List<PaymentMethod> existingMethods;
 
   static const _labels = {
     PaymentMethod.cash: 'Cash',
-    PaymentMethod.creditCard: 'Credit Card',
     PaymentMethod.gCash: 'GCash',
     PaymentMethod.other: 'Other',
   };
@@ -379,7 +383,12 @@ class _PaymentMethodFormDialog extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final formKey = useRef(GlobalKey<FormState>());
-    final selectedMethod = useState(PaymentMethod.cash);
+    final availableMethods = PaymentMethod.values
+        .where((m) => m != PaymentMethod.creditCard && !existingMethods.contains(m))
+        .toList();
+    final selectedMethod = useState(
+      availableMethods.isNotEmpty ? availableMethods.first : PaymentMethod.gCash,
+    );
     final methodNameController = useTextEditingController();
     final numberController = useTextEditingController();
     final isSubmitting = useState(false);
@@ -452,7 +461,7 @@ class _PaymentMethodFormDialog extends HookWidget {
                     }
                   },
                   decoration: _fieldDecoration(),
-                  items: PaymentMethod.values
+                  items: availableMethods
                       .map(
                         (m) => DropdownMenuItem(
                           value: m,

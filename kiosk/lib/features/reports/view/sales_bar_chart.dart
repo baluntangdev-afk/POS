@@ -26,6 +26,12 @@ class SalesBarChart extends ConsumerWidget {
     final customEndDate = ref.watch(salesReportProvider.select((state) => state.customEndDate));
     return LayoutBuilder(
       builder: (context, constraints) {
+        final groupedData = _groupDataByPeriod(salesReports.toList(), selectedPeriod);
+        final dataCount = groupedData.length;
+        final barWidth = dataCount <= 1
+            ? 60.0
+            : (constraints.maxWidth / dataCount * 0.55).clamp(14.0, 60.0);
+
         return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -65,32 +71,15 @@ class SalesBarChart extends ConsumerWidget {
                 SizedBox(height: responsive.value<double>(kiosk: 20, tablet: 16, phone: 12)),
                 if (salesReports.isNotEmpty)
                   Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minWidth: constraints.maxWidth,
-                          maxWidth: constraints.maxWidth <= 800 ? 1000 : constraints.maxWidth,
-                          minHeight: constraints.maxHeight.isFinite
-                              ? (constraints.maxHeight - 100).clamp(
-                                  responsive.value<double>(kiosk: 200, tablet: 180, phone: 160),
-                                  double.infinity,
-                                )
-                              : responsive.value<double>(kiosk: 300, tablet: 250, phone: 200),
+                    child: Padding(
+                      padding: EdgeInsets.all(
+                        responsive.value<double>(kiosk: 10, tablet: 8, phone: 6),
+                      ),
+                      child: BarChart(
+                        key: ValueKey(
+                          '${selectedDateFilter.name}_${selectedPeriod.name}_$dataCount',
                         ),
-                        child: IntrinsicHeight(
-                          child: Padding(
-                            padding: EdgeInsets.all(
-                              responsive.value<double>(kiosk: 10, tablet: 8, phone: 6),
-                            ),
-                            child: BarChart(
-                              key: ValueKey(
-                                '${selectedDateFilter.name}_${selectedPeriod.name}_${salesReports.length}',
-                              ),
-                              _buildChartData(salesReports.toList(), selectedPeriod),
-                            ),
-                          ),
-                        ),
+                        _buildChartData(groupedData, selectedPeriod, barWidth),
                       ),
                     ),
                   )
@@ -162,13 +151,16 @@ class SalesBarChart extends ConsumerWidget {
     return ((value / 500).ceil() * 500).toDouble();
   }
 
-  BarChartData _buildChartData(List<SalesReportType> reports, SalesReportPeriod period) {
-    final groupedData = _groupDataByPeriod(reports, period);
+  BarChartData _buildChartData(
+    Map<DateTime, double> groupedData,
+    SalesReportPeriod period,
+    double barWidth,
+  ) {
     final maxSales =
         groupedData.values.isNotEmpty ? groupedData.values.reduce((a, b) => a > b ? a : b) : 0.0;
 
     return BarChartData(
-      alignment: BarChartAlignment.spaceAround,
+      alignment: BarChartAlignment.spaceBetween,
       maxY: _roundToNearest200(maxSales),
       backgroundColor: Colors.transparent,
       barTouchData: BarTouchData(
@@ -252,12 +244,11 @@ class SalesBarChart extends ConsumerWidget {
             final index = groupedData.keys.toList().indexOf(entry.key);
             return BarChartGroupData(
               x: index,
-              barsSpace: groupedData.length > 10 ? 4.0 : 2.0,
               barRods: [
                 BarChartRodData(
                   toY: entry.value,
                   color: _getBarColor(index),
-                  width: groupedData.length > 10 ? 20 : (groupedData.length > 5 ? 40 : 60),
+                  width: barWidth,
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
                   borderSide: BorderSide(
                     color: _getBarColor(index).withValues(alpha: 0.8),

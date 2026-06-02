@@ -10,6 +10,6 @@ export class SalesOrdersDoneExport1779584000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE "sales_orders" DROP COLUMN "done_export"`);
+    await queryRunner.query(`ALTER TABLE "sales_orders" DROP COLUMN IF EXISTS "done_export"`);
   }
 }

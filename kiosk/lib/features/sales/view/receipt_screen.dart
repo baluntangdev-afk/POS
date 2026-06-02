@@ -173,14 +173,17 @@ class ReceiptScreen extends ConsumerWidget {
                     r.value<double>(kiosk: 32, tablet: 24, phone: 16),
                   ),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Expanded(child: _PrintButton(receiptId: receiptId)),
                       SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
-                      Expanded(child: const _NewOrderButton()),
+                      const Expanded(child: _NewOrderButton()),
                       SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
-                      Expanded(child: const _CloseButton()),
-                      SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
-                      Expanded(child: _VoidButton(receiptId: receiptId)),
+                      const Expanded(child: _CloseButton()),
+                      if (!isVoided) ... [
+                        SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                        Expanded(child: _VoidButton(receiptId: receiptId)),
+                      ]
                     ],
                   ),
                 ),

@@ -77,6 +77,16 @@ class Receipt with ReceiptMappable {
     return totalAmount;
   }
 
+  Map<String, int> get refundedQuantities {
+    final result = <String, int>{};
+    for (final refund in refunds) {
+      for (final ri in refund.items) {
+        result[ri.receiptItemId] = (result[ri.receiptItemId] ?? 0) + ri.quantity;
+      }
+    }
+    return result;
+  }
+
   bool get isFullyRefunded {
     final mainItems = items.where((item) => item.isMain).toList();
     if (mainItems.isEmpty || refunds.isEmpty) return false;

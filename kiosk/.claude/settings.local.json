@@ -43,7 +43,9 @@
       "Bash(grep -rn \"r'PHP\\\\|r\\\\\"PHP\\\\|\\\\\\\\\\\\$[0-9]\\\\|\\\\+\\\\\\\\\\\\$\" lib --include=\"*.dart\")",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\jufie\\\\Documents\\\\POS\\\\kiosk\" -Recurse -Include \"*.dart\")",
       "Bash(Measure-Object)",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "Bash(fvm dart *)",
+      "PowerShell(dart analyze *)"
     ]
   }
 }

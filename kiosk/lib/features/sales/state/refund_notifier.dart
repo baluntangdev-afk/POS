@@ -57,13 +57,21 @@ class RefundNotifier extends AsyncNotifier<RefundData> {
     if (!state.hasValue) return;
 
     final receipt = state.requireValue.receipt;
+    final refundedQtys = receipt.refundedQuantities;
     final prevQuantities = state.requireValue.formData.selectedQuantities;
+    final selectableItems = receipt.items.where((item) {
+      final remaining = item.quantity - (refundedQtys[item.id] ?? 0);
+      return remaining > 0;
+    }).toList();
     final Map<String, int> nextQuantities;
 
-    if (prevQuantities.length == receipt.items.length) {
+    if (prevQuantities.length == selectableItems.length) {
       nextQuantities = {};
     } else {
-      nextQuantities = {for (final item in receipt.items) item.id: item.quantity};
+      nextQuantities = {
+        for (final item in selectableItems)
+          item.id: item.quantity - (refundedQtys[item.id] ?? 0),
+      };
     }
 
     state = AsyncData(

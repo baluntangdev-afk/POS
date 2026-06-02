@@ -75,7 +75,13 @@
       "Bash(npm test *)",
       "PowerShell(Test-Path *)",
       "PowerShell(Get-Item \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\POSBackend.exe\" | Select-Object Name, @{N='SizeMB';E={[math]::Round\\($_.Length/1MB,1\\)}}, LastWriteTime; Get-Item \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\redist\\\\vc_redist.x64.exe\" | Select-Object Name, @{N='SizeMB';E={[math]::Round\\($_.Length/1MB,1\\)}})",
-      "PowerShell(Get-Item \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\output\\\\POSKiosk-Setup-1.0.0.exe\" | Select-Object Name, @{N='SizeMB';E={[math]::Round\\($_.Length/1MB,1\\)}}, LastWriteTime)"
+      "PowerShell(Get-Item \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\output\\\\POSKiosk-Setup-1.0.0.exe\" | Select-Object Name, @{N='SizeMB';E={[math]::Round\\($_.Length/1MB,1\\)}}, LastWriteTime)",
+      "PowerShell(head *)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\src\" | Where-Object {$_.PSIsContainer} | Select-Object Name | Sort-Object Name)",
+      "Bash(grep -E \"\\\\.\\(ts|js\\)$\")",
+      "Bash(grep -E \"\\\\.dart$\")",
+      "Bash(xargs -I {} basename {} .ts)",
+      "Bash(sed 's/\\\\.controller//')"
     ]
   }
 }

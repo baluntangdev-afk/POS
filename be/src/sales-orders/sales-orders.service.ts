@@ -3,7 +3,7 @@ import { User } from '../users/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SalesOrder } from './entities/sales-order.entity';
 import { Refund } from '../refunds/entities/refund.entity';
-import { In, Repository, FindOptionsWhere, Between } from 'typeorm';
+import { In, Repository, FindOptionsWhere, Between, ILike } from 'typeorm';
 import { SalesOrderStatus } from './sales-orders.enum';
 import { CreateSalesOrderService } from './services/create-sales-order.service';
 import { CreateSalesOrderDto } from './dto/create-sales-order/create-sales-order.dto';
@@ -55,7 +55,7 @@ export class SalesOrdersService {
     const where: FindOptionsWhere<SalesOrder> = {};
 
     if (soNumber) {
-      where.soNumber = soNumber;
+      where.soNumber = ILike(`%${soNumber}%`);
     }
 
     if (soDate) {

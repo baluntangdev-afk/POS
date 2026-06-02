@@ -10,6 +10,8 @@ class SalesSummaryDto with SalesSummaryDtoMappable {
     required this.totalRefunds,
     required this.totalItems,
     required this.totalTransactions,
+    this.totalVoidedTransactions = 0,
+    this.totalVoidedAmount = 0,
   });
 
   final double totalSales;
@@ -17,6 +19,8 @@ class SalesSummaryDto with SalesSummaryDtoMappable {
   final double totalRefunds;
   final int totalItems;
   final int totalTransactions;
+  final int totalVoidedTransactions;
+  final double totalVoidedAmount;
 
   static const fromJson = SalesSummaryDtoMapper.fromJson;
 }

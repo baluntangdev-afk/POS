@@ -15,6 +15,7 @@ import '../../../theme/pos_design.dart';
 import '../../../utils/debounce.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../widgets/android_scaffold.dart';
+import '../../../widgets/resposive_wrap_container.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
@@ -82,11 +83,11 @@ class TransactionsScreen extends HookConsumerWidget {
                               final useTable = constraints.maxWidth >= 800;
                               return useTable
                                   ? _TransactionsTable(sort: sort)
-                                  : _TransactionsMobileList(sort: sort);
+                                  : _TransactionsTable(sort: sort);
                             },
                           )
                         : isPhone
-                            ? _TransactionsMobileList(sort: sort)
+                            ? _TransactionsTable(sort: sort)
                             : _TransactionsTable(sort: sort),
                   ),
                 ],
@@ -96,10 +97,6 @@ class TransactionsScreen extends HookConsumerWidget {
         ],
       ),
     );
-
-    if (isAndroid) {
-      return AndroidScaffold(backgroundColor: ColorSet.background, body: body);
-    }
     return WindowsScaffold(backgroundColor: ColorSet.background, body: body);
   }
 }
@@ -346,8 +343,6 @@ class _TransactionsTable extends ConsumerWidget {
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: ColorSet.gradientBg,
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
               ),
             ),
             child: Row(
@@ -371,14 +366,14 @@ class _TransactionsTable extends ConsumerWidget {
                 ),
                 const Expanded(flex: 2, child: _TableHeader(title: 'Time')),
                 Expanded(
-                  flex: 2,
+                  flex: 3,
                   child: _SortableHeader(
                     title: 'Total',
                     sortField: 'finalTotalAmount',
                     currentSort: sort,
                   ),
                 ),
-                const Expanded(flex: 3, child: _TableHeader(title: 'Actions')),
+                const Expanded(flex: 4, child: _TableHeader(title: 'Actions')),
               ],
             ),
           ),
@@ -610,6 +605,7 @@ class _TransactionRow extends HookWidget {
                 border: Border(bottom: BorderSide(color: POSColors.borderSubtle)),
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Expand indicator
                   Expanded(
@@ -724,93 +720,48 @@ class _TransactionRow extends HookWidget {
                   Consumer(
                     builder: (context, ref, _) {
                       return Expanded(
-                        flex: 3,
-                        child: ResponsiveBuilder(
-                          kiosk: (context) => Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _TableActionBtn(
-                                label: 'Reprint',
-                                icon: Icons.print_outlined,
-                                color: ColorSet.primary,
-                                onTap: () => ReceiptRoute(receipt.id).push<void>(context),
-                              ),
-                              const SizedBox(width: 6),
-                              _TableActionBtn(
-                                label: 'Refund',
-                                icon: Icons.assignment_return_outlined,
-                                color: ColorSet.warning,
-                                onTap: (receipt.isVoided || receipt.isFullyRefunded)
-                                    ? null
-                                    : () async {
-                                        await RefundRoute(receipt.id).push<void>(context);
-                                        ref.invalidate(receiptProvider(receipt.id));
-                                      },
-                              ),
-                              const SizedBox(width: 6),
-                              _TableActionBtn(
-                                label: 'Void',
-                                icon: Icons.block_rounded,
-                                color: ColorSet.danger,
-                                onTap: receipt.isVoided
-                                    ? null
-                                    : () async {
-                                        final voided = await VoidTransactionDialog.show(
-                                          context,
-                                          salesOrderId: receipt.id,
-                                          invoiceNumber: receipt.docNumber,
-                                          totalAmount: receipt.totalAmount,
-                                        );
-                                        if (voided) {
-                                          ref.invalidate(transactionsProvider);
-                                        }
-                                      },
-                              ),
-                            ],
+                        flex: 4,
+                        child: ResponsiveWrapContainer(
+                          rowItems: 2,
+                            equalWidth: true,
+                            items: [
+                          _TableActionBtn(
+                            label: 'Reprint',
+                            icon: Icons.print_outlined,
+                            color: ColorSet.primary,
+                            onTap: () => ReceiptRoute(receipt.id).push<void>(context),
                           ),
-                          tablet: (context) => Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _TableActionBtn(
-                                label: 'Reprint',
-                                icon: Icons.print_outlined,
-                                color: ColorSet.primary,
-                                onTap: () => ReceiptRoute(receipt.id).push<void>(context),
-                              ),
-                              const SizedBox(height: 6),
-                              _TableActionBtn(
-                                label: 'Refund',
-                                icon: Icons.assignment_return_outlined,
-                                color: ColorSet.warning,
-                                onTap: (receipt.isVoided || receipt.isFullyRefunded)
-                                    ? null
-                                    : () async {
-                                        await RefundRoute(receipt.id).push<void>(context);
-                                        ref.invalidate(receiptProvider(receipt.id));
-                                      },
-                              ),
-                              const SizedBox(height: 6),
-                              _TableActionBtn(
-                                label: 'Void',
-                                icon: Icons.block_rounded,
-                                color: ColorSet.danger,
-                                onTap: receipt.isVoided
-                                    ? null
-                                    : () async {
-                                        final voided = await VoidTransactionDialog.show(
-                                          context,
-                                          salesOrderId: receipt.id,
-                                          invoiceNumber: receipt.docNumber,
-                                          totalAmount: receipt.totalAmount,
-                                        );
-                                        if (voided) {
-                                          ref.invalidate(transactionsProvider);
-                                        }
-                                      },
-                              ),
-                            ],
+                          _TableActionBtn(
+                            label: 'Refund',
+                            icon: Icons.assignment_return_outlined,
+                            color: ColorSet.warning,
+                            onTap: (receipt.isVoided || receipt.isFullyRefunded)
+                                ? null
+                                : () async {
+                              await RefundRoute(receipt.id).push<void>(context);
+                              ref.invalidate(receiptProvider(receipt.id));
+                              ref.invalidate(transactionsProvider);
+                            },
                           ),
-                        ),
+                          _TableActionBtn(
+                            label: 'Void',
+                            icon: Icons.block_rounded,
+                            color: ColorSet.danger,
+                            onTap: receipt.isVoided
+                                ? null
+                                : () async {
+                              final voided = await VoidTransactionDialog.show(
+                                context,
+                                salesOrderId: receipt.id,
+                                invoiceNumber: receipt.docNumber,
+                                totalAmount: receipt.totalAmount,
+                              );
+                              if (voided) {
+                                ref.invalidate(transactionsProvider);
+                              }
+                            },
+                          ),
+                        ])
                       );
                     },
                   ),
@@ -1091,6 +1042,7 @@ class _TransactionCard extends HookConsumerWidget {
                               : () async {
                                   await RefundRoute(receipt.id).push<void>(context);
                                   ref.invalidate(receiptProvider(receipt.id));
+                                  ref.invalidate(transactionsProvider);
                                 },
                           icon: const Icon(Icons.assignment_return_outlined, size: 15),
                           label: const Text('Refund'),

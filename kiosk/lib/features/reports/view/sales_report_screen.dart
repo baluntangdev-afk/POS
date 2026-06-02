@@ -31,7 +31,7 @@ class SalesReportScreen extends ConsumerWidget {
 
     Widget content = ColoredBox(
       color: ColorSet.background,
-      child: Container(
+      child: ColoredBox(
         color: Colors.white,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,7 +54,7 @@ class SalesReportScreen extends ConsumerWidget {
                 title: 'Sales Report',
               ),
             ),
-            Container(
+            ColoredBox(
               color: Colors.white,
 
               child: Container(
@@ -65,24 +65,24 @@ class SalesReportScreen extends ConsumerWidget {
                 ),
                 child: ReportTabSelector(
                   selectedTab: selectedTab,
-                  onTabChanged: (tab) =>
-                      ref.read(salesReportProvider.notifier).updateTab(tab),
+                  onTabChanged: (tab) => ref.read(salesReportProvider.notifier).updateTab(tab),
                 ),
               ),
             ),
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
-                transitionBuilder: (child, animation) =>
-                    FadeTransition(opacity: animation, child: child),
-                child: selectedTab == ReportTab.dashboard
-                    ? _DashboardContent(
-                        key: const ValueKey('dashboard'),
-                        state: state,
-                        isAndroid: isAndroid,
-                        onRetry: () => ref.invalidate(salesReportProvider),
-                      )
-                    : const SalesHealthPage(key: ValueKey('health')),
+                transitionBuilder:
+                    (child, animation) => FadeTransition(opacity: animation, child: child),
+                child:
+                    selectedTab == ReportTab.dashboard
+                        ? _DashboardContent(
+                          key: const ValueKey('dashboard'),
+                          state: state,
+                          isAndroid: isAndroid,
+                          onRetry: () => ref.invalidate(salesReportProvider),
+                        )
+                        : const SalesHealthPage(key: ValueKey('health')),
               ),
             ),
           ],
@@ -133,9 +133,7 @@ class _DashboardContent extends StatelessWidget {
       );
     }
 
-    return isAndroid
-        ? _AndroidDashboard(state: state)
-        : _WindowsDashboard(state: state);
+    return _WindowsDashboard(state: state);
   }
 }
 
@@ -160,13 +158,11 @@ class _WindowsDashboard extends StatelessWidget {
         children: [
           // ── Top: 5 metric cards in a single row ──
           SizedBox(
-            height: r.value<double>(kiosk: 112, tablet: 100, phone: 88),
-            child: Row(
-              children: [
-                for (int i = 0; i < metrics.length; i++) ...[
-                  Expanded(child: _MetricCard(metric: metrics[i])),
-                  if (i < metrics.length - 1) Gap(gap),
-                ],
+            child: ResponsiveWrapContainer(
+              equalWidth: true,
+              rowItems: 2,
+              items: [
+                for (int i = 0; i < metrics.length; i++) ...[_MetricCard(metric: metrics[i])],
               ],
             ),
           ),
@@ -198,9 +194,10 @@ class _MetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = context.responsive;
     final raw = double.tryParse(metric.value.replaceAll(',', '')) ?? 0.0;
-    final displayValue = metric.isMonetary
-        ? 'P${NumberFormat.decimalPattern().format(raw)}'
-        : NumberFormat.decimalPattern().format(raw);
+    final displayValue =
+        metric.isMonetary
+            ? 'P${NumberFormat.decimalPattern().format(raw)}'
+            : NumberFormat.decimalPattern().format(raw);
 
     return Container(
       decoration: BoxDecoration(
@@ -258,6 +255,19 @@ class _MetricCard extends StatelessWidget {
               ),
             ),
           ),
+          if (metric.subtitle != null) ...[
+            const Gap(2),
+            Text(
+              metric.subtitle!,
+              style: TextStyle(
+                fontSize: r.value<double>(kiosk: 11, tablet: 10, phone: 9),
+                color: POSColors.textTertiary,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ],
       ),
     );
@@ -324,9 +334,10 @@ class _AndroidMetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final raw = double.tryParse(metric.value.replaceAll(',', '')) ?? 0.0;
-    final displayValue = metric.isMonetary
-        ? 'P${NumberFormat.decimalPattern().format(raw)}'
-        : NumberFormat.decimalPattern().format(raw);
+    final displayValue =
+        metric.isMonetary
+            ? 'P${NumberFormat.decimalPattern().format(raw)}'
+            : NumberFormat.decimalPattern().format(raw);
 
     return Container(
       decoration: BoxDecoration(
@@ -370,6 +381,19 @@ class _AndroidMetricCard extends StatelessWidget {
               ),
             ),
           ),
+          if (metric.subtitle != null) ...[
+            const Gap(2),
+            Text(
+              metric.subtitle!,
+              style: const TextStyle(
+                fontSize: 10,
+                color: POSColors.textTertiary,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ],
       ),
     );
@@ -380,39 +404,33 @@ class _AndroidMetricCard extends StatelessWidget {
 // Shared
 // ─────────────────────────────────────────────────────────────────────────────
 List<Metric> _buildMetrics(SalesReportState state) => [
-      Metric(
-        title: 'Net Sales',
-        value: state.totalNetSales.toStringAsFixed(2),
-        icon: Icons.trending_up_rounded,
-        color: const Color(0xFF10B981),
-      ),
-      Metric(
-        title: 'Items Sold',
-        value: state.totalItems.toString(),
-        icon: Icons.shopping_bag_outlined,
-        color: const Color(0xFF0EA5E9),
-        isMonetary: false,
-      ),
-      Metric(
-        title: 'Transactions',
-        value: state.totalTransactions.toString(),
-        icon: Icons.receipt_long_outlined,
-        color: const Color(0xFF8B5CF6),
-        isMonetary: false,
-      ),
-      Metric(
-        title: 'Discounts',
-        value: state.totalDiscounts.toStringAsFixed(2),
-        icon: Icons.local_offer_outlined,
-        color: const Color(0xFFF97316),
-      ),
-      Metric(
-        title: 'Refunds',
-        value: state.totalRefunds.toStringAsFixed(2),
-        icon: Icons.money_off_rounded,
-        color: const Color(0xFFEF4444),
-      ),
-    ];
+  Metric(
+    title: 'Net Sales',
+    value: state.totalNetSales.toStringAsFixed(2),
+    icon: Icons.trending_up_rounded,
+    color: const Color(0xFF10B981),
+  ),
+  Metric(
+    title: 'Discounts',
+    value: state.totalDiscounts.toStringAsFixed(2),
+    icon: Icons.local_offer_outlined,
+    color: const Color(0xFFF97316),
+  ),
+  Metric(
+    title: 'Refunds',
+    value: state.totalRefunds.toStringAsFixed(2),
+    icon: Icons.money_off_rounded,
+    color: const Color(0xFFEF4444),
+  ),
+  Metric(
+    title: 'Voided',
+    value: state.totalVoidedTransactions.toString(),
+    // subtitle: 'P${NumberFormat.decimalPattern().format(state.totalVoidedAmount)}',
+    icon: Icons.block_rounded,
+    color: const Color(0xFF6B7280),
+    isMonetary: false,
+  ),
+];
 
 class _ReportErrorView extends StatelessWidget {
   const _ReportErrorView({required this.error, required this.onRetry});
@@ -472,9 +490,7 @@ class _ReportErrorView extends StatelessWidget {
                   horizontal: r.value<double>(kiosk: 28, tablet: 22, phone: 18),
                   vertical: r.value<double>(kiosk: 14, tablet: 12, phone: 10),
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(POSRadius.md),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.md)),
               ),
             ),
           ],

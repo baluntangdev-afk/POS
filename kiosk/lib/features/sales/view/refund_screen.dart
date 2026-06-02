@@ -192,7 +192,10 @@ class _ItemSelectionView extends ConsumerWidget {
 
     if (receipt == null) return const SizedBox.shrink();
 
-    final allItems = receipt.items;
+    final refundedQtys = receipt.refundedQuantities;
+    final selectableCount = receipt.items
+        .where((item) => item.isMain && (item.quantity - (refundedQtys[item.id] ?? 0)) > 0)
+        .length;
     final mainItemsWithAddOns = receipt.mainItemsWithAddOns;
 
     return Container(
@@ -251,7 +254,7 @@ class _ItemSelectionView extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   ),
                   child: Text(
-                    selectedQuantities.length == allItems.length
+                    selectedQuantities.length == selectableCount
                         ? 'Deselect All'
                         : 'Select All',
                     style: TextStyle(
@@ -275,108 +278,160 @@ class _ItemSelectionView extends ConsumerWidget {
               ),
               itemBuilder: (context, index) {
                 final (:mainItem, :addOns) = mainItemsWithAddOns[index];
+                final alreadyRefunded = refundedQtys[mainItem.id] ?? 0;
+                final remainingQty = mainItem.quantity - alreadyRefunded;
+                final isFullyRefunded = remainingQty <= 0;
                 final selectedQuantity = selectedQuantities[mainItem.id];
                 final isSelected = selectedQuantity != null;
 
                 final totalAmount = mainItem.totalAmount +
                     addOns.fold(Decimal.zero, (sum, addOn) => sum + addOn.totalAmount);
 
-                return Material(
-                  color: isSelected
-                      ? ColorSet.danger.withValues(alpha: 0.03)
-                      : Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      ref.read(refundProvider(receiptId).notifier).toggleItemSelection(
-                        item: mainItem,
-                        isSelected: isSelected,
-                      );
-                    },
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        vertical: r.value<double>(kiosk: 14, tablet: 12, phone: 10),
-                        horizontal: r.value<double>(kiosk: 16, tablet: 14, phone: 12),
-                      ),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: Checkbox(
-                              value: isSelected,
-                              activeColor: ColorSet.danger,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(POSRadius.xs),
-                              ),
-                              onChanged: (value) {
-                                ref.read(refundProvider(receiptId).notifier).toggleItemSelection(
-                                  item: mainItem,
-                                  isSelected: !(value ?? false),
-                                );
-                              },
-                            ),
-                          ),
-                          SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  mainItem.description,
-                                  style: TextStyle(
-                                    fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
-                                    fontWeight: FontWeight.w600,
-                                    color: POSColors.textPrimary,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
+                return Opacity(
+                  opacity: isFullyRefunded ? 0.5 : 1.0,
+                  child: Material(
+                    color: isFullyRefunded
+                        ? POSColors.surfaceSubtle
+                        : isSelected
+                            ? ColorSet.danger.withValues(alpha: 0.03)
+                            : Colors.transparent,
+                    child: InkWell(
+                      onTap: isFullyRefunded
+                          ? null
+                          : () {
+                              ref.read(refundProvider(receiptId).notifier).toggleItemSelection(
+                                item: mainItem,
+                                isSelected: isSelected,
+                              );
+                            },
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          vertical: r.value<double>(kiosk: 14, tablet: 12, phone: 10),
+                          horizontal: r.value<double>(kiosk: 16, tablet: 14, phone: 12),
+                        ),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: Checkbox(
+                                value: isSelected,
+                                activeColor: ColorSet.danger,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(POSRadius.xs),
                                 ),
-                                const SizedBox(height: 3),
-                                if (isSelected && mainItem.quantity > 1) ...[
-                                  _RefundQuantityStepper(
-                                    value: selectedQuantity,
-                                    max: mainItem.quantity,
-                                    onChanged: (qty) {
-                                      ref
-                                          .read(refundProvider(receiptId).notifier)
-                                          .changeQuantity(item: mainItem, quantity: qty);
-                                    },
-                                    r: r,
-                                  ),
-                                ] else ...[
-                                  Text(
-                                    'Qty: ${mainItem.quantity}',
-                                    style: TextStyle(
-                                      fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
-                                      color: POSColors.textTertiary,
-                                    ),
-                                  ),
-                                ],
-                                if (addOns.isNotEmpty) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Add-ons: ${addOns.map((a) => a.description).join(', ')}',
-                                    style: TextStyle(
-                                      fontSize: r.value<double>(kiosk: 12, tablet: 11, phone: 10),
-                                      color: POSColors.textTertiary,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ],
+                                onChanged: isFullyRefunded
+                                    ? null
+                                    : (value) {
+                                        ref.read(refundProvider(receiptId).notifier).toggleItemSelection(
+                                          item: mainItem,
+                                          isSelected: !(value ?? false),
+                                        );
+                                      },
+                              ),
                             ),
-                          ),
-                          SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
-                          Text(
-                            totalAmount.pesoFormatted,
-                            style: TextStyle(
-                              fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
-                              fontWeight: FontWeight.w700,
-                              color: isSelected ? ColorSet.danger : POSColors.textPrimary,
+                            SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          mainItem.description,
+                                          style: TextStyle(
+                                            fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
+                                            fontWeight: FontWeight.w600,
+                                            color: isFullyRefunded
+                                                ? POSColors.textTertiary
+                                                : POSColors.textPrimary,
+                                            decoration: isFullyRefunded
+                                                ? TextDecoration.lineThrough
+                                                : null,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (isFullyRefunded) ...[
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: POSColors.borderStrong,
+                                            borderRadius: BorderRadius.circular(POSRadius.full),
+                                          ),
+                                          child: Text(
+                                            'Refunded',
+                                            style: TextStyle(
+                                              fontSize: r.value<double>(kiosk: 11, tablet: 10, phone: 9),
+                                              fontWeight: FontWeight.w600,
+                                              color: POSColors.textTertiary,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  const SizedBox(height: 3),
+                                  if (!isFullyRefunded && isSelected && remainingQty > 1) ...[
+                                    _RefundQuantityStepper(
+                                      value: selectedQuantity,
+                                      max: remainingQty,
+                                      onChanged: (qty) {
+                                        ref
+                                            .read(refundProvider(receiptId).notifier)
+                                            .changeQuantity(item: mainItem, quantity: qty);
+                                      },
+                                      r: r,
+                                    ),
+                                  ] else ...[
+                                    Text(
+                                      isFullyRefunded
+                                          ? 'Qty: ${mainItem.quantity} · All refunded'
+                                          : alreadyRefunded > 0
+                                              ? 'Qty: ${mainItem.quantity} · $alreadyRefunded refunded'
+                                              : 'Qty: ${mainItem.quantity}',
+                                      style: TextStyle(
+                                        fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                                        color: POSColors.textTertiary,
+                                      ),
+                                    ),
+                                  ],
+                                  if (addOns.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Add-ons: ${addOns.map((a) => a.description).join(', ')}',
+                                      style: TextStyle(
+                                        fontSize: r.value<double>(kiosk: 12, tablet: 11, phone: 10),
+                                        color: POSColors.textTertiary,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                            SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                            Text(
+                              totalAmount.pesoFormatted,
+                              style: TextStyle(
+                                fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
+                                fontWeight: FontWeight.w700,
+                                color: isFullyRefunded
+                                    ? POSColors.textTertiary
+                                    : isSelected
+                                        ? ColorSet.danger
+                                        : POSColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

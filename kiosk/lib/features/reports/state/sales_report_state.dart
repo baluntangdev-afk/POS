@@ -129,41 +129,37 @@ class SalesReportState with SalesReportStateMappable {
 
   // Calculate totals from the filtered reports or use sales summary data
   double get totalNetSales {
-    final result =
+    final sales =
         salesSummary?.totalSales ??
         (salesReports.isEmpty ? 0.0 : salesReports.map((r) => r.total).reduce((a, b) => a + b));
-    return result;
+    return sales - totalRefunds;
   }
 
   double get totalRefunds {
-    final result =
-        salesSummary?.totalRefunds ??
+    return salesSummary?.totalRefunds ??
         (salesReports.isEmpty
             ? 0.0
             : salesReports.map((r) => r.total).reduce((a, b) => a + b) * 0.1);
-    return result;
   }
 
   double get totalDiscounts {
-    final result =
-        salesSummary?.totalDiscount ??
+    return salesSummary?.totalDiscount ??
         (salesReports.isEmpty ? 0.0 : salesReports.map((r) => r.discount).reduce((a, b) => a + b));
-    return result;
   }
 
   int get totalTransactions {
-    final result =
-        salesSummary?.totalTransactions ??
+    return salesSummary?.totalTransactions ??
         (salesReports.isEmpty
             ? 0
             : salesReports.map((r) => r.transactions).reduce((a, b) => a + b));
-    return result;
   }
 
   int get totalItems {
-    final result =
-        salesSummary?.totalItems ??
+    return salesSummary?.totalItems ??
         (salesReports.isEmpty ? 0 : salesReports.map((r) => r.items).reduce((a, b) => a + b));
-    return result;
   }
+
+  int get totalVoidedTransactions => salesSummary?.totalVoidedTransactions ?? 0;
+
+  double get totalVoidedAmount => salesSummary?.totalVoidedAmount ?? 0;
 }

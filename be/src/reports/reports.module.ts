@@ -8,6 +8,7 @@ import { ProductGroupSalesReportService } from './services/product-group-sales-r
 import { ProductSalesReportService } from './services/product-sales-report.service';
 import { UserSalesReportService } from './services/user-sales-report.service';
 import { PaymentSalesReportService } from './services/payment-sales-report.service';
+import { ExportableReportService } from './services/exportable-report.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SalesOrder } from '../sales-orders/entities/sales-order.entity';
 import { SalesOrderItem } from '../sales-orders/entities/sales-order-item.entity';
@@ -25,6 +26,7 @@ import { Payment } from '../payments/entities/payment.entity';
     ProductSalesReportService,
     UserSalesReportService,
     PaymentSalesReportService,
+    ExportableReportService,
   ],
 })
 export class ReportsModule {}

@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
 import { TotalReportService } from './services/total-report.service';
 import { HourlySalesReportService } from './services/hourly-sales-report.service';
@@ -8,6 +8,10 @@ import { ProductGroupSalesReportService } from './services/product-group-sales-r
 import { ProductSalesReportService } from './services/product-sales-report.service';
 import { UserSalesReportService } from './services/user-sales-report.service';
 import { PaymentSalesReportService } from './services/payment-sales-report.service';
+import { ExportableReportService } from './services/exportable-report.service';
+import { ExportableDateQueryDto } from './dto/exportable-date-query.dto';
+import { MarkExportedBodyDto } from './dto/mark-exported-body.dto';
+import { ExportableReportResponseDto } from './dto/exportable-report-response.dto';
 import { SalesQueryDto } from './dto/sales-query.dto';
 import { SalesResponseDto } from './dto/sales-response.dto';
 import { HourlySalesQueryDto } from './dto/hourly-sales-query.dto';
@@ -33,6 +37,7 @@ export class ReportsController {
     private readonly productSalesReportService: ProductSalesReportService,
     private readonly userSalesReportService: UserSalesReportService,
     private readonly paymentSalesReportService: PaymentSalesReportService,
+    private readonly exportableReportService: ExportableReportService,
   ) {}
 
   @Get()
@@ -122,5 +127,19 @@ export class ReportsController {
   })
   getPaymentSales(@Query() query: SalesReportQueryDto): Promise<PaymentMethodSalesDataItemDto[]> {
     return this.paymentSalesReportService.getReport(query);
+  }
+
+  @Get('exportable')
+  @ApiOperation({ summary: 'Get aggregated report for unexported transactions on a date' })
+  @ApiOkResponse({ type: ExportableReportResponseDto })
+  getExportable(@Query() query: ExportableDateQueryDto): Promise<ExportableReportResponseDto> {
+    return this.exportableReportService.getExportable(query.date);
+  }
+
+  @Patch('mark-exported')
+  @ApiOperation({ summary: 'Mark all unexported transactions on a date as exported' })
+  @ApiOkResponse({ schema: { example: { updatedCount: 45 } } })
+  markExported(@Body() body: MarkExportedBodyDto): Promise<{ updatedCount: number }> {
+    return this.exportableReportService.markExported(body.date);
   }
 }

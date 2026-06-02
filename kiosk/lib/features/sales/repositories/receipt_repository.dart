@@ -4,7 +4,6 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../data/backend_api/enums/payment_method.dart';
-import '../../../data/backend_api/enums/sales_order_status.dart';
 import '../../../data/backend_api/enums/sales_order_type.dart';
 import '../../../data/backend_api/schemas/confirm_sales_order_dto.dart';
 import '../../../data/backend_api/schemas/payment_details_dto.dart';
@@ -129,7 +128,6 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
       soNumber: soNumber,
       soDate: soDate,
       sort: sort,
-      status: SalesOrderStatus.confirmed,
     );
 
     final (salesOrdersResponse, posTerminalDto) =
@@ -227,6 +225,9 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
               .map(_receiptItemFromSalesOrderItemDto)
               .toIList(),
       refunds: refunds,
+      isVoided: dto.status == 'Cancelled',
+      voidReason: dto.voidReason,
+      voidedAt: dto.voidedAt,
     );
   }
 

@@ -160,7 +160,9 @@ class SalesBarChart extends ConsumerWidget {
         groupedData.values.isNotEmpty ? groupedData.values.reduce((a, b) => a > b ? a : b) : 0.0;
 
     return BarChartData(
-      alignment: BarChartAlignment.spaceBetween,
+      alignment: groupedData.length <= 4
+          ? BarChartAlignment.spaceAround
+          : BarChartAlignment.spaceBetween,
       maxY: _roundToNearest200(maxSales),
       backgroundColor: Colors.transparent,
       barTouchData: BarTouchData(

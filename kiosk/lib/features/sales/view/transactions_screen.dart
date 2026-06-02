@@ -21,6 +21,7 @@ import '../../../widgets/windows_scaffold.dart';
 import '../entities/receipt.dart';
 import '../state/receipt_notifier.dart';
 import '../state/transactions_notifier.dart';
+import 'void_transaction_dialog.dart';
 
 class TransactionsScreen extends HookConsumerWidget {
   const TransactionsScreen({super.key});
@@ -626,14 +627,42 @@ class _TransactionRow extends HookWidget {
                   // Invoice number
                   Expanded(
                     flex: 2,
-                    child: Text(
-                      receipt.docNumber,
-                      style: TextStyle(
-                        fontSize: r.value<double>(kiosk: 13, tablet: 13, phone: 12),
-                        fontWeight: FontWeight.w600,
-                        color: POSColors.textPrimary,
-                      ),
-                      textAlign: TextAlign.center,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          receipt.docNumber,
+                          style: TextStyle(
+                            fontSize: r.value<double>(kiosk: 13, tablet: 13, phone: 12),
+                            fontWeight: FontWeight.w600,
+                            color: receipt.isVoided
+                                ? POSColors.textTertiary
+                                : POSColors.textPrimary,
+                            decoration: receipt.isVoided
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        if (receipt.isVoided)
+                          Container(
+                            margin: const EdgeInsets.only(top: 3),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: ColorSet.danger.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(POSRadius.full),
+                            ),
+                            child: Text(
+                              'VOIDED',
+                              style: TextStyle(
+                                fontSize: r.value<double>(kiosk: 10, tablet: 9, phone: 8),
+                                fontWeight: FontWeight.w700,
+                                color: ColorSet.danger,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   // Date
@@ -688,15 +717,36 @@ class _TransactionRow extends HookWidget {
                                 color: ColorSet.primary,
                                 onTap: () => ReceiptRoute(receipt.id).push<void>(context),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 6),
                               _TableActionBtn(
                                 label: 'Refund',
                                 icon: Icons.assignment_return_outlined,
                                 color: ColorSet.warning,
-                                onTap: () async {
-                                  await RefundRoute(receipt.id).push<void>(context);
-                                  ref.invalidate(receiptProvider(receipt.id));
-                                },
+                                onTap: receipt.isVoided
+                                    ? null
+                                    : () async {
+                                        await RefundRoute(receipt.id).push<void>(context);
+                                        ref.invalidate(receiptProvider(receipt.id));
+                                      },
+                              ),
+                              const SizedBox(width: 6),
+                              _TableActionBtn(
+                                label: 'Void',
+                                icon: Icons.block_rounded,
+                                color: ColorSet.danger,
+                                onTap: receipt.isVoided
+                                    ? null
+                                    : () async {
+                                        final voided = await VoidTransactionDialog.show(
+                                          context,
+                                          salesOrderId: receipt.id,
+                                          invoiceNumber: receipt.docNumber,
+                                          totalAmount: receipt.totalAmount,
+                                        );
+                                        if (voided) {
+                                          ref.invalidate(transactionsProvider);
+                                        }
+                                      },
                               ),
                             ],
                           ),
@@ -714,10 +764,31 @@ class _TransactionRow extends HookWidget {
                                 label: 'Refund',
                                 icon: Icons.assignment_return_outlined,
                                 color: ColorSet.warning,
-                                onTap: () async {
-                                  await RefundRoute(receipt.id).push<void>(context);
-                                  ref.invalidate(receiptProvider(receipt.id));
-                                },
+                                onTap: receipt.isVoided
+                                    ? null
+                                    : () async {
+                                        await RefundRoute(receipt.id).push<void>(context);
+                                        ref.invalidate(receiptProvider(receipt.id));
+                                      },
+                              ),
+                              const SizedBox(height: 6),
+                              _TableActionBtn(
+                                label: 'Void',
+                                icon: Icons.block_rounded,
+                                color: ColorSet.danger,
+                                onTap: receipt.isVoided
+                                    ? null
+                                    : () async {
+                                        final voided = await VoidTransactionDialog.show(
+                                          context,
+                                          salesOrderId: receipt.id,
+                                          invoiceNumber: receipt.docNumber,
+                                          totalAmount: receipt.totalAmount,
+                                        );
+                                        if (voided) {
+                                          ref.invalidate(transactionsProvider);
+                                        }
+                                      },
                               ),
                             ],
                           ),
@@ -741,17 +812,19 @@ class _TableActionBtn extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.color,
-    required this.onTap,
+    this.onTap,
   });
 
   final String label;
   final IconData icon;
   final Color color;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final r = context.responsive;
+    final isDisabled = onTap == null;
+    final effectiveColor = isDisabled ? POSColors.textTertiary : color;
     return SizedBox(
       height: r.value<double>(kiosk: 36, tablet: 32, phone: 28),
       child: OutlinedButton.icon(
@@ -762,8 +835,8 @@ class _TableActionBtn extends StatelessWidget {
           style: TextStyle(fontSize: r.value<double>(kiosk: 12, tablet: 11, phone: 10)),
         ),
         style: OutlinedButton.styleFrom(
-          foregroundColor: color,
-          side: BorderSide(color: color.withValues(alpha: 0.5)),
+          foregroundColor: effectiveColor,
+          side: BorderSide(color: effectiveColor.withValues(alpha: 0.5)),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(POSRadius.sm),
           ),
@@ -887,21 +960,56 @@ class _TransactionCard extends HookConsumerWidget {
                         ),
                         const Gap(6),
                         Expanded(
-                          child: Text(
-                            receipt.docNumber,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: POSColors.textPrimary,
-                            ),
+                          child: Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  receipt.docNumber,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: receipt.isVoided
+                                        ? POSColors.textTertiary
+                                        : POSColors.textPrimary,
+                                    decoration: receipt.isVoided
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                              if (receipt.isVoided) ...[
+                                const Gap(6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: ColorSet.danger.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(POSRadius.full),
+                                  ),
+                                  child: const Text(
+                                    'VOIDED',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: ColorSet.danger,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                         Text(
                           receipt.totalAmount.pesoFormatted,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
-                            color: ColorSet.primary,
+                            color: receipt.isVoided
+                                ? POSColors.textTertiary
+                                : ColorSet.primary,
+                            decoration: receipt.isVoided
+                                ? TextDecoration.lineThrough
+                                : null,
                           ),
                         ),
                       ],
@@ -943,13 +1051,34 @@ class _TransactionCard extends HookConsumerWidget {
                         ),
                         const Gap(4),
                         TextButton.icon(
-                          onPressed: () async {
-                            await RefundRoute(receipt.id).push<void>(context);
-                            ref.invalidate(receiptProvider(receipt.id));
-                          },
+                          onPressed: receipt.isVoided
+                              ? null
+                              : () async {
+                                  await RefundRoute(receipt.id).push<void>(context);
+                                  ref.invalidate(receiptProvider(receipt.id));
+                                },
                           icon: const Icon(Icons.assignment_return_outlined, size: 15),
                           label: const Text('Refund'),
                           style: TextButton.styleFrom(foregroundColor: ColorSet.warning),
+                        ),
+                        const Gap(4),
+                        TextButton.icon(
+                          onPressed: receipt.isVoided
+                              ? null
+                              : () async {
+                                  final voided = await VoidTransactionDialog.show(
+                                    context,
+                                    salesOrderId: receipt.id,
+                                    invoiceNumber: receipt.docNumber,
+                                    totalAmount: receipt.totalAmount,
+                                  );
+                                  if (voided) {
+                                    ref.invalidate(transactionsProvider);
+                                  }
+                                },
+                          icon: const Icon(Icons.block_rounded, size: 15),
+                          label: const Text('Void'),
+                          style: TextButton.styleFrom(foregroundColor: ColorSet.danger),
                         ),
                       ],
                     ),

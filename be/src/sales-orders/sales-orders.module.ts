@@ -23,9 +23,11 @@ import { RemoveSalesOrderItemService } from './services/remove-sales-order-item.
 import { DiscountsModule } from '../discounts/discounts.module';
 import { AddDiscountToItemService } from './services/add-discount-to-item.service';
 import { ConfirmSalesOrderService } from './services/confirm-sales-order.service';
+import { VoidSalesOrderService } from './services/void-sales-order.service';
+import { User } from '../users/entities/user.entity';
 @Module({
   imports: [
-    TypeOrmModule.forFeature([SalesOrder, SalesOrderItem, SalesOrderDiscount, Payment]),
+    TypeOrmModule.forFeature([SalesOrder, SalesOrderItem, SalesOrderDiscount, Payment, User]),
     TaxCategoriesModule,
     RecipesModule,
     ProductsModule,
@@ -47,6 +49,7 @@ import { ConfirmSalesOrderService } from './services/confirm-sales-order.service
     RemoveSalesOrderItemService,
     AddDiscountToItemService,
     ConfirmSalesOrderService,
+    VoidSalesOrderService,
   ],
 })
 export class SalesOrdersModule {}

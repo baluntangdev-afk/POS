@@ -22,6 +22,8 @@ import { AddDiscountToItemService } from './services/add-discount-to-item.servic
 import { ConfirmSalesOrderDto } from './dto/confirm-sales-order/confirm-sales-order.dto';
 import { ConfirmSalesOrderService } from './services/confirm-sales-order.service';
 import { SalesOrderQueryDto } from './dto/sales-order-query.dto';
+import { VoidSalesOrderDto } from './dto/void-sales-order.dto';
+import { VoidSalesOrderService } from './services/void-sales-order.service';
 import { PaginatedResponse } from '../utils/pagination/dto';
 
 @ApiTags('Sales Orders')
@@ -33,6 +35,7 @@ export class SalesOrdersController {
     private readonly removeSalesOrderItemService: RemoveSalesOrderItemService,
     private readonly addDiscountToItemService: AddDiscountToItemService,
     private readonly confirmSalesOrderService: ConfirmSalesOrderService,
+    private readonly voidSalesOrderService: VoidSalesOrderService,
   ) {}
 
   @Post()
@@ -145,6 +148,20 @@ export class SalesOrdersController {
     @CurrentUser() causer: User,
   ) {
     const soId = await this.confirmSalesOrderService.execute(id, confirmSalesOrderDto, causer);
+    return this.salesOrdersService.findOneWithItems(soId);
+  }
+
+  @Patch(':id/void')
+  @ApiOperation({ summary: 'Void a sales order — requires admin or supervisor PIN' })
+  @ApiParam({
+    name: 'id',
+    description: 'Sales order ID (UUID v7)',
+    example: '01936b3a-1234-7000-8000-000000000000',
+  })
+  @ApiBody({ type: VoidSalesOrderDto, description: 'Void authorization payload' })
+  @ApiOkResponse({ description: 'The sales order has been voided.' })
+  async void(@Param('id') id: string, @Body() voidSalesOrderDto: VoidSalesOrderDto) {
+    const soId = await this.voidSalesOrderService.execute(id, voidSalesOrderDto);
     return this.salesOrdersService.findOneWithItems(soId);
   }
 

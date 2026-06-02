@@ -158,6 +158,16 @@ export class SalesOrder extends UuidIdEntity {
   @OneToMany(() => Payment, (payment) => payment.salesOrder)
   payments: Payment[];
 
+  @Column({ type: 'varchar', length: 500, nullable: true, name: 'void_reason' })
+  voidReason: string | null;
+
+  @ManyToOne(() => User, (user) => user.id, { nullable: true })
+  @JoinColumn({ name: 'voided_by' })
+  voidedBy: User | null;
+
+  @Column({ type: 'timestamp', nullable: true, name: 'voided_at' })
+  voidedAt: Date | null;
+
   @OneToOne(() => Refund, (refund) => refund.originalSalesOrder)
   refund: Refund | null;
 }

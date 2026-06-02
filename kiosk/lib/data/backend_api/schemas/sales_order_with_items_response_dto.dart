@@ -22,6 +22,8 @@ class SalesOrderWithItemsResponseDto with SalesOrderWithItemsResponseDtoMappable
     required this.finalTotalAmount,
     required this.createdBy,
     required this.salesOrderItems,
+    this.voidReason,
+    this.voidedAt,
   });
 
   final String id;
@@ -37,6 +39,8 @@ class SalesOrderWithItemsResponseDto with SalesOrderWithItemsResponseDtoMappable
   final double finalTotalAmount;
   final int createdBy;
   final List<SalesOrderItemResponseDto> salesOrderItems;
+  final String? voidReason;
+  final DateTime? voidedAt;
 
   static const fromJson = SalesOrderWithItemsResponseDtoMapper.fromJson;
 }

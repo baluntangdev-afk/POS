@@ -23,6 +23,9 @@ class Receipt with ReceiptMappable {
     required this.payment,
     required this.items,
     this.refunds = const IList.empty(),
+    this.isVoided = false,
+    this.voidReason,
+    this.voidedAt,
   });
 
   final String id;
@@ -34,6 +37,9 @@ class Receipt with ReceiptMappable {
   final Payment payment;
   final IList<ReceiptItem> items;
   final IList<Refund> refunds;
+  final bool isVoided;
+  final String? voidReason;
+  final DateTime? voidedAt;
 
   Decimal get grossAmount => items.fold(Decimal.zero, (total, item) => total + item.grossAmount);
 

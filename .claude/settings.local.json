@@ -81,7 +81,10 @@
       "Bash(grep -E \"\\\\.\\(ts|js\\)$\")",
       "Bash(grep -E \"\\\\.dart$\")",
       "Bash(xargs -I {} basename {} .ts)",
-      "Bash(sed 's/\\\\.controller//')"
+      "Bash(sed 's/\\\\.controller//')",
+      "Bash(git commit *)",
+      "Bash(git check-ignore *)",
+      "Bash(New-Item *)"
     ]
   }
 }

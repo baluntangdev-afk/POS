@@ -156,3 +156,11 @@ Semantic color tokens from `lib/theme/pos_design.dart` (e.g., `POSColors.textPri
 - **Branch `feature/catalog_migration`** is the active development branch; `develop` is the main integration branch.
 - **Catalog migration context** — the `catalog_` prefixed tables were dropped in migration `1779582100000`. The kiosk now reads products via `GET /api/v1/catalog/products` (raw SQL in `CatalogService`) and individual product details via `GET /api/v1/products/:id`. These two endpoints use different data paths and must be kept consistent.
 - Backend DTOs in `products/dto/product-details/` define the contract consumed by Flutter's `ProductDetailsDto` / `ProductVariantDetailsDto` — changes to either side require updating both.
+
+
+## Git Rules
+
+- NEVER create git commits unless I explicitly ask.
+- NEVER run git commit.
+- NEVER run git push.
+- Only stage or commit changes when instructed.

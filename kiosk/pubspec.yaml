@@ -17,6 +17,7 @@ dependencies:
   esc_pos_utils_plus: ^2.0.4
   fast_immutable_collections: ^11.1.0
   ffi: ^2.1.5
+  excel: ^4.0.6
   fl_chart: ^0.69.2
   flutter:
     sdk: flutter
@@ -61,6 +62,9 @@ flutter:
     - assets/images/svg/
     - assets/images/png/
     - assets/fonts/
+
+dependency_overrides:
+  archive: ^4.0.7
 
 flutter_gen:
   output: lib/gen/

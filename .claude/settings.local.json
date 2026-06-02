@@ -84,7 +84,9 @@
       "Bash(sed 's/\\\\.controller//')",
       "Bash(git commit *)",
       "Bash(git check-ignore *)",
-      "Bash(New-Item *)"
+      "Bash(New-Item *)",
+      "Bash(del kiosk\\\\lib\\\\features\\\\reports\\\\services\\\\daily_export_scheduler.dart)",
+      "Bash(Remove-Item *)"
     ]
   }
 }

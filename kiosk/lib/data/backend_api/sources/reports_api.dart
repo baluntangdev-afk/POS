@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../features/reports/state/sales_report_state.dart';
 import '../api_clients.dart';
+import '../schemas/exportable_report_dto.dart';
 import '../schemas/sales_data_item_dto.dart';
 import '../schemas/sales_report_type_dto.dart';
 import '../schemas/sales_summary_dto.dart';
@@ -99,5 +100,29 @@ class ReportsApi {
     );
     final dataList = response.data as List<dynamic>;
     return dataList.map((item) => SalesDataItemDto.fromJson(jsonEncode(item))).toList();
+  }
+
+  Future<ExportableReportDto> getExportable({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    final date = '${startDate.year.toString().padLeft(4, '0')}'
+        '-${startDate.month.toString().padLeft(2, '0')}'
+        '-${startDate.day.toString().padLeft(2, '0')}';
+    final response = await _httpClient.get<dynamic>(
+      '/api/v1/reports/exportable',
+      queryParameters: {'date': date},
+    );
+    return ExportableReportDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<void> markExported({required DateTime date}) async {
+    final dateStr = '${date.year.toString().padLeft(4, '0')}'
+        '-${date.month.toString().padLeft(2, '0')}'
+        '-${date.day.toString().padLeft(2, '0')}';
+    await _httpClient.patch<dynamic>(
+      '/api/v1/reports/mark-exported',
+      data: {'date': dateStr},
+    );
   }
 }

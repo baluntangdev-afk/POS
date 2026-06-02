@@ -14,6 +14,7 @@ import '../../../utils/decimal_formatter.dart';
 import '../../../utils/uuidv7.dart';
 import '../../../widgets/android_bottom_sheet.dart';
 import '../../../widgets/button.dart';
+import '../../../widgets/product_image_placeholder.dart';
 import '../../../widgets/resposive_wrap_container.dart';
 import '../entities/line_item.dart';
 import '../entities/modifier_group.dart';
@@ -55,13 +56,6 @@ Future<LineItem?> showLineItemDialog(
     },
   );
 
-  if (Platform.isAndroid) {
-    return showAndroidBottomSheet<LineItem>(
-      context: context,
-      maxHeightRatio: 0.95,
-      builder: content,
-    );
-  }
   return showDialog<LineItem>(
     context: context,
     builder:
@@ -268,6 +262,7 @@ class LineItemDialog extends HookConsumerWidget {
           price: variant?.price ?? product.price,
         ),
         modifiers: selectedModifiers.value,
+        categoryName: product.categoryName,
       );
     }
 
@@ -344,6 +339,8 @@ class _ProductDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = productPlaceholder(product.categoryName);
+
     return Row(
       children: [
         Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
@@ -353,13 +350,16 @@ class _ProductDetails extends StatelessWidget {
           height: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
           fit: BoxFit.contain,
           errorBuilder:
-              (context, error, stackTrace) => SizedBox(
+              (context, error, stackTrace) => Container(
                 width: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
                 height: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
-                child: Icon(
-                  Icons.image_not_supported_outlined,
-                  color: POSColors.textDisabled,
-                  size: context.responsive.value(kiosk: 64, tablet: 48, phone: 32),
+                color: style.bg,
+                child: Center(
+                  child: Icon(
+                    style.icon,
+                    color: style.fg,
+                    size: context.responsive.value(kiosk: 64, tablet: 48, phone: 32),
+                  ),
                 ),
               ),
         ),
@@ -726,12 +726,13 @@ class _ModifierOptionCard extends StatelessWidget {
                     height: context.responsive.value(kiosk: 64, tablet: 48, phone: 40),
                     fit: BoxFit.cover,
                     errorBuilder:
-                        (context, error, stackTrace) => SizedBox(
+                        (context, error, stackTrace) => Container(
                           height: context.responsive.value(kiosk: 64, tablet: 48, phone: 40),
+                          color: defaultProductPlaceholder.bg,
                           child: Center(
                             child: Icon(
-                              Icons.image_not_supported_outlined,
-                              color: POSColors.textDisabled,
+                              defaultProductPlaceholder.icon,
+                              color: defaultProductPlaceholder.fg,
                               size: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
                             ),
                           ),

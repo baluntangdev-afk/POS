@@ -78,6 +78,7 @@ import { PosTerminalPaymentMethodName1779583500000 } from './migrations/17795835
 import { ProductVariantsPrice1779583600000 } from './migrations/1779583600000-product-variants-price';
 import { UsersRole1779583700000 } from './migrations/1779583700000-users-role';
 import { SalesOrdersVoidFields1779583800000 } from './migrations/1779583800000-sales-orders-void-fields';
+import { SalesOrdersDoneExport1779584000000 } from './migrations/1779584000000-sales-orders-done-export';
 
 /**
  * Migration classes for POSBackend.exe --migrate (same as npm run migration:up).
@@ -162,5 +163,6 @@ export const migrations: Array<new () => MigrationInterface> = [
   PosTerminalPaymentMethodName1779583500000,
   ProductVariantsPrice1779583600000,
   UsersRole1779583700000,
-  SalesOrdersVoidFields1779583800000
+  SalesOrdersVoidFields1779583800000,
+  SalesOrdersDoneExport1779584000000,
 ];

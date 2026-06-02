@@ -13,6 +13,7 @@ export class ProductDetailMapper {
 
     dto.id = product.id;
     dto.name = product.name;
+    dto.categoryName = product.productGroup?.name ?? null;
     dto.description = product.description;
     dto.imageUrl = product.imageUrl ? Buffer.from(product.imageUrl).toString('base64') : null;
     dto.currencySign = args?.currencySign ?? '₱';

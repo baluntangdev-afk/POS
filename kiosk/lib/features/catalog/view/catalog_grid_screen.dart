@@ -13,6 +13,7 @@ import '../../../theme/pos_design.dart';
 import '../../../utils/debounce.dart';
 import '../../../widgets/button.dart';
 import '../../../widgets/network_error_dialog.dart';
+import '../../../widgets/product_image_placeholder.dart';
 import '../../../widgets/resposive_wrap_container.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../data/models/category.dart';
@@ -42,10 +43,9 @@ class CatalogGridScreen extends HookConsumerWidget {
         return null;
       }
       Future.microtask(() {
-        ref.read(catalogProductsProvider.notifier).getResults(
-              categoryId: categoryId.value,
-              search: searchQuery.value,
-            );
+        ref
+            .read(catalogProductsProvider.notifier)
+            .getResults(categoryId: categoryId.value, search: searchQuery.value);
       });
       return null;
     }, [categoryId.value, searchQuery.value]);
@@ -195,9 +195,8 @@ class _CategoryChips extends HookConsumerWidget {
                     controller: scrollController,
                     scrollDirection: Axis.horizontal,
                     itemCount: categories.length + 1,
-                    separatorBuilder: (_, __) => Gap(
-                      context.responsive.value(kiosk: 8, tablet: 6, phone: 6),
-                    ),
+                    separatorBuilder:
+                        (_, __) => Gap(context.responsive.value(kiosk: 8, tablet: 6, phone: 6)),
                     itemBuilder: (context, index) {
                       if (index == 0) {
                         return _Chip(
@@ -230,14 +229,15 @@ class _CategoryChips extends HookConsumerWidget {
                     child: _ScrollArrow(
                       direction: _ArrowDirection.left,
                       bgColor: bgColor,
-                      onTap: () => scrollController.animateTo(
-                        (scrollController.offset - 160).clamp(
-                          0.0,
-                          scrollController.position.maxScrollExtent,
-                        ),
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                      ),
+                      onTap:
+                          () => scrollController.animateTo(
+                            (scrollController.offset - 160).clamp(
+                              0.0,
+                              scrollController.position.maxScrollExtent,
+                            ),
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          ),
                     ),
                   ),
                 ),
@@ -254,14 +254,15 @@ class _CategoryChips extends HookConsumerWidget {
                     child: _ScrollArrow(
                       direction: _ArrowDirection.right,
                       bgColor: bgColor,
-                      onTap: () => scrollController.animateTo(
-                        (scrollController.offset + 160).clamp(
-                          0.0,
-                          scrollController.position.maxScrollExtent,
-                        ),
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                      ),
+                      onTap:
+                          () => scrollController.animateTo(
+                            (scrollController.offset + 160).clamp(
+                              0.0,
+                              scrollController.position.maxScrollExtent,
+                            ),
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          ),
                     ),
                   ),
                 ),
@@ -326,11 +327,7 @@ class _Chip extends StatelessWidget {
 enum _ArrowDirection { left, right }
 
 class _ScrollArrow extends StatelessWidget {
-  const _ScrollArrow({
-    required this.direction,
-    required this.bgColor,
-    required this.onTap,
-  });
+  const _ScrollArrow({required this.direction, required this.bgColor, required this.onTap});
 
   final _ArrowDirection direction;
   final Color bgColor;
@@ -348,10 +345,7 @@ class _ScrollArrow extends StatelessWidget {
           gradient: LinearGradient(
             begin: isLeft ? Alignment.centerRight : Alignment.centerLeft,
             end: isLeft ? Alignment.centerLeft : Alignment.centerRight,
-            colors: [
-              bgColor.withValues(alpha: 0.0),
-              bgColor.withValues(alpha: 0.95),
-            ],
+            colors: [bgColor.withValues(alpha: 0.0), bgColor.withValues(alpha: 0.95)],
             stops: const [0.0, 0.6],
           ),
         ),
@@ -383,18 +377,17 @@ class _ScrollArrow extends StatelessWidget {
 class _ProductsGrid extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(
-      catalogProductsProvider.select((it) => it.whenData((d) => d.products)),
-    );
+    final state = ref.watch(catalogProductsProvider.select((it) => it.whenData((d) => d.products)));
 
     return state.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(
-          color: ColorSet.primary,
-          strokeWidth: 3,
-          strokeCap: StrokeCap.round,
-        ),
-      ),
+      loading:
+          () => const Center(
+            child: CircularProgressIndicator(
+              color: ColorSet.primary,
+              strokeWidth: 3,
+              strokeCap: StrokeCap.round,
+            ),
+          ),
       error: (_, __) => const Center(child: SizedBox.shrink()),
       data: (products) {
         if (products.isEmpty) {
@@ -447,11 +440,7 @@ class _EmptyProductsState extends StatelessWidget {
 }
 
 class _Grid extends StatelessWidget {
-  const _Grid({
-    required this.products,
-    required this.crossAxisCount,
-    required this.ratio,
-  });
+  const _Grid({required this.products, required this.crossAxisCount, required this.ratio});
 
   final List<CatalogProduct> products;
   final int crossAxisCount;
@@ -500,7 +489,7 @@ class _ProductCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  _ProductImage(imageUrl: product.imageUrl),
+                  _ProductImage(imageUrl: product.imageUrl, categoryName: product.category?.name),
                   // Category badge overlay
                   if (product.category != null)
                     Positioned(
@@ -546,9 +535,7 @@ class _ProductCard extends StatelessWidget {
                       child: Button(
                         label: Text(
                           'Manage',
-                          style: TextStyle(
-                            fontSize: r.value(kiosk: 12, tablet: 11, phone: 10),
-                          ),
+                          style: TextStyle(fontSize: r.value(kiosk: 12, tablet: 11, phone: 10)),
                         ),
                         // onPressed: () => ProductDetailRoute(product.id).push<void>(context),
                         backgroundColor: ColorSet.primary,
@@ -567,33 +554,40 @@ class _ProductCard extends StatelessWidget {
 }
 
 class _ProductImage extends StatelessWidget {
-  const _ProductImage({required this.imageUrl});
+  const _ProductImage({required this.imageUrl, this.categoryName});
 
   final String? imageUrl;
+  final String? categoryName;
 
   @override
   Widget build(BuildContext context) {
+    final style = productPlaceholder(categoryName);
     if (imageUrl != null && imageUrl!.isNotEmpty) {
       return Image.network(
         imageUrl!,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _ImagePlaceholder(),
+        errorBuilder: (_, _, ___) => _ImagePlaceholder(style: style),
       );
     }
-    return _ImagePlaceholder();
+    return _ImagePlaceholder(style: style);
   }
 }
 
 class _ImagePlaceholder extends StatelessWidget {
+  const _ImagePlaceholder({this.style});
+
+  final ProductPlaceholderStyle? style;
+
   @override
   Widget build(BuildContext context) {
+    final s = style ?? defaultProductPlaceholder;
     return ColoredBox(
-      color: POSColors.surfaceOverlay,
+      color: s.bg,
       child: Center(
         child: Icon(
-          Icons.image_rounded,
+          s.icon,
           size: context.responsive.value(kiosk: 40, tablet: 32, phone: 24),
-          color: POSColors.textDisabled,
+          color: s.fg,
         ),
       ),
     );

@@ -92,7 +92,13 @@
       "Bash(Select-String -Pattern \"archive\")",
       "Bash(Get-Content \"C:/Users/Jufiel/AppData/Local/Pub/Cache/hosted/pub.dev/share_plus-10.0.0/pubspec.yaml\")",
       "Bash(Select-String archive *)",
-      "PowerShell(\\(Get-ChildItem \"C:/Users/Jufiel/AppData/Local/Pub/Cache/hosted/pub.dev/excel-4.0.6\" -Recurse -File | Measure-Object\\).Count)"
+      "PowerShell(\\(Get-ChildItem \"C:/Users/Jufiel/AppData/Local/Pub/Cache/hosted/pub.dev/excel-4.0.6\" -Recurse -File | Measure-Object\\).Count)",
+      "Bash(Test-Path \"C:\\\\nssm\\\\nssm.exe\")",
+      "Bash(Test-Path \"C:\\\\pgsql\\\\bin\\\\pg_ctl.exe\")",
+      "Bash(Test-Path \"C:\\\\pgsql\\\\bin\\\\initdb.exe\")",
+      "PowerShell($iscc = @\\(\"C:\\\\Program Files \\(x86\\)\\\\Inno Setup 6\\\\ISCC.exe\",\"C:\\\\Program Files\\\\Inno Setup 6\\\\ISCC.exe\"\\) | Where-Object { Test-Path $_ } | Select-Object -First 1; if \\($iscc\\) { Write-Host \"Found: $iscc\" } else { Write-Host \"NOT FOUND\" })",
+      "PowerShell($iscc = @\\(\"C:\\\\Program Files \\(x86\\)\\\\Inno Setup 6\\\\ISCC.exe\",\"C:\\\\Program Files\\\\Inno Setup 6\\\\ISCC.exe\"\\) | Where-Object { Test-Path $_ } | Select-Object -First 1; Write-Host $iscc)",
+      "PowerShell($f = \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\output\\\\POSKiosk-Setup-1.0.0.exe\"; if \\(Test-Path $f\\) { $item = Get-Item $f; Write-Host \"File exists — Size: $\\([math]::Round\\($item.Length/1MB, 1\\)\\) MB, Created: $\\($item.LastWriteTime\\)\" })"
     ]
   }
 }

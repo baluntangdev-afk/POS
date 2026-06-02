@@ -6,4 +6,7 @@ export const PRODUCT_LIST_SELECT: FindOptionsSelect<Product> = {
   name: true,
   imageUrl: true,
   price: true,
+  productGroup: {
+    name: true,
+  },
 };

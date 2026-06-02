@@ -21,12 +21,14 @@ class LineItem with LineItemMappable {
     required this.quantity,
     required this.variant,
     required this.modifiers,
+    required this.categoryName,
     this.discount,
   });
 
   final String id;
   final int productId;
   final String productName;
+  final String categoryName;
   final Uint8List productImage;
   final int quantity;
   final SelectedVariant variant;

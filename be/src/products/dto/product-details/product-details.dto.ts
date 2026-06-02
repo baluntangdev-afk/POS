@@ -9,6 +9,9 @@ export class ProductDetailsDto {
   @ApiProperty({ description: 'Product name', example: 'Sinigang' })
   name: string;
 
+  @ApiProperty({ description: 'Category name (product group)', example: 'Beverages', nullable: true })
+  categoryName: string | null;
+
   @ApiProperty({
     description: 'Product description',
     example: 'Sinigang is a Filipino soup made with tamarind, pork, and vegetables.',

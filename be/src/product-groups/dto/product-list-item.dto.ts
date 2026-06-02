@@ -18,4 +18,7 @@ export class ProductListItemDto {
     nullable: true,
   })
   imageUrl: string | null;
+
+  @ApiProperty({ description: 'Category name (product group)', example: 'Beverages' })
+  categoryName: string;
 }

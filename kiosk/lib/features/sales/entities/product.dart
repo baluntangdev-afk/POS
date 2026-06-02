@@ -17,12 +17,14 @@ class Product with ProductMappable {
     required this.image,
     required this.price,
     required this.modifierGroups,
+    required this.categoryName,
     this.variants = const IList.empty(),
     this.defaultVariantId = 0,
   });
 
   final int id;
   final String name;
+  final String categoryName;
   final Uint8List image;
   final Decimal price;
   final IList<ModifierGroup> modifierGroups;

@@ -20,6 +20,7 @@ class ProductDetailsDto with ProductDetailsDtoMappable {
     this.defaultVariantId,
     required this.variants,
     required this.modifierGroups,
+    this.categoryName,
   });
 
   final int id;
@@ -31,6 +32,7 @@ class ProductDetailsDto with ProductDetailsDtoMappable {
   final int? defaultVariantId;
   final List<ProductVariantDetailsDto> variants;
   final List<MenuItemModifierGroupDto> modifierGroups;
+  final String? categoryName;
 
   static const fromJson = ProductDetailsDtoMapper.fromJson;
 }

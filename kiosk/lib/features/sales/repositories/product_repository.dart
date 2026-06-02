@@ -19,6 +19,7 @@ import '../entities/product_variant.dart';
 
 abstract class ProductRepository {
   Future<IList<Product>> getByGroup(ProductGroup group);
+
   Future<Product> getById(int id);
 }
 
@@ -52,6 +53,7 @@ class ProductRepositoryImpl implements ProductRepository {
 
   Product _productFromListItemDto(ProductListItemDto dto) {
     return Product(
+      categoryName: dto.categoryName,
       id: dto.id,
       name: dto.name,
       price: Decimal.parse(dto.price),
@@ -62,6 +64,7 @@ class ProductRepositoryImpl implements ProductRepository {
 
   Product _productFromDetailsDto(ProductDetailsDto dto) {
     return Product(
+      categoryName: dto.categoryName ?? '',
       id: dto.id,
       name: dto.name,
       image: dto.imageUrl ?? Uint8List(0),

@@ -13,6 +13,7 @@ import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/button.dart';
+import '../../../widgets/product_image_placeholder.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/product.dart';
@@ -227,7 +228,7 @@ class _ProductImage extends StatelessWidget {
       width: context.responsive.value(kiosk: 200, tablet: 160, phone: 120),
       height: context.responsive.value(kiosk: 200, tablet: 160, phone: 120),
       decoration: BoxDecoration(
-        color: POSColors.surfaceSubtle,
+        color: defaultProductPlaceholder.bg,
         borderRadius: BorderRadius.circular(POSRadius.xl),
         border: Border.all(color: POSColors.borderDefault),
       ),
@@ -241,9 +242,9 @@ class _ProductImage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.image_not_supported_rounded,
+                      defaultProductPlaceholder.icon,
                       size: context.responsive.value(kiosk: 48, tablet: 40, phone: 32),
-                      color: POSColors.textDisabled,
+                      color: defaultProductPlaceholder.fg,
                     ),
                     Gap(context.responsive.spacingSm),
                     Text(
@@ -260,9 +261,9 @@ class _ProductImage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.image_rounded,
+                    defaultProductPlaceholder.icon,
                     size: context.responsive.value(kiosk: 48, tablet: 40, phone: 32),
-                    color: POSColors.textDisabled,
+                    color: defaultProductPlaceholder.fg,
                   ),
                   Gap(context.responsive.spacingSm),
                   Text(

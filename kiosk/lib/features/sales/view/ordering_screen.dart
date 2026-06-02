@@ -16,6 +16,7 @@ import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../widgets/android_scaffold.dart';
+import '../../../widgets/product_image_placeholder.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/product.dart';
 import '../state/ordering_notifier.dart';
@@ -26,18 +27,7 @@ class OrderingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (context.breakpoint.isAndroid) {
-      return AndroidScaffold(
-        backgroundColor: ColorSet.background,
-        body: SafeArea(
-          child: ResponsiveBuilder(
-            kiosk: (context) => const _KioskLayout(),
-            tablet: (context) => const _KioskLayout(),
-            phone: (context) => const _KioskLayout(),
-          ),
-        ),
-      );
-    }
+
     return WindowsScaffold(
       backgroundColor: ColorSet.background,
       body: ResponsiveBuilder(
@@ -841,6 +831,9 @@ class _ProductGrid extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(orderingProvider.select((it) => it.whenData((data) => data.products)));
+    final groupName = ref.watch(
+      orderingProvider.select((it) => it.value?.selectedGroup?.name),
+    );
     if (state.isLoading) {
       return const Center(child: _LoadingState());
     }
@@ -868,7 +861,7 @@ class _ProductGrid extends ConsumerWidget {
         itemCount: products.length,
         itemBuilder: (context, index) {
           final product = products[index];
-          return _ProductCard(product: product);
+          return _ProductCard(product: product, groupName: groupName);
         },
       ),
     );
@@ -944,12 +937,14 @@ class _EmptyProductsState extends StatelessWidget {
 }
 
 class _ProductCard extends StatelessWidget {
-  const _ProductCard({required this.product});
+  const _ProductCard({required this.product, this.groupName});
 
   final Product product;
+  final String? groupName;
 
   @override
   Widget build(BuildContext context) {
+    final style = productPlaceholder(groupName);
     return Consumer(
       builder: (context, ref, _) {
         return Material(
@@ -963,7 +958,7 @@ class _ProductCard extends StatelessWidget {
             },
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: style.bg,
                 borderRadius: BorderRadius.circular(POSRadius.xl),
                 boxShadow: POSShadow.card,
               ),
@@ -988,13 +983,13 @@ class _ProductCard extends StatelessWidget {
                               errorBuilder:
                                   (_, __, ___) => Center(
                                     child: Icon(
-                                      Icons.image_not_supported_outlined,
+                                      style.icon,
                                       size: context.responsive.value(
                                         kiosk: 48.0,
                                         tablet: 40.0,
                                         phone: 32.0,
                                       ),
-                                      color: POSColors.iconSubtle,
+                                      color: style.fg,
                                     ),
                                   ),
                             ),

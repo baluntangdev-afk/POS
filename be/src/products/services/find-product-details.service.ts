@@ -28,7 +28,7 @@ export class FindProductDetailsService {
         'product.price',
       ])
       .leftJoin('product.productGroup', 'pg')
-      .addSelect(['pg.id'])
+      .addSelect(['pg.id', 'pg.name'])
       .leftJoin('pg.modifiers', 'mg')
       .addSelect(['mg.id', 'mg.name', 'mg.minSelection', 'mg.maxSelection'])
       .leftJoin('mg.modifierOptions', 'mo')

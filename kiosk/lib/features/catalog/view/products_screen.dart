@@ -409,11 +409,13 @@ class _ProductCard extends ConsumerWidget {
                     errorBuilder: (context, error, stackTrace) => Container(
                       width: context.responsive.value(kiosk: 60, tablet: 50, phone: 48),
                       height: context.responsive.value(kiosk: 60, tablet: 50, phone: 48),
-                      color: POSColors.surfaceSubtle,
-                      child: Icon(
-                        Icons.image_rounded,
-                        size: context.responsive.value(kiosk: 24, tablet: 20, phone: 18),
-                        color: POSColors.textDisabled,
+                      color: const Color(0xFFFFF3E0),
+                      child: Center(
+                        child: Icon(
+                          Icons.lunch_dining,
+                          size: context.responsive.value(kiosk: 24, tablet: 20, phone: 18),
+                          color: const Color(0xFFD4854A),
+                        ),
                       ),
                     ),
                   ),
@@ -746,11 +748,13 @@ class _ProductRow extends ConsumerWidget {
                     return Container(
                       width: context.responsive.value(kiosk: 60, tablet: 50, phone: 40),
                       height: context.responsive.value(kiosk: 60, tablet: 50, phone: 40),
-                      color: POSColors.surfaceSubtle,
-                      child: Icon(
-                        Icons.image_rounded,
-                        size: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-                        color: POSColors.textDisabled,
+                      color: const Color(0xFFFFF3E0),
+                      child: Center(
+                        child: Icon(
+                          Icons.lunch_dining,
+                          size: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+                          color: const Color(0xFFD4854A),
+                        ),
                       ),
                     );
                   },

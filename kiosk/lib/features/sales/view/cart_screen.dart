@@ -13,6 +13,7 @@ import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../widgets/android_scaffold.dart';
+import '../../../widgets/product_image_placeholder.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../state/ordering_notifier.dart';
 import 'line_item_dialog.dart';
@@ -478,6 +479,7 @@ class _LineItemListView extends ConsumerWidget {
       itemBuilder: (context, index) {
         final lineItem = lineItems[index];
         final imgSize = r.value<double>(kiosk: 72, tablet: 60, phone: 52);
+        final style = productPlaceholder(lineItem.categoryName);
 
         final card = Container(
           constraints: BoxConstraints(
@@ -490,20 +492,32 @@ class _LineItemListView extends ConsumerWidget {
           ),
           padding: EdgeInsets.all(r.value<double>(kiosk: 16, tablet: 14, phone: 12)),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Product image
               Container(
                 width: imgSize,
                 height: imgSize,
                 decoration: BoxDecoration(
-                  color: ColorSet.background,
+                  color: lineItem.productImage.isEmpty
+                      ? style.bg
+                      : ColorSet.background,
                   borderRadius: BorderRadius.circular(POSRadius.lg),
-                  image: DecorationImage(
-                    image: MemoryImage(lineItem.productImage),
-                    fit: BoxFit.contain,
-                  ),
+                  image: lineItem.productImage.isNotEmpty
+                      ? DecorationImage(
+                          image: MemoryImage(lineItem.productImage),
+                          fit: BoxFit.contain,
+                        )
+                      : null,
                 ),
+                child: lineItem.productImage.isEmpty
+                    ? Center(
+                        child: Icon(
+                          style.icon,
+                          size: imgSize * 0.5,
+                          color: style.fg,
+                        ),
+                      )
+                    : null,
               ),
               SizedBox(width: r.value<double>(kiosk: 14, tablet: 12, phone: 10)),
 

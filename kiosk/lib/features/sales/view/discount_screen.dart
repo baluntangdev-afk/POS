@@ -16,6 +16,7 @@ import '../../../utils/tax_calculator.dart';
 import '../../../validation/rules/is_required.dart';
 import '../../../validation/validate.dart';
 import '../../../widgets/android_scaffold.dart';
+import '../../../widgets/product_image_placeholder.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/discount.dart';
@@ -96,7 +97,6 @@ class DiscountScreen extends HookConsumerWidget {
     if (isAndroid) {
       return AndroidScaffold(
         backgroundColor: ColorSet.background,
-        resizeToAvoidBottomInset: true,
         body: SafeArea(child: body),
       );
     }
@@ -361,6 +361,7 @@ class _LineItemSelectionView extends ConsumerWidget {
                 final item = lineItems[index];
                 final selectedQty = selectedQuantities[item.id];
                 final isSelected = selectedQty != null;
+                final style = productPlaceholder(item.categoryName);
 
                 return Material(
                   color: isSelected
@@ -382,7 +383,6 @@ class _LineItemSelectionView extends ConsumerWidget {
                         horizontal: r.value<double>(kiosk: 16, tablet: 14, phone: 12),
                       ),
                       child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           SizedBox(
                             width: 24,
@@ -410,13 +410,26 @@ class _LineItemSelectionView extends ConsumerWidget {
                             width: r.value<double>(kiosk: 64, tablet: 52, phone: 44),
                             height: r.value<double>(kiosk: 64, tablet: 52, phone: 44),
                             decoration: BoxDecoration(
-                              color: ColorSet.background,
+                              color: item.productImage.isEmpty
+                                  ? style.bg
+                                  : ColorSet.background,
                               borderRadius: BorderRadius.circular(POSRadius.md),
-                              image: DecorationImage(
-                                image: MemoryImage(item.productImage),
-                                fit: BoxFit.contain,
-                              ),
+                              image: item.productImage.isNotEmpty
+                                  ? DecorationImage(
+                                      image: MemoryImage(item.productImage),
+                                      fit: BoxFit.contain,
+                                    )
+                                  : null,
                             ),
+                            child: item.productImage.isEmpty
+                                ? Center(
+                                    child: Icon(
+                                      style.icon,
+                                      size: r.value<double>(kiosk: 32, tablet: 26, phone: 22),
+                                      color: style.fg,
+                                    ),
+                                  )
+                                : null,
                           ),
                           SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
                           Expanded(

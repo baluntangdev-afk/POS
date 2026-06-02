@@ -168,6 +168,9 @@ export class SalesOrder extends UuidIdEntity {
   @Column({ type: 'timestamp', nullable: true, name: 'voided_at' })
   voidedAt: Date | null;
 
+  @Column({ name: 'done_export', type: 'boolean', default: false })
+  doneExport: boolean;
+
   @OneToOne(() => Refund, (refund) => refund.originalSalesOrder)
   refund: Refund | null;
 }

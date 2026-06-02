@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'features/reports/services/daily_export_scheduler.dart';
 import 'navigation/router.dart';
 import 'styles/color_set.dart';
 import 'styles/fallback_theme.dart';
@@ -48,6 +49,7 @@ class _WindowCloseGuardState extends State<_WindowCloseGuard> with WindowListene
   void initState() {
     super.initState();
     windowManager.addListener(this);
+    widget.container.read(dailyExportSchedulerProvider);
   }
 
   @override

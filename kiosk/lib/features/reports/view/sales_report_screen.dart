@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -13,21 +14,84 @@ import '../../../widgets/resposive_wrap_container.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/metric.dart';
+import '../repositories/reports_repository.dart';
+import '../state/export_notifier.dart';
 import '../state/sales_report_notifier.dart';
 import '../state/sales_report_state.dart';
 import 'report_tab_selector.dart';
 import 'sales_bar_chart.dart';
 import 'sales_health_page.dart';
+import 'unexported_export_dialog.dart';
 
-class SalesReportScreen extends ConsumerWidget {
+class SalesReportScreen extends HookConsumerWidget {
   const SalesReportScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(salesReportProvider);
+    final exportState = ref.watch(exportNotifierProvider);
     final selectedTab = state.selectedTab;
     final isAndroid = context.breakpoint.isAndroid;
     final r = context.responsive;
+
+    ref.listen<ExportState>(exportNotifierProvider, (prev, next) {
+      if ((prev?.isExporting ?? false) && !next.isExporting) {
+        if (next.exportError != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Export failed: ${next.exportError}'),
+              backgroundColor: ColorSet.danger,
+            ),
+          );
+        } else if (next.lastExportPath != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Report saved to ${next.lastExportPath}'),
+              backgroundColor: ColorSet.primary,
+            ),
+          );
+        }
+      }
+    });
+
+    useEffect(() {
+      Future.microtask(() async {
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        final start = DateTime(yesterday.year, yesterday.month, yesterday.day);
+        final end = DateTime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59);
+        try {
+          final repo = ref.read(reportsRepositoryProvider);
+          final result = await repo.getExportable(startDate: start, endDate: end);
+          if (result.count > 0 && context.mounted) {
+            showDialog<void>(
+              context: context,
+              barrierDismissible: false,
+              builder: (_) => UnexportedExportDialog(
+                date: yesterday,
+                count: result.count,
+              ),
+            );
+          }
+        } catch (_) {
+          // Do not block the screen if the check itself fails
+        }
+      });
+      return null;
+    }, const []);
+
+    final exportButton = IconButton(
+      onPressed: exportState.isExporting
+          ? null
+          : () => ref.read(exportNotifierProvider.notifier).export(DateTime.now()),
+      tooltip: 'Export Today\'s Report',
+      icon: exportState.isExporting
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            )
+          : const Icon(Icons.file_download_outlined, color: Colors.white),
+    );
 
     Widget content = ColoredBox(
       color: ColorSet.background,
@@ -52,11 +116,11 @@ class SalesReportScreen extends ConsumerWidget {
                   if (context.canPop()) context.pop();
                 },
                 title: 'Sales Report',
+                trailing: exportButton,
               ),
             ),
             ColoredBox(
               color: Colors.white,
-
               child: Container(
                 padding: r.value<EdgeInsets>(
                   phone: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -65,24 +129,24 @@ class SalesReportScreen extends ConsumerWidget {
                 ),
                 child: ReportTabSelector(
                   selectedTab: selectedTab,
-                  onTabChanged: (tab) => ref.read(salesReportProvider.notifier).updateTab(tab),
+                  onTabChanged: (tab) =>
+                      ref.read(salesReportProvider.notifier).updateTab(tab),
                 ),
               ),
             ),
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
-                transitionBuilder:
-                    (child, animation) => FadeTransition(opacity: animation, child: child),
-                child:
-                    selectedTab == ReportTab.dashboard
-                        ? _DashboardContent(
-                          key: const ValueKey('dashboard'),
-                          state: state,
-                          isAndroid: isAndroid,
-                          onRetry: () => ref.invalidate(salesReportProvider),
-                        )
-                        : const SalesHealthPage(key: ValueKey('health')),
+                transitionBuilder: (child, animation) =>
+                    FadeTransition(opacity: animation, child: child),
+                child: selectedTab == ReportTab.dashboard
+                    ? _DashboardContent(
+                        key: const ValueKey('dashboard'),
+                        state: state,
+                        isAndroid: isAndroid,
+                        onRetry: () => ref.invalidate(salesReportProvider),
+                      )
+                    : const SalesHealthPage(key: ValueKey('health')),
               ),
             ),
           ],

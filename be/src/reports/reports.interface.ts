@@ -18,6 +18,8 @@ export interface SalesReportRawRow {
   totalRefunds?: string | number | null;
   totalItems?: string | number | null;
   totalTransactions?: string | number | null;
+  totalVoidedTransactions?: string | number | null;
+  totalVoidedAmount?: string | number | null;
 }
 
 /**

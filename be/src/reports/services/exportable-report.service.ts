@@ -83,6 +83,7 @@ export class ExportableReportService {
       .set({ doneExport: true })
       .where('done_export = :doneExport', { doneExport: false })
       .andWhere('so_date BETWEEN :startDate AND :endDate', { startDate, endDate })
+      .andWhere('status IN (:...statusFilter)', { statusFilter: STATUS_FILTER })
       .execute();
 
     return { updatedCount: result.affected ?? 0 };

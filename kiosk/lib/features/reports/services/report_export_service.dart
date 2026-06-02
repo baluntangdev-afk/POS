@@ -8,7 +8,6 @@ import 'package:intl/intl.dart';
 import '../entities/exportable_report.dart';
 import '../entities/sales_data_item.dart';
 import '../entities/sales_report_type.dart';
-import '../entities/sales_summary.dart';
 import '../repositories/reports_repository.dart';
 
 final reportExportServiceProvider = Provider<ReportExportService>((ref) {
@@ -79,8 +78,8 @@ class ReportExportService {
       sheet.appendRow([TextCellValue(row[0]), TextCellValue(row[1])]);
     }
 
-    sheet.setColWidth(0, 24);
-    sheet.setColWidth(1, 20);
+    sheet.setColumnWidth(0, 24);
+    sheet.setColumnWidth(1, 20);
   }
 
   void _buildHourlySheet(Excel excel, List<SalesReportType> rows) {
@@ -122,11 +121,11 @@ class ReportExportService {
           .cellStyle = CellStyle(bold: true);
     }
 
-    sheet.setColWidth(0, 12);
-    sheet.setColWidth(1, 16);
-    sheet.setColWidth(2, 16);
-    sheet.setColWidth(3, 14);
-    sheet.setColWidth(4, 12);
+    sheet.setColumnWidth(0, 12);
+    sheet.setColumnWidth(1, 16);
+    sheet.setColumnWidth(2, 16);
+    sheet.setColumnWidth(3, 14);
+    sheet.setColumnWidth(4, 12);
   }
 
   void _buildGroupedSheet(
@@ -153,9 +152,9 @@ class ReportExportService {
       ]);
     }
 
-    sheet.setColWidth(0, 28);
-    sheet.setColWidth(1, 16);
-    sheet.setColWidth(2, 10);
+    sheet.setColumnWidth(0, 28);
+    sheet.setColumnWidth(1, 16);
+    sheet.setColumnWidth(2, 10);
   }
 
   void _styleHeaderRow(Sheet sheet, int rowIndex, int colCount) {

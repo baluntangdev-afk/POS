@@ -86,7 +86,13 @@
       "Bash(git check-ignore *)",
       "Bash(New-Item *)",
       "Bash(del kiosk\\\\lib\\\\features\\\\reports\\\\services\\\\daily_export_scheduler.dart)",
-      "Bash(Remove-Item *)"
+      "Bash(Remove-Item *)",
+      "Bash(git *)",
+      "Bash(dart pub *)",
+      "Bash(Select-String -Pattern \"archive\")",
+      "Bash(Get-Content \"C:/Users/Jufiel/AppData/Local/Pub/Cache/hosted/pub.dev/share_plus-10.0.0/pubspec.yaml\")",
+      "Bash(Select-String archive *)",
+      "PowerShell(\\(Get-ChildItem \"C:/Users/Jufiel/AppData/Local/Pub/Cache/hosted/pub.dev/excel-4.0.6\" -Recurse -File | Measure-Object\\).Count)"
     ]
   }
 }

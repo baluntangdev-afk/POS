@@ -103,10 +103,7 @@ class ReportsRepositoryImpl implements ReportsRepository {
     required DateTime startDate,
     required DateTime endDate,
   }) async {
-    final dto = await _reportsApi.getExportable(
-      startDate: startDate,
-      endDate: endDate,
-    );
+    final dto = await _reportsApi.getExportable(date: startDate);
     return dto.toEntity;
   }
 

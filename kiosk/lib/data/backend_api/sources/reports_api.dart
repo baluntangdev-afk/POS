@@ -102,16 +102,13 @@ class ReportsApi {
     return dataList.map((item) => SalesDataItemDto.fromJson(jsonEncode(item))).toList();
   }
 
-  Future<ExportableReportDto> getExportable({
-    required DateTime startDate,
-    required DateTime endDate,
-  }) async {
-    final date = '${startDate.year.toString().padLeft(4, '0')}'
-        '-${startDate.month.toString().padLeft(2, '0')}'
-        '-${startDate.day.toString().padLeft(2, '0')}';
+  Future<ExportableReportDto> getExportable({required DateTime date}) async {
+    final dateStr = '${date.year.toString().padLeft(4, '0')}'
+        '-${date.month.toString().padLeft(2, '0')}'
+        '-${date.day.toString().padLeft(2, '0')}';
     final response = await _httpClient.get<dynamic>(
       '/api/v1/reports/exportable',
-      queryParameters: {'date': date},
+      queryParameters: {'date': dateStr},
     );
     return ExportableReportDto.fromJson(jsonEncode(response.data));
   }

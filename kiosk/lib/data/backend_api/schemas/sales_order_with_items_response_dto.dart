@@ -22,6 +22,7 @@ class SalesOrderWithItemsResponseDto with SalesOrderWithItemsResponseDtoMappable
     required this.finalTotalAmount,
     required this.createdBy,
     required this.salesOrderItems,
+    this.totalRefundAmount = 0,
     this.voidReason,
     this.voidedAt,
   });
@@ -38,6 +39,7 @@ class SalesOrderWithItemsResponseDto with SalesOrderWithItemsResponseDtoMappable
   final double totalAmount;
   final double finalTotalAmount;
   final int createdBy;
+  final double totalRefundAmount;
   final List<SalesOrderItemResponseDto> salesOrderItems;
   final String? voidReason;
   final DateTime? voidedAt;

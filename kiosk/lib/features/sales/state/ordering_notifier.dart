@@ -173,6 +173,14 @@ class OrderingNotifier extends AsyncNotifier<OrderingData> {
     state = AsyncData(state.requireValue.copyWith(sale: sale.copyWith(items: lineItems)));
   }
 
+  void clearDiscount({required int index}) {
+    if (!state.hasValue) return;
+    final sale = state.requireValue.sale;
+    final item = sale.items[index];
+    final lineItems = sale.items.replace(index, item.copyWith(discount: null));
+    state = AsyncData(state.requireValue.copyWith(sale: sale.copyWith(items: lineItems)));
+  }
+
   void clearLineItems() {
     if (!state.hasValue) return;
     final sale = state.requireValue.sale;

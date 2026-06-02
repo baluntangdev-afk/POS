@@ -144,6 +144,9 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
               store: _storeFromPosTerminalDto(posTerminalDto),
               cashier: Cashier.unknown(),
               payment: ZeroPayment(),
+              refundedAmount: dto.totalRefundAmount > 0
+                  ? Decimal.parse(dto.totalRefundAmount.toString())
+                  : null,
             );
           }).toIList(),
     );
@@ -205,6 +208,7 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
     required Payment payment,
     required Store store,
     IList<Refund> refunds = const IList.empty(),
+    Decimal? refundedAmount,
   }) {
     return Receipt(
       id: dto.id,
@@ -219,12 +223,12 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
               .sorted((a, b) {
                 final comparison = (a.itemSequence ?? 0).compareTo(b.itemSequence ?? 0);
                 if (comparison != 0) return comparison;
-                // Main item comes first
                 return a.addOn ? 1 : -1;
               })
               .map(_receiptItemFromSalesOrderItemDto)
               .toIList(),
       refunds: refunds,
+      refundedAmount: refundedAmount,
       isVoided: dto.status == 'Cancelled',
       voidReason: dto.voidReason,
       voidedAt: dto.voidedAt,

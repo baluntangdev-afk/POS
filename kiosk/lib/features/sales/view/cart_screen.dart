@@ -567,13 +567,42 @@ class _LineItemListView extends ConsumerWidget {
                   ),
                   if (lineItem.discount != null)
                     Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        'LESS: ${lineItem.discount!.code}',
-                        style: TextStyle(
-                          fontSize: r.value<double>(kiosk: 11, tablet: 10, phone: 9),
-                          color: ColorSet.danger,
-                          fontWeight: FontWeight.w500,
+                      padding: const EdgeInsets.only(top: 4),
+                      child: GestureDetector(
+                        onTap: () => ref
+                            .read(orderingProvider.notifier)
+                            .clearDiscount(index: index),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: r.value<double>(kiosk: 7, tablet: 6, phone: 5),
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: ColorSet.danger.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(POSRadius.xs),
+                            border: Border.all(
+                              color: ColorSet.danger.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'LESS: ${lineItem.discount!.code}',
+                                style: TextStyle(
+                                  fontSize: r.value<double>(kiosk: 11, tablet: 10, phone: 9),
+                                  color: ColorSet.danger,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.close_rounded,
+                                size: r.value<double>(kiosk: 11, tablet: 10, phone: 9),
+                                color: ColorSet.danger,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

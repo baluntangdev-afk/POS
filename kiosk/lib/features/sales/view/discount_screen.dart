@@ -28,7 +28,13 @@ class DiscountScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final discountTypes = useMemoized(() => ['Senior/PWD', 'Promo']);
     final selectedDiscountType = useState('Senior/PWD');
-    final selectedQuantities = useState<Map<String, int>>({});
+    final initialSelected = useMemoized(() {
+      final items = ref.read(orderingProvider).value?.sale.items ?? const IList.empty();
+      return <String, int>{
+        for (final item in items.where((e) => e.discount != null)) item.id: item.quantity,
+      };
+    });
+    final selectedQuantities = useState<Map<String, int>>(initialSelected);
     final isAndroid = context.breakpoint.isAndroid;
 
     void onApplyDiscount(String? idNumber) {
@@ -267,9 +273,7 @@ class _LineItemSelectionView extends ConsumerWidget {
     final r = context.responsive;
     final lineItems = ref.watch(
       orderingProvider.select(
-        (it) =>
-            it.value?.sale.items.where((e) => e.discount == null).toIList() ??
-            const IList.empty(),
+        (it) => it.value?.sale.items ?? const IList.empty(),
       ),
     );
 
@@ -420,7 +424,7 @@ class _LineItemSelectionView extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  item.productName,
+                                  '${item.variant.name.isNotEmpty ? "${item.variant.name} " : ""}${item.productName}',
                                   style: TextStyle(
                                     fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
                                     fontWeight: FontWeight.w600,
@@ -430,6 +434,25 @@ class _LineItemSelectionView extends ConsumerWidget {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 2),
+                                if (item.discount != null) ...[
+                                  Container(
+                                    margin: const EdgeInsets.only(bottom: 2),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: ColorSet.danger.withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(POSRadius.xs),
+                                      border: Border.all(color: ColorSet.danger.withValues(alpha: 0.3)),
+                                    ),
+                                    child: Text(
+                                      'LESS: ${item.discount!.code}',
+                                      style: TextStyle(
+                                        fontSize: r.value<double>(kiosk: 11, tablet: 10, phone: 9),
+                                        color: ColorSet.danger,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                                 if (isSelected && item.quantity > 1) ...[
                                   _QuantityStepper(
                                     value: selectedQty,

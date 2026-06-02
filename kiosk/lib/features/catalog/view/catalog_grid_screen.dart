@@ -13,6 +13,7 @@ import '../../../theme/pos_design.dart';
 import '../../../utils/debounce.dart';
 import '../../../widgets/button.dart';
 import '../../../widgets/network_error_dialog.dart';
+import '../../../widgets/resposive_wrap_container.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../data/models/category.dart';
 import '../data/models/product.dart';
@@ -490,107 +491,75 @@ class _ProductCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(POSRadius.xl),
-        child: InkWell(
-          onTap: () {
-            // TODO: ProductDetailRoute(product.id).push<void>(context)
-          },
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Image area ──────────────────────────────────────────
-              Expanded(
-                flex: 5,
-                child: Stack(
-                  fit: StackFit.expand,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Image area ──────────────────────────────────────────
+            Expanded(
+              flex: 5,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _ProductImage(imageUrl: product.imageUrl),
+                  // Category badge overlay
+                  if (product.category != null)
+                    Positioned(
+                      left: r.value(kiosk: 8, tablet: 7, phone: 6),
+                      bottom: r.value(kiosk: 8, tablet: 7, phone: 6),
+                      child: _CategoryBadge(name: product.category!.name),
+                    ),
+                ],
+              ),
+            ),
+            // ── Info area ────────────────────────────────────────────
+            Expanded(
+              flex: 4,
+              child: Padding(
+                padding: EdgeInsets.all(r.value(kiosk: 12, tablet: 10, phone: 8)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _ProductImage(imageUrl: product.imageUrl),
-                    // Category badge overlay
-                    if (product.category != null)
-                      Positioned(
-                        left: r.value(kiosk: 8, tablet: 7, phone: 6),
-                        bottom: r.value(kiosk: 8, tablet: 7, phone: 6),
-                        child: _CategoryBadge(name: product.category!.name),
+                    Text(
+                      product.name,
+                      style: TextStyle(
+                        fontSize: r.value(kiosk: 14, tablet: 12, phone: 10),
+                        fontWeight: FontWeight.w700,
+                        color: POSColors.textPrimary,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Gap(r.value(kiosk: 2, tablet: 2, phone: 2)),
+                    Text(
+                      'PHP ${product.price.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: r.value(kiosk: 15, tablet: 13, phone: 11),
+                        fontWeight: FontWeight.w800,
+                        color: ColorSet.primary,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const Spacer(),
+                    Gap(r.value(kiosk: 8, tablet: 6, phone: 4)),
+                    SizedBox(
+                      width: double.infinity,
+                      child: Button(
+                        label: Text(
+                          'Manage',
+                          style: TextStyle(
+                            fontSize: r.value(kiosk: 12, tablet: 11, phone: 10),
+                          ),
+                        ),
+                        // onPressed: () => ProductDetailRoute(product.id).push<void>(context),
+                        backgroundColor: ColorSet.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              // ── Info area ────────────────────────────────────────────
-              Expanded(
-                flex: 4,
-                child: Padding(
-                  padding: EdgeInsets.all(r.value(kiosk: 12, tablet: 10, phone: 8)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.name,
-                        style: TextStyle(
-                          fontSize: r.value(kiosk: 14, tablet: 12, phone: 10),
-                          fontWeight: FontWeight.w700,
-                          color: POSColors.textPrimary,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Gap(r.value(kiosk: 2, tablet: 2, phone: 2)),
-                      Text(
-                        'PHP ${product.price.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          fontSize: r.value(kiosk: 15, tablet: 13, phone: 11),
-                          fontWeight: FontWeight.w800,
-                          color: ColorSet.primary,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                      const Spacer(),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.tune_rounded,
-                            size: r.value(kiosk: 11, tablet: 10, phone: 9),
-                            color: POSColors.iconSubtle,
-                          ),
-                          Gap(r.value(kiosk: 3, tablet: 2, phone: 2)),
-                          Text(
-                            '${product.modifierGroups.length} '
-                            'mod${product.modifierGroups.length == 1 ? '' : 's'}',
-                            style: TextStyle(
-                              fontSize: r.value(kiosk: 11, tablet: 10, phone: 9),
-                              color: POSColors.textTertiary,
-                            ),
-                          ),
-                          if (product.description != null &&
-                              product.description!.isNotEmpty) ...[
-                            Gap(r.value(kiosk: 8, tablet: 6, phone: 4)),
-                            Icon(
-                              Icons.notes_rounded,
-                              size: r.value(kiosk: 11, tablet: 10, phone: 9),
-                              color: POSColors.iconSubtle,
-                            ),
-                          ],
-                        ],
-                      ),
-                      Gap(r.value(kiosk: 8, tablet: 6, phone: 4)),
-                      SizedBox(
-                        width: double.infinity,
-                        child: Button(
-                          label: Text(
-                            'Manage',
-                            style: TextStyle(
-                              fontSize: r.value(kiosk: 12, tablet: 11, phone: 10),
-                            ),
-                          ),
-                          // onPressed: () => ProductDetailRoute(product.id).push<void>(context),
-                          backgroundColor: ColorSet.primary,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

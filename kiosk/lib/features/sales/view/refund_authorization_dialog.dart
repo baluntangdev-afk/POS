@@ -1,4 +1,3 @@
-import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -6,38 +5,18 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
-import '../../../utils/decimal_formatter.dart';
 import '../../../widgets/message_dialog.dart';
 import '../../../widgets/text_box_form_field.dart';
-import '../use_cases/void_sale.dart';
 
-class VoidTransactionDialog extends HookConsumerWidget {
-  const VoidTransactionDialog({
-    super.key,
-    required this.salesOrderId,
-    required this.invoiceNumber,
-    required this.totalAmount,
-  });
+class RefundAuthorizationDialog extends HookConsumerWidget {
+  const RefundAuthorizationDialog({super.key});
 
-  final String salesOrderId;
-  final String invoiceNumber;
-  final Decimal totalAmount;
-
-  static Future<bool> show(
-    BuildContext context, {
-    required String salesOrderId,
-    required String invoiceNumber,
-    required Decimal totalAmount,
-  }) async {
+  static Future<bool> show(BuildContext context) async {
     return await showDialog<bool>(
           context: context,
           barrierDismissible: false,
           barrierColor: Colors.black.withValues(alpha: 0.65),
-          builder: (context) => VoidTransactionDialog(
-            salesOrderId: salesOrderId,
-            invoiceNumber: invoiceNumber,
-            totalAmount: totalAmount,
-          ),
+          builder: (context) => const RefundAuthorizationDialog(),
         ) ??
         false;
   }
@@ -45,10 +24,8 @@ class VoidTransactionDialog extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final r = context.responsive;
-    final reasonController = useTextEditingController();
     final userIdController = useTextEditingController();
     final pin = useState('');
-    final isLoading = useState(false);
 
     const maxPinLength = 6;
 
@@ -64,15 +41,11 @@ class VoidTransactionDialog extends HookConsumerWidget {
       }
     }
 
-    Future<void> confirmVoid() async {
-      if (isLoading.value) return;
-
-      final reason = reasonController.text.trim();
+    Future<void> authorize() async {
       final userId = userIdController.text.trim();
       final pinValue = pin.value;
 
       final missing = <String>[];
-      if (reason.isEmpty) missing.add('void reason');
       if (userId.isEmpty) missing.add('authorizer User ID');
       if (pinValue.length < 4) missing.add('PIN (min. 4 digits)');
 
@@ -85,37 +58,10 @@ class VoidTransactionDialog extends HookConsumerWidget {
         return;
       }
 
-      isLoading.value = true;
-      try {
-        await ref.read(voidSaleProvider)(
-          salesOrderId: salesOrderId,
-          reason: reason,
-          authorizerUserId: userId,
-          authorizerPin: pinValue,
-        );
-        if (!context.mounted) return;
-        await showMessageDialog(
-          context,
-          type: DialogType.success,
-          title: 'Transaction Voided',
-          message: 'Invoice $invoiceNumber (${totalAmount.pesoFormatted}) has been successfully voided.',
-          primaryButtonText: 'Done',
-          barrierDismissible: false,
-        );
-        if (context.mounted) Navigator.of(context).pop(true);
-      } catch (e) {
-        isLoading.value = false;
-        if (context.mounted) {
-          await showMessageDialog(
-            context,
-            type: DialogType.error,
-            message: 'Failed to void transaction: $e',
-          );
-        }
-      }
+      if (context.mounted) Navigator.of(context).pop(true);
     }
 
-    final dialogWidth = r.value<double>(kiosk: 560, tablet: 480, phone: 340);
+    final dialogWidth = r.value<double>(kiosk: 480, tablet: 420, phone: 320);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.xl)),
@@ -145,34 +91,32 @@ class VoidTransactionDialog extends HookConsumerWidget {
                       borderRadius: BorderRadius.circular(POSRadius.sm),
                     ),
                     child: Icon(
-                      Icons.block_rounded,
+                      Icons.admin_panel_settings_rounded,
                       color: ColorSet.danger,
                       size: r.value<double>(kiosk: 20, tablet: 18, phone: 16),
                     ),
                   ),
                   SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Void Transaction',
-                          style: TextStyle(
-                            fontSize: r.value<double>(kiosk: 18, tablet: 16, phone: 14),
-                            fontWeight: FontWeight.w700,
-                            color: ColorSet.danger,
-                            letterSpacing: -0.3,
-                          ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Authorization Required',
+                        style: TextStyle(
+                          fontSize: r.value<double>(kiosk: 18, tablet: 16, phone: 14),
+                          fontWeight: FontWeight.w700,
+                          color: ColorSet.danger,
+                          letterSpacing: -0.3,
                         ),
-                        Text(
-                          '$invoiceNumber  ·  ${totalAmount.pesoFormatted}',
-                          style: TextStyle(
-                            fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
-                            color: POSColors.textTertiary,
-                          ),
+                      ),
+                      Text(
+                        'Admin or Supervisor access only',
+                        style: TextStyle(
+                          fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                          color: POSColors.textTertiary,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -189,24 +133,24 @@ class VoidTransactionDialog extends HookConsumerWidget {
                     Container(
                       padding: EdgeInsets.all(r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
                       decoration: BoxDecoration(
-                        color: ColorSet.danger.withValues(alpha: 0.06),
+                        color: ColorSet.warning.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(POSRadius.md),
-                        border: Border.all(color: ColorSet.danger.withValues(alpha: 0.25)),
+                        border: Border.all(color: ColorSet.warning.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
                           Icon(
-                            Icons.warning_amber_rounded,
-                            color: ColorSet.danger,
+                            Icons.shield_rounded,
+                            color: ColorSet.warning,
                             size: r.value<double>(kiosk: 18, tablet: 16, phone: 14),
                           ),
                           SizedBox(width: r.value<double>(kiosk: 8, tablet: 6, phone: 6)),
                           Expanded(
                             child: Text(
-                              'This action cannot be undone. The transaction will be permanently cancelled.',
+                              'Refunds require admin or supervisor authorization. Enter your credentials to proceed.',
                               style: TextStyle(
                                 fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
-                                color: ColorSet.danger,
+                                color: ColorSet.warning,
                               ),
                             ),
                           ),
@@ -216,22 +160,7 @@ class VoidTransactionDialog extends HookConsumerWidget {
 
                     SizedBox(height: r.value<double>(kiosk: 20, tablet: 16, phone: 14)),
 
-                    // Reason
-                    TextBoxFormField(
-                      controller: reasonController,
-                      label: 'Reason for Void',
-                      hint: 'Enter void reason...',
-                      maxLines: 2,
-                      keyboardType: TextInputType.text,
-                      textInputAction: TextInputAction.next,
-                      style: TextStyle(
-                        fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
-                      ),
-                    ),
-
-                    SizedBox(height: r.value<double>(kiosk: 20, tablet: 16, phone: 14)),
-
-                    // Auth section divider
+                    // Auth section label
                     Row(
                       children: [
                         Container(
@@ -248,7 +177,7 @@ class VoidTransactionDialog extends HookConsumerWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Supervisor Authorization',
+                          'Supervisor / Admin Credentials',
                           style: TextStyle(
                             fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
                             fontWeight: FontWeight.w700,
@@ -260,7 +189,7 @@ class VoidTransactionDialog extends HookConsumerWidget {
 
                     SizedBox(height: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
 
-                    // User ID
+                    // User ID field
                     TextBoxFormField.singleLine(
                       controller: userIdController,
                       label: 'User ID',
@@ -279,11 +208,7 @@ class VoidTransactionDialog extends HookConsumerWidget {
                     SizedBox(height: r.value<double>(kiosk: 14, tablet: 12, phone: 10)),
 
                     // PIN pad
-                    _PinPad(
-                      onDigit: appendDigit,
-                      onDelete: deleteDigit,
-                      r: r,
-                    ),
+                    _PinPad(onDigit: appendDigit, onDelete: deleteDigit, r: r),
                   ],
                 ),
               ),
@@ -304,8 +229,7 @@ class VoidTransactionDialog extends HookConsumerWidget {
                     child: SizedBox(
                       height: r.value<double>(kiosk: 48, tablet: 44, phone: 40),
                       child: OutlinedButton(
-                        onPressed:
-                            isLoading.value ? null : () => Navigator.of(context).pop(false),
+                        onPressed: () => Navigator.of(context).pop(false),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: POSColors.textSecondary,
                           side: const BorderSide(color: POSColors.borderStrong),
@@ -328,26 +252,17 @@ class VoidTransactionDialog extends HookConsumerWidget {
                     child: SizedBox(
                       height: r.value<double>(kiosk: 48, tablet: 44, phone: 40),
                       child: FilledButton.icon(
-                        onPressed: isLoading.value ? null : confirmVoid,
-                        icon: isLoading.value
-                            ? SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                ),
-                              )
-                            : const Icon(Icons.block_rounded, size: 16),
+                        onPressed: authorize,
+                        icon: const Icon(Icons.assignment_return_rounded, size: 16),
                         label: Text(
-                          isLoading.value ? 'Voiding...' : 'Void Transaction',
+                          'Authorize Refund',
                           style: TextStyle(
                             fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         style: FilledButton.styleFrom(
-                          backgroundColor: isLoading.value ? POSColors.borderStrong : ColorSet.danger,
+                          backgroundColor: ColorSet.danger,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(POSRadius.md),
@@ -369,11 +284,7 @@ class VoidTransactionDialog extends HookConsumerWidget {
 // ── PIN dots display ──────────────────────────────────────────────────────────
 
 class _PinDisplay extends StatelessWidget {
-  const _PinDisplay({
-    required this.pin,
-    required this.maxLength,
-    required this.r,
-  });
+  const _PinDisplay({required this.pin, required this.maxLength, required this.r});
 
   final ValueNotifier<String> pin;
   final int maxLength;
@@ -411,11 +322,7 @@ class _PinDisplay extends StatelessWidget {
 // ── PIN pad ───────────────────────────────────────────────────────────────────
 
 class _PinPad extends StatelessWidget {
-  const _PinPad({
-    required this.onDigit,
-    required this.onDelete,
-    required this.r,
-  });
+  const _PinPad({required this.onDigit, required this.onDelete, required this.r});
 
   final ValueChanged<String> onDigit;
   final VoidCallback onDelete;
@@ -454,18 +361,13 @@ class _PinPad extends StatelessWidget {
             ),
           ),
         ),
-        // Bottom row: 0 + backspace
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SizedBox(width: btnSize + spacing),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: spacing / 2),
-              child: _PinButton(
-                label: '0',
-                size: btnSize,
-                onTap: () => onDigit('0'),
-              ),
+              child: _PinButton(label: '0', size: btnSize, onTap: () => onDigit('0')),
             ),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: spacing / 2),
@@ -479,11 +381,7 @@ class _PinPad extends StatelessWidget {
 }
 
 class _PinButton extends StatelessWidget {
-  const _PinButton({
-    required this.label,
-    required this.size,
-    required this.onTap,
-  });
+  const _PinButton({required this.label, required this.size, required this.onTap});
 
   final String label;
   final double size;

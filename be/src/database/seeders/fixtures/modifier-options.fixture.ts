@@ -64,4 +64,32 @@ export const MODIFIER_OPTIONS_FIXTURE: ModifierOptionsGroupFixture[] = [
       { name: 'Cold', priceAddOn: '0.00', sortOrder: 1, isAvailable: true },
     ],
   },
+  {
+    modifierGroupName: 'Add-Ons',
+    options: [
+      { name: 'Whipped Cream',      priceAddOn: '15.00', sortOrder: 0, isAvailable: true },
+      { name: 'Extra Espresso Shot', priceAddOn: '25.00', sortOrder: 1, isAvailable: true },
+      { name: 'Milk Foam',          priceAddOn: '10.00', sortOrder: 2, isAvailable: true },
+      { name: 'Oat Milk',           priceAddOn: '20.00', sortOrder: 3, isAvailable: true },
+      { name: 'Coconut Milk',       priceAddOn: '20.00', sortOrder: 4, isAvailable: true },
+    ],
+  },
+  {
+    modifierGroupName: 'Add Syrup',
+    options: [
+      { name: 'Vanilla',   priceAddOn: '15.00', sortOrder: 0, isAvailable: true },
+      { name: 'Caramel',   priceAddOn: '15.00', sortOrder: 1, isAvailable: true },
+      { name: 'Hazelnut',  priceAddOn: '15.00', sortOrder: 2, isAvailable: true },
+      { name: 'Chocolate', priceAddOn: '15.00', sortOrder: 3, isAvailable: true },
+    ],
+  },
+  {
+    modifierGroupName: 'Add Drink',
+    options: [
+      { name: 'Iced Tea',       priceAddOn: '25.00', sortOrder: 0, isAvailable: true },
+      { name: 'Lemonade',       priceAddOn: '30.00', sortOrder: 1, isAvailable: true },
+      { name: 'Soft Drink',     priceAddOn: '25.00', sortOrder: 2, isAvailable: true },
+      { name: 'Mineral Water',  priceAddOn: '20.00', sortOrder: 3, isAvailable: true },
+    ],
+  },
 ];

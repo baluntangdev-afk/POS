@@ -196,7 +196,7 @@ When `POSKiosk-Setup-1.0.0.exe` is run on a fresh Windows 10/11 x64 machine:
 | 5 | Registers + starts `POSPostgres` Windows service via `pg_ctl` | same log |
 | 6 | Waits up to 60 s for PostgreSQL to accept connections | same log |
 | 7 | Creates `pos_db` database | same log |
-| 8 | Runs all TypeORM migrations (64 migrations) | same log |
+| 8 | Runs all TypeORM migrations (79 migrations) | same log |
 | 9 | Optionally seeds initial data (products, menus, users) | — |
 | 10 | Installs `POSBackendService` via NSSM (auto-start) | `C:\POSKiosk\logs\install-backend-service-install.log` |
 | 11 | Writes `C:\POSKiosk\settings.txt` with the kiosk number from wizard | — |

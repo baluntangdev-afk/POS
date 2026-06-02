@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { User } from '../users/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SalesOrder } from './entities/sales-order.entity';
+import { Refund } from '../refunds/entities/refund.entity';
 import { In, Repository, FindOptionsWhere, Between } from 'typeorm';
 import { SalesOrderStatus } from './sales-orders.enum';
 import { CreateSalesOrderService } from './services/create-sales-order.service';
@@ -23,6 +24,8 @@ export class SalesOrdersService {
     private readonly salesOrderRepository: Repository<SalesOrder>,
     @InjectRepository(SalesOrderItem)
     private readonly salesOrderItemRepository: Repository<SalesOrderItem>,
+    @InjectRepository(Refund)
+    private readonly refundRepository: Repository<Refund>,
     private readonly productsService: ProductsService,
     private readonly createSalesOrderService: CreateSalesOrderService,
     private readonly appendSalesOrderItemService: AppendSalesOrderItemService,
@@ -92,6 +95,8 @@ export class SalesOrdersService {
         taxAmount: true,
         totalAmount: true,
         finalTotalAmount: true,
+        voidReason: true,
+        voidedAt: true,
         createdBy: { id: true },
         salesOrderItems: {
           id: true,
@@ -124,7 +129,10 @@ export class SalesOrdersService {
       },
     });
 
-    const data = salesOrders.map(SalesOrderWithItemsMapper.toResponse);
+    const refundAmounts = await this.getRefundAmountsBySoIds(salesOrders.map((so) => so.id));
+    const data = salesOrders.map((so) =>
+      SalesOrderWithItemsMapper.toResponse(so, refundAmounts.get(so.id) ?? 0),
+    );
 
     return { data, total, page, limit };
   }
@@ -159,6 +167,8 @@ export class SalesOrdersService {
         taxAmount: true,
         totalAmount: true,
         finalTotalAmount: true,
+        voidReason: true,
+        voidedAt: true,
         createdBy: { id: true },
         salesOrderItems: {
           id: true,
@@ -197,7 +207,8 @@ export class SalesOrdersService {
       throw new NotFoundException('Sales order not found');
     }
 
-    return SalesOrderWithItemsMapper.toResponse(salesOrder);
+    const refundAmounts = await this.getRefundAmountsBySoIds([id]);
+    return SalesOrderWithItemsMapper.toResponse(salesOrder, refundAmounts.get(id) ?? 0);
   }
 
   async findOneItem(id: string, itemId: string): Promise<ProductDetailsDto> {
@@ -258,6 +269,19 @@ export class SalesOrdersService {
         status: In([SalesOrderStatus.PENDING, SalesOrderStatus.PREPARING]),
       },
     });
+  }
+
+  private async getRefundAmountsBySoIds(soIds: string[]): Promise<Map<string, number>> {
+    if (soIds.length === 0) return new Map();
+    const rows = await this.refundRepository
+      .createQueryBuilder('r')
+      .innerJoin('r.originalSalesOrder', 'so')
+      .select('so.id', 'soId')
+      .addSelect('SUM(r.totalRefundAmount)', 'total')
+      .where('so.id IN (:...ids)', { ids: soIds })
+      .groupBy('so.id')
+      .getRawMany<{ soId: string; total: string }>();
+    return new Map(rows.map((r) => [r.soId, parseFloat(r.total ?? '0')]));
   }
 
   async upsert(dto: CreateSalesOrderDto, causer: User): Promise<SalesOrderWithItemsMapper> {

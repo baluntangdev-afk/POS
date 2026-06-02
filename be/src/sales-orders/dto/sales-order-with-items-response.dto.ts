@@ -106,6 +106,15 @@ export class SalesOrderWithItemsResponseDto {
   @ApiProperty({ description: 'Created by user ID', example: 1 })
   createdBy: number;
 
+  @ApiProperty({ description: 'Total amount refunded across all refunds', example: 0 })
+  totalRefundAmount: number;
+
+  @ApiPropertyOptional({ description: 'Void reason', nullable: true, example: null })
+  voidReason: string | null;
+
+  @ApiPropertyOptional({ description: 'Voided at timestamp', nullable: true, example: null })
+  voidedAt: Date | null;
+
   @ApiProperty({
     description: 'Sales order line items',
     type: [SalesOrderItemResponseDto],

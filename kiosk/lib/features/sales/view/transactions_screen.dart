@@ -692,14 +692,32 @@ class _TransactionRow extends HookWidget {
                   // Total
                   Expanded(
                     flex: 2,
-                    child: Text(
-                      receipt.totalAmount.pesoFormatted,
-                      style: TextStyle(
-                        fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
-                        fontWeight: FontWeight.w700,
-                        color: ColorSet.primary,
-                      ),
-                      textAlign: TextAlign.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (receipt.hasRefunds && !receipt.isVoided)
+                          Text(
+                            receipt.totalAmount.pesoFormatted,
+                            style: TextStyle(
+                              fontSize: r.value<double>(kiosk: 11, tablet: 10, phone: 10),
+                              color: POSColors.textTertiary,
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        Text(
+                          receipt.isVoided
+                              ? receipt.totalAmount.pesoFormatted
+                              : receipt.netTotalAmount.pesoFormatted,
+                          style: TextStyle(
+                            fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                            fontWeight: FontWeight.w700,
+                            color: receipt.isVoided ? POSColors.textTertiary : ColorSet.primary,
+                            decoration: receipt.isVoided ? TextDecoration.lineThrough : null,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
                   ),
                   // Actions
@@ -722,7 +740,7 @@ class _TransactionRow extends HookWidget {
                                 label: 'Refund',
                                 icon: Icons.assignment_return_outlined,
                                 color: ColorSet.warning,
-                                onTap: receipt.isVoided
+                                onTap: (receipt.isVoided || receipt.isFullyRefunded)
                                     ? null
                                     : () async {
                                         await RefundRoute(receipt.id).push<void>(context);
@@ -764,7 +782,7 @@ class _TransactionRow extends HookWidget {
                                 label: 'Refund',
                                 icon: Icons.assignment_return_outlined,
                                 color: ColorSet.warning,
-                                onTap: receipt.isVoided
+                                onTap: (receipt.isVoided || receipt.isFullyRefunded)
                                     ? null
                                     : () async {
                                         await RefundRoute(receipt.id).push<void>(context);
@@ -999,18 +1017,35 @@ class _TransactionCard extends HookConsumerWidget {
                             ],
                           ),
                         ),
-                        Text(
-                          receipt.totalAmount.pesoFormatted,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: receipt.isVoided
-                                ? POSColors.textTertiary
-                                : ColorSet.primary,
-                            decoration: receipt.isVoided
-                                ? TextDecoration.lineThrough
-                                : null,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (receipt.hasRefunds && !receipt.isVoided)
+                              Text(
+                                receipt.totalAmount.pesoFormatted,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: POSColors.textTertiary,
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                            Text(
+                              receipt.isVoided
+                                  ? receipt.totalAmount.pesoFormatted
+                                  : receipt.netTotalAmount.pesoFormatted,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: receipt.isVoided
+                                    ? POSColors.textTertiary
+                                    : ColorSet.primary,
+                                decoration: receipt.isVoided
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -1051,7 +1086,7 @@ class _TransactionCard extends HookConsumerWidget {
                         ),
                         const Gap(4),
                         TextButton.icon(
-                          onPressed: receipt.isVoided
+                          onPressed: (receipt.isVoided || receipt.isFullyRefunded)
                               ? null
                               : () async {
                                   await RefundRoute(receipt.id).push<void>(context);

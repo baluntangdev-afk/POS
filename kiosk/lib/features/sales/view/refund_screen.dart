@@ -19,6 +19,7 @@ import '../../../widgets/message_dialog.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../state/refund_notifier.dart';
+import 'refund_authorization_dialog.dart';
 
 class RefundScreen extends HookConsumerWidget {
   const RefundScreen({super.key, required this.receiptId});
@@ -780,6 +781,10 @@ class _ConfirmButton extends ConsumerWidget {
         return showMessageDialog(context, type: DialogType.error, message: message);
       }
 
+      if (!context.mounted) return;
+      final authorized = await RefundAuthorizationDialog.show(context);
+      if (!authorized || !context.mounted) return;
+
       confirmAction.run(ref, (txn) {
         return ref.read(refundProvider(receiptId).notifier).confirmRefund();
       }).ignore();
@@ -798,7 +803,10 @@ class _ConfirmButton extends ConsumerWidget {
         await showMessageDialog(
           context,
           type: DialogType.success,
-          message: 'Refund has been processed.',
+          title: 'Refund Processed',
+          message: 'The refund has been successfully processed.',
+          primaryButtonText: 'Done',
+          barrierDismissible: false,
         );
         if (context.mounted && context.canPop()) context.pop();
       }

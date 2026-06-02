@@ -131,9 +131,27 @@ class _SalesHealthPageState extends ConsumerState<SalesHealthPage> {
                 kiosk: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
               ),
               child: ResponsiveWrapContainer(
-                rowItems: 2,
+                rowItems: responsive.value<int>(kiosk: 2, tablet: 2, phone: 1),
                 spacing: 12,
                 items: [
+                  _SalesDonutChart(
+                    title: 'Sales by Product Group',
+                    data: groupedData[SalesDataItemType.productGroup]?.toList() ?? [],
+                    dateRange: _getDateRangeText(
+                      selectedDateFilter,
+                      customStartDate,
+                      customEndDate,
+                    ),
+                  ),
+                  _SalesDonutChart(
+                    title: 'Sales by Product',
+                    data: groupedData[SalesDataItemType.product]?.toList() ?? [],
+                    dateRange: _getDateRangeText(
+                      selectedDateFilter,
+                      customStartDate,
+                      customEndDate,
+                    ),
+                  ),
                   _SalesDonutChart(
                     title: 'Sales by Cashier',
                     data: groupedData[SalesDataItemType.user]?.toList() ?? [],

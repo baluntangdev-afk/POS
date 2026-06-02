@@ -68,7 +68,11 @@
       "Bash(xargs grep -l \"dialog\\\\|Dialog\")",
       "Bash(grep -E \"\\\\.ts$\")",
       "PowerShell(Get-ChildItem *)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "PowerShell(dart pub *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npm test *)"
     ]
   }
 }

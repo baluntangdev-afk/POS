@@ -4,6 +4,13 @@
 ; ═══════════════════════════════════════════════════════════════════════
 ; BEFORE COMPILING — complete all steps in this order:
 ;
+;   0. Verify migrations and seeders are up to date  (cd be)
+;      npm run migration:sync-index       <- sync migrations-index.ts with all migration files
+;      npm run seed:sync-index            <- sync seeders-index.ts with all seeder files
+;      npm run migration:show             <- confirm all migrations show [X] (none pending)
+;      npm run build                      <- confirm both index files compile cleanly
+;      See: be\docs\pre-installer-checklist.md for full details
+;
 ;   1. Build backend executable
 ;      cd be
 ;      copy .env.example .env.prod        <- fill in prod values (JWT secrets etc.)
@@ -150,6 +157,18 @@ Type: filesandordirs; Name: "C:\posdata"
 [Code]
 var
   KioskNoPage: TInputQueryWizardPage;
+
+// Runs before file extraction — stops running services so locked files
+// can be overwritten. This makes in-place upgrades work without uninstalling.
+function InitializeSetup(): Boolean;
+var
+  ResultCode: Integer;
+begin
+  Result := True;
+  Exec('sc.exe',      'stop POSBackendService',    '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec('taskkill.exe','/F /IM pos_app.exe /T',     '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Sleep(2000);
+end;
 
 procedure InitializeWizard;
 begin

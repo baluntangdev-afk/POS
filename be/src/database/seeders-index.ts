@@ -26,31 +26,25 @@ import { UsersSeeder } from './seeders/users.seeder';
  * Auto-synced by scripts/sync-seeders-index.js when creating seeders.
  */
 export const seeders: Array<new () => Seeder> = [
-  // Tier 0: no dependencies
   CurrenciesSeeder,
-  TaxCategoriesSeeder,
-  InventoryTypesSeeder,
-  // Tier 1: admin user + no other seeder deps
-  UsersSeeder,
   DiscountsSeeder,
-  ModifierGroupsSeeder,
-  ProductGroupsSeeder,
-  StoreMenusSeeder,
-  UomSeeder,
+  InventoryStocksSeeder,
+  InventoryTypesSeeder,
   MaterialTypesSeeder,
-  // Tier 2: depends on Tier 1 data
-  MaterialsSeeder,           // needs MaterialTypesSeeder + UomSeeder
-  ModifierOptionsSeeder,     // needs ModifierGroupsSeeder
-  ProductsSeeder,            // needs ProductGroupsSeeder
-  ProductGroupModifierGroupsSeeder, // needs ProductGroupsSeeder + ModifierGroupsSeeder
-  // Tier 3: depends on Tier 2 data
-  InventoryStocksSeeder,     // needs MaterialsSeeder
-  ProductVariantsSeeder,     // needs ProductsSeeder
-  ProductModifierGroupsSeeder, // needs ProductsSeeder + ModifierGroupsSeeder
-  // Tier 4: depends on Tier 3 data
-  RecipesSeeder,             // needs ProductVariantsSeeder + UomSeeder
-  MenuItemsSeeder,           // needs StoreMenusSeeder + ProductVariantsSeeder
-  // Tier 5: depends on Tier 4 data
-  MenuItemModifiersSeeder,   // needs MenuItemsSeeder + ModifierGroupsSeeder
-  RecipeItemsSeeder,         // needs RecipesSeeder + MaterialsSeeder
+  MaterialsSeeder,
+  MenuItemModifiersSeeder,
+  MenuItemsSeeder,
+  ModifierGroupsSeeder,
+  ModifierOptionsSeeder,
+  ProductGroupModifierGroupsSeeder,
+  ProductGroupsSeeder,
+  ProductModifierGroupsSeeder,
+  ProductVariantsSeeder,
+  ProductsSeeder,
+  RecipeItemsSeeder,
+  RecipesSeeder,
+  StoreMenusSeeder,
+  TaxCategoriesSeeder,
+  UomSeeder,
+  UsersSeeder
 ];

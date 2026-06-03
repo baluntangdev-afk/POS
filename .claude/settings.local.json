@@ -102,7 +102,20 @@
       "Bash(node *)",
       "PowerShell(docker compose version *)",
       "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\build\\\\windows\\\\x64\\\\runner\\\\Release\" | Select-Object Name, @{N='Size \\(MB\\)';E={[math]::Round\\($_.Length/1MB,1\\)}})",
-      "PowerShell(fvm flutter *)"
+      "PowerShell(& \"C:\\\\Users\\\\Jufiel\\\\AppData\\\\Local\\\\Programs\\\\Inno Setup 6\\\\ISCC.exe\" \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\installer\\\\POSAppInstaller.iss\" 2>&1)",
+      "PowerShell(Copy-Item *)",
+      "PowerShell(Invoke-WebRequest -Uri \"https://download.oracle.com/java/25/latest/jdk-25_windows-x64_bin.exe\" -OutFile \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\installer\\\\dependencies\\\\jdk-25_windows-x64_bin.exe\" -UseBasicParsing; Write-Host \"JDK done\")",
+      "PowerShell(Invoke-WebRequest -Uri \"https://get.enterprisedb.com/postgresql/postgresql-18.1-2-windows-x64.exe\" -OutFile \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\installer\\\\dependencies\\\\postgresql-18.1-2-windows-x64.exe\" -UseBasicParsing; Write-Host \"PostgreSQL done\")",
+      "PowerShell(Invoke-WebRequest -Uri \"https://github.com/JumpMind/symmetric-ds/releases/download/3.16.9/symmetric-server-3.16.9-bin.zip\" -OutFile \"$env:TEMP\\\\symmetric-server-3.16.9-bin.zip\" -UseBasicParsing; $f = Get-Item \"$env:TEMP\\\\symmetric-server-3.16.9-bin.zip\"; Write-Host \"Downloaded: $\\($f.Length\\) bytes\")",
+      "PowerShell($jdk = Get-Item \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\installer\\\\dependencies\\\\jdk-25_windows-x64_bin.exe\"; $pg = Get-Item \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\installer\\\\dependencies\\\\postgresql-18.1-2-windows-x64.exe\"; Write-Host \"JDK: $\\([math]::Round\\($jdk.Length/1MB,1\\)\\) MB\"; Write-Host \"PostgreSQL: $\\([math]::Round\\($pg.Length/1MB,1\\)\\) MB\")",
+      "PowerShell(Invoke-WebRequest -Uri \"https://downloads.sourceforge.net/project/symmetricds/symmetricds/symmetricds-3.16/symmetric-server-3.16.9-bin.zip\" -OutFile \"$env:TEMP\\\\symmetric-server-3.16.9-bin.zip\" -UseBasicParsing; $f = Get-Item \"$env:TEMP\\\\symmetric-server-3.16.9-bin.zip\"; Write-Host \"Downloaded: $\\([math]::Round\\($f.Length/1MB,1\\)\\) MB\")",
+      "PowerShell(Invoke-WebRequest -Uri \"https://www.symmetricds.org/download/getpro?fileid=symmetric-server-3.16.9-bin.zip\" -OutFile \"$env:TEMP\\\\sym-test.zip\" -UseBasicParsing -Headers @{\"User-Agent\"=\"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36\"} 2>&1 | Select-Object -First 5; \\(Get-Item \"$env:TEMP\\\\sym-test.zip\" -ErrorAction SilentlyContinue\\).Length)",
+      "PowerShell(curl.exe -L -A \"Mozilla/5.0\" \"https://sourceforge.net/projects/symmetricds/files/symmetricds/symmetricds-3.16/symmetric-server-3.16.9-bin.zip/download\" -o \"$env:TEMP\\\\sym.zip\" --max-time 120 -w \"%{http_code} %{size_download}\"; Write-Host \"Exit: $LASTEXITCODE\")",
+      "PowerShell(curl.exe -L \"https://nexus.jumpmind.com/nexus/service/local/artifact/maven/redirect?r=releases&g=org.jumpmind.symmetric&a=symmetric-server&v=3.16.9&c=bin&e=zip\" -o \"$env:TEMP\\\\sym2.zip\" --max-time 300 -w \"\\\\nHTTP: %{http_code} Size: %{size_download}\"; Write-Host \"Exit: $LASTEXITCODE\")",
+      "PowerShell(curl.exe -L \"https://get.enterprisedb.com/postgresql/postgresql-16.9-1-windows-x64-binaries.zip\" -o \"$env:TEMP\\\\pgsql16.zip\" --max-time 300 -w \"\\\\nHTTP:%{http_code} Size:%{size_download}\" 2>&1; Write-Host \"Exit:$LASTEXITCODE\")",
+      "PowerShell(Expand-Archive *)",
+      "PowerShell(& \"C:\\\\Users\\\\Jufiel\\\\AppData\\\\Local\\\\Programs\\\\Inno Setup 6\\\\ISCC.exe\" \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\installer.iss\" 2>&1)",
+      "PowerShell($f = Get-Item \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\output\\\\POSKiosk-Setup-1.0.0.exe\"; Write-Host \"Size: $\\([math]::Round\\($f.Length/1MB,1\\)\\) MB\"; Write-Host \"Created: $\\($f.LastWriteTime\\)\")"
     ]
   }
 }

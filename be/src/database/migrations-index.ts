@@ -164,5 +164,5 @@ export const migrations: Array<new () => MigrationInterface> = [
   ProductVariantsPrice1779583600000,
   UsersRole1779583700000,
   SalesOrdersVoidFields1779583800000,
-  SalesOrdersDoneExport1779584000000,
+  SalesOrdersDoneExport1779584000000
 ];

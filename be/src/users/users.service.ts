@@ -1,4 +1,10 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -99,6 +105,14 @@ export class UsersService {
     }
 
     return this.findOne(savedUser.id);
+  }
+
+  async findAuthorizers(): Promise<Partial<User>[]> {
+    return this.userRepository.find({
+      where: [{ role: UserRole.ADMIN }, { role: UserRole.SUPERVISOR }],
+      select: { id: true, userId: true, firstName: true, lastName: true, role: true },
+      order: { firstName: 'ASC' },
+    });
   }
 
   async findAll(query: PaginatedQueryDto): Promise<PaginatedResult<User>> {
@@ -216,6 +230,31 @@ export class UsersService {
     await this.userRepository.update(id, EntityHelper.toPartialEntity(payload));
 
     return this.findOne(id);
+  }
+
+  async verifyPin(userId: string, pin: string): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { userId },
+      select: { id: true, devicePin: true, role: true, systemAdmin: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Authorizer user not found');
+    }
+
+    const canAuthorize =
+      user.systemAdmin ||
+      user.role === UserRole.ADMIN ||
+      user.role === UserRole.SUPERVISOR;
+
+    if (!canAuthorize) {
+      throw new ForbiddenException('Only admins and supervisors can authorize this action');
+    }
+
+    const isPinValid = await bcrypt.compare(pin, user.devicePin);
+    if (!isPinValid) {
+      throw new BadRequestException('Invalid PIN. Please try again.');
+    }
   }
 
   async remove(id: number) {

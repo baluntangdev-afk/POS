@@ -3,7 +3,6 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -58,7 +57,7 @@ export class VoidSalesOrderService {
     const isPinValid = await bcrypt.compare(dto.authorizer_pin, authorizer.devicePin);
 
     if (!isPinValid) {
-      throw new UnauthorizedException('Invalid PIN');
+      throw new BadRequestException('Invalid PIN. Please try again.');
     }
 
     await this.salesOrderRepository.save(

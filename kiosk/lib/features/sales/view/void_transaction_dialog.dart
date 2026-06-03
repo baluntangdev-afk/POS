@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../data/backend_api/schemas/authorizer_dto.dart';
+import '../../../data/backend_api/sources/user_api.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
+import '../../../exceptions/exception_extension.dart';
 import '../../../utils/decimal_formatter.dart';
+import '../../../widgets/authorizer_popup_button.dart';
 import '../../../widgets/message_dialog.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../use_cases/void_sale.dart';
@@ -46,9 +50,10 @@ class VoidTransactionDialog extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final r = context.responsive;
     final reasonController = useTextEditingController();
-    final userIdController = useTextEditingController();
+    final selectedUser = useState<AuthorizerDto?>(null);
     final pin = useState('');
     final isLoading = useState(false);
+    final authorizersAsync = ref.watch(authorizersProvider);
 
     const maxPinLength = 6;
 
@@ -68,12 +73,12 @@ class VoidTransactionDialog extends HookConsumerWidget {
       if (isLoading.value) return;
 
       final reason = reasonController.text.trim();
-      final userId = userIdController.text.trim();
+      final userId = selectedUser.value?.userId ?? '';
       final pinValue = pin.value;
 
       final missing = <String>[];
       if (reason.isEmpty) missing.add('void reason');
-      if (userId.isEmpty) missing.add('authorizer User ID');
+      if (userId.isEmpty) missing.add('authorizer');
       if (pinValue.length < 4) missing.add('PIN (min. 4 digits)');
 
       if (missing.isNotEmpty) {
@@ -105,11 +110,12 @@ class VoidTransactionDialog extends HookConsumerWidget {
         if (context.mounted) Navigator.of(context).pop(true);
       } catch (e) {
         isLoading.value = false;
+        pin.value = '';
         if (context.mounted) {
           await showMessageDialog(
             context,
             type: DialogType.error,
-            message: 'Failed to void transaction: $e',
+            message: e.message,
           );
         }
       }
@@ -260,14 +266,45 @@ class VoidTransactionDialog extends HookConsumerWidget {
 
                     SizedBox(height: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
 
-                    // User ID
-                    TextBoxFormField.singleLine(
-                      controller: userIdController,
-                      label: 'User ID',
-                      hint: 'Enter admin/supervisor User ID',
-                      textInputAction: TextInputAction.done,
-                      style: TextStyle(
-                        fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                    // Authorizer selector
+                    authorizersAsync.when(
+                      loading: () => Container(
+                        height: r.value<double>(kiosk: 52, tablet: 46, phone: 42),
+                        decoration: BoxDecoration(
+                          color: POSColors.surfaceSubtle,
+                          borderRadius: BorderRadius.circular(POSRadius.md),
+                          border: Border.all(color: POSColors.borderDefault),
+                        ),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                      error: (_, _) => Container(
+                        height: r.value<double>(kiosk: 52, tablet: 46, phone: 42),
+                        decoration: BoxDecoration(
+                          color: ColorSet.danger.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(POSRadius.md),
+                          border: Border.all(color: ColorSet.danger.withValues(alpha: 0.3)),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Failed to load users — tap to retry',
+                            style: TextStyle(
+                              fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                              color: ColorSet.danger,
+                            ),
+                          ),
+                        ),
+                      ),
+                      data: (authorizers) => AuthorizerPopupButton(
+                        authorizers: authorizers,
+                        selected: selectedUser.value,
+                        onSelected: (user) => selectedUser.value = user,
+                        r: r,
                       ),
                     ),
 

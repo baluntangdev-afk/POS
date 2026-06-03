@@ -116,7 +116,6 @@ class UserManagementScreen extends HookConsumerWidget {
     });
     final currentUserId = ref.watch(loginStateProvider).value?.id.toString();
 
-    debugPrint('CURRENT ${currentUserId}');
     final isAndroid = context.breakpoint.isAndroid;
     final body = SizedBox.expand(
       child: Column(

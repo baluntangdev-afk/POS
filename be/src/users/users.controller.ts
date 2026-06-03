@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -11,6 +22,7 @@ import { PaginatedResponse } from '../utils/pagination/dto';
 import { UserListItemDto } from './dto/user-list-item.dto';
 import { ApiOkResponse } from '@nestjs/swagger';
 import { InsertUpdateFailedException } from './exceptions/insert-update.filter';
+import { VerifyPinDto } from './dto/verify-pin.dto';
 
 @Controller('users')
 export class UsersController {
@@ -28,6 +40,18 @@ export class UsersController {
   @ApiOkResponse({ type: PaginatedResponse(UserListItemDto) })
   findAll(@Query() query: PaginatedQueryDto) {
     return this.usersService.findAll(query);
+  }
+
+  @Get('authorizers')
+  @ApiOkResponse({ type: [UserListItemDto] })
+  findAuthorizers() {
+    return this.usersService.findAuthorizers();
+  }
+
+  @Post('verify-pin')
+  @HttpCode(HttpStatus.OK)
+  verifyPin(@Body() dto: VerifyPinDto) {
+    return this.usersService.verifyPin(dto.userId, dto.pin);
   }
 
   @Get(':id')

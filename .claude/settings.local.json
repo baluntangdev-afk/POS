@@ -101,7 +101,8 @@
       "PowerShell($f = \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\output\\\\POSKiosk-Setup-1.0.0.exe\"; if \\(Test-Path $f\\) { $item = Get-Item $f; Write-Host \"File exists — Size: $\\([math]::Round\\($item.Length/1MB, 1\\)\\) MB, Created: $\\($item.LastWriteTime\\)\" })",
       "Bash(node *)",
       "PowerShell(docker compose version *)",
-      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\build\\\\windows\\\\x64\\\\runner\\\\Release\" | Select-Object Name, @{N='Size \\(MB\\)';E={[math]::Round\\($_.Length/1MB,1\\)}})"
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\build\\\\windows\\\\x64\\\\runner\\\\Release\" | Select-Object Name, @{N='Size \\(MB\\)';E={[math]::Round\\($_.Length/1MB,1\\)}})",
+      "PowerShell(fvm flutter *)"
     ]
   }
 }

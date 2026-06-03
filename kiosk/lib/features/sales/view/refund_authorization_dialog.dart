@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../data/backend_api/schemas/authorizer_dto.dart';
+import '../../../data/backend_api/sources/user_api.dart';
+import '../../../exceptions/exception_extension.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
+import '../../../widgets/authorizer_popup_button.dart';
 import '../../../widgets/message_dialog.dart';
-import '../../../widgets/text_box_form_field.dart';
 
 class RefundAuthorizationDialog extends HookConsumerWidget {
   const RefundAuthorizationDialog({super.key});
@@ -24,29 +27,33 @@ class RefundAuthorizationDialog extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final r = context.responsive;
-    final userIdController = useTextEditingController();
+    final selectedUser = useState<AuthorizerDto?>(null);
     final pin = useState('');
+    final isLoading = useState(false);
+    final authorizersAsync = ref.watch(authorizersProvider);
 
     const maxPinLength = 6;
 
     void appendDigit(String digit) {
-      if (pin.value.length < maxPinLength) {
+      if (!isLoading.value && pin.value.length < maxPinLength) {
         pin.value = pin.value + digit;
       }
     }
 
     void deleteDigit() {
-      if (pin.value.isNotEmpty) {
+      if (!isLoading.value && pin.value.isNotEmpty) {
         pin.value = pin.value.substring(0, pin.value.length - 1);
       }
     }
 
     Future<void> authorize() async {
-      final userId = userIdController.text.trim();
+      if (isLoading.value) return;
+
+      final userId = selectedUser.value?.userId ?? '';
       final pinValue = pin.value;
 
       final missing = <String>[];
-      if (userId.isEmpty) missing.add('authorizer User ID');
+      if (userId.isEmpty) missing.add('authorizer');
       if (pinValue.length < 4) missing.add('PIN (min. 4 digits)');
 
       if (missing.isNotEmpty) {
@@ -58,7 +65,21 @@ class RefundAuthorizationDialog extends HookConsumerWidget {
         return;
       }
 
-      if (context.mounted) Navigator.of(context).pop(true);
+      isLoading.value = true;
+      try {
+        await ref.read(userApiProvider).verifyPin(userId: userId, pin: pinValue);
+        if (context.mounted) Navigator.of(context).pop(true);
+      } catch (e) {
+        isLoading.value = false;
+        pin.value = '';
+        if (context.mounted) {
+          await showMessageDialog(
+            context,
+            type: DialogType.error,
+            message: e.message,
+          );
+        }
+      }
     }
 
     final dialogWidth = r.value<double>(kiosk: 480, tablet: 420, phone: 320);
@@ -189,14 +210,45 @@ class RefundAuthorizationDialog extends HookConsumerWidget {
 
                     SizedBox(height: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
 
-                    // User ID field
-                    TextBoxFormField.singleLine(
-                      controller: userIdController,
-                      label: 'User ID',
-                      hint: 'Enter admin/supervisor User ID',
-                      textInputAction: TextInputAction.done,
-                      style: TextStyle(
-                        fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                    // Authorizer selector
+                    authorizersAsync.when(
+                      loading: () => Container(
+                        height: r.value<double>(kiosk: 52, tablet: 46, phone: 42),
+                        decoration: BoxDecoration(
+                          color: POSColors.surfaceSubtle,
+                          borderRadius: BorderRadius.circular(POSRadius.md),
+                          border: Border.all(color: POSColors.borderDefault),
+                        ),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                      error: (_, _) => Container(
+                        height: r.value<double>(kiosk: 52, tablet: 46, phone: 42),
+                        decoration: BoxDecoration(
+                          color: ColorSet.danger.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(POSRadius.md),
+                          border: Border.all(color: ColorSet.danger.withValues(alpha: 0.3)),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Failed to load users — tap to retry',
+                            style: TextStyle(
+                              fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                              color: ColorSet.danger,
+                            ),
+                          ),
+                        ),
+                      ),
+                      data: (authorizers) => AuthorizerPopupButton(
+                        authorizers: authorizers,
+                        selected: selectedUser.value,
+                        onSelected: (user) => selectedUser.value = user,
+                        r: r,
                       ),
                     ),
 
@@ -229,7 +281,8 @@ class RefundAuthorizationDialog extends HookConsumerWidget {
                     child: SizedBox(
                       height: r.value<double>(kiosk: 48, tablet: 44, phone: 40),
                       child: OutlinedButton(
-                        onPressed: () => Navigator.of(context).pop(false),
+                        onPressed:
+                            isLoading.value ? null : () => Navigator.of(context).pop(false),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: POSColors.textSecondary,
                           side: const BorderSide(color: POSColors.borderStrong),
@@ -252,17 +305,27 @@ class RefundAuthorizationDialog extends HookConsumerWidget {
                     child: SizedBox(
                       height: r.value<double>(kiosk: 48, tablet: 44, phone: 40),
                       child: FilledButton.icon(
-                        onPressed: authorize,
-                        icon: const Icon(Icons.assignment_return_rounded, size: 16),
+                        onPressed: isLoading.value ? null : authorize,
+                        icon: isLoading.value
+                            ? SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                ),
+                              )
+                            : const Icon(Icons.assignment_return_rounded, size: 16),
                         label: Text(
-                          'Authorize Refund',
+                          isLoading.value ? 'Verifying...' : 'Authorize Refund',
                           style: TextStyle(
                             fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         style: FilledButton.styleFrom(
-                          backgroundColor: ColorSet.danger,
+                          backgroundColor:
+                              isLoading.value ? POSColors.borderStrong : ColorSet.danger,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(POSRadius.md),

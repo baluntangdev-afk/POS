@@ -24,6 +24,7 @@ import '../entities/product_variant.dart';
 import '../entities/selected_modifier.dart';
 import '../entities/selected_option.dart';
 import '../entities/selected_variant.dart';
+import '../enums/sale_type.dart';
 import '../state/line_item_notifier.dart';
 
 Future<LineItem?> showLineItemDialog(
@@ -263,6 +264,7 @@ class LineItemDialog extends HookConsumerWidget {
         ),
         modifiers: selectedModifiers.value,
         categoryName: product.categoryName,
+        itemSaleType: SaleType.dineIn,
       );
     }
 

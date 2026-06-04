@@ -20,6 +20,7 @@ export class ModifierGroupsSeeder implements Seeder {
     for (const item of MODIFIER_GROUPS_FIXTURE) {
       const existing = existingByName.get(item.name.toLowerCase());
       if (existing) {
+        existing.name = item.name;
         existing.description = item.description;
         existing.selectionType = item.selectionType;
         existing.isRequired = item.isRequired;

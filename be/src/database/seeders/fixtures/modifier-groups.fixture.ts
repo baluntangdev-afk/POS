@@ -25,7 +25,7 @@ export const MODIFIER_GROUPS_FIXTURE: ModifierGroupFixtureItem[] = [
     maxSelection: 1,
   },
   {
-    name: 'Add-ons',
+    name: 'Add-Ons',
     description: 'Customise your meal',
     selectionType: 'multiple',
     isRequired: false,

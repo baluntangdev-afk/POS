@@ -14,30 +14,53 @@ const TINY_PNG_BASE64 =
 
 export const PRODUCT_GROUPS_FIXTURE: ProductGroupFixtureItem[] = [
   {
-    name: 'Food',
-    description: 'Main food dishes and meals',
+    name: 'Coffee',
+    description: 'Hot, iced and blended coffee beverages',
     imageBase64: TINY_PNG_BASE64,
   },
   {
-    name: 'Coffee, Drinks & Ice Cream',
-    description: 'Hot and cold beverages and gelato',
+    name: 'Non-Coffee',
+    description: 'Hot and iced non-coffee beverages',
     imageBase64: TINY_PNG_BASE64,
   },
   {
-    name: 'Baking & Pastry',
-    description: 'Baked goods and pastry items',
+    name: 'Gelato',
+    description: 'Soft serve ice cream selections',
+    imageBase64: TINY_PNG_BASE64,
+  },
+  {
+    name: 'Fruit Shake',
+    description: 'Premium fruit shakes',
+    imageBase64: TINY_PNG_BASE64,
+  },
+  {
+    name: 'Fruit Boost',
+    description: 'Fruit teas and lemonades',
+    imageBase64: TINY_PNG_BASE64,
+  },
+  {
+    name: 'Meals',
+    description: 'Breakfast and set meals',
     imageBase64: TINY_PNG_BASE64,
   },
 ];
 
 const PRODUCT_GROUPS_ASSETS_SUBDIR = 'product-groups';
 
-export function getProductGroupImageBuffer(item: ProductGroupFixtureItem): Buffer {
+export function getProductGroupImageBuffer(
+  item: ProductGroupFixtureItem,
+): Buffer {
   if (item.imageFileName) {
-    const filePath = path.join(getAssetsPath(), PRODUCT_GROUPS_ASSETS_SUBDIR, item.imageFileName);
+    const filePath = path.join(
+      getAssetsPath(),
+      PRODUCT_GROUPS_ASSETS_SUBDIR,
+      item.imageFileName,
+    );
+
     if (fs.existsSync(filePath)) {
       return fs.readFileSync(filePath);
     }
   }
+
   return Buffer.from(item.imageBase64, 'base64');
 }

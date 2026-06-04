@@ -1,25 +1,26 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../gen/assets.gen.dart';
+import 'package:decimal/decimal.dart';
+
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
-import '../../../styles/responsive/breakpoint.dart';
-import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
-import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/product_image_placeholder.dart';
 import '../../../widgets/windows_scaffold.dart';
+import '../entities/line_item.dart';
 import '../entities/product.dart';
+import '../enums/sale_type.dart';
 import '../state/ordering_notifier.dart';
+import 'discount_screen.dart';
 import 'line_item_dialog.dart';
 
 class OrderingScreen extends ConsumerWidget {
@@ -27,20 +28,114 @@ class OrderingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
     return WindowsScaffold(
       backgroundColor: ColorSet.background,
-      body: ResponsiveBuilder(
-        kiosk: (context) => const _TabletLayout(),
-        tablet: (context) => const _TabletLayout(),
-        phone: (context) => const _TabletLayout(),
+      body: const _AdaptiveOrderingLayout(),
+    );
+  }
+}
+
+// ── Adaptive layout — splits or stacks based on available width ───────────────
+class _AdaptiveOrderingLayout extends HookConsumerWidget {
+  const _AdaptiveOrderingLayout();
+
+  static const double _splitThreshold = 720;
+  static const double _panelWidth = 300;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final r = context.responsive;
+    final wide = MediaQuery.sizeOf(context).width >= _splitThreshold;
+    final panelOpen = useState(false);
+    final prevWide = useRef<bool?>(null);
+
+    final cartCount = ref.watch(
+      orderingProvider.select(
+        (it) => it.value?.sale.items.fold(0, (sum, item) => sum + item.quantity) ?? 0,
       ),
+    );
+
+    // Auto-close the side panel when the layout switches to wide.
+    useEffect(() {
+      if (wide && prevWide.value == false) panelOpen.value = false;
+      prevWide.value = wide;
+      return null;
+    }, [wide]);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _OrderingHeader(
+          cartCount: wide ? 0 : cartCount,
+          onCartTap: wide ? null : () => panelOpen.value = !panelOpen.value,
+        ),
+        Container(
+          height: r.value<double>(kiosk: 64, tablet: 60, phone: 52),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: POSColors.borderDefault)),
+          ),
+          child: const _CategoryChipRow(),
+        ),
+        Expanded(
+          child: wide
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Expanded(child: _ProductGrid()),
+                    SizedBox(
+                      width: r.value(
+                        kiosk: _panelWidth + 20,
+                        tablet: _panelWidth.toDouble(),
+                        phone: _panelWidth.toDouble(),
+                      ),
+                      child: const _OrderPanel(),
+                    ),
+                  ],
+                )
+              : Stack(
+                  clipBehavior: Clip.hardEdge,
+                  children: [
+                    const _ProductGrid(),
+                    // Dim backdrop — tapping closes the panel
+                    AnimatedOpacity(
+                      opacity: panelOpen.value ? 1.0 : 0.0,
+                      duration: POSAnimation.normal,
+                      child: IgnorePointer(
+                        ignoring: !panelOpen.value,
+                        child: GestureDetector(
+                          onTap: () => panelOpen.value = false,
+                          child: Container(color: Colors.black.withValues(alpha: 0.35)),
+                        ),
+                      ),
+                    ),
+                    // Sliding right panel
+                    AnimatedPositioned(
+                      duration: POSAnimation.normal,
+                      curve: POSAnimation.easeOut,
+                      right: panelOpen.value ? 0 : -(_panelWidth + 8),
+                      top: 0,
+                      bottom: 0,
+                      width: _panelWidth,
+                      child: Material(
+                        elevation: 8,
+                        shadowColor: Colors.black26,
+                        child: const _OrderPanel(),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ],
     );
   }
 }
 
 class _OrderingHeader extends StatelessWidget {
-  const _OrderingHeader();
+  const _OrderingHeader({this.cartCount = 0, this.onCartTap});
+
+  final int cartCount;
+  final VoidCallback? onCartTap;
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +157,71 @@ class _OrderingHeader extends StatelessWidget {
             colorFilter: const ColorFilter.mode(ColorSet.primary, BlendMode.srcIn),
           ),
           const Spacer(),
-          SizedBox(width: r.value<double>(kiosk: 110, tablet: 90, phone: 76)),
+          SizedBox(
+            width: r.value<double>(kiosk: 110, tablet: 90, phone: 76),
+            child: onCartTap != null
+                ? Align(
+                    alignment: Alignment.centerRight,
+                    child: _CartBadgeButton(count: cartCount, onTap: onCartTap!),
+                  )
+                : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CartBadgeButton extends StatelessWidget {
+  const _CartBadgeButton({required this.count, required this.onTap});
+
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.responsive;
+    final size = r.value<double>(kiosk: 48, tablet: 42, phone: 36);
+    return GestureDetector(
+      onTap: onTap,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: POSColors.surfaceSubtle,
+              borderRadius: BorderRadius.circular(POSRadius.md),
+              border: Border.all(color: POSColors.borderDefault),
+            ),
+            child: Icon(
+              Icons.receipt_long_rounded,
+              size: r.value<double>(kiosk: 24, tablet: 20, phone: 18),
+              color: ColorSet.primary,
+            ),
+          ),
+          if (count > 0)
+            Positioned(
+              top: -6,
+              right: -6,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: ColorSet.primary,
+                  borderRadius: BorderRadius.circular(POSRadius.full),
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+                child: Text(
+                  '$count',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -95,90 +254,7 @@ class _HeaderBackButton extends StatelessWidget {
   }
 }
 
-// ── Kiosk layout: header + sidebar + product grid + mini-cart ─────────────────
-class _KioskLayout extends StatelessWidget {
-  const _KioskLayout();
-
-  @override
-  Widget build(BuildContext context) {
-    final r = context.responsive;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const _OrderingHeader(),
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                width: r.sidebarWidth,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  border: Border(right: BorderSide(color: POSColors.borderDefault)),
-                ),
-                child: const _CategoriesList(scrollDirection: Axis.vertical),
-              ),
-              const Expanded(child: _ProductGrid()),
-              const _MiniCartPanel(),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Landscape / phone layout ──────────────────────────────────────────────────
-class _LandscapeLayout extends StatelessWidget {
-  const _LandscapeLayout();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const _OrderingHeader(),
-        Container(
-          height: context.responsive.value(kiosk: 110.0, tablet: 96.0, phone: 80.0),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            border: Border(bottom: BorderSide(color: POSColors.borderDefault)),
-          ),
-          child: const _CategoriesList(scrollDirection: Axis.horizontal),
-        ),
-        const Expanded(child: _ProductGrid()),
-        const _CartButton(),
-      ],
-    );
-  }
-}
-
-// ── Tablet layout ──────────────────────────────────────────────────────────────
-class _TabletLayout extends StatelessWidget {
-  const _TabletLayout();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const _OrderingHeader(),
-        Container(
-          height: context.responsive.value<double>(kiosk: 64, tablet: 60, phone: 52),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            border: Border(bottom: BorderSide(color: POSColors.borderDefault)),
-          ),
-          child: const _CategoryChipRow(),
-        ),
-        const Expanded(child: _ProductGrid()),
-        const _StickyCartBar(),
-      ],
-    );
-  }
-}
-
-// ── Category chip row for tablet ──────────────────────────────────────────────
+// â”€â”€ Category chip row for tablet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _CategoryChipRow extends HookConsumerWidget {
   const _CategoryChipRow();
 
@@ -367,196 +443,6 @@ class _CategoryChipRow extends HookConsumerWidget {
   }
 }
 
-// ── Sticky cart bottom bar for tablet ────────────────────────────────────────
-class _StickyCartBar extends ConsumerWidget {
-  const _StickyCartBar();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(
-      orderingProvider.select(
-        (it) => (count: it.value?.sale.items.length ?? 0, total: it.value?.sale.totalAmount),
-      ),
-    );
-
-    if (state.count <= 0) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: POSColors.borderDefault)),
-        boxShadow: [BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, -4))],
-      ),
-      child: Row(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '${state.count} item${state.count != 1 ? 's' : ''}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: POSColors.textTertiary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              if (state.total != null)
-                Text(
-                  state.total!.pesoFormatted,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: ColorSet.primary,
-                  ),
-                ),
-            ],
-          ),
-          const Spacer(),
-          SizedBox(
-            height: 52,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: POSGradient.primary,
-                borderRadius: BorderRadius.circular(POSRadius.xxl),
-                boxShadow: POSShadow.button,
-              ),
-              child: Material(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(POSRadius.xxl),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(POSRadius.xxl),
-                  onTap: () => const CartRoute().push<void>(context),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 28),
-                    child: Center(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.shopping_cart_rounded, color: Colors.white, size: 18),
-                          SizedBox(width: 8),
-                          Text(
-                            'View Cart',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Mini-cart panel (kiosk right panel) ───────────────────────────────────────
-class _MiniCartPanel extends ConsumerWidget {
-  const _MiniCartPanel();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final (:lineItemCount, :totalAmount) = ref.watch(
-      orderingProvider.select(
-        (it) => (
-          lineItemCount: it.value?.sale.items.length ?? 0,
-          totalAmount: it.value?.sale.totalAmount,
-        ),
-      ),
-    );
-
-    return Container(
-      width: context.responsive.cartPanelWidth,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(left: BorderSide(color: POSColors.borderDefault)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: POSColors.borderSubtle)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.shopping_cart_outlined, size: 18, color: ColorSet.primary),
-                const SizedBox(width: 8),
-                const Text(
-                  'Cart',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: POSColors.textPrimary,
-                  ),
-                ),
-                const Spacer(),
-                if (lineItemCount > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: ColorSet.primary,
-                      borderRadius: BorderRadius.circular(POSRadius.full),
-                    ),
-                    child: Text(
-                      '$lineItemCount',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          Expanded(child: lineItemCount == 0 ? const _EmptyCartState() : _MiniCartItemList()),
-          if (lineItemCount > 0) ...[
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: POSColors.borderSubtle)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Total',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: POSColors.textSecondary,
-                    ),
-                  ),
-                  if (totalAmount != null)
-                    Text(
-                      totalAmount.pesoFormatted,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: ColorSet.primary,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Padding(padding: const EdgeInsets.fromLTRB(12, 8, 12, 12), child: _ViewCartButton()),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 class _EmptyCartState extends StatelessWidget {
   const _EmptyCartState();
 
@@ -603,228 +489,7 @@ class _EmptyCartState extends StatelessWidget {
   }
 }
 
-class _ViewCartButton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: POSGradient.primary,
-        borderRadius: BorderRadius.circular(POSRadius.xxl),
-        boxShadow: POSShadow.button,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(POSRadius.xxl),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(POSRadius.xxl),
-          onTap: () => const CartRoute().push<void>(context),
-          child: const SizedBox(
-            height: 52,
-            child: Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.shopping_cart_rounded, color: Colors.white, size: 16),
-                  SizedBox(width: 8),
-                  Text(
-                    'View Cart',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MiniCartItemList extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final items = ref.watch(
-      orderingProvider.select((it) => it.value?.sale.items ?? const IList.empty()),
-    );
-    return ListView.separated(
-      padding: const EdgeInsets.all(10),
-      itemCount: items.length,
-      separatorBuilder: (context, index) => const Gap(6),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-          decoration: BoxDecoration(
-            color: POSColors.surfaceSubtle,
-            borderRadius: BorderRadius.circular(POSRadius.md),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.productName,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: POSColors.textPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      'x${item.quantity}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: POSColors.textTertiary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                item.grossAmount.pesoFormatted,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: ColorSet.primary,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-// ── Categories list ───────────────────────────────────────────────────────────
-class _CategoriesList extends ConsumerWidget {
-  const _CategoriesList({required this.scrollDirection});
-
-  final Axis scrollDirection;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(
-      orderingProvider.select((it) {
-        final value = it.value;
-        return (
-          productGroups: value?.productGroups ?? const IList.empty(),
-          selectedGroup: value?.selectedGroup,
-        );
-      }),
-    );
-    final productGroups = state.productGroups;
-    final selectedGroup = state.selectedGroup;
-
-    return ListView.builder(
-      scrollDirection: scrollDirection,
-      itemCount: productGroups.length,
-      padding: EdgeInsets.zero,
-      itemBuilder: (context, index) {
-        final group = productGroups[index];
-        final isSelected = group == selectedGroup;
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => ref.read(orderingProvider.notifier).selectGroup(group),
-            child: AnimatedContainer(
-              duration: POSAnimation.fast,
-              width:
-                  scrollDirection == Axis.horizontal
-                      ? context.responsive.value(kiosk: 150.0, tablet: 120.0, phone: 100.0)
-                      : null,
-              height:
-                  scrollDirection == Axis.vertical
-                      ? context.responsive.value(kiosk: 76.0, tablet: 68.0, phone: 58.0)
-                      : null,
-              padding: EdgeInsets.symmetric(
-                horizontal: context.responsive.value(kiosk: 14.0, tablet: 10.0, phone: 8.0),
-                vertical: context.responsive.value(kiosk: 8.0, tablet: 6.0, phone: 5.0),
-              ),
-              decoration: BoxDecoration(
-                color: isSelected ? ColorSet.primary.withValues(alpha: 0.08) : Colors.transparent,
-                border:
-                    scrollDirection == Axis.vertical
-                        ? Border(
-                          left: BorderSide(
-                            color: isSelected ? ColorSet.primary : Colors.transparent,
-                            width: 3,
-                          ),
-                          bottom: const BorderSide(color: POSColors.borderSubtle),
-                        )
-                        : null,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (scrollDirection == Axis.vertical) ...[
-                    // Image.memory(
-                    //   group.image,
-                    //   height: context.responsive.value(kiosk: 28.0, tablet: 24.0, phone: 20.0),
-                    //   fit: BoxFit.contain,
-                    //   color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
-                    //   colorBlendMode: BlendMode.srcIn,
-                    //   errorBuilder:
-                    //       (_, __, ___) => Icon(
-                    //         Icons.image_not_supported_outlined,
-                    //         size: context.responsive.value(kiosk: 28.0, tablet: 24.0, phone: 20.0),
-                    //         color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
-                    //       ),
-                    // ),
-                    Gap(context.responsive.value(kiosk: 4.0, tablet: 3.0, phone: 2.0)),
-                  ],
-                  if (scrollDirection == Axis.horizontal) ...[
-                    // Expanded(
-                    //   child: Image.memory(
-                    //     group.image,
-                    //     fit: BoxFit.contain,
-                    //     color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
-                    //     colorBlendMode: BlendMode.srcIn,
-                    //     errorBuilder:
-                    //         (_, __, ___) => Icon(
-                    //           Icons.image_not_supported_outlined,
-                    //           size: context.responsive.value(
-                    //             kiosk: 28.0,
-                    //             tablet: 24.0,
-                    //             phone: 20.0,
-                    //           ),
-                    //           color: isSelected ? ColorSet.primary : POSColors.iconSubtle,
-                    //         ),
-                    //   ),
-                    // ),
-                    Gap(context.responsive.value(kiosk: 4.0, tablet: 3.0, phone: 2.0)),
-                  ],
-                  Text(
-                    group.name,
-                    style: TextStyle(
-                      fontSize: context.responsive.value(kiosk: 12.0, tablet: 11.0, phone: 10.0),
-                      color: isSelected ? ColorSet.primary : POSColors.textTertiary,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-// ── Product grid ─────────────────────────────────────────────────────────────
+// â”€â”€ Product grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _ProductGrid extends ConsumerWidget {
   const _ProductGrid();
 
@@ -981,7 +646,7 @@ class _ProductCard extends StatelessWidget {
                               product.image,
                               fit: BoxFit.contain,
                               errorBuilder:
-                                  (_, __, ___) => Center(
+                                  (_, _, _) => Center(
                                     child: Icon(
                                       style.icon,
                                       size: context.responsive.value(
@@ -1075,69 +740,304 @@ class _ProductCard extends StatelessWidget {
   }
 }
 
-// ── Cart button FAB (landscape/phone layouts) ─────────────────────────────────
-class _CartButton extends ConsumerWidget {
-  const _CartButton();
+// â”€â”€ Quantity stepper (used inside _OrderItemRow) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+class _QuantityStepper extends StatelessWidget {
+  const _QuantityStepper({
+    required this.quantity,
+    required this.onDecrease,
+    required this.onIncrease,
+  });
+
+  final int quantity;
+  final VoidCallback onDecrease;
+  final VoidCallback onIncrease;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final (:lineItemCount, :total) = ref.watch(
-      orderingProvider.select(
-        (it) => (
-          lineItemCount: it.value?.sale.items.length ?? 0,
-          total: it.value?.sale.totalAmount,
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(POSRadius.full),
+        border: Border.all(color: POSColors.borderDefault),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _StepBtn(
+            icon: Icons.remove_rounded,
+            onTap: quantity > 1 ? onDecrease : null,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Text(
+              '$quantity',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: POSColors.textPrimary,
+              ),
+            ),
+          ),
+          _StepBtn(icon: Icons.add_rounded, onTap: onIncrease, filled: true),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepBtn extends StatelessWidget {
+  const _StepBtn({required this.icon, this.onTap, this.filled = false});
+
+  final IconData icon;
+  final VoidCallback? onTap;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: filled
+              ? ColorSet.primary
+              : ColorSet.primary.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          size: 14,
+          color: filled
+              ? Colors.white
+              : (enabled ? ColorSet.primary : POSColors.textDisabled),
         ),
       ),
     );
-    if (lineItemCount <= 0) return const SizedBox.shrink();
+  }
+}
+
+// â”€â”€ Per-item sale type pill toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+class _SaleTypePill extends StatelessWidget {
+  const _SaleTypePill({required this.selected, required this.onChanged});
+
+  final SaleType? selected;
+  final ValueChanged<SaleType?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: POSColors.surfaceSubtle,
+        borderRadius: BorderRadius.circular(POSRadius.full),
+      ),
+      padding: const EdgeInsets.all(3),
+      child: Row(
+        children: [
+          _PillSegment(
+            label: 'Dine In',
+            isSelected: selected == SaleType.dineIn,
+            onTap: () => onChanged(
+              selected == SaleType.dineIn ? null : SaleType.dineIn,
+            ),
+          ),
+          _PillSegment(
+            label: 'Take Out',
+            isSelected: selected == SaleType.takeOut,
+            onTap: () => onChanged(
+              selected == SaleType.takeOut ? null : SaleType.takeOut,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PillSegment extends StatelessWidget {
+  const _PillSegment({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: POSAnimation.fast,
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          decoration: BoxDecoration(
+            color: isSelected ? ColorSet.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(POSRadius.full),
+            boxShadow: isSelected ? POSShadow.button : null,
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: isSelected ? Colors.white : POSColors.textTertiary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// â”€â”€ Order panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+class _OrderPanel extends HookConsumerWidget {
+  const _OrderPanel({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final items = ref.watch(
+      orderingProvider.select(
+        (it) => it.value?.sale.items ?? const IList.empty(),
+      ),
+    );
+    final selectedIndex = useState<int?>(null);
+
+    useEffect(() {
+      final sel = selectedIndex.value;
+      if (sel != null && sel >= items.length) selectedIndex.value = null;
+      return null;
+    }, [items.length]);
+
+    void replaceItem(int index, LineItem updated) =>
+        ref.read(orderingProvider.notifier).replaceLineItem(updated, index: index);
 
     return Container(
-      padding: EdgeInsets.all(context.responsive.value(kiosk: 16.0, tablet: 12.0, phone: 10.0)),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(top: BorderSide(color: POSColors.borderDefault)),
-        boxShadow: [BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, -4))],
+        border: Border(left: BorderSide(color: POSColors.borderDefault)),
       ),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: POSGradient.primary,
-          borderRadius: BorderRadius.circular(POSRadius.xxl),
-          boxShadow: POSShadow.button,
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(POSRadius.xxl),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(POSRadius.xxl),
-            onTap: () => const CartRoute().push<void>(context),
-            child: SizedBox(
-              height: context.responsive.value(kiosk: 60.0, tablet: 52.0, phone: 48.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.shopping_cart_rounded, color: Colors.white, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    'View Cart ($lineItemCount)',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: POSColors.borderSubtle)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.receipt_long_rounded, size: 18, color: ColorSet.primary),
+                const SizedBox(width: 8),
+                const Text(
+                  'Order',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: POSColors.textPrimary,
                   ),
-                  if (total != null) ...[
-                    const SizedBox(width: 16),
-                    Container(width: 1, height: 18, color: Colors.white.withValues(alpha: 0.4)),
-                    const SizedBox(width: 16),
-                    Text(
-                      total.pesoFormatted,
+                ),
+                const Spacer(),
+                if (items.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: ColorSet.primary,
+                      borderRadius: BorderRadius.circular(POSRadius.full),
+                    ),
+                    child: Text(
+                      '${items.fold(0, (sum, item) => sum + item.quantity)}',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ],
+                  ),
+              ],
+            ),
+          ),
+
+          // Item list
+          Expanded(
+            child: items.isEmpty
+                ? const _EmptyCartState()
+                : ListView.separated(
+                    padding: const EdgeInsets.all(8),
+                    itemCount: items.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 6),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return _OrderItemRow(
+                        key: ValueKey(item.id),
+                        item: item,
+                        index: index,
+                        isExpanded: selectedIndex.value == index,
+                        onTap: () => selectedIndex.value =
+                            selectedIndex.value == index ? null : index,
+                        onRemove: () {
+                          if (selectedIndex.value == index) selectedIndex.value = null;
+                          ref.read(orderingProvider.notifier).removeLineItem(index: index);
+                        },
+                        onQuantityChanged: (qty) =>
+                            replaceItem(index, item.copyWith(quantity: qty)),
+                        onSaleTypeChanged: (type) =>
+                            replaceItem(index, item.copyWith(itemSaleType: type)),
+                        onNotesChanged: (notes) => replaceItem(
+                          index,
+                          item.copyWith(notes: notes.isEmpty ? null : notes),
+                        ),
+                        onClearDiscount: item.discount != null
+                            ? () => ref.read(orderingProvider.notifier).clearDiscount(index: index)
+                            : null,
+                      );
+                    },
+                  ),
+          ),
+
+          if (items.isNotEmpty) const _OrderPanelFooter(),
+        ],
+      ),
+    );
+  }
+}
+
+class _CheckoutButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: POSGradient.primary,
+        borderRadius: BorderRadius.circular(POSRadius.xxl),
+        boxShadow: POSShadow.button,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(POSRadius.xxl),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(POSRadius.xxl),
+          onTap: () => const PaymentRoute().push<void>(context),
+          child: const SizedBox(
+            height: 48,
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Text(
+                    'Proceed to Checkout',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1147,3 +1047,480 @@ class _CartButton extends ConsumerWidget {
     );
   }
 }
+
+// ── Order panel footer — VAT breakdown + discount + checkout ──────────────────
+class _OrderPanelFooter extends ConsumerWidget {
+  const _OrderPanelFooter();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final computations = ref.watch(
+      orderingProvider.select((it) {
+        final sale = it.value?.sale;
+        if (sale == null) return <({String label, Decimal amount})>[];
+        return [
+          (label: 'VATable Sales', amount: sale.vatableAmount),
+          if (sale.vatExemptSales > Decimal.zero)
+            (label: 'VAT-Exempt Sales', amount: sale.vatExemptSales),
+          (label: 'VAT', amount: sale.vatAmount),
+          if (sale.discountAmount > Decimal.zero)
+            (label: 'Discount', amount: -sale.discountAmount),
+          (label: 'Total', amount: sale.totalAmount),
+        ];
+      }),
+    );
+
+    final (:isLoading, :lineItemCount) = ref.watch(
+      orderingProvider.select(
+        (it) => (
+          isLoading: it.isLoading,
+          lineItemCount: it.value?.sale.items.length ?? 0,
+        ),
+      ),
+    );
+
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: POSColors.borderSubtle)),
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // VAT breakdown rows
+          ...computations.map((c) {
+            final (:label, :amount) = c;
+            final isTotal = label == 'Total';
+            if (isTotal) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 6, bottom: 2),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: POSColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      amount.pesoFormatted,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: ColorSet.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(fontSize: 11, color: POSColors.textTertiary),
+                  ),
+                  Text(
+                    amount.pesoFormatted,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: POSColors.textTertiary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 10),
+          // Apply Discount
+          SizedBox(
+            height: 40,
+            child: OutlinedButton.icon(
+              onPressed: !isLoading && lineItemCount > 0
+                  ? () => showDiscountDialog(context)
+                  : null,
+              icon: const Icon(Icons.local_offer_outlined, size: 14),
+              label: const Text('Apply Discount'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: ColorSet.primary,
+                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                side: BorderSide(color: ColorSet.primary.withValues(alpha: 0.5)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(POSRadius.md),
+                ),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          _CheckoutButton(),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrderItemRow extends HookWidget {
+  const _OrderItemRow({
+    super.key,
+    required this.item,
+    required this.index,
+    required this.isExpanded,
+    required this.onTap,
+    required this.onRemove,
+    required this.onQuantityChanged,
+    required this.onSaleTypeChanged,
+    required this.onNotesChanged,
+    this.onClearDiscount,
+  });
+
+  final LineItem item;
+  final int index;
+  final bool isExpanded;
+  final VoidCallback onTap;
+  final VoidCallback onRemove;
+  final ValueChanged<int> onQuantityChanged;
+  final ValueChanged<SaleType?> onSaleTypeChanged;
+  final ValueChanged<String> onNotesChanged;
+  final VoidCallback? onClearDiscount;
+
+  @override
+  Widget build(BuildContext context) {
+    final notesController = useTextEditingController(text: item.notes ?? '');
+    final notesFocus = useFocusNode();
+
+    useEffect(() {
+      void onFocusChange() {
+        if (!notesFocus.hasFocus) onNotesChanged(notesController.text);
+      }
+      notesFocus.addListener(onFocusChange);
+      return () => notesFocus.removeListener(onFocusChange);
+    }, const []);
+
+    useEffect(() {
+      final newNotes = item.notes ?? '';
+      if (notesController.text != newNotes && !notesFocus.hasFocus) {
+        notesController.text = newNotes;
+      }
+      return null;
+    }, [item.notes]);
+
+    final modifierSummary = item.modifiers
+        .expand((m) => m.options.map((o) => o.name))
+        .join(', ');
+
+    return AnimatedContainer(
+      duration: POSAnimation.fast,
+      decoration: BoxDecoration(
+        color: isExpanded
+            ? ColorSet.primary.withValues(alpha: 0.06)
+            : POSColors.surfaceSubtle,
+        borderRadius: BorderRadius.circular(POSRadius.md),
+        border: Border.all(
+          color: isExpanded ? ColorSet.primary : Colors.transparent,
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // â”€â”€ Collapsed header â”€â”€
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(POSRadius.md),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${item.productName} (${item.variant.name})',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isExpanded
+                                ? ColorSet.primary
+                                : POSColors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 3),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 2,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              'x${item.quantity}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: POSColors.textTertiary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            if (item.itemSaleType != null)
+                              _SaleTypeBadge(saleType: item.itemSaleType!),
+                            if (item.discount != null)
+                              GestureDetector(
+                                onTap: onClearDiscount,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF3C7),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.local_offer_rounded, size: 8, color: Color(0xFFD97706)),
+                                      const SizedBox(width: 2),
+                                      const Text(
+                                        'Discounted',
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFFD97706),
+                                        ),
+                                      ),
+                                      if (onClearDiscount != null) ...[
+                                        const SizedBox(width: 3),
+                                        const Icon(Icons.close_rounded, size: 9, color: Color(0xFFD97706)),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            if (item.notes != null && item.notes!.isNotEmpty)
+                              Text(
+                                item.notes!,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: POSColors.textTertiary,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            if (modifierSummary.isNotEmpty)
+                              Text(
+                                modifierSummary,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: POSColors.textTertiary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (item.discount != null)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          item.grossAmount.pesoFormatted,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: POSColors.textTertiary,
+                            decoration: TextDecoration.lineThrough,
+                            decorationColor: POSColors.textTertiary,
+                          ),
+                        ),
+                        Text(
+                          item.totalAmount.pesoFormatted,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: ColorSet.primary,
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Text(
+                      item.grossAmount.pesoFormatted,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: ColorSet.primary,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+
+          // â”€â”€ Expanded controls â”€â”€
+          if (isExpanded) ...[
+            const Divider(height: 1, thickness: 1, color: POSColors.borderSubtle),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'Qty',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: POSColors.textTertiary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (item.discount != null)
+                        Opacity(
+                          opacity: 0.4,
+                          child: AbsorbPointer(
+                            child: _QuantityStepper(
+                              quantity: item.quantity,
+                              onDecrease: () {},
+                              onIncrease: () {},
+                            ),
+                          ),
+                        )
+                      else
+                        _QuantityStepper(
+                          quantity: item.quantity,
+                          onDecrease: () => onQuantityChanged(item.quantity - 1),
+                          onIncrease: () => onQuantityChanged(item.quantity + 1),
+                        ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: onRemove,
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEE2E2),
+                            borderRadius: BorderRadius.circular(POSRadius.full),
+                          ),
+                          child: const Icon(
+                            Icons.delete_outline_rounded,
+                            size: 16,
+                            color: Color(0xFFDC2626),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'ORDER TYPE',
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: POSColors.textTertiary,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  _SaleTypePill(
+                    selected: item.itemSaleType,
+                    onChanged: onSaleTypeChanged,
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'NOTES',
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: POSColors.textTertiary,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: notesController,
+                    focusNode: notesFocus,
+                    onSubmitted: onNotesChanged,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: POSColors.textPrimary,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. no onions, extra rice...',
+                      hintStyle: const TextStyle(
+                        fontSize: 12,
+                        color: POSColors.textDisabled,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      isDense: true,
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(POSRadius.sm),
+                        borderSide: const BorderSide(color: POSColors.borderDefault),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(POSRadius.sm),
+                        borderSide: const BorderSide(color: POSColors.borderDefault),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(POSRadius.sm),
+                        borderSide: const BorderSide(
+                          color: ColorSet.primary,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SaleTypeBadge extends StatelessWidget {
+  const _SaleTypeBadge({required this.saleType});
+  final SaleType saleType;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDineIn = saleType == SaleType.dineIn;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: isDineIn ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        saleType.displayName,
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w600,
+          color: isDineIn ? const Color(0xFF2E7D32) : const Color(0xFFE65100),
+        ),
+      ),
+    );
+  }
+}
+
+
+

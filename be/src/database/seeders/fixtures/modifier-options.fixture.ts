@@ -28,7 +28,7 @@ export const MODIFIER_OPTIONS_FIXTURE: ModifierOptionsGroupFixture[] = [
     ],
   },
   {
-    modifierGroupName: 'Add-ons',
+    modifierGroupName: 'Add-Ons',
     options: [
       { name: 'Extra Cheese', priceAddOn: '15.00', sortOrder: 0, isAvailable: true },
       { name: 'Bacon',        priceAddOn: '25.00', sortOrder: 1, isAvailable: true },

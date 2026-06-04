@@ -144,9 +144,44 @@ class OrderingNotifier extends AsyncNotifier<OrderingData> {
     if (!state.hasValue) return;
 
     final sale = state.requireValue.sale;
-    final lineItems = sale.items.add(lineItem);
+    final items = sale.items;
 
-    state = AsyncData(state.requireValue.copyWith(sale: sale.copyWith(items: lineItems)));
+    final existingIndex = items.indexWhere(
+      (it) => it.discount == null && _isSameItem(it, lineItem),
+    );
+
+    final IList<LineItem> updatedItems;
+    if (existingIndex != -1) {
+      final existing = items[existingIndex];
+      updatedItems = items.replace(
+        existingIndex,
+        existing.copyWith(quantity: existing.quantity + lineItem.quantity),
+      );
+    } else {
+      updatedItems = items.add(lineItem);
+    }
+
+    state = AsyncData(state.requireValue.copyWith(sale: sale.copyWith(items: updatedItems)));
+  }
+
+  static bool _isSameItem(LineItem a, LineItem b) {
+    if (a.productId != b.productId) return false;
+    if (a.variant.id != b.variant.id) return false;
+    if (a.modifiers.length != b.modifiers.length) return false;
+
+    final aMods = a.modifiers.toList()..sort((x, y) => x.id.compareTo(y.id));
+    final bMods = b.modifiers.toList()..sort((x, y) => x.id.compareTo(y.id));
+
+    for (var i = 0; i < aMods.length; i++) {
+      if (aMods[i].id != bMods[i].id) return false;
+      final aOpts = aMods[i].options.toList()..sort((x, y) => x.id.compareTo(y.id));
+      final bOpts = bMods[i].options.toList()..sort((x, y) => x.id.compareTo(y.id));
+      if (aOpts.length != bOpts.length) return false;
+      for (var j = 0; j < aOpts.length; j++) {
+        if (aOpts[j].id != bOpts[j].id) return false;
+      }
+    }
+    return true;
   }
 
   void replaceLineItem(LineItem lineItem, {required int index}) {
@@ -176,9 +211,31 @@ class OrderingNotifier extends AsyncNotifier<OrderingData> {
   void clearDiscount({required int index}) {
     if (!state.hasValue) return;
     final sale = state.requireValue.sale;
-    final item = sale.items[index];
-    final lineItems = sale.items.replace(index, item.copyWith(discount: null));
-    state = AsyncData(state.requireValue.copyWith(sale: sale.copyWith(items: lineItems)));
+    final items = sale.items;
+    final cleared = items[index].copyWith(discount: null);
+
+    var mergeIndex = -1;
+    for (var i = 0; i < items.length; i++) {
+      if (i == index) continue;
+      if (items[i].discount == null && _isSameItem(items[i], cleared)) {
+        mergeIndex = i;
+        break;
+      }
+    }
+
+    IList<LineItem> updatedItems;
+    if (mergeIndex != -1) {
+      final merged = items[mergeIndex].copyWith(
+        quantity: items[mergeIndex].quantity + cleared.quantity,
+      );
+      updatedItems = items.removeAt(index);
+      final adjustedMergeIndex = mergeIndex > index ? mergeIndex - 1 : mergeIndex;
+      updatedItems = updatedItems.replace(adjustedMergeIndex, merged);
+    } else {
+      updatedItems = items.replace(index, cleared);
+    }
+
+    state = AsyncData(state.requireValue.copyWith(sale: sale.copyWith(items: updatedItems)));
   }
 
   void clearLineItems() {

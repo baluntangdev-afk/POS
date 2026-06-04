@@ -1,0 +1,206 @@
+<h2>Ordering Screen Layout — 3 Approaches</h2>
+<p class="subtitle">All keep the product grid + inline item editing on one page. Pick the one that fits best for a cashier-facing kiosk.</p>
+
+<div class="cards">
+
+  <!-- OPTION A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#f8f8f8;border-radius:8px;">
+      <div style="display:flex;gap:6px;height:200px;font-size:11px;">
+        <!-- left: category + grid -->
+        <div style="display:flex;flex-direction:column;gap:4px;flex:1.8;">
+          <div style="background:#e8e8e8;border-radius:4px;padding:4px 6px;font-weight:700;font-size:10px;color:#555;">← Back &nbsp;&nbsp; 🏷 AdtoKart</div>
+          <div style="display:flex;gap:4px;flex:1;">
+            <div style="width:52px;background:#ddd;border-radius:4px;display:flex;flex-direction:column;gap:3px;padding:4px;">
+              <div style="background:#1B7A8C22;border-radius:3px;padding:3px 4px;font-size:9px;color:#1B7A8C;font-weight:700;">Burgers</div>
+              <div style="background:#eee;border-radius:3px;padding:3px 4px;font-size:9px;color:#888;">Drinks</div>
+              <div style="background:#eee;border-radius:3px;padding:3px 4px;font-size:9px;color:#888;">Sides</div>
+            </div>
+            <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:4px;">
+              <div style="background:white;border-radius:5px;box-shadow:0 1px 4px #0001;display:flex;flex-direction:column;align-items:center;padding:4px;gap:2px;">
+                <div style="width:28px;height:28px;background:#FFF3E0;border-radius:4px;"></div>
+                <div style="font-size:8px;font-weight:700;color:#333;">Burger</div>
+                <div style="font-size:8px;color:#1B7A8C;">₱149</div>
+              </div>
+              <div style="background:white;border-radius:5px;box-shadow:0 1px 4px #0001;display:flex;flex-direction:column;align-items:center;padding:4px;gap:2px;">
+                <div style="width:28px;height:28px;background:#E8F5E9;border-radius:4px;"></div>
+                <div style="font-size:8px;font-weight:700;color:#333;">Chicken</div>
+                <div style="font-size:8px;color:#1B7A8C;">₱129</div>
+              </div>
+              <div style="background:white;border-radius:5px;box-shadow:0 1px 4px #0001;display:flex;flex-direction:column;align-items:center;padding:4px;gap:2px;">
+                <div style="width:28px;height:28px;background:#EDE7F6;border-radius:4px;"></div>
+                <div style="font-size:8px;font-weight:700;color:#333;">Fries</div>
+                <div style="font-size:8px;color:#1B7A8C;">₱69</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- right: order panel (list mode) -->
+        <div style="width:110px;background:white;border-radius:6px;border:1.5px solid #e0e0e0;display:flex;flex-direction:column;gap:0;">
+          <div style="padding:6px 8px;border-bottom:1px solid #eee;font-weight:700;font-size:10px;color:#333;">🛒 Cart (2)</div>
+          <div style="flex:1;padding:6px 8px;display:flex;flex-direction:column;gap:4px;overflow:hidden;">
+            <div style="background:#f5f5f5;border-radius:4px;padding:4px 6px;border-left:3px solid #1B7A8C;">
+              <div style="font-size:9px;font-weight:700;color:#333;">Burger x2</div>
+              <div style="font-size:8px;color:#1B7A8C;">₱298</div>
+              <div style="font-size:7px;color:#999;margin-top:1px;">tap to edit →</div>
+            </div>
+            <div style="background:#f5f5f5;border-radius:4px;padding:4px 6px;">
+              <div style="font-size:9px;font-weight:700;color:#333;">Fries x1</div>
+              <div style="font-size:8px;color:#1B7A8C;">₱69</div>
+            </div>
+          </div>
+          <div style="padding:6px 8px;border-top:1px solid #eee;">
+            <div style="font-size:8px;color:#888;">Total</div>
+            <div style="font-size:11px;font-weight:800;color:#1B7A8C;">₱367</div>
+            <div style="background:#1B7A8C;color:white;border-radius:12px;text-align:center;font-size:8px;font-weight:700;padding:3px 0;margin-top:4px;">Checkout →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Persistent Split Panel</h3>
+      <p>Product grid (left ~65%) + cart list (right ~35%) always visible. Tap a cart item to expand inline edit controls within the right panel — no dialog, no navigation. Panel switches between "list" and "edit" mode with animation.</p>
+    </div>
+  </div>
+
+  <!-- OPTION B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#f8f8f8;border-radius:8px;">
+      <div style="display:flex;gap:6px;height:200px;font-size:11px;">
+        <!-- product grid takes full width, panel slides in from right -->
+        <div style="display:flex;flex-direction:column;gap:4px;flex:1;position:relative;overflow:hidden;">
+          <div style="background:#e8e8e8;border-radius:4px;padding:4px 6px;font-weight:700;font-size:10px;color:#555;">← Back &nbsp;&nbsp; 🏷 AdtoKart &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 🛒 2 items</div>
+          <div style="display:flex;gap:4px;flex:1;padding:4px;">
+            <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;">
+              <div style="background:white;border-radius:5px;box-shadow:0 1px 4px #0001;display:flex;flex-direction:column;align-items:center;padding:4px;gap:2px;">
+                <div style="width:28px;height:28px;background:#FFF3E0;border-radius:4px;"></div>
+                <div style="font-size:8px;font-weight:700;color:#333;">Burger</div>
+                <div style="font-size:8px;color:#1B7A8C;">₱149</div>
+              </div>
+              <div style="background:white;border-radius:5px;box-shadow:0 1px 4px #0001;display:flex;flex-direction:column;align-items:center;padding:4px;gap:2px;">
+                <div style="width:28px;height:28px;background:#E8F5E9;border-radius:4px;"></div>
+                <div style="font-size:8px;font-weight:700;color:#333;">Chicken</div>
+                <div style="font-size:8px;color:#1B7A8C;">₱129</div>
+              </div>
+              <div style="background:white;border-radius:5px;box-shadow:0 1px 4px #0001;display:flex;flex-direction:column;align-items:center;padding:4px;gap:2px;">
+                <div style="width:28px;height:28px;background:#EDE7F6;border-radius:4px;"></div>
+                <div style="font-size:8px;font-weight:700;color:#333;">Fries</div>
+                <div style="font-size:8px;color:#1B7A8C;">₱69</div>
+              </div>
+              <div style="background:white;border-radius:5px;box-shadow:0 1px 4px #0001;display:flex;flex-direction:column;align-items:center;padding:4px;gap:2px;">
+                <div style="width:28px;height:28px;background:#FCE4EC;border-radius:4px;"></div>
+                <div style="font-size:8px;font-weight:700;color:#333;">Sundae</div>
+                <div style="font-size:8px;color:#1B7A8C;">₱89</div>
+              </div>
+            </div>
+          </div>
+          <!-- slide-in overlay panel from right -->
+          <div style="position:absolute;top:24px;right:0;width:100px;height:calc(100% - 24px);background:white;border-radius:6px 0 0 6px;border:1.5px solid #e0e0e0;border-right:none;box-shadow:-4px 0 12px #0002;display:flex;flex-direction:column;">
+            <div style="padding:6px 8px;border-bottom:1px solid #eee;font-weight:700;font-size:10px;color:#333;">Edit Burger</div>
+            <div style="padding:6px 8px;flex:1;display:flex;flex-direction:column;gap:4px;">
+              <div style="font-size:8px;color:#888;">Qty</div>
+              <div style="display:flex;align-items:center;gap:4px;background:#f5f5f5;border-radius:4px;padding:4px;">
+                <span style="font-size:9px;color:#1B7A8C;font-weight:700;">−</span>
+                <span style="font-size:10px;font-weight:700;flex:1;text-align:center;">2</span>
+                <span style="font-size:9px;color:#1B7A8C;font-weight:700;">+</span>
+              </div>
+              <div style="font-size:8px;color:#888;margin-top:2px;">Modifier</div>
+              <div style="background:#1B7A8C11;border-radius:3px;padding:3px 4px;font-size:8px;color:#1B7A8C;border:1px solid #1B7A8C44;">No onions ✓</div>
+              <div style="background:#f5f5f5;border-radius:3px;padding:3px 4px;font-size:8px;color:#888;">Add cheese</div>
+            </div>
+            <div style="padding:6px 8px;border-top:1px solid #eee;display:flex;gap:3px;">
+              <div style="flex:1;background:#fee;border-radius:4px;text-align:center;font-size:8px;color:#e53;padding:3px;font-weight:700;">Remove</div>
+              <div style="flex:1;background:#1B7A8C;border-radius:4px;text-align:center;font-size:8px;color:white;padding:3px;font-weight:700;">Save</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Slide-Over Edit Panel</h3>
+      <p>Product grid fills the full screen. Tapping a cart item (from a floating badge or cart icon) slides a panel in from the right edge, overlaying a portion of the grid. Grid stays visible for context. Panel dismisses on save/cancel.</p>
+    </div>
+  </div>
+
+  <!-- OPTION C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#f8f8f8;border-radius:8px;">
+      <div style="display:flex;gap:6px;height:200px;font-size:11px;">
+        <!-- left: category tabs + grid -->
+        <div style="display:flex;flex-direction:column;gap:4px;flex:1.6;">
+          <div style="background:#e8e8e8;border-radius:4px;padding:4px 6px;font-weight:700;font-size:10px;color:#555;">← Back &nbsp;&nbsp; 🏷 AdtoKart</div>
+          <div style="display:flex;gap:6px;padding:0 4px;">
+            <div style="background:#1B7A8C;color:white;border-radius:10px;padding:2px 8px;font-size:8px;font-weight:700;">Burgers</div>
+            <div style="background:#eee;color:#888;border-radius:10px;padding:2px 8px;font-size:8px;">Drinks</div>
+            <div style="background:#eee;color:#888;border-radius:10px;padding:2px 8px;font-size:8px;">Sides</div>
+          </div>
+          <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:0 4px;">
+            <div style="background:white;border-radius:5px;box-shadow:0 1px 4px #0001;display:flex;flex-direction:column;align-items:center;padding:4px;gap:2px;">
+              <div style="width:28px;height:28px;background:#FFF3E0;border-radius:4px;"></div>
+              <div style="font-size:8px;font-weight:700;color:#333;">Burger</div>
+              <div style="font-size:8px;color:#1B7A8C;">₱149</div>
+            </div>
+            <div style="background:white;border-radius:5px;box-shadow:0 1px 4px #0001;display:flex;flex-direction:column;align-items:center;padding:4px;gap:2px;">
+              <div style="width:28px;height:28px;background:#E8F5E9;border-radius:4px;"></div>
+              <div style="font-size:8px;font-weight:700;color:#333;">Chicken</div>
+              <div style="font-size:8px;color:#1B7A8C;">₱129</div>
+            </div>
+            <div style="background:white;border-radius:5px;box-shadow:0 1px 4px #0001;display:flex;flex-direction:column;align-items:center;padding:4px;gap:2px;">
+              <div style="width:28px;height:28px;background:#EDE7F6;border-radius:4px;"></div>
+              <div style="font-size:8px;font-weight:700;color:#333;">Fries</div>
+              <div style="font-size:8px;color:#1B7A8C;">₱69</div>
+            </div>
+          </div>
+        </div>
+        <!-- right: dual-mode panel -->
+        <div style="width:115px;background:white;border-radius:6px;border:1.5px solid #e0e0e0;display:flex;flex-direction:column;">
+          <div style="padding:6px 8px;border-bottom:1px solid #eee;font-weight:700;font-size:10px;color:#333;display:flex;justify-content:space-between;align-items:center;">
+            <span>🛒 Order</span><span style="background:#1B7A8C;color:white;border-radius:8px;padding:1px 5px;font-size:8px;">2</span>
+          </div>
+          <!-- item list -->
+          <div style="flex:1;padding:5px 6px;display:flex;flex-direction:column;gap:3px;overflow:hidden;">
+            <!-- selected/highlighted item being edited inline -->
+            <div style="background:#1B7A8C0D;border:1.5px solid #1B7A8C;border-radius:5px;padding:4px 6px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:9px;font-weight:700;color:#1B7A8C;">Burger</span>
+                <span style="font-size:8px;color:#1B7A8C;">₱298</span>
+              </div>
+              <!-- inline qty controls visible when item is selected -->
+              <div style="display:flex;align-items:center;gap:3px;margin-top:3px;">
+                <div style="width:16px;height:16px;background:#1B7A8C22;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:#1B7A8C;font-weight:700;">−</div>
+                <span style="font-size:9px;font-weight:700;color:#333;flex:1;text-align:center;">2</span>
+                <div style="width:16px;height:16px;background:#1B7A8C;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:white;font-weight:700;">+</div>
+                <div style="width:16px;height:16px;background:#fee;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:#e53;">🗑</div>
+              </div>
+              <div style="font-size:7px;color:#999;margin-top:2px;">No onions • Extra sauce</div>
+            </div>
+            <div style="background:#f5f5f5;border-radius:5px;padding:4px 6px;">
+              <div style="display:flex;justify-content:space-between;">
+                <span style="font-size:9px;font-weight:600;color:#333;">Fries</span>
+                <span style="font-size:8px;color:#1B7A8C;">₱69</span>
+              </div>
+              <div style="font-size:8px;color:#aaa;">x1</div>
+            </div>
+          </div>
+          <div style="padding:6px 8px;border-top:1px solid #eee;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span style="font-size:8px;color:#888;">Total</span>
+              <span style="font-size:11px;font-weight:800;color:#1B7A8C;">₱367</span>
+            </div>
+            <div style="background:#1B7A8C;color:white;border-radius:12px;text-align:center;font-size:8px;font-weight:700;padding:3px 0;">Checkout →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Inline Edit Within Cart Panel</h3>
+      <p>Persistent right panel shows the cart list. Tapping a cart item expands inline quantity + modifier controls <em>directly inside the item row</em> — no separate edit view. The panel stays in "list mode" at all times. Clean, dense, fast.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" style="margin-top:16px;padding:12px 16px;background:#f9f9f9;border-radius:8px;border-left:3px solid #1B7A8C;">
+  <p class="label">My recommendation</p>
+  <p><strong>Option C</strong> — it keeps the cashier in one mental mode (the order panel is always the order panel), avoids the context-switch of a slide-over, and is the most touch-efficient pattern for a busy POS environment. Option A is the closest runner-up if full modifier editing visibility matters more.</p>
+</div>

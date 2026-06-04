@@ -126,7 +126,11 @@
       "PowerShell(Get-ChildItem \"C:\\\\posdata\\\\log\\\\\" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Get-Content $_.FullName -Tail 50 })",
       "Bash(netstat -ano)",
       "Bash(findstr \":5432\")",
-      "PowerShell(powershell.exe -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\build-installer.ps1\" 2>&1)"
+      "PowerShell(powershell.exe -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\build-installer.ps1\" 2>&1)",
+      "Bash(bash *)",
+      "Bash(~/.pub-cache/bin/fvm dart *)",
+      "PowerShell(Add-Content *)",
+      "PowerShell(cd \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\"; $GIT_DIR = \\(git rev-parse --git-dir 2>$null\\); $GIT_COMMON = \\(git rev-parse --git-common-dir 2>$null\\); \"GIT_DIR: $GIT_DIR\"; \"GIT_COMMON: $GIT_COMMON\"; git branch --show-current; git log --oneline -5)"
     ]
   }
 }

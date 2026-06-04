@@ -144,6 +144,15 @@ class _CashPaymentContent extends HookWidget {
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   textInputAction: TextInputAction.done,
                   inputFormatters: [cashInputFormatter],
+                  suffixIcon: cashController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 20),
+                          onPressed: () {
+                            cashController.clear();
+                            formKey.currentState?.reset();
+                          },
+                        )
+                      : null,
                   validator: (value) {
                     final rules = [
                       minValue(collectibleAmount.toDouble(), message: 'Insufficient amount'),
@@ -169,12 +178,18 @@ class _CashPaymentContent extends HookWidget {
                           borderRadius: BorderRadius.circular(POSRadius.md),
                           child: InkWell(
                             onTap: () {
+                              final current = Decimal.tryParse(
+                                    cashController.text.replaceAll(',', ''),
+                                  ) ??
+                                  Decimal.zero;
+                              final newAmount = current + Decimal.fromInt(denomination);
+                              final newText = newAmount.toString();
                               final newValue = cashInputFormatter.formatEditUpdate(
                                 cashController.value,
                                 TextEditingValue(
-                                  text: '$denomination',
+                                  text: newText,
                                   selection: TextSelection.collapsed(
-                                    offset: '$denomination'.length,
+                                    offset: newText.length,
                                   ),
                                 ),
                               );

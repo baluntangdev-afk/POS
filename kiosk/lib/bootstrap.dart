@@ -23,21 +23,26 @@ Future<ProviderContainer> bootstrap(AppEnv env) async {
     await windowManager.ensureInitialized();
 
     final windowOptions = WindowOptions(
-      fullScreen: !env.isDev,
+      // fullScreen: !env.isDev,
       windowButtonVisibility: true,
-      size: !env.isDev ? const Size(1536, 864) : const Size(600, 736),
+      size: !env.isDev ? const Size(1200, 80) : const Size(600, 736),
       minimumSize: const Size(600, 736),
       // Set to transparent to avoid white flash
       backgroundColor: Colors.transparent,
       skipTaskbar: false,
+
       // Essential for native buttons
       titleBarStyle: TitleBarStyle.normal,
     );
 
     await windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.setResizable(kDebugMode);
-      await windowManager.setMinimizable(kDebugMode);
-      await windowManager.setPreventClose(true);
+      await windowManager.setResizable(false);
+      await windowManager.setMinimizable(true);
+      await windowManager.setPreventClose(false);
+
+      // Maximize to fill the screen while keeping title bar and close button
+      await windowManager.maximize();
+
       await windowManager.show();
       await windowManager.focus();
     });

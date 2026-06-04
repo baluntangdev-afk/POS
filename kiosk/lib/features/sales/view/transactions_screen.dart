@@ -1133,6 +1133,10 @@ class _ExpandedItems extends ConsumerWidget {
 
                 final items = state.value?.items ?? const IList.empty();
                 final refunds = state.value?.refunds ?? const IList.empty();
+                final refundedItemIds = refunds
+                    .expand((r) => r.items)
+                    .map((ri) => ri.receiptItemId)
+                    .toSet();
 
                 if (items.isEmpty && refunds.isEmpty) {
                   return const Padding(
@@ -1177,36 +1181,85 @@ class _ExpandedItems extends ConsumerWidget {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      ...items.map((item) => Padding(
-                            padding: EdgeInsets.only(left: item.isMain ? 0 : 16),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 2),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      ...items.map((item) {
+                            final isRefunded = refundedItemIds.contains(item.id);
+                            final textColor = isRefunded ? POSColors.textTertiary : POSColors.textSecondary;
+                            final textDecoration = isRefunded ? TextDecoration.lineThrough : null;
+                            return Padding(
+                              padding: EdgeInsets.only(
+                                left: item.isMain ? 0 : 16,
+                                bottom: 4,
+                              ),
+                              child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(
-                                    child: Text(
-                                      '${item.quantity} ${item.description}',
-                                      style: TextStyle(
-                                        fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
-                                        color: POSColors.textSecondary,
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          '${item.quantity} ${item.description}',
+                                          style: TextStyle(
+                                            fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                                            color: textColor,
+                                            decoration: textDecoration,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        item.isMain || item.grossAmount > Decimal.zero
+                                            ? item.grossAmount.withCommas
+                                            : '',
+                                        style: TextStyle(
+                                          fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                                          color: textColor,
+                                          decoration: textDecoration,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (item.isMain && (item.saleType != null || item.note != null))
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 2),
+                                      child: Row(
+                                        children: [
+                                          if (item.saleType != null)
+                                            Container(
+                                              margin: const EdgeInsets.only(right: 6),
+                                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                              decoration: BoxDecoration(
+                                                color: ColorSet.primary.withValues(alpha: 0.08),
+                                                borderRadius: BorderRadius.circular(POSRadius.sm),
+                                              ),
+                                              child: Text(
+                                                item.saleType!.displayName,
+                                                style: TextStyle(
+                                                  fontSize: r.value<double>(kiosk: 10, tablet: 10, phone: 9),
+                                                  color: ColorSet.primary,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          if (item.note != null)
+                                            Flexible(
+                                              child: Text(
+                                                item.note!,
+                                                style: TextStyle(
+                                                  fontSize: r.value<double>(kiosk: 11, tablet: 10, phone: 9),
+                                                  color: POSColors.textTertiary,
+                                                  fontStyle: FontStyle.italic,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                     ),
-                                  ),
-                                  Text(
-                                    item.isMain || item.grossAmount > Decimal.zero
-                                        ? item.grossAmount.withCommas
-                                        : '',
-                                    style: TextStyle(
-                                      fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
-                                      color: POSColors.textSecondary,
-                                    ),
-                                  ),
                                 ],
                               ),
-                            ),
-                          )),
+                            );
+                          }),
                       // Refunds
                       ...refunds.map((refund) => Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

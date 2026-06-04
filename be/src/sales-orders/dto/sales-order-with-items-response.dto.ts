@@ -57,6 +57,16 @@ export class SalesOrderItemResponseDto {
 
   @ApiPropertyOptional({ description: 'Recipe item ID when add-on', example: null, nullable: true })
   recipeItemId: number | null;
+
+  @ApiPropertyOptional({
+    description: 'Sale type for this item',
+    example: 'Dine-In',
+    nullable: true,
+  })
+  saleType: string | null;
+
+  @ApiPropertyOptional({ description: 'Item-level note', example: 'No onions please', nullable: true })
+  note: string | null;
 }
 
 /**

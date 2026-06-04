@@ -107,9 +107,10 @@ export class CreateSalesOrderMapper {
       parseFloat(salesOrderItem.itemSubtotal ?? '0'),
     );
 
+    salesOrderItem.saleType = dto.saleType ?? null;
+    salesOrderItem.note = dto.note ?? null;
     salesOrderItem.createdBy = dto.causer;
     salesOrderItem.updatedBy = dto.causer;
-    // salesOrderItem.modifierGroups = dto.modifierGroups;
 
     return salesOrderItem;
   }

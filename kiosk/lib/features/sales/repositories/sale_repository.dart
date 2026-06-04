@@ -59,6 +59,10 @@ class SaleRepositoryImpl implements SaleRepository {
           item.modifiers.map(_createSalesOrderModifierGroupDtoFromSelectedModifier).toList(),
       discount: _applyDiscountItemDiscountDtoFromDiscount(item.discount),
       description: item.productName,
+      saleType: item.itemSaleType != null
+          ? _salesOrderTypeFromSaleType(item.itemSaleType!)
+          : null,
+      note: item.notes,
     );
   }
 

@@ -189,6 +189,7 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
         amountPaid: paidAmount.toString(),
         change: '0',
         transactionReference: referenceNumber,
+        paymentMethodName: walletProvider == 'GCash' ? null : walletProvider,
       ),
       ZeroPayment() => throw 'Zero payment is unsupported.',
     };
@@ -257,11 +258,11 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
         referenceNumber: transactionReference,
         walletProvider: 'GCash',
       ),
-      OtherPaymentDto(:final id, :final amountPaid) => QRPayment(
+      OtherPaymentDto(:final id, :final amountPaid, :final transactionReference, :final paymentMethodName) => QRPayment(
         id: id,
         paidAmount: Decimal.parse(amountPaid),
-        referenceNumber: '',
-        walletProvider: 'Other',
+        referenceNumber: transactionReference,
+        walletProvider: paymentMethodName ?? 'Other',
       ),
     };
   }
@@ -283,7 +284,18 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
       vatAmount: Decimal.parse((dto.vatAmount ?? 0.0).toString()),
       totalAmount: Decimal.parse(dto.itemTotalAmount.toString()),
       isMain: !dto.addOn,
+      saleType: _saleTypeFromString(dto.saleType),
+      note: dto.note,
     );
+  }
+
+  SaleType? _saleTypeFromString(String? value) {
+    return switch (value) {
+      'Dine-In' => SaleType.dineIn,
+      'Take-Out' => SaleType.takeOut,
+      'Delivery' => SaleType.delivery,
+      _ => null,
+    };
   }
 
   SaleType _saleTypeFromSalesOrderType(SalesOrderType type) {

@@ -24,6 +24,7 @@ import '../entities/receipt_item.dart';
 import '../entities/refund.dart';
 import '../entities/store.dart';
 import '../enums/sale_type.dart';
+import '../state/ordering_notifier.dart';
 import '../state/receipt_notifier.dart';
 import 'void_transaction_dialog.dart';
 
@@ -262,8 +263,6 @@ class _ReceiptPreview extends ConsumerWidget {
                   ),
                   const Gap(4),
                   const _ReceiptDivider(char: '*'),
-                  Gap(r.value<double>(kiosk: 16, tablet: 12, phone: 8)),
-                  _SaleTypeView(type: receipt.type),
                   Gap(r.value<double>(kiosk: 16, tablet: 12, phone: 8)),
                   _ItemsView(
                     items: receipt.items.toList(),
@@ -524,7 +523,7 @@ class _ItemsView extends StatelessWidget {
             );
 
             return Padding(
-              padding: EdgeInsets.only(left: item.isMain ? 0 : 8),
+              padding: EdgeInsets.only(left: item.isMain ? 0 : 8, bottom: 2),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -546,6 +545,33 @@ class _ItemsView extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (item.isMain && (item.saleType != null || item.note != null))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1),
+                      child: Row(
+                        children: [
+                          if (item.saleType != null)
+                            Text(
+                              '[${item.saleType!.displayName}] ',
+                              style: TextStyle(
+                                fontSize: r.value<double>(kiosk: 11, tablet: 11, phone: 10),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          if (item.note != null)
+                            Flexible(
+                              child: Text(
+                                item.note!,
+                                style: TextStyle(
+                                  fontSize: r.value<double>(kiosk: 11, tablet: 11, phone: 10),
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   if (isPartiallyRefunded)
                     Text(
                       '  (Refunded: $refundedQty of ${item.quantity})',
@@ -957,11 +983,11 @@ class _PrintButton extends ConsumerWidget {
   }
 }
 
-class _NewOrderButton extends StatelessWidget {
+class _NewOrderButton extends ConsumerWidget {
   const _NewOrderButton();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final r = context.responsive;
     final height = r.value<double>(kiosk: 64, tablet: 56, phone: 48);
     const radius = POSRadius.full;
@@ -983,7 +1009,10 @@ class _NewOrderButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius),
         child: InkWell(
           borderRadius: BorderRadius.circular(radius),
-          onTap: () => const OrderingRoute().go(context),
+          onTap: () {
+            ref.invalidate(orderingProvider);
+            const OrderingRoute().go(context);
+          },
           child: SizedBox(
             height: height,
             child: Row(
@@ -1033,6 +1062,7 @@ class _CloseButton extends ConsumerWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(radius),
           onTap: () {
+            ref.invalidate(orderingProvider);
             if (context.canPop()) {
               context.pop();
             } else {
@@ -1101,6 +1131,7 @@ class _VoidButton extends ConsumerWidget {
               totalAmount: receipt.totalAmount,
             );
             if (voided && context.mounted) {
+              ref.invalidate(orderingProvider);
               const MenuRoute().go(context);
             }
           },

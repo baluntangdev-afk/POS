@@ -28,9 +28,9 @@ class OrderingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return WindowsScaffold(
+    return const WindowsScaffold(
       backgroundColor: ColorSet.background,
-      body: const _AdaptiveOrderingLayout(),
+      body: _AdaptiveOrderingLayout(),
     );
   }
 }
@@ -86,15 +86,14 @@ class _AdaptiveOrderingLayout extends HookConsumerWidget {
                     SizedBox(
                       width: r.value(
                         kiosk: _panelWidth + 20,
-                        tablet: _panelWidth.toDouble(),
-                        phone: _panelWidth.toDouble(),
+                        tablet: _panelWidth,
+                        phone: _panelWidth,
                       ),
                       child: const _OrderPanel(),
                     ),
                   ],
                 )
               : Stack(
-                  clipBehavior: Clip.hardEdge,
                   children: [
                     const _ProductGrid(),
                     // Dim backdrop — tapping closes the panel
@@ -117,10 +116,10 @@ class _AdaptiveOrderingLayout extends HookConsumerWidget {
                       top: 0,
                       bottom: 0,
                       width: _panelWidth,
-                      child: Material(
+                      child: const Material(
                         elevation: 8,
                         shadowColor: Colors.black26,
-                        child: const _OrderPanel(),
+                        child: _OrderPanel(),
                       ),
                     ),
                   ],
@@ -238,7 +237,11 @@ class _HeaderBackButton extends StatelessWidget {
       height: size,
       child: OutlinedButton.icon(
         onPressed: () {
-          if (context.canPop()) context.pop();
+          if (context.canPop()) {
+            context.pop();
+            return;
+          }
+          const MenuRoute().go(context);
         },
         icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 14),
         label: const Text('Back'),
@@ -410,7 +413,6 @@ class _CategoryChipRow extends HookConsumerWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
                       colors: [Colors.white.withValues(alpha: 0), Colors.white],
                       stops: const [0.0, 0.6],
                     ),

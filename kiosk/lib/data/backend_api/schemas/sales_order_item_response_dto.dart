@@ -22,6 +22,8 @@ class SalesOrderItemResponseDto with SalesOrderItemResponseDtoMappable {
     required this.description,
     required this.addOn,
     this.recipeItemId,
+    this.saleType,
+    this.note,
   });
 
   final String id;
@@ -41,6 +43,8 @@ class SalesOrderItemResponseDto with SalesOrderItemResponseDtoMappable {
   final String description;
   final bool addOn;
   final int? recipeItemId;
+  final String? saleType;
+  final String? note;
 
   static const fromJson = SalesOrderItemResponseDtoMapper.fromJson;
 }

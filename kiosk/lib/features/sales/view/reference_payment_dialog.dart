@@ -206,7 +206,7 @@ class _ReferencePaymentContent extends HookWidget {
                         payment = QRPayment(
                           paidAmount: collectibleAmount,
                           referenceNumber: referenceController.text.trim(),
-                          walletProvider: entry.paymentMethod,
+                          walletProvider: entry.paymentMethodName ?? entry.paymentMethod,
                         );
                       }
                       Navigator.of(context).pop(payment);

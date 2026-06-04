@@ -37,9 +37,7 @@ class MenuGrid extends StatelessWidget {
                     onTap: (type) {
                       if (type == MenuType.newOrder) {
                          const OrderingRoute().push<void>(context);
-
-                        // const SalesRoute().push<void>(context);
-                        return;
+                         return;
                       }
                       if (type == MenuType.logout) {
                         const LoginRoute().go(context);

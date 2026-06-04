@@ -38,4 +38,9 @@ export class PaymentDetailsDto {
   @IsOptional()
   @IsString()
   transactionReference?: string;
+
+  @ApiProperty({ description: 'Payment method display name (for Other payments)', example: 'Maya' })
+  @IsOptional()
+  @IsString()
+  paymentMethodName?: string;
 }

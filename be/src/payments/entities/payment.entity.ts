@@ -46,4 +46,12 @@ export class Payment extends UuidIdEntity {
     name: 'transaction_reference',
   })
   transactionReference: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    name: 'payment_method_name',
+  })
+  paymentMethodName: string | null;
 }

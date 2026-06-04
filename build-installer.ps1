@@ -134,6 +134,23 @@ if (-not (Test-Path $kioskExe))   { Write-Fail "pos_app.exe not found.";    exit
 Write-Ok "POSBackend.exe: $([math]::Round((Get-Item $backendExe).Length/1MB,1)) MB"
 Write-Ok "pos_app.exe:    $([math]::Round((Get-Item $kioskExe).Length/1MB,1)) MB"
 
+# ── Sanitize installer.iss: strip smart/curly quotes ─────────────────────────
+# Some editors auto-convert straight quotes ("") to typographic curly quotes
+# (U+201C/U+201D). Inno Setup does NOT treat curly quotes as delimiters, so any
+# [Run]/[Files] directive using them fails at install time with
+# "CreateProcess failed; code 2 - The system cannot find the file specified".
+# Normalize them here so a stray editor save can never ship a broken installer.
+Write-Step "Sanitizing installer.iss (normalizing smart quotes)..."
+$issText  = [System.IO.File]::ReadAllText($IssPath)
+$nCurly   = ([regex]::Matches($issText, "[$([char]0x201C)$([char]0x201D)]")).Count
+if ($nCurly -gt 0) {
+    $issText = $issText.Replace([char]0x201C, '"').Replace([char]0x201D, '"')
+    [System.IO.File]::WriteAllText($IssPath, $issText, (New-Object System.Text.UTF8Encoding($true)))
+    Write-Ok "Replaced $nCurly curly quote(s) with straight quotes."
+} else {
+    Write-Ok "No curly quotes found."
+}
+
 # ── Compile installer ─────────────────────────────────────────────────────────
 Write-Step "Compiling installer (LZMA2 - this takes ~2 min)..."
 

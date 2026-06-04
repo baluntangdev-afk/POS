@@ -58,14 +58,16 @@ try {
     }
 
     # ── Verify backend health (up to 60s) ────────────────────────────────
-    # Uses /health/live (memory-only check) so a slow DB connection doesn't
-    # block the installer from confirming the process is up and listening.
+    # Uses /api/v1/health/live (memory-only check) so a slow DB connection
+    # doesn't block the installer from confirming the process is up. The
+    # backend mounts everything under the api/v1 global prefix (see main.ts),
+    # so the health route is /api/v1/health/live — NOT /health/live (404).
     Write-Host "Waiting for backend to be ready (up to 60s)..."
     $healthy = $false
     for ($i = 1; $i -le 60; $i++) {
         Start-Sleep -Seconds 1
         try {
-            $r = Invoke-WebRequest -Uri "http://localhost:3000/health/live" `
+            $r = Invoke-WebRequest -Uri "http://localhost:3000/api/v1/health/live" `
                      -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
             if ($r.StatusCode -eq 200) { $healthy = $true; break }
         } catch { }

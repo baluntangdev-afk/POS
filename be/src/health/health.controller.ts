@@ -8,9 +8,13 @@ import {
   HealthIndicatorResult,
 } from '@nestjs/terminus';
 import { PostgresHealthIndicator } from './indicators/postgres.health';
+import { Public } from '../auth/decorators/public.decorator';
 
 const DISK_PATH = process.platform === 'win32' ? 'C:\\' : '/';
 
+// Health endpoints must bypass the global JWT guard so monitoring and the
+// installer's readiness probe can reach them without a token (otherwise 401).
+@Public()
 @ApiTags('Health')
 @Controller('health')
 export class HealthController {

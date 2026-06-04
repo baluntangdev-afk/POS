@@ -57,7 +57,7 @@ export const MODIFIER_GROUPS_FIXTURE: ModifierGroupFixtureItem[] = [
     maxSelection: 1,
   },
   {
-    name: 'Add-Ons',
+    name: 'Beverage Add-Ons',
     description: 'Customise your beverage',
     selectionType: 'multiple',
     isRequired: false,

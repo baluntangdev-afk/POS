@@ -125,7 +125,8 @@
       "PowerShell(Get-EventLog -LogName System -Source \"Service Control Manager\" -Newest 10 | Where-Object { $_.Message -match \"POSPostgres\" } | Select-Object TimeGenerated, Message | Format-List)",
       "PowerShell(Get-ChildItem \"C:\\\\posdata\\\\log\\\\\" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Get-Content $_.FullName -Tail 50 })",
       "Bash(netstat -ano)",
-      "Bash(findstr \":5432\")"
+      "Bash(findstr \":5432\")",
+      "PowerShell(powershell.exe -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\build-installer.ps1\" 2>&1)"
     ]
   }
 }

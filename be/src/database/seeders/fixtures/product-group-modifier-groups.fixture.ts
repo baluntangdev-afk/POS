@@ -5,17 +5,11 @@ export interface ProductGroupModifierGroupLink {
 }
 
 export const PRODUCT_GROUP_MODIFIER_GROUPS_FIXTURE: ProductGroupModifierGroupLink[] = [
-  // Beverages — Size, Sugar Level, Temperature
-  { productGroupName: 'Beverages',   modifierGroupName: 'Size',        sortOrder: 0 },
-  { productGroupName: 'Beverages',   modifierGroupName: 'Sugar Level', sortOrder: 1 },
-  { productGroupName: 'Beverages',   modifierGroupName: 'Temperature', sortOrder: 2 },
+  // Coffee, Drinks & Ice Cream — Temperature (Hot/Cold), Size, Sugar Level
+  { productGroupName: 'Coffee, Drinks & Ice Cream', modifierGroupName: 'Temperature', sortOrder: 0 },
+  { productGroupName: 'Coffee, Drinks & Ice Cream', modifierGroupName: 'Size',        sortOrder: 1 },
+  { productGroupName: 'Coffee, Drinks & Ice Cream', modifierGroupName: 'Sugar Level', sortOrder: 2 },
 
-  // Burgers — Sauce
-  { productGroupName: 'Burgers',     modifierGroupName: 'Sauce',       sortOrder: 0 },
-
-  // Chicken — Sauce
-  { productGroupName: 'Chicken',     modifierGroupName: 'Sauce',       sortOrder: 0 },
-
-  // Rice Meals — Sauce
-  { productGroupName: 'Rice Meals',  modifierGroupName: 'Sauce',       sortOrder: 0 },
+  // Food — Add Drink upsell
+  { productGroupName: 'Food', modifierGroupName: 'Add Drink', sortOrder: 0 },
 ];

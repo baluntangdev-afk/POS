@@ -65,13 +65,13 @@ export const MODIFIER_OPTIONS_FIXTURE: ModifierOptionsGroupFixture[] = [
     ],
   },
   {
-    modifierGroupName: 'Add-Ons',
+    modifierGroupName: 'Beverage Add-Ons',
     options: [
-      { name: 'Whipped Cream',      priceAddOn: '15.00', sortOrder: 0, isAvailable: true },
+      { name: 'Whipped Cream',       priceAddOn: '15.00', sortOrder: 0, isAvailable: true },
       { name: 'Extra Espresso Shot', priceAddOn: '25.00', sortOrder: 1, isAvailable: true },
-      { name: 'Milk Foam',          priceAddOn: '10.00', sortOrder: 2, isAvailable: true },
-      { name: 'Oat Milk',           priceAddOn: '20.00', sortOrder: 3, isAvailable: true },
-      { name: 'Coconut Milk',       priceAddOn: '20.00', sortOrder: 4, isAvailable: true },
+      { name: 'Milk Foam',           priceAddOn: '10.00', sortOrder: 2, isAvailable: true },
+      { name: 'Oat Milk',            priceAddOn: '20.00', sortOrder: 3, isAvailable: true },
+      { name: 'Coconut Milk',        priceAddOn: '20.00', sortOrder: 4, isAvailable: true },
     ],
   },
   {

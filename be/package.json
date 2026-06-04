@@ -43,7 +43,7 @@
     "seed:run": "npx ts-node src/database/run-seeders-cli.ts",
     "db:reset": "node scripts/db-reset.js",
     "seed:sync-index": "node scripts/sync-seeders-index.js",
-    "build:sea": "npm run build && ts-node -T build-exe.ts"
+    "build:sea": "npm run migration:sync-index && npm run seed:sync-index && npm run build && ts-node -T build-exe.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",

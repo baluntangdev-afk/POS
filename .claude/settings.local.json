@@ -130,7 +130,10 @@
       "Bash(bash *)",
       "Bash(~/.pub-cache/bin/fvm dart *)",
       "PowerShell(Add-Content *)",
-      "PowerShell(cd \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\"; $GIT_DIR = \\(git rev-parse --git-dir 2>$null\\); $GIT_COMMON = \\(git rev-parse --git-common-dir 2>$null\\); \"GIT_DIR: $GIT_DIR\"; \"GIT_COMMON: $GIT_COMMON\"; git branch --show-current; git log --oneline -5)"
+      "PowerShell(cd \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\"; $GIT_DIR = \\(git rev-parse --git-dir 2>$null\\); $GIT_COMMON = \\(git rev-parse --git-common-dir 2>$null\\); \"GIT_DIR: $GIT_DIR\"; \"GIT_COMMON: $GIT_COMMON\"; git branch --show-current; git log --oneline -5)",
+      "Bash(flutter --version)",
+      "PowerShell(\\(Get-Item \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\POSBackend.exe\"\\).LastWriteTime; \\(Get-Item \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\src\\\\database\\\\migrations\\\\1779584100000-so-items-sale-type-note.ts\"\\).LastWriteTime; \\(Get-Item \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\src\\\\database\\\\migrations\\\\index.ts\"\\).LastWriteTime)",
+      "PowerShell(\\(Get-Item \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\output\\\\POSKiosk-Setup-1.1.0.exe\"\\).LastWriteTime; \\(Get-Item \"C:\\\\POSKiosk\\\\backend\\\\POSBackend.exe\"\\).LastWriteTime)"
     ]
   }
 }

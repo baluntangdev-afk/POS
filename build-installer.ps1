@@ -61,6 +61,17 @@ if ($Version -ne "") {
 $currentVersion = (Get-Content $IssPath | Select-String '#define MyAppVersion').ToString() -replace '.*"([^"]+)".*','$1'
 Write-Host "`nBuilding version: $currentVersion" -ForegroundColor Yellow
 
+# ── Flutter pre-build setup (must run before jobs) ───────────────────────────
+Write-Step "Preparing Flutter environment..."
+Push-Location $KioskDir
+fvm flutter config --enable-native-assets | Out-Null
+fvm flutter pub get
+if ($LASTEXITCODE -ne 0) { Write-Fail "flutter pub get failed."; exit 1 }
+fvm dart run build_runner build --delete-conflicting-outputs
+if ($LASTEXITCODE -ne 0) { Write-Fail "build_runner failed."; exit 1 }
+Pop-Location
+Write-Ok "Flutter code generation done."
+
 # ── Build backend + Flutter in parallel ──────────────────────────────────────
 Write-Step "Building backend (npm run build:sea) and Flutter app in parallel..."
 

@@ -50,7 +50,7 @@
 ; â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 #define MyAppName    "POS Kiosk"
-#define MyAppVersion "1.0.5"
+#define MyAppVersion "1.1.3"
 #define MyAppPublisher "Your Company"
 #define KioskExe     "pos_app.exe"
 #define BackendExe   "POSBackend.exe"
@@ -135,20 +135,24 @@ Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; F
 
 ; Step 1 â€” Initialize PostgreSQL data dir, register + start service, create pos_db
 ;           Logs to: {app}\logs\setup-postgres-install.log
-Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -NonInteractive -File ""{app}\scripts\setup-postgres.ps1"" -AppDir ""{app}"""; WorkingDir: "{app}"; Flags: runhidden waituntilterminated; StatusMsg: "Setting up database (this may take a minute)..."
+Filename: “{sys}\WindowsPowerShell\v1.0\powershell.exe”; Parameters: “-ExecutionPolicy Bypass -NonInteractive -File “”{app}\scripts\setup-postgres.ps1”” -AppDir “”{app}”””; WorkingDir: “{app}”; Flags: runhidden waituntilterminated; StatusMsg: “Setting up database (this may take a minute)...”
+
+; Step 2 â€” Run TypeORM migrations
+;           Logs to: {app}\logs\run-migrations-install.log
+Filename: “{sys}\WindowsPowerShell\v1.0\powershell.exe”; Parameters: “-ExecutionPolicy Bypass -NonInteractive -File “”{app}\scripts\run-migrations.ps1”” -AppDir “”{app}”””; WorkingDir: “{app}”; Flags: runhidden waituntilterminated; StatusMsg: “Running database migrations...”
 
 ; Step 3 â€” Seed initial data (optional, unchecked by default)
-Filename: "{app}\backend\{#BackendExe}"; Parameters: "--seed"; WorkingDir: "{app}\backend"; Flags: runhidden waituntilterminated; StatusMsg: "Seeding initial data..."; Tasks: runseeds
+Filename: “{app}\backend\{#BackendExe}”; Parameters: “--seed”; WorkingDir: “{app}\backend”; Flags: runhidden waituntilterminated; StatusMsg: “Seeding initial data...”; Tasks: runseeds
 
 ; Step 4 â€” Install NestJS backend as auto-start Windows service
 ;           Logs to: {app}\logs\install-backend-service-install.log
-Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -NonInteractive -File ""{app}\scripts\install-backend-service.ps1"" -AppDir ""{app}"""; WorkingDir: "{app}"; Flags: runhidden waituntilterminated; StatusMsg: "Installing backend service..."
+Filename: “{sys}\WindowsPowerShell\v1.0\powershell.exe”; Parameters: “-ExecutionPolicy Bypass -NonInteractive -File “”{app}\scripts\install-backend-service.ps1”” -AppDir “”{app}”””; WorkingDir: “{app}”; Flags: runhidden waituntilterminated; StatusMsg: “Installing backend service...”
 
 ; Step 5 â€” Offer to launch the kiosk
 Filename: "{app}\{#KioskExe}"; Description: "Launch {#MyAppName} now"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
-Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -NonInteractive -File ""{app}\scripts\uninstall-services.ps1"" -AppDir ""{app}"""; WorkingDir: "{app}"; Flags: runhidden waituntilterminated
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-ExecutionPolicy Bypass -NonInteractive -File ""{app}\scripts\uninstall-services.ps1"" -AppDir ""{app}"""; WorkingDir: "{app}"; Flags: runhidden waituntilterminated
 
 [UninstallDelete]
 ; Remove PostgreSQL data directory on uninstall
@@ -223,6 +227,15 @@ begin
     );
   end;
 end;
+
+
+
+
+
+
+
+
+
 
 
 

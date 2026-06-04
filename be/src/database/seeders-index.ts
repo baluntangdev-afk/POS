@@ -25,40 +25,26 @@ import { UsersSeeder } from './seeders/users.seeder';
  * Seeder classes for npm run seed:run and POSBackend.exe --seed.
  * Auto-synced by scripts/sync-seeders-index.js when creating seeders.
  */
-// Order matters — each seeder must run after its dependencies.
 export const seeders: Array<new () => Seeder> = [
-  // ── Tier 1: no inter-seeder dependencies ──────────────────────────────
-  UsersSeeder,
   CurrenciesSeeder,
+  DiscountsSeeder,
+  InventoryStocksSeeder,
+  InventoryTypesSeeder,
+  MaterialTypesSeeder,
+  MaterialsSeeder,
+  MenuItemModifiersSeeder,
+  MenuItemsSeeder,
+  ModifierGroupsSeeder,
+  ModifierOptionsSeeder,
+  ProductGroupModifierGroupsSeeder,
+  ProductGroupsSeeder,
+  ProductModifierGroupsSeeder,
+  ProductVariantsSeeder,
+  ProductsSeeder,
+  RecipeItemsSeeder,
+  RecipesSeeder,
+  StoreMenusSeeder,
   TaxCategoriesSeeder,
   UomSeeder,
-  MaterialTypesSeeder,
-  InventoryTypesSeeder,
-  StoreMenusSeeder,
-
-  // ── Tier 2: depends on Tier 1 ─────────────────────────────────────────
-  ModifierGroupsSeeder,
-  ProductGroupsSeeder,
-  MaterialsSeeder,          // needs UomSeeder + MaterialTypesSeeder
-
-  // ── Tier 3: depends on Tier 2 ─────────────────────────────────────────
-  ModifierOptionsSeeder,    // needs ModifierGroupsSeeder
-  ProductsSeeder,           // needs ProductGroupsSeeder
-
-  // ── Tier 4: depends on Tier 3 ─────────────────────────────────────────
-  ProductVariantsSeeder,            // needs ProductsSeeder
-  ProductGroupModifierGroupsSeeder, // needs ProductGroupsSeeder + ModifierGroupsSeeder
-  ProductModifierGroupsSeeder,      // needs ProductsSeeder + ModifierGroupsSeeder
-  RecipesSeeder,                    // needs ProductsSeeder
-
-  // ── Tier 5: depends on Tier 4 ─────────────────────────────────────────
-  RecipeItemsSeeder,        // needs RecipesSeeder + MaterialsSeeder
-  MenuItemsSeeder,          // needs StoreMenusSeeder + ProductsSeeder/ProductVariantsSeeder
-  InventoryStocksSeeder,    // needs ProductsSeeder/ProductVariantsSeeder
-
-  // ── Tier 6: depends on Tier 5 ─────────────────────────────────────────
-  MenuItemModifiersSeeder,  // needs MenuItemsSeeder + ModifierOptionsSeeder
-
-  // ── No strict dependency, placed last for safety ──────────────────────
-  DiscountsSeeder,
+  UsersSeeder
 ];

@@ -9,6 +9,8 @@ import {
 } from '@nestjs/terminus';
 import { PostgresHealthIndicator } from './indicators/postgres.health';
 
+const DISK_PATH = process.platform === 'win32' ? 'C:\\' : '/';
+
 @ApiTags('Health')
 @Controller('health')
 export class HealthController {
@@ -30,7 +32,7 @@ export class HealthController {
     return this.health.check([
       () => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024),
       () => this.memory.checkRSS('memory_rss', 150 * 1024 * 1024),
-      () => this.disk.checkStorage('storage', { path: '/', thresholdPercent: 0.9 }),
+      () => this.disk.checkStorage('storage', { path: DISK_PATH, thresholdPercent: 0.9 }),
       () => this.checkPostgres(),
     ]);
   }

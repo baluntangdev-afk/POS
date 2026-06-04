@@ -27,6 +27,13 @@ try {
 
     # ── 2. Initialize data directory (idempotent) ─────────────────────────
     if (!(Test-Path "$pgData\PG_VERSION")) {
+        # Directory exists but was never fully initialized (e.g. from a failed
+        # prior install). initdb refuses to write into a non-empty directory, so
+        # remove it first.
+        if (Test-Path $pgData) {
+            Write-Host "Removing partial data directory at $pgData..."
+            Remove-Item $pgData -Recurse -Force
+        }
         Write-Host "Initializing PostgreSQL data directory at $pgData..."
         New-Item -ItemType Directory -Force $pgData | Out-Null
 
@@ -103,6 +110,14 @@ try {
     Write-Host "Service registered."
 
     # ── 7. Start PostgreSQL ───────────────────────────────────────────────
+    # Warn if something else is already using port 5432 (e.g. a Docker postgres container)
+    $portInUse = netstat -ano 2>$null | Select-String ":5432\s"
+    if ($portInUse) {
+        Write-Warning "Port 5432 is already in use by another process. This will prevent POSPostgres from starting."
+        Write-Warning "Stop any Docker postgres containers or other PostgreSQL instances before running this installer."
+        Write-Warning "$portInUse"
+    }
+
     Write-Host "Starting POSPostgres..."
     Start-Service "POSPostgres" -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 3
@@ -112,9 +127,18 @@ try {
 
     if ($svc.Status -ne "Running") {
         Write-Host "Service did not reach Running state immediately, waiting..."
-        Start-Sleep -Seconds 5
+        Start-Sleep -Seconds 10
         $svc.Refresh()
         Write-Host "Service status after wait: $($svc.Status)"
+    }
+
+    if ($svc.Status -ne "Running") {
+        Write-Error "POSPostgres service failed to start. Check that port 5432 is free and no other PostgreSQL is running (including Docker containers). See Application Event Log for details."
+        Write-Host "=== PostgreSQL log ==="
+        Get-ChildItem "$pgData\log\" -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1 |
+            ForEach-Object { Get-Content $_.FullName -Tail 30 }
+        exit 1
     }
 
     # ── 8. Wait for PostgreSQL to accept connections ──────────────────────

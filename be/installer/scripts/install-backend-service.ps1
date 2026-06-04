@@ -57,25 +57,27 @@ try {
         exit 1
     }
 
-    # ── Verify backend health (up to 30s) ────────────────────────────────
-    Write-Host "Waiting for backend health check (up to 30s)..."
+    # ── Verify backend health (up to 60s) ────────────────────────────────
+    # Uses /health/live (memory-only check) so a slow DB connection doesn't
+    # block the installer from confirming the process is up and listening.
+    Write-Host "Waiting for backend to be ready (up to 60s)..."
     $healthy = $false
-    for ($i = 1; $i -le 30; $i++) {
+    for ($i = 1; $i -le 60; $i++) {
         Start-Sleep -Seconds 1
         try {
-            $r = Invoke-WebRequest -Uri "http://localhost:3000/health" `
+            $r = Invoke-WebRequest -Uri "http://localhost:3000/health/live" `
                      -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
             if ($r.StatusCode -eq 200) { $healthy = $true; break }
         } catch { }
-        if ($i % 5 -eq 0) { Write-Host "  still waiting... ($i/30)" }
+        if ($i % 10 -eq 0) { Write-Host "  still waiting... ($i/60)" }
     }
 
     if ($healthy) {
-        Write-Host "Backend is healthy and accepting requests."
+        Write-Host "Backend is up and accepting requests."
     } else {
-        Write-Host "WARNING: Backend health check did not succeed within 30s."
-        Write-Host "This may be normal if the backend is still connecting to the database."
+        Write-Host "WARNING: Backend did not respond within 60s."
         Write-Host "Check $logs\backend-error.log for details."
+        Write-Host "The kiosk may show 'No Connection' until the backend finishes starting."
     }
 
     Write-Host "install-backend-service.ps1 completed successfully."

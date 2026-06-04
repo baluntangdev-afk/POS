@@ -9,7 +9,6 @@ extension DTOMapper on UserDto {
     firstName: firstName,
     lastName: lastName,
     middleName: middleName,
-    suffix: suffix == 'None' ? '' : suffix,
     email: email,
     phone: phone ?? '',
     image: image,
@@ -21,9 +20,6 @@ extension DTOMapper on UserDto {
     status: status,
     lastLogin: lastLogin,
     createdAt: createdAt,
-    address: userDetails?.address ?? '',
-    gender: userDetails?.gender ?? '',
-    dateOfBirth: userDetails?.dateOfBirth,
     isPinChanged: isPinChanged,
   );
 }
@@ -35,7 +31,7 @@ extension EntityMapper on User {
     firstName: firstName,
     lastName: lastName,
     middleName: middleName,
-    suffix: suffix,
+    suffix: '',
     email: email,
     phone: phone,
     image: image,
@@ -51,7 +47,6 @@ extension EntityMapper on User {
 
   CreateUserDto get toRequest => CreateUserDto(
     id: id,
-    email: email,
     userId: userId,
     firstName: firstName,
     lastName: lastName,
@@ -59,10 +54,6 @@ extension EntityMapper on User {
     systemAdmin: role == 'admin',
     role: role,
     phone: phone,
-    address: address,
-    gender: gender,
-    dateOfBirth: dateOfBirth != null ? dateOfBirth!.toIso8601String() : '',
     middleName: middleName ?? '',
-    suffix: suffix.isEmpty ? 'None' : suffix,
   );
 }

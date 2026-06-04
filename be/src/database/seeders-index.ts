@@ -26,6 +26,7 @@ import { UsersSeeder } from './seeders/users.seeder';
  * Auto-synced by scripts/sync-seeders-index.js when creating seeders.
  */
 export const seeders: Array<new () => Seeder> = [
+  UsersSeeder,
   CurrenciesSeeder,
   DiscountsSeeder,
   InventoryStocksSeeder,
@@ -46,5 +47,4 @@ export const seeders: Array<new () => Seeder> = [
   StoreMenusSeeder,
   TaxCategoriesSeeder,
   UomSeeder,
-  UsersSeeder
 ];

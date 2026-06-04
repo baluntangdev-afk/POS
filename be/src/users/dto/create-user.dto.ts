@@ -21,11 +21,11 @@ const lowerCaseTransformer = ({ value }: { value: unknown }) =>
  * DTO for creating a new user.
  */
 export class CreateUserDto {
-  @ApiProperty({ type: () => String, example: 'john.doe@cody.inc' })
+  @ApiPropertyOptional({ type: () => String, example: 'john.doe@cody.inc' })
   @Transform(lowerCaseTransformer)
-  @IsNotEmpty()
+  @IsOptional()
   @IsEmail()
-  email: string;
+  email?: string;
 
   @ApiProperty({ type: () => String, example: 'john.doe' })
   @IsNotEmpty()

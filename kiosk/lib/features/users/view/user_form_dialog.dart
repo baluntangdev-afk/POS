@@ -4,13 +4,11 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
-import '../../../validation/rules/is_email.dart';
 import '../../../validation/rules/is_phone.dart';
 import '../../../validation/rules/is_required.dart';
 import '../../../validation/validate.dart';
@@ -34,15 +32,10 @@ class UserFormDialog extends HookConsumerWidget {
     final firstNameController = useTextEditingController(text: user?.firstName ?? '');
     final lastNameController = useTextEditingController(text: user?.lastName ?? '');
     final middleNameController = useTextEditingController(text: user?.middleName ?? '');
-    final selectedSuffix = useState<String>(user?.suffix ?? '');
-    final emailController = useTextEditingController(text: user?.email ?? '');
     final phoneController = useTextEditingController(text: user?.phone ?? '');
-    final addressController = useTextEditingController(text: user?.address ?? '');
     final imageController = useTextEditingController(text: user?.image ?? '');
     final selectedUserType = useState<String>(user?.role ?? 'user');
-    final selectedGender = useState<String>(user?.gender ?? '');
     final selectedStatus = useState<String>(user?.status ?? 'Active');
-    final selectedDateOfBirth = useState<DateTime?>(user?.dateOfBirth);
     final isLoading = useState(false);
     final isDialogShowing = useRef(false);
     final validationAttempted = useState(false);
@@ -51,9 +44,7 @@ class UserFormDialog extends HookConsumerWidget {
     final firstNameFocusNode = useFocusNode();
     final lastNameFocusNode = useFocusNode();
     final middleNameFocusNode = useFocusNode();
-    final emailFocusNode = useFocusNode();
     final phoneFocusNode = useFocusNode();
-    final addressFocusNode = useFocusNode();
 
     ref.listen(modifyUserProvider, (previous, next) {
       if (next.isLoading) {
@@ -121,10 +112,8 @@ class UserFormDialog extends HookConsumerWidget {
       validationAttempted.value = true;
 
       final formValid = formKey.currentState!.validate();
-      final genderValid = selectedGender.value.isNotEmpty;
-      final dobValid = selectedDateOfBirth.value != null;
 
-      if (!formValid || !genderValid || !dobValid) return;
+      if (!formValid) return;
 
       isLoading.value = true;
 
@@ -135,13 +124,9 @@ class UserFormDialog extends HookConsumerWidget {
           firstName: firstNameController.text.trim(),
           lastName: lastNameController.text.trim(),
           middleName: middleNameController.text.trim(),
-          suffix: selectedSuffix.value,
-          email: emailController.text.trim(),
+          email: user?.email ?? '',
           phone: phoneController.text.trim(),
           image: imageController.text.trim(),
-          address: addressController.text.trim(),
-          gender: selectedGender.value,
-          dateOfBirth: selectedDateOfBirth.value,
           systemAdmin: selectedUserType.value == 'admin',
           role: selectedUserType.value,
           emailVerified: user?.emailVerified ?? false,
@@ -174,15 +159,10 @@ class UserFormDialog extends HookConsumerWidget {
           firstNameController: firstNameController,
           lastNameController: lastNameController,
           middleNameController: middleNameController,
-          selectedSuffix: selectedSuffix,
-          emailController: emailController,
           phoneController: phoneController,
-          addressController: addressController,
           imageController: imageController,
           selectedUserType: selectedUserType,
-          selectedGender: selectedGender,
           selectedStatus: selectedStatus,
-          selectedDateOfBirth: selectedDateOfBirth,
           validationAttempted: validationAttempted,
           isEditing: isEditing,
           handleSubmit: handleSubmit,
@@ -192,9 +172,7 @@ class UserFormDialog extends HookConsumerWidget {
           firstNameFocusNode: firstNameFocusNode,
           lastNameFocusNode: lastNameFocusNode,
           middleNameFocusNode: middleNameFocusNode,
-          emailFocusNode: emailFocusNode,
           phoneFocusNode: phoneFocusNode,
-          addressFocusNode: addressFocusNode,
         ),
       );
     }
@@ -322,15 +300,10 @@ class UserFormDialog extends HookConsumerWidget {
     required TextEditingController firstNameController,
     required TextEditingController lastNameController,
     required TextEditingController middleNameController,
-    required ValueNotifier<String> selectedSuffix,
-    required TextEditingController emailController,
     required TextEditingController phoneController,
-    required TextEditingController addressController,
     required TextEditingController imageController,
     required ValueNotifier<String> selectedUserType,
-    required ValueNotifier<String> selectedGender,
     required ValueNotifier<String> selectedStatus,
-    required ValueNotifier<DateTime?> selectedDateOfBirth,
     required ValueNotifier<bool> validationAttempted,
     required bool isEditing,
     required Future<void> Function() handleSubmit,
@@ -340,9 +313,7 @@ class UserFormDialog extends HookConsumerWidget {
     required FocusNode firstNameFocusNode,
     required FocusNode lastNameFocusNode,
     required FocusNode middleNameFocusNode,
-    required FocusNode emailFocusNode,
     required FocusNode phoneFocusNode,
-    required FocusNode addressFocusNode,
   }) {
     return Form(
       key: formKey,
@@ -388,82 +359,29 @@ class UserFormDialog extends HookConsumerWidget {
               focusNode: lastNameFocusNode,
               validator: Validate(rules: [isRequired(message: 'Last name is required.')]).call,
             ),
-            _buildSuffixDropdown(context, selectedSuffix, validationAttempted),
           ]),
           const SizedBox(height: 20),
           _buildSectionLabel(context, 'Contact Details', Icons.contact_phone_outlined),
           const SizedBox(height: 12),
-          _buildResponsiveRow(context, [
-            _buildTextField(
-              context: context,
-              controller: emailController,
-              label: 'Email',
-              inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\s'))],
-              icon: Icons.email_rounded,
-              keyboardType: TextInputType.emailAddress,
-              focusNode: emailFocusNode,
-              validator: Validate(
-                rules: [
-                  isRequired(message: 'Email is required.'),
-                  isEmail(message: 'Please enter a valid email address.'),
-                ],
-              ).call,
-            ),
-            _buildTextField(
-              context: context,
-              controller: phoneController,
-              label: 'Phone Number',
-              icon: Icons.phone_rounded,
-              keyboardType: TextInputType.phone,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              focusNode: phoneFocusNode,
-              validator: Validate(
-                rules: [
-                  isRequired(message: 'Phone number is required.'),
-                  isPhone(message: 'Please enter a valid phone number.'),
-                ],
-              ).call,
-            ),
-          ]),
-          const SizedBox(height: 12),
-          _buildResponsiveRow(context, [
-            _buildTextField(
-              context: context,
-              controller: addressController,
-              label: 'Address',
-              icon: Icons.location_on_rounded,
-              focusNode: addressFocusNode,
-              validator: Validate(rules: [isRequired(message: 'Address is required.')]).call,
-            ),
-            _buildDatePickerField(
-              context: context,
-              label: 'Date of Birth',
-              icon: Icons.cake_rounded,
-              selectedDate: selectedDateOfBirth,
-              validator: (input) {
-                final date = input.toString();
-                final validator = Validate(
-                  rules: [isRequired(message: 'Date of birth is required.')],
-                );
-                return validator(date);
-              },
-              validationAttempted: validationAttempted,
-            ),
-          ]),
+          _buildTextField(
+            context: context,
+            controller: phoneController,
+            label: 'Phone Number',
+            icon: Icons.phone_rounded,
+            keyboardType: TextInputType.phone,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            focusNode: phoneFocusNode,
+            validator: Validate(
+              rules: [
+                isRequired(message: 'Phone number is required.'),
+                isPhone(message: 'Please enter a valid phone number.'),
+              ],
+            ).call,
+          ),
           const SizedBox(height: 20),
           _buildSectionLabel(context, 'Account Settings', Icons.manage_accounts_rounded),
           const SizedBox(height: 12),
           _buildResponsiveRow(context, [
-            _buildPopupMenuField(
-              context: context,
-              label: 'Gender',
-              icon: Icons.wc_rounded,
-              value: selectedGender.value.isEmpty ? 'Select' : selectedGender.value,
-              items: const ['Male', 'Female', 'Other'],
-              onChanged: (value) => selectedGender.value = value,
-              validator: Validate(rules: [isRequired(message: 'Gender is required.')]).call,
-              validationAttempted: validationAttempted,
-            ),
             if (isEditing)
               _buildStatusToggleField(
                 context: context,
@@ -547,17 +465,6 @@ class UserFormDialog extends HookConsumerWidget {
   }
 
   Widget _buildResponsiveRow(BuildContext context, List<Widget> children) {
-    if (context.breakpoint.isPhone) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            children[i],
-            if (i < children.length - 1) const SizedBox(height: 12),
-          ],
-        ],
-      );
-    }
     if (context.breakpoint.isTablet && children.length > 2) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -814,109 +721,6 @@ class UserFormDialog extends HookConsumerWidget {
             ),
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildSuffixDropdown(
-    BuildContext context,
-    ValueNotifier<String> selectedSuffix,
-    ValueNotifier<bool> validationAttempted,
-  ) {
-    return _buildPopupMenuField(
-      context: context,
-      label: 'Suffix',
-      icon: Icons.short_text_rounded,
-      value: selectedSuffix.value.isEmpty ? 'None' : selectedSuffix.value,
-      items: const ['', 'Jr.', 'Sr.', 'I', 'II', 'III', 'IV', 'V'],
-      onChanged: (value) => selectedSuffix.value = value,
-      validationAttempted: validationAttempted,
-    );
-  }
-
-  Widget _buildDatePickerField({
-    required BuildContext context,
-    required String label,
-    required IconData icon,
-    required ValueNotifier<DateTime?> selectedDate,
-    String? Function(DateTime?)? validator,
-    required ValueNotifier<bool> validationAttempted,
-  }) {
-    final errorText = validationAttempted.value ? validator?.call(selectedDate.value) : null;
-    final r = context.responsive;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: POSColors.textSecondary,
-            fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 13),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: selectedDate.value ?? DateTime(2000),
-                firstDate: DateTime(1900),
-                lastDate: DateTime.now(),
-              );
-              if (picked != null) selectedDate.value = picked;
-            },
-            borderRadius: BorderRadius.circular(POSRadius.md),
-            child: Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(
-                horizontal: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
-                vertical: r.value<double>(kiosk: 12, tablet: 11, phone: 10),
-              ),
-              decoration: BoxDecoration(
-                color: POSColors.surfaceSubtle,
-                borderRadius: BorderRadius.circular(POSRadius.md),
-                border: Border.all(
-                  color: errorText != null ? ColorSet.danger : POSColors.borderDefault,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(icon, color: ColorSet.primary, size: r.value<double>(kiosk: 18, tablet: 17, phone: 16)),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      selectedDate.value != null
-                          ? DateFormat('MMM dd, yyyy').format(selectedDate.value!)
-                          : 'Select date',
-                      style: TextStyle(
-                        fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 13),
-                        color: selectedDate.value != null
-                            ? POSColors.textPrimary
-                            : POSColors.textTertiary,
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    Icons.calendar_today_rounded,
-                    color: POSColors.iconSubtle,
-                    size: r.value<double>(kiosk: 16, tablet: 15, phone: 14),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        if (errorText != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            errorText,
-            style: TextStyle(color: ColorSet.danger, fontSize: r.value<double>(kiosk: 12, tablet: 12, phone: 11)),
-          ),
-        ],
       ],
     );
   }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -13,6 +15,7 @@ import '../../../widgets/android_bottom_sheet.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/message_dialog.dart';
 import '../../../widgets/windows_scaffold.dart';
+import '../../users/repositories/user_repository.dart';
 import '../entities/access.dart';
 import '../enums/role.dart';
 import '../state/access_notifier.dart';
@@ -28,6 +31,7 @@ class MenuScreen extends HookConsumerWidget {
     final access = ref.watch(accessProvider.select((it) => it.value ?? Access.unknown()));
     final isAndroid = context.breakpoint.isAndroid;
     final hasShownPosDialog = useRef(false);
+    final hasShownUsersDialog = useRef(false);
 
     void checkAndShowPosDialog() {
       if (hasShownPosDialog.value) return;
@@ -76,8 +80,58 @@ class MenuScreen extends HookConsumerWidget {
       }
     }
 
-    ref.listen(posTerminalProvider, (prev, next) => checkAndShowPosDialog());
-    ref.listen(accessProvider, (prev, next) => checkAndShowPosDialog());
+    Future<void> checkAndShowUsersDialog() async {
+      if (hasShownUsersDialog.value) return;
+
+      final posState = ref.read(posTerminalProvider);
+      final accessState = ref.read(accessProvider);
+
+      if (posState.isLoading || posState.hasError) return;
+      if (accessState.isLoading || accessState.hasError) return;
+
+      final access = accessState.value!;
+      if (access.role != Role.admin) return;
+
+      hasShownUsersDialog.value = true;
+
+      try {
+        final repo = ref.read(userRepositoryProvider);
+        final (_, total) = await repo.getUsers(limit: 2, page: 1);
+        if (!context.mounted) return;
+        if (total <= 1) {
+          unawaited(showMessageDialog(
+            context,
+            title: 'No Employees Added',
+            message:
+                'No employee accounts have been set up yet. '
+                'Add at least one employee before operating the system.',
+            type: DialogType.warning,
+            primaryButtonText: 'Add Employee',
+            secondaryButtonText: 'Sign Out',
+            barrierDismissible: false,
+            onPrimaryPressed: () {
+              Navigator.of(context, rootNavigator: true).pop();
+              const UserManagementRoute().push<void>(context);
+            },
+            onSecondaryPressed: () {
+              Navigator.of(context, rootNavigator: true).pop();
+              const OnboardingRoute().go(context);
+            },
+          ));
+        }
+      } catch (_) {
+        // Silent fail — don't block the menu if the user count check fails
+      }
+    }
+
+    ref.listen(posTerminalProvider, (prev, next) {
+      checkAndShowPosDialog();
+      unawaited(checkAndShowUsersDialog());
+    });
+    ref.listen(accessProvider, (prev, next) {
+      checkAndShowPosDialog();
+      unawaited(checkAndShowUsersDialog());
+    });
 
     if (isAndroid) {
       return _AndroidMenuScreen(access: access);

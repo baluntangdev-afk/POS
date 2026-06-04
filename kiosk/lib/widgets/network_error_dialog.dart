@@ -264,7 +264,7 @@ _ErrorInfo _resolveErrorInfo(Object error) {
         icon: Icons.wifi_off_rounded,
         title: 'No Connection',
         message:
-            'Unable to reach the server. Please check your internet connection and try again.',
+            'Unable to reach the server. Please wait a moment and try again.',
       );
     }
     if (error.type == DioExceptionType.connectionTimeout ||

@@ -34,14 +34,20 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto, causer: User) {
-    const existingByEmail = await this.userRepository.findOne({
-      select: { id: true },
-      where: { email: createUserDto.email },
-    });
-    if (existingByEmail) {
-      throw new ConflictException(
-        `The email address "${createUserDto.email}" is already in use.`,
-      );
+    const email =
+      createUserDto.email ??
+      `${createUserDto.userId.toLowerCase().replace(/[^a-z0-9]/g, '.')}@pos.local`;
+
+    if (createUserDto.email) {
+      const existingByEmail = await this.userRepository.findOne({
+        select: { id: true },
+        where: { email },
+      });
+      if (existingByEmail) {
+        throw new ConflictException(
+          `The email address "${email}" is already in use.`,
+        );
+      }
     }
 
     const existingByUserId = await this.userRepository.findOne({
@@ -61,6 +67,7 @@ export class UsersService {
 
     const user = this.userRepository.create({
       ...createUserDto,
+      email,
       password,
       devicePin,
       salt,

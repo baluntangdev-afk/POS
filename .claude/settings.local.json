@@ -115,7 +115,17 @@
       "PowerShell(curl.exe -L \"https://get.enterprisedb.com/postgresql/postgresql-16.9-1-windows-x64-binaries.zip\" -o \"$env:TEMP\\\\pgsql16.zip\" --max-time 300 -w \"\\\\nHTTP:%{http_code} Size:%{size_download}\" 2>&1; Write-Host \"Exit:$LASTEXITCODE\")",
       "PowerShell(Expand-Archive *)",
       "PowerShell(& \"C:\\\\Users\\\\Jufiel\\\\AppData\\\\Local\\\\Programs\\\\Inno Setup 6\\\\ISCC.exe\" \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\installer.iss\" 2>&1)",
-      "PowerShell($f = Get-Item \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\output\\\\POSKiosk-Setup-1.0.0.exe\"; Write-Host \"Size: $\\([math]::Round\\($f.Length/1MB,1\\)\\) MB\"; Write-Host \"Created: $\\($f.LastWriteTime\\)\")"
+      "PowerShell($f = Get-Item \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\output\\\\POSKiosk-Setup-1.0.0.exe\"; Write-Host \"Size: $\\([math]::Round\\($f.Length/1MB,1\\)\\) MB\"; Write-Host \"Created: $\\($f.LastWriteTime\\)\")",
+      "Bash(sc query *)",
+      "Bash(sc qc *)",
+      "PowerShell($logDir = \"C:\\\\posdata\\\\log\"; if \\(Test-Path $logDir\\) { Get-ChildItem $logDir | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Get-Content $_.FullName -Tail 40 } } else { \"Log dir not found: $logDir\" })",
+      "Bash(sc start *)",
+      "PowerShell(netstat *)",
+      "PowerShell(Start-Service *)",
+      "PowerShell(Get-EventLog -LogName System -Source \"Service Control Manager\" -Newest 10 | Where-Object { $_.Message -match \"POSPostgres\" } | Select-Object TimeGenerated, Message | Format-List)",
+      "PowerShell(Get-ChildItem \"C:\\\\posdata\\\\log\\\\\" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Get-Content $_.FullName -Tail 50 })",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":5432\")"
     ]
   }
 }

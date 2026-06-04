@@ -13,7 +13,7 @@ extension ExceptionExtension on Object {
     if (this is DioException) {
       final e = this as DioException;
       if (e.type == DioExceptionType.connectionError) {
-        return 'No internet connection.';
+        return 'Unable to reach the server. Please wait a moment and try again.';
       }
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout ||

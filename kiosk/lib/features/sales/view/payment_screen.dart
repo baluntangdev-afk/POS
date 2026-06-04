@@ -416,7 +416,7 @@ class _PaymentMethodCard extends HookConsumerWidget {
     final cardPayment = _isCard && p is CardPayment ? p : null;
     final qrPayment = !_isCash && !_isCard && p is QRPayment && p.walletProvider == entry.paymentMethod ? p : null;
     final isSelected = cashPayment != null || cardPayment != null || qrPayment != null;
-    final isEnabled = payment == null;
+    final isEnabled = payment == null || isSelected;
 
     Future<void> onTap() async {
       final collectibleAmount = widgetRef.read(
@@ -427,6 +427,7 @@ class _PaymentMethodCard extends HookConsumerWidget {
         result = await showCashPaymentDialog(
           context,
           collectibleAmount: collectibleAmount,
+          initialCashReceived: cashPayment?.cashReceived,
         );
       } else {
         result = await showReferencePaymentDialog(

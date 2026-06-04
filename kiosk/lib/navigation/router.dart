@@ -33,6 +33,6 @@ part 'transactions_route.dart';
 part 'user_management_route.dart';
 
 final routerProvider = Provider((ref) {
-  final router = GoRouter(initialLocation: const OnboardingRoute().location, routes: $appRoutes);
+  final router = GoRouter(initialLocation: const LoginRoute().location, routes: $appRoutes);
   return router;
 });

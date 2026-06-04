@@ -6,7 +6,6 @@ part of 'router.dart';
     TypedGoRoute<OrderingRoute>(path: 'ordering'),
     TypedGoRoute<CartRoute>(path: 'cart'),
     TypedGoRoute<PaymentRoute>(path: 'payment'),
-    TypedGoRoute<ReceiptRoute>(path: 'receipt/:receiptId'),
     TypedGoRoute<DiscountRoute>(path: 'discount'),
   ],
 )
@@ -46,6 +45,7 @@ class PaymentRoute extends GoRouteData with $PaymentRoute {
   }
 }
 
+@TypedGoRoute<ReceiptRoute>(path: '/receipt/:receiptId')
 class ReceiptRoute extends GoRouteData with $ReceiptRoute {
   const ReceiptRoute(this.receiptId);
 

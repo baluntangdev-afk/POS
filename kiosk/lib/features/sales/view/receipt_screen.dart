@@ -43,7 +43,7 @@ class ReceiptScreen extends ConsumerWidget {
         if (context.mounted && context.canPop()) {
           context.pop();
         } else if (context.mounted) {
-          const SalesRoute().go(context);
+          const MenuRoute().go(context);
         }
       }
     });
@@ -983,7 +983,7 @@ class _NewOrderButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius),
         child: InkWell(
           borderRadius: BorderRadius.circular(radius),
-          onTap: () => const SalesRoute().go(context),
+          onTap: () => const OrderingRoute().go(context),
           child: SizedBox(
             height: height,
             child: Row(
@@ -1036,7 +1036,7 @@ class _CloseButton extends ConsumerWidget {
             if (context.canPop()) {
               context.pop();
             } else {
-              const SalesRoute().go(context);
+              const MenuRoute().go(context);
             }
           },
           child: SizedBox(
@@ -1101,7 +1101,7 @@ class _VoidButton extends ConsumerWidget {
               totalAmount: receipt.totalAmount,
             );
             if (voided && context.mounted) {
-              const SalesRoute().go(context);
+              const MenuRoute().go(context);
             }
           },
           child: SizedBox(

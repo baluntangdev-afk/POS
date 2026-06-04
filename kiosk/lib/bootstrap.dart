@@ -36,7 +36,7 @@ Future<ProviderContainer> bootstrap(AppEnv env) async {
     );
 
     await windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.setResizable(false);
+      await windowManager.setResizable(true);
       await windowManager.setMinimizable(true);
       await windowManager.setPreventClose(false);
 

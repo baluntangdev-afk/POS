@@ -60,7 +60,7 @@ class MenuScreen extends HookConsumerWidget {
           },
           onSecondaryPressed: () {
             Navigator.of(context, rootNavigator: true).pop();
-            const OnboardingRoute().go(context);
+            const LoginRoute().go(context);
           },
         );
       } else {
@@ -74,7 +74,7 @@ class MenuScreen extends HookConsumerWidget {
           barrierDismissible: false,
           onPrimaryPressed: () {
             Navigator.of(context, rootNavigator: true).pop();
-            const OnboardingRoute().go(context);
+            const LoginRoute().go(context);
           },
         );
       }
@@ -115,7 +115,7 @@ class MenuScreen extends HookConsumerWidget {
             },
             onSecondaryPressed: () {
               Navigator.of(context, rootNavigator: true).pop();
-              const OnboardingRoute().go(context);
+              const LoginRoute().go(context);
             },
           ));
         }
@@ -289,7 +289,7 @@ class _AccountBottomSheetContent extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: () {
                 Navigator.of(context, rootNavigator: true).pop();
-                const OnboardingRoute().go(context);
+                const LoginRoute().go(context);
               },
               icon: const Icon(Icons.logout_rounded, size: 18),
               label: Text('Sign Out', style: TextStyle(fontSize: r.value<double>(kiosk: 16, tablet: 15, phone: 14))),
@@ -377,7 +377,7 @@ class _MenuHeader extends StatelessWidget {
                 ),
                 SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
                 IconButton(
-                  onPressed: () => const OnboardingRoute().go(context),
+                  onPressed: () => const LoginRoute().go(context),
                   icon: Icon(Icons.logout_rounded, size: r.value<double>(kiosk: 20, tablet: 18, phone: 16)),
                   color: ColorSet.danger,
                   tooltip: 'Sign Out',
@@ -444,7 +444,7 @@ class _MenuHeader extends StatelessWidget {
                 SizedBox(
                   height: r.value<double>(kiosk: 48, tablet: 42, phone: 36),
                   child: OutlinedButton.icon(
-                    onPressed: () => const OnboardingRoute().go(context),
+                    onPressed: () => const LoginRoute().go(context),
                     icon: Icon(Icons.logout_rounded, size: r.value<double>(kiosk: 16, tablet: 14, phone: 13)),
                     label: Text('Sign Out', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 12, phone: 11))),
                     style: OutlinedButton.styleFrom(

@@ -15,7 +15,6 @@ import '../../../validation/validate.dart';
 import '../../../widgets/android_bottom_sheet.dart';
 import '../../../widgets/button.dart';
 import '../../../widgets/resposive_wrap_container.dart';
-import '../../../widgets/text_box_form_field.dart';
 import '../entities/payment.dart';
 
 /// Shows the cash payment UI.
@@ -25,25 +24,37 @@ import '../entities/payment.dart';
 Future<CashPayment?> showCashPaymentDialog(
   BuildContext context, {
   required Decimal collectibleAmount,
+  Decimal? initialCashReceived,
 }) {
   if (Platform.isAndroid) {
     return showAndroidBottomSheet<CashPayment>(
       context: context,
       maxHeightRatio: 0.95,
-      builder: (ctx) => _CashPaymentContent(collectibleAmount: collectibleAmount),
+      builder: (ctx) => _CashPaymentContent(
+        collectibleAmount: collectibleAmount,
+        initialCashReceived: initialCashReceived,
+      ),
     );
   }
   return showDialog<CashPayment>(
     context: context,
-    builder: (context) => CashPaymentDialog(collectibleAmount: collectibleAmount),
+    builder: (context) => CashPaymentDialog(
+      collectibleAmount: collectibleAmount,
+      initialCashReceived: initialCashReceived,
+    ),
   );
 }
 
 /// Windows dialog wrapper — wraps [_CashPaymentContent] in a [Dialog].
 class CashPaymentDialog extends HookWidget {
-  const CashPaymentDialog({super.key, required this.collectibleAmount});
+  const CashPaymentDialog({
+    super.key,
+    required this.collectibleAmount,
+    this.initialCashReceived,
+  });
 
   final Decimal collectibleAmount;
+  final Decimal? initialCashReceived;
 
   @override
   Widget build(BuildContext context) {
@@ -58,21 +69,30 @@ class CashPaymentDialog extends HookWidget {
         horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
         vertical: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
       ),
-      child: _CashPaymentContent(collectibleAmount: collectibleAmount),
+      child: _CashPaymentContent(
+        collectibleAmount: collectibleAmount,
+        initialCashReceived: initialCashReceived,
+      ),
     );
   }
 }
 
 /// Shared form content used by both the Windows dialog and the Android bottom sheet.
 class _CashPaymentContent extends HookWidget {
-  const _CashPaymentContent({required this.collectibleAmount});
+  const _CashPaymentContent({
+    required this.collectibleAmount,
+    this.initialCashReceived,
+  });
 
   final Decimal collectibleAmount;
+  final Decimal? initialCashReceived;
 
   @override
   Widget build(BuildContext context) {
     final formKey = useMemoized(() => GlobalKey<FormState>());
-    final cashController = useTextEditingController();
+    final cashController = useTextEditingController(
+      text: initialCashReceived?.withCommas ?? '',
+    );
     final cashInputFormatter = useMemoized(() => DecimalInputFormatter());
 
     useListenable(cashController);
@@ -136,35 +156,66 @@ class _CashPaymentContent extends HookWidget {
                     ],
                   ),
                 ),
-                TextBoxFormField(
-                  controller: cashController,
-                  label: 'Cash Received',
-                  hint: '0.00',
-                  maxLines: 1,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  textInputAction: TextInputAction.done,
-                  inputFormatters: [cashInputFormatter],
-                  suffixIcon: cashController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear_rounded, size: 20),
-                          onPressed: () {
-                            cashController.clear();
-                            formKey.currentState?.reset();
-                          },
-                        )
-                      : null,
-                  validator: (value) {
-                    final rules = [
-                      minValue(collectibleAmount.toDouble(), message: 'Insufficient amount'),
-                    ];
-                    final validate = Validate<double>(rules: rules);
-                    final sanitizedValue = value?.replaceAll(',', '');
-                    final receivedAmount = double.tryParse(sanitizedValue ?? '') ?? 0.0;
-                    return validate(receivedAmount);
-                  },
-                  style: TextStyle(
-                    fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Cash Received',
+                      style: TextStyle(
+                        fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    TextFormField(
+                      controller: cashController,
+                      maxLines: 1,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      textInputAction: TextInputAction.done,
+                      inputFormatters: [cashInputFormatter],
+                      style: TextStyle(
+                        fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+                      ),
+                      decoration: InputDecoration(
+                        hintText: '0.00',
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(color: POSColors.borderDefault),
+                          borderRadius: BorderRadius.circular(POSRadius.md),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(color: ColorSet.primary, width: 1.5),
+                          borderRadius: BorderRadius.circular(POSRadius.md),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(color: ColorSet.danger),
+                          borderRadius: BorderRadius.circular(POSRadius.md),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(color: ColorSet.danger, width: 1.5),
+                          borderRadius: BorderRadius.circular(POSRadius.md),
+                        ),
+                        suffixIcon: cashController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 20),
+                                onPressed: () {
+                                  cashController.clear();
+                                },
+                              )
+                            : null,
+                      ),
+                      validator: (value) {
+                        final rules = [
+                          minValue(collectibleAmount.toDouble(), message: 'Insufficient amount'),
+                        ];
+                        final validate = Validate<double>(rules: rules);
+                        final sanitizedValue = value?.replaceAll(',', '');
+                        final receivedAmount = double.tryParse(sanitizedValue ?? '') ?? 0.0;
+                        return validate(receivedAmount);
+                      },
+                    ),
+                  ],
                 ),
                 ResponsiveWrapContainer(
                   spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),

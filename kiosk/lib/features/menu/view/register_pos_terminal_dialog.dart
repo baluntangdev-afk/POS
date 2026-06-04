@@ -23,7 +23,7 @@ Future<void> showRegisterPosTerminalDialog(BuildContext context, WidgetRef ref) 
       },
       onCancel: () {
         Navigator.of(context, rootNavigator: true).pop();
-        const OnboardingRoute().go(context);
+        const LoginRoute().go(context);
       },
     ),
   );

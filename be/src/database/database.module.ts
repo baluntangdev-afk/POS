@@ -21,6 +21,11 @@ import { entities } from './entities-index';
         logging: configService.isDevelopment,
         migrations: [__dirname + '/../migrations/*{.ts,.js}'],
         migrationsRun: false,
+        // On a fresh install / after reboot the backend Windows service may start
+        // before PostgreSQL is accepting connections. Retry instead of crashing so
+        // the kiosk doesn't show "unable to connect to server" during that window.
+        retryAttempts: 30,
+        retryDelay: 5000,
       }),
     }),
   ],

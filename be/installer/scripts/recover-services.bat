@@ -27,7 +27,7 @@ echo  App dir: %APPDIR%
 echo ============================================
 echo.
 
-echo [1/2] Setting up PostgreSQL (init data, register service, create DB, migrate)...
+echo [1/2] Setting up PostgreSQL (init data, register service, create DB, migrate, seed)...
 call "%~dp0setup-postgres.bat" "%APPDIR%"
 if %errorlevel% neq 0 (
     echo.

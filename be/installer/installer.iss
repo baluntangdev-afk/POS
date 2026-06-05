@@ -37,7 +37,7 @@
 ;      (runs as NT AUTHORITY\NetworkService â€" PostgreSQL rejects admin accounts)
 ;   4. Waits for PostgreSQL to be ready, then creates pos_db
 ;   5. Runs TypeORM migrations
-;   6. Optionally seeds initial data
+;   6. Seeds initial data (admin user + reference data; idempotent, always runs)
 ;   7. Installs NestJS backend as a Windows service via NSSM
 ;   8. Creates desktop shortcut and offers to launch the kiosk
 ;
@@ -50,7 +50,7 @@
 ; â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 #define MyAppName    "POS Kiosk"
-#define MyAppVersion "1.1.7"
+#define MyAppVersion "1.1.8"
 #define MyAppPublisher "Your Company"
 #define KioskExe     "pos_app.exe"
 #define BackendExe   "POSBackend.exe"
@@ -81,7 +81,6 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop shortcut"
-Name: "runseeds";    Description: "Seed initial data (products, menus, users)"; GroupDescription: "First-time setup:"
 
 [Dirs]
 Name: "{app}\logs"
@@ -146,9 +145,10 @@ Filename: "{cmd}"; Parameters: "/c ""{app}\scripts\setup-postgres.bat"" ""{app}"
 ;           Logs to: {app}\logs\run-migrations-install.log
 Filename: "{cmd}"; Parameters: "/c ""{app}\scripts\run-migrations.bat"" ""{app}"""; WorkingDir: "{app}"; Flags: runhidden waituntilterminated; StatusMsg: "Running database migrations..."
 
-; Step 3 — Seed initial data (optional, unchecked by default)
-;           Check: BackendExeExists() guards against running if extraction failed.
-Filename: "{app}\backend\{#BackendExe}"; Parameters: "--seed"; WorkingDir: "{app}\backend"; Flags: runhidden waituntilterminated; StatusMsg: "Seeding initial data..."; Tasks: runseeds; Check: BackendExeExists
+; NOTE: Seeding is no longer a separate optional step. setup-postgres.ps1 (Step 1,
+;       and recover-services.bat) now always seeds after migrations. Seeders are
+;       idempotent, so this guarantees the admin user / reference data exist on every
+;       install and every recovery without the user having to tick a checkbox.
 
 ; Step 4 — Install NestJS backend as auto-start Windows service
 ;           Logs to: {app}\logs\install-backend-service-install.log
@@ -233,12 +233,22 @@ begin
   if CurStep = ssDone then begin
     MsgBox(
       'Installation complete.' + #13#10 + #13#10 +
-      'If the app cannot connect, check the install logs at:' + #13#10 +
+      'IMPORTANT: A full system restart is required for all services' + #13#10 +
+      'to start correctly. Please restart this computer before' + #13#10 +
+      'launching the kiosk.' + #13#10 + #13#10 +
+      'If the app cannot connect after restarting, check the install' + #13#10 +
+      'logs at:' + #13#10 +
       ExpandConstant('{app}\logs\'),
       mbInformation, MB_OK
     );
   end;
 end;
+
+function NeedRestart(): Boolean;
+begin
+  Result := True;
+end;
+
 
 
 

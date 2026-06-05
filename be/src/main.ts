@@ -36,8 +36,16 @@ function loadEnvFromSeaAsset(): void {
 async function bootstrap(): Promise<void> {
   loadEnvFromSeaAsset();
 
-  if (await runExecArgs()) {
-    process.exit(0);
+  try {
+    if (await runExecArgs()) {
+      process.exit(0);
+    }
+  } catch (err) {
+    // CLI tasks (--migrate / --seed) own their own logging. Surface only the
+    // concise message and exit non-zero — without this, a thrown task error
+    // became an unhandled rejection that dumped the full error object/stack.
+    console.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
   }
 
   const logger = new Logger('Bootstrap');

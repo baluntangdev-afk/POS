@@ -44,6 +44,17 @@ try {
     & $nssm set $svcName AppRotateFiles 1
     & $nssm set $svcName AppRotateBytes 10485760
 
+    # Make Windows start PostgreSQL before the backend on every boot. Without this
+    # the two auto-start services race and the backend can come up before the DB is
+    # ready, leaving the kiosk stuck on "unable to connect to server" until a manual
+    # recover-services.bat is run. DependOnService fixes that race permanently.
+    & $nssm set $svcName DependOnService POSPostgres
+
+    # If the backend process ever exits (e.g. a transient DB error on a cold boot),
+    # restart it automatically instead of leaving the service dead.
+    & $nssm set $svcName AppExit Default Restart
+    & $nssm set $svcName AppRestartDelay 5000
+
     # ── Start the service ─────────────────────────────────────────────────
     Write-Host "Starting $svcName..."
     & $nssm start $svcName

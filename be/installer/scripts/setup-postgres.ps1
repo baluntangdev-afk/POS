@@ -193,6 +193,20 @@ try {
     }
     Write-Host "Migrations complete."
 
+    # ── 11. Seed initial data (idempotent) ───────────────────────────────
+    # Seeders upsert / check-before-insert, so running them on every install and
+    # every recovery is safe. This guarantees the admin login and reference data
+    # always exist — without it a fresh install has schema but no users, and the
+    # kiosk login fails with "seeded users cannot be found".
+    # Non-fatal: a seeding hiccup must never block the DB/service setup.
+    Write-Host "Seeding initial data..."
+    & $backend --seed
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "Seeding reported a non-zero exit ($LASTEXITCODE). Continuing — re-run is safe (seeders are idempotent). See backend output above."
+    } else {
+        Write-Host "Seeding complete."
+    }
+
     Write-Host "setup-postgres.ps1 completed successfully."
 
 } catch {

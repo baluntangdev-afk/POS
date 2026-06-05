@@ -16,7 +16,7 @@ try {
     Write-Host "pgBin    : $pgBin"
     Write-Host "pgData   : $pgData"
 
-    # ── 1. Verify binaries are present ───────────────────────────────────
+    # -- 1. Verify binaries are present -----------------------------------
     foreach ($exe in @("initdb.exe","pg_ctl.exe","pg_isready.exe","postgres.exe","psql.exe")) {
         if (!(Test-Path "$pgBin\$exe")) {
             Write-Error "Missing binary: $pgBin\$exe"
@@ -25,7 +25,7 @@ try {
     }
     Write-Host "All required binaries present."
 
-    # ── 2. Initialize data directory (idempotent) ─────────────────────────
+    # -- 2. Initialize data directory (idempotent) -------------------------
     if (!(Test-Path "$pgData\PG_VERSION")) {
         # Directory exists but was never fully initialized (e.g. from a failed
         # prior install). initdb refuses to write into a non-empty directory, so
@@ -52,7 +52,7 @@ try {
         Write-Host "Data directory already initialized at $pgData."
     }
 
-    # ── 3. Write postgresql.conf settings (idempotent) ────────────────────
+    # -- 3. Write postgresql.conf settings (idempotent) --------------------
     $confPath = "$pgData\postgresql.conf"
     $confContent = Get-Content $confPath -Raw
     $additions = @()
@@ -78,7 +78,7 @@ try {
     # Remove stale lock from a previous crash
     Remove-Item "$pgData\postmaster.pid" -Force -ErrorAction SilentlyContinue
 
-    # ── 4. Grant NetworkService permissions ───────────────────────────────
+    # -- 4. Grant NetworkService permissions -------------------------------
     Write-Host "Granting permissions to NT AUTHORITY\NetworkService..."
     icacls $pgData /grant "NT AUTHORITY\NetworkService:(OI)(CI)F" /T /Q
     if ($LASTEXITCODE -ne 0) { Write-Error "icacls failed on $pgData"; exit 1 }
@@ -88,7 +88,7 @@ try {
     if ($LASTEXITCODE -ne 0) { Write-Error "icacls failed on $logs"; exit 1 }
     Write-Host "Permissions granted."
 
-    # ── 5. Remove any existing POSPostgres service ────────────────────────
+    # -- 5. Remove any existing POSPostgres service ------------------------
     $existing = Get-Service "POSPostgres" -ErrorAction SilentlyContinue
     if ($existing) {
         Write-Host "Removing existing POSPostgres service..."
@@ -99,7 +99,7 @@ try {
         Write-Host "Existing service removed."
     }
 
-    # ── 6. Register PostgreSQL as native Windows service ─────────────────
+    # -- 6. Register PostgreSQL as native Windows service -----------------
     Write-Host "Registering POSPostgres service..."
     & "$pgBin\pg_ctl.exe" register -N POSPostgres `
         -U "NT AUTHORITY\NetworkService" -D $pgData -S auto
@@ -109,7 +109,7 @@ try {
     }
     Write-Host "Service registered."
 
-    # ── 7. Start PostgreSQL ───────────────────────────────────────────────
+    # -- 7. Start PostgreSQL -----------------------------------------------
     # Warn if something else is already using port 5432 (e.g. a Docker postgres container)
     $portInUse = netstat -ano 2>$null | Select-String ":5432\s"
     if ($portInUse) {
@@ -141,7 +141,7 @@ try {
         exit 1
     }
 
-    # ── 8. Wait for PostgreSQL to accept connections ──────────────────────
+    # -- 8. Wait for PostgreSQL to accept connections ----------------------
     Write-Host "Waiting for PostgreSQL to accept connections (up to 60s)..."
     $ready = $false
     for ($i = 1; $i -le 60; $i++) {
@@ -161,7 +161,7 @@ try {
     }
     Write-Host "PostgreSQL is ready."
 
-    # ── 9. Create application database ───────────────────────────────────
+    # -- 9. Create application database -----------------------------------
     $env:PGPASSWORD = "postgres"
     $exists = (& "$pgBin\psql.exe" -U postgres -h 127.0.0.1 -p 5432 `
         -tAc "SELECT 1 FROM pg_database WHERE datname='pos_db'") 2>&1
@@ -178,7 +178,7 @@ try {
         Write-Host "Database pos_db created."
     }
 
-    # ── 10. Run TypeORM migrations ────────────────────────────────────────
+    # -- 10. Run TypeORM migrations ----------------------------------------
     $backend = "$AppDir\backend\POSBackend.exe"
     if (!(Test-Path $backend)) {
         Write-Error "POSBackend.exe not found at: $backend"
@@ -193,16 +193,16 @@ try {
     }
     Write-Host "Migrations complete."
 
-    # ── 11. Seed initial data (idempotent) ───────────────────────────────
+    # -- 11. Seed initial data (idempotent) -------------------------------
     # Seeders upsert / check-before-insert, so running them on every install and
     # every recovery is safe. This guarantees the admin login and reference data
-    # always exist — without it a fresh install has schema but no users, and the
+    # always exist  -  without it a fresh install has schema but no users, and the
     # kiosk login fails with "seeded users cannot be found".
     # Non-fatal: a seeding hiccup must never block the DB/service setup.
     Write-Host "Seeding initial data..."
     & $backend --seed
     if ($LASTEXITCODE -ne 0) {
-        Write-Warning "Seeding reported a non-zero exit ($LASTEXITCODE). Continuing — re-run is safe (seeders are idempotent). See backend output above."
+        Write-Warning "Seeding reported a non-zero exit ($LASTEXITCODE). Continuing  -  re-run is safe (seeders are idempotent). See backend output above."
     } else {
         Write-Host "Seeding complete."
     }
@@ -210,7 +210,7 @@ try {
     Write-Host "setup-postgres.ps1 completed successfully."
 
 } catch {
-    Write-Error "setup-postgres.ps1 failed: $_"
+    Write-Error ('setup-postgres.ps1 failed: ' + $_.ToString())
     exit 1
 } finally {
     Stop-Transcript

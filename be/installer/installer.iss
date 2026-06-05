@@ -50,7 +50,7 @@
 ; â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 #define MyAppName    "POS Kiosk"
-#define MyAppVersion "1.1.8"
+#define MyAppVersion "1.2.1"
 #define MyAppPublisher "Your Company"
 #define KioskExe     "pos_app.exe"
 #define BackendExe   "POSBackend.exe"
@@ -160,6 +160,10 @@ Filename: "{app}\{#KioskExe}"; Description: "Launch {#MyAppName} now"; Flags: no
 [UninstallRun]
 Filename: "{cmd}"; Parameters: "/c ""{app}\scripts\uninstall-services.bat"" ""{app}"""; WorkingDir: "{app}"; Flags: runhidden waituntilterminated
 
+[InstallDelete]
+; Wipe the scripts folder before extraction so removed/renamed scripts never linger
+Type: filesandordirs; Name: "{app}\scripts"
+
 [UninstallDelete]
 ; Remove PostgreSQL data directory on uninstall
 Type: filesandordirs; Name: "C:\posdata"
@@ -174,6 +178,26 @@ begin
   Result := FileExists(ExpandConstant('{app}\backend\{#BackendExe}'));
 end;
 
+// Polls until the named service reports STOPPED or the timeout (seconds) expires.
+// Uses "sc query | find" — find exits 0 when "STOPPED" appears in the output.
+procedure WaitForServiceStopped(ServiceName: String; TimeoutSecs: Integer);
+var
+  ResultCode, i: Integer;
+begin
+  for i := 1 to TimeoutSecs do
+  begin
+    // find exits 0 if "STOPPED" is present in sc query output
+    Exec('cmd.exe',
+         '/c sc query "' + ServiceName + '" | find "STOPPED" > nul 2>&1',
+         '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    if ResultCode = 0 then Exit;
+    // sc.exe exits 1060 when the service does not exist — treat as stopped
+    Exec('sc.exe', 'query "' + ServiceName + '"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    if ResultCode = 1060 then Exit;
+    Sleep(1000);
+  end;
+end;
+
 // Runs before file extraction — stops running services so locked files
 // can be overwritten. This makes in-place upgrades work without uninstalling.
 function InitializeSetup(): Boolean;
@@ -181,10 +205,13 @@ var
   ResultCode: Integer;
 begin
   Result := True;
-  Exec('sc.exe',      'stop POSBackendService',    '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Exec('sc.exe',      'stop POSPostgres',          '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Exec('taskkill.exe','/F /IM pos_app.exe /T',     '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Sleep(3000);
+  Exec('taskkill.exe', '/F /IM pos_app.exe /T',  '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec('sc.exe',       'stop POSBackendService', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  WaitForServiceStopped('POSBackendService', 15);
+  Exec('sc.exe',       'stop POSPostgres',       '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  // PostgreSQL can take 10-20s to fully release its DLL locks — wait properly.
+  WaitForServiceStopped('POSPostgres', 30);
+  Sleep(1000);
 end;
 
 procedure InitializeWizard;
@@ -248,6 +275,11 @@ function NeedRestart(): Boolean;
 begin
   Result := True;
 end;
+
+
+
+
+
 
 
 

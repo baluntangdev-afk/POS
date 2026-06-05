@@ -168,7 +168,8 @@
       "Bash(PGPASSWORD=postgres pgsql/bin/psql.exe -U postgres -h 127.0.0.1 -p 5432 -d pos_db -tAc \"SELECT count\\(*\\) || ' users' FROM users;\")",
       "Bash(findstr \"DEPENDENCIES\")",
       "Bash(curl -s -o nul -w \"http status: %{http_code}\" http://localhost:3000/api/v1/health/live)",
-      "Bash(python3 *)"
+      "Bash(python3 *)",
+      "PowerShell(powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\scripts\\\\fix-smart-quotes.ps1\" -Dir \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\")"
     ]
   }
 }

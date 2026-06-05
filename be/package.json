@@ -43,7 +43,10 @@
     "seed:run": "npx ts-node src/database/run-seeders-cli.ts",
     "db:reset": "node scripts/db-reset.js",
     "seed:sync-index": "node scripts/sync-seeders-index.js",
-    "build:sea": "npm run migration:sync-index && npm run seed:sync-index && npm run build && ts-node -T build-exe.ts"
+    "build:sea": "npm run migration:sync-index && npm run seed:sync-index && npm run build && ts-node -T build-exe.ts",
+    "check:quotes": "powershell -NoProfile -ExecutionPolicy Bypass -File installer\\scripts\\check-smart-quotes.ps1",
+    "fix:quotes": "powershell -NoProfile -ExecutionPolicy Bypass -File installer\\scripts\\fix-smart-quotes.ps1",
+    "prepare": "git -C .. config core.hooksPath .githooks || exit 0"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",

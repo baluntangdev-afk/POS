@@ -19,7 +19,7 @@ final encodeEscPosReceiptProvider = Provider<EncodeEscPosReceipt>((ref) {
 class EncodeEscPosReceipt {
   Future<Uint8List> call({required Receipt receipt}) async {
     final profile = await CapabilityProfile.load();
-    final logoData = await rootBundle.load(Assets.images.png.imgAdtoKart.path);
+    final logoData = await rootBundle.load(Assets.images.cartivoLogo.path);
     final logoBytes = logoData.buffer.asUint8List();
 
     return Isolate.run(() async {

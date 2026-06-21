@@ -151,9 +151,8 @@ class _OrderingHeader extends StatelessWidget {
         children: [
           _HeaderBackButton(size: r.value(kiosk: 52.0, tablet: 44.0, phone: 38.0)),
           const Spacer(),
-          Assets.images.svg.icAdtoKart.svg(
+          Assets.images.cartivoLogo.image(
             height: r.value(kiosk: 36.0, tablet: 28.0, phone: 22.0),
-            colorFilter: const ColorFilter.mode(ColorSet.primary, BlendMode.srcIn),
           ),
           const Spacer(),
           SizedBox(

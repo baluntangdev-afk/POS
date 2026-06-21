@@ -114,10 +114,9 @@ class _BrandPanel extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Center(
-              child: Assets.images.png.onboardingLogo.image(
+              child: Assets.images.cartivoLogo.image(
                 height: 48,
                 fit: BoxFit.contain,
-                color: Colors.white,
               ),
             ),
           ),
@@ -160,10 +159,9 @@ class _BrandPanel extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Assets.images.png.onboardingLogo.image(
+            Assets.images.cartivoLogo.image(
               height: logoHeight,
               fit: BoxFit.contain,
-              color: Colors.white,
             ),
             const SizedBox(width: 12),
             Text(

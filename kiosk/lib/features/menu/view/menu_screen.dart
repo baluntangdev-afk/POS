@@ -204,7 +204,7 @@ class _AndroidMenuHeader extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: r.value<double>(kiosk: 32, tablet: 24, phone: 16)),
       child: Row(
         children: [
-          Assets.images.png.appBarLogo.image(height: logoHeight, fit: BoxFit.contain),
+          Assets.images.cartivoLogo.image(height: logoHeight, fit: BoxFit.contain),
           const Spacer(),
           Material(
             color: Colors.transparent,
@@ -339,7 +339,7 @@ class _MenuHeader extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: r.hPagePadding),
           child: Row(
             children: [
-              Assets.images.png.appBarLogo.image(height: logoHeight, fit: BoxFit.contain, color: ColorSet.secondary),
+              Assets.images.cartivoLogo.image(height: logoHeight, fit: BoxFit.contain),
               if (showDateTime) ...[
                 SizedBox(width: r.value<double>(kiosk: 24, tablet: 16, phone: 12)),
                 Container(width: 1, height: 28, color: POSColors.borderDefault),

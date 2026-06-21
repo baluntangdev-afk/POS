@@ -50,7 +50,7 @@
 ; â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 #define MyAppName    "POS Kiosk"
-#define MyAppVersion "1.2.4"
+#define MyAppVersion "1.2.5"
 #define MyAppPublisher "Your Company"
 #define KioskExe     "pos_app.exe"
 #define BackendExe   "POSBackend.exe"
@@ -289,11 +289,8 @@ begin
   if CurStep = ssDone then begin
     MsgBox(
       'Installation complete.' + #13#10 + #13#10 +
-      'IMPORTANT: A full system restart is required for all services' + #13#10 +
-      'to start correctly. Please restart this computer before' + #13#10 +
-      'launching the kiosk.' + #13#10 + #13#10 +
-      'If the app cannot connect after restarting, check the install' + #13#10 +
-      'logs at:' + #13#10 +
+      'You can now launch the kiosk from the desktop shortcut.' + #13#10 + #13#10 +
+      'If the app cannot connect, check the install logs at:' + #13#10 +
       ExpandConstant('{app}\logs\'),
       mbInformation, MB_OK
     );
@@ -302,8 +299,10 @@ end;
 
 function NeedRestart(): Boolean;
 begin
-  Result := True;
+  Result := False;
 end;
+
+
 
 
 

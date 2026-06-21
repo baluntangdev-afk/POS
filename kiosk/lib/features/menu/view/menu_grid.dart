@@ -82,7 +82,7 @@ class MenuGrid extends StatelessWidget {
       ),
       MenuItem(
         label: 'Replenishment',
-        icon: Assets.images.png.icAdtoKart.image(),
+        icon: Assets.images.cartivoLogo.image(),
         type: MenuType.replenishment,
       ),
       MenuItem(

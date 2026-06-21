@@ -377,7 +377,7 @@ class _StoreInfoView extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Assets.images.png.imgAdtoKart.image(height: r.value<double>(kiosk: 32, tablet: 28, phone: 24)),
+        Assets.images.cartivoLogo.image(height: r.value<double>(kiosk: 32, tablet: 28, phone: 24)),
         Gap(r.value<double>(kiosk: 16, tablet: 12, phone: 8)),
         Text(
           [legalName, addressLine1, addressLine2].join('\n'),

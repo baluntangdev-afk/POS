@@ -50,7 +50,7 @@
 ; â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 #define MyAppName    "POS Kiosk"
-#define MyAppVersion "1.2.1"
+#define MyAppVersion "1.2.4"
 #define MyAppPublisher "Your Company"
 #define KioskExe     "pos_app.exe"
 #define BackendExe   "POSBackend.exe"
@@ -125,6 +125,7 @@ Source: "scripts\uninstall-services.bat";      DestDir: "{app}\scripts"; Flags: 
 Source: "scripts\update-backend.ps1";          DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\update-backend.bat";          DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\recover-services.bat";        DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\fix-service-recovery.bat";   DestDir: "{app}\scripts"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}";                       Filename: "{app}\{#KioskExe}"
@@ -248,6 +249,18 @@ begin
   end;
 end;
 
+// Returns True only if the named service exists AND is RUNNING.
+// "sc query | find RUNNING" exits 0 when the service is running.
+function ServiceIsRunning(ServiceName: String): Boolean;
+var
+  ResultCode: Integer;
+begin
+  Exec('cmd.exe',
+       '/c sc query "' + ServiceName + '" | find "RUNNING" > nul 2>&1',
+       '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Result := (ResultCode = 0);
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   SettingsPath: String;
@@ -255,6 +268,22 @@ begin
   if CurStep = ssPostInstall then begin
     SettingsPath := ExpandConstant('{app}\settings.txt');
     SaveStringToFile(SettingsPath, 'kiosk.no=' + Trim(KioskNoPage.Values[0]), False);
+
+    // Verify the database + backend services actually came up. Inno's [Run]
+    // steps ignore script exit codes, so without this check a failed DB setup
+    // (e.g. a stale service that locked files during initdb) would report a
+    // "successful" install while the kiosk hangs forever on "Starting
+    // services". Surface it with an actionable recovery instruction instead.
+    if (not ServiceIsRunning('POSPostgres')) or (not ServiceIsRunning('POSBackendService')) then begin
+      MsgBox(
+        'Setup finished, but the database/backend services did not start.' + #13#10 + #13#10 +
+        'This is recoverable. After installation closes:' + #13#10 +
+        '  1. Open ' + ExpandConstant('{app}\scripts') + #13#10 +
+        '  2. Right-click recover-services.bat -> "Run as administrator"' + #13#10 + #13#10 +
+        'Details are in ' + ExpandConstant('{app}\logs\') + '.',
+        mbError, MB_OK
+      );
+    end;
   end;
 
   if CurStep = ssDone then begin
@@ -275,6 +304,12 @@ function NeedRestart(): Boolean;
 begin
   Result := True;
 end;
+
+
+
+
+
+
 
 
 

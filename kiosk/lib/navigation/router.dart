@@ -19,6 +19,7 @@ import '../features/sales/view/payment_screen.dart';
 import '../features/sales/view/receipt_screen.dart';
 import '../features/sales/view/refund_screen.dart';
 import '../features/sales/view/transactions_screen.dart';
+import '../features/startup/startup_screen.dart';
 import '../features/users/view/user_management_screen.dart';
 
 part 'catalog_route.dart';
@@ -29,10 +30,11 @@ part 'router.g.dart';
 part 'sales_report_route.dart';
 part 'sales_route.dart';
 part 'setup_pin_route.dart';
+part 'startup_route.dart';
 part 'transactions_route.dart';
 part 'user_management_route.dart';
 
 final routerProvider = Provider((ref) {
-  final router = GoRouter(initialLocation: const LoginRoute().location, routes: $appRoutes);
+  final router = GoRouter(initialLocation: const StartupRoute().location, routes: $appRoutes);
   return router;
 });

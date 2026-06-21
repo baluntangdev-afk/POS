@@ -33,8 +33,64 @@ function loadEnvFromSeaAsset(): void {
   }
 }
 
+/**
+ * Polls PostgreSQL until it accepts connections, then returns.
+ *
+ * The backend Windows service starts with DependOnService=POSPostgres, but
+ * Windows only waits for the service to enter the "Running" state — not for
+ * PostgreSQL to finish its own startup and begin accepting TCP connections.
+ * Without this check, TypeORM's internal retries keep port 3000 closed for
+ * up to 150 seconds, causing the kiosk to show "unable to reach server".
+ *
+ * By confirming PostgreSQL is ready here, TypeORM connects on its first
+ * attempt and app.listen() is called within seconds of this function returning.
+ */
+async function waitForPostgres(logger: Logger): Promise<void> {
+  // pg is a transitive TypeORM dependency — always present in the bundle.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Client } = require('pg') as typeof import('pg');
+
+  const host = process.env.POSTGRES_HOST ?? 'localhost';
+  const port = parseInt(process.env.POSTGRES_PORT ?? '5432', 10);
+  const user = process.env.POSTGRES_USER ?? 'postgres';
+  const password = process.env.POSTGRES_PASSWORD ?? 'postgres';
+  const maxAttempts = 60; // 2-minute ceiling (60 × 2 s)
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const client = new Client({
+      host,
+      port,
+      user,
+      password,
+      database: 'postgres', // maintenance DB — always exists
+      connectionTimeoutMillis: 3000,
+    });
+    try {
+      await client.connect();
+      await client.end();
+      if (attempt > 1) logger.log(`PostgreSQL ready after ${attempt} attempt(s)`);
+      return;
+    } catch {
+      if (attempt === 1 || attempt % 10 === 0) {
+        logger.warn(`Waiting for PostgreSQL at ${host}:${port}... (${attempt}/${maxAttempts})`);
+      }
+      await new Promise<void>((resolve) => setTimeout(resolve, 2000));
+    }
+  }
+
+  throw new Error(
+    `PostgreSQL at ${host}:${port} did not become ready within ${maxAttempts * 2} seconds`,
+  );
+}
+
 async function bootstrap(): Promise<void> {
   loadEnvFromSeaAsset();
+
+  const logger = new Logger('Bootstrap');
+
+  // Wait for PostgreSQL before starting NestJS so TypeORM connects immediately
+  // and port 3000 opens as soon as the database is available.
+  await waitForPostgres(logger);
 
   try {
     if (await runExecArgs()) {
@@ -48,7 +104,6 @@ async function bootstrap(): Promise<void> {
     process.exit(1);
   }
 
-  const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });

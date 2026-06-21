@@ -38,7 +38,9 @@ try {
     Write-Host "Installing $svcName via NSSM..."
     & $nssm install $svcName $beExe
     & $nssm set $svcName AppDirectory   "$AppDir\backend"
-    & $nssm set $svcName Start          SERVICE_AUTO_START
+    # Delayed-auto start: backend starts after PostgreSQL's delayed-auto window,
+    # reducing boot-time races even before the DependOnService ordering kicks in.
+    & $nssm set $svcName Start          SERVICE_DELAYED_AUTO_START
     & $nssm set $svcName AppStdout      "$logs\backend-output.log"
     & $nssm set $svcName AppStderr      "$logs\backend-error.log"
     & $nssm set $svcName AppRotateFiles 1
@@ -54,6 +56,11 @@ try {
     # restart it automatically instead of leaving the service dead.
     & $nssm set $svcName AppExit Default Restart
     & $nssm set $svcName AppRestartDelay 5000
+
+    # Windows-level failure recovery as a belt-and-suspenders backup to NSSM's
+    # AppExit restart — covers cases where NSSM itself fails to restart the process.
+    sc.exe failure $svcName reset= 86400 actions= restart/5000/restart/15000/restart/30000 | Out-Null
+    Write-Host "POSBackendService failure recovery configured."
 
     # ── Start the service ─────────────────────────────────────────────────
     Write-Host "Starting $svcName..."

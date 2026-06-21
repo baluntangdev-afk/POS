@@ -229,7 +229,7 @@ export class ExportableReportService {
     const qb = this.paymentRepository
       .createQueryBuilder('p')
       .innerJoin('p.salesOrder', 'so')
-      .select('p.payment_method', 'name')
+      .select(`COALESCE(p.payment_method_name, p.payment_method::text)`, 'name')
       .addSelect(
         `SUM(so.final_total_amount - COALESCE((SELECT SUM(r.total_refund_amount) FROM refunds r WHERE r.original_sales_order_id = so.id), 0))`,
         'totalSales',
@@ -237,7 +237,7 @@ export class ExportableReportService {
       .where('so.status IN (:...statusFilter)', { statusFilter: STATUS_FILTER })
       .andWhere('so.done_export = :doneExport', { doneExport: false })
       .andWhere('so.so_date BETWEEN :startDate AND :endDate', { startDate, endDate })
-      .groupBy('p.payment_method')
+      .groupBy(`COALESCE(p.payment_method_name, p.payment_method::text)`)
       .orderBy('SUM(so.final_total_amount)', 'DESC');
 
     const rawRows = await qb.getRawMany<PaymentMethodSalesRawRow>();

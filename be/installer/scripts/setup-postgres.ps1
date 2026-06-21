@@ -25,6 +25,30 @@ try {
     }
     Write-Host "All required binaries present."
 
+    # -- 1b. Tear down any existing services BEFORE touching the data dir ---
+    # A stale POSPostgres service (auto-start + failure-recovery) keeps
+    # relaunching postgres.exe every few seconds. If it does so while we run
+    # initdb / icacls below, it locks files under pgsql\bin and posdata and the
+    # whole setup aborts -- leaving a *registered* service pointing at a
+    # half-built data dir. That is the classic "stuck on Starting services"
+    # failure: postgres dies on every boot with
+    #   'could not access directory "C:/posdata"' and the backend, which
+    # DependsOnService POSPostgres, never starts. Stopping + unregistering
+    # first makes this script deterministic and idempotent.
+    Write-Host "Stopping any existing POS services before data-dir setup..."
+    sc.exe stop POSBackendService 2>&1 | Out-Null
+    sc.exe stop POSPostgres       2>&1 | Out-Null
+    Start-Sleep -Seconds 3
+    if (Get-Service POSPostgres -ErrorAction SilentlyContinue) {
+        Write-Host "Unregistering stale POSPostgres service..."
+        & "$pgBin\pg_ctl.exe" unregister -N POSPostgres 2>&1 | Write-Host
+        Start-Sleep -Seconds 2
+    }
+    # Kill any orphaned postgres.exe still holding locks on the binaries/data.
+    Get-Process postgres -ErrorAction SilentlyContinue |
+        Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+
     # -- 2. Initialize data directory (idempotent) -------------------------
     if (!(Test-Path "$pgData\PG_VERSION")) {
         # Directory exists but was never fully initialized (e.g. from a failed
@@ -83,7 +107,11 @@ try {
     icacls $pgData /grant "NT AUTHORITY\NetworkService:(OI)(CI)F" /T /Q
     if ($LASTEXITCODE -ne 0) { Write-Error "icacls failed on $pgData"; exit 1 }
     icacls $pgBin /grant "NT AUTHORITY\NetworkService:(OI)(CI)RX" /T /Q
-    if ($LASTEXITCODE -ne 0) { Write-Error "icacls failed on $pgBin"; exit 1 }
+    # Non-fatal: NetworkService already has read+execute under C:\ by default,
+    # so this grant is belt-and-suspenders. A transient lock on one of the ~994
+    # binaries (AV scan, a racing process) must NOT abort the whole DB setup and
+    # leave a broken install behind.
+    if ($LASTEXITCODE -ne 0) { Write-Warning "icacls on $pgBin returned $LASTEXITCODE (non-fatal; continuing)." }
     icacls $logs /grant "NT AUTHORITY\NetworkService:(OI)(CI)F" /T /Q
     if ($LASTEXITCODE -ne 0) { Write-Error "icacls failed on $logs"; exit 1 }
     Write-Host "Permissions granted."
@@ -108,6 +136,17 @@ try {
         exit 1
     }
     Write-Host "Service registered."
+
+    # Switch to delayed-auto so PostgreSQL starts after core OS services are
+    # fully up, reducing the chance of a boot-time race causing startup failure.
+    sc.exe config POSPostgres start= delayed-auto | Out-Null
+    Write-Host "POSPostgres set to delayed-auto start."
+
+    # Configure failure recovery: restart after 5 s, 15 s, 30 s on consecutive
+    # failures; reset the failure counter after 24 hours of clean uptime.
+    # Without this, any startup failure leaves the service stopped permanently.
+    sc.exe failure POSPostgres reset= 86400 actions= restart/5000/restart/15000/restart/30000 | Out-Null
+    Write-Host "POSPostgres failure recovery configured."
 
     # -- 7. Start PostgreSQL -----------------------------------------------
     # Warn if something else is already using port 5432 (e.g. a Docker postgres container)

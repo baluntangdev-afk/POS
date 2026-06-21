@@ -169,7 +169,21 @@
       "Bash(findstr \"DEPENDENCIES\")",
       "Bash(curl -s -o nul -w \"http status: %{http_code}\" http://localhost:3000/api/v1/health/live)",
       "Bash(python3 *)",
-      "PowerShell(powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\scripts\\\\fix-smart-quotes.ps1\" -Dir \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\")"
+      "PowerShell(powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\scripts\\\\fix-smart-quotes.ps1\" -Dir \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\")",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\docs\\\\superpowers\" -Recurse | Select-Object Name | Where-Object { $_.Name -match '\\\\.md$' } | Select-Object -First 10)",
+      "PowerShell(sc query *)",
+      "PowerShell(& sc.exe query POSPostgres; & sc.exe query POSBackendService)",
+      "PowerShell(try { $r = Invoke-WebRequest http://localhost:3000/api/v1/health/live -UseBasicParsing -TimeoutSec 5; \"Status: $\\($r.StatusCode\\)`nBody: $\\($r.Content\\)\" } catch { \"ERROR: $_\" })",
+      "PowerShell(try { $r = Invoke-WebRequest http://localhost:3000/api/v1/health/ready -UseBasicParsing -TimeoutSec 5; \"Status: $\\($r.StatusCode\\)`nBody: $\\($r.Content\\)\" } catch { \"ERROR: $_\" })",
+      "PowerShell(& sc.exe qc POSPostgres; & sc.exe qc POSBackendService)",
+      "Bash(grep -E \"\\\\.\\(dart\\)$\")",
+      "Bash(xargs wc -l)",
+      "Bash(npm list *)",
+      "Bash(npm install *)",
+      "PowerShell(sc.exe qfailure POSPostgres 2>&1)",
+      "PowerShell(sc.exe qfailure POSBackendService 2>&1)",
+      "PowerShell(sc.exe qc POSPostgres 2>&1)",
+      "PowerShell(sc.exe qc POSBackendService 2>&1)"
     ]
   }
 }

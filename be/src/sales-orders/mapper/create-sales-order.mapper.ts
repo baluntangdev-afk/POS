@@ -72,13 +72,20 @@ export class CreateSalesOrderMapper {
 
     salesOrderItem.itemSequence = dto.itemSequence;
 
-    if (dto.productVariant && dto.recipeId) {
+    // Variant and recipe are set independently: a variant without a recipe (a
+    // simple CSV-imported menu item) is still a valid line item — it just
+    // carries no recipe and therefore deducts no inventory.
+    if (dto.productVariant) {
       salesOrderItem.productVariant = new ProductVariant();
       salesOrderItem.productVariant.id = dto.productVariantId;
+    } else {
+      salesOrderItem.productVariant = null;
+    }
+
+    if (dto.recipeId) {
       salesOrderItem.recipe = new Recipe();
       salesOrderItem.recipe.id = dto.recipeId;
     } else {
-      salesOrderItem.productVariant = null;
       salesOrderItem.recipe = null;
     }
 

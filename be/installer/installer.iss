@@ -50,7 +50,7 @@
 ; â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 #define MyAppName    "POS Kiosk"
-#define MyAppVersion "1.2.5"
+#define MyAppVersion "1.4.1"
 #define MyAppPublisher "Your Company"
 #define KioskExe     "pos_app.exe"
 #define BackendExe   "POSBackend.exe"
@@ -88,6 +88,7 @@ Name: "{app}\backend"
 Name: "{app}\pgsql"
 Name: "{app}\nssm"
 Name: "{app}\scripts"
+Name: "{app}\data\csv"
 
 [Files]
 ; â"€â"€ Flutter kiosk app â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
@@ -126,6 +127,15 @@ Source: "scripts\update-backend.ps1";          DestDir: "{app}\scripts"; Flags: 
 Source: "scripts\update-backend.bat";          DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\recover-services.bat";        DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\fix-service-recovery.bat";   DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\seed-from-csv.ps1";           DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\seed-from-csv.bat";           DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\stop-services.ps1";           DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\stop-services.bat";           DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\start-services.ps1";          DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\start-services.bat";          DestDir: "{app}\scripts"; Flags: ignoreversion
+
+; ── CSV template (reference only — kept OUT of {app}\data\csv so it is not seeded) ──
+Source: "products-template.csv"; DestDir: "{app}\data"; Flags: ignoreversion onlyifdoesntexist
 
 [Icons]
 Name: "{group}\{#MyAppName}";                       Filename: "{app}\{#KioskExe}"
@@ -145,6 +155,10 @@ Filename: "{cmd}"; Parameters: "/c ""{app}\scripts\setup-postgres.bat"" ""{app}"
 ; Step 2 — Run TypeORM migrations
 ;           Logs to: {app}\logs\run-migrations-install.log
 Filename: "{cmd}"; Parameters: "/c ""{app}\scripts\run-migrations.bat"" ""{app}"""; WorkingDir: "{app}"; Flags: runhidden waituntilterminated; StatusMsg: "Running database migrations..."
+
+; Step 3 - Seed store catalog from imported CSV files
+;           Logs to: {app}\logs\seed-csv-install.log
+Filename: "{cmd}"; Parameters: "/c ""{app}\scripts\seed-from-csv.bat"" ""{app}"""; WorkingDir: "{app}"; Flags: runhidden waituntilterminated; StatusMsg: "Importing product catalog from CSV..."
 
 ; NOTE: Seeding is no longer a separate optional step. setup-postgres.ps1 (Step 1,
 ;       and recover-services.bat) now always seeds after migrations. Seeders are
@@ -168,10 +182,17 @@ Type: filesandordirs; Name: "{app}\scripts"
 [UninstallDelete]
 ; Remove PostgreSQL data directory on uninstall
 Type: filesandordirs; Name: "C:\posdata"
+; Remove imported CSV seed files and the reference template (copied in at runtime,
+; so Inno Setup did not log them and would otherwise leave them behind)
+Type: filesandordirs; Name: "{app}\data"
 
 [Code]
 var
   KioskNoPage: TInputQueryWizardPage;
+  CsvImportPage: TWizardPage;
+  CsvListBox: TListBox;
+  CsvStatusLabel: TLabel;
+  CsvFullPaths: TStringList;
 
 // Guard for the optional seeding step — skips silently if the exe wasn't extracted.
 function BackendExeExists(): Boolean;
@@ -215,7 +236,144 @@ begin
   Sleep(1000);
 end;
 
+// ── CSV Import Page helpers ───────────────────────────────────────────────
+
+const
+  PRODUCTS_CSV_HEADER = 'Category,Category Description,Product Name,Product Description,Product Base Price,Variant Name,Variant Price';
+  MODIFIERS_CSV_HEADER = 'Modifier Group Name,Group Description,Selection Type,Is Required,Min Selection,Max Selection,Linked Product Group,Option Name,Option Price Add-On,Option Available';
+
+function DetectCsvSchema(FilePath: String): String;
+var
+  Lines: TArrayOfString;
+  Header: String;
+begin
+  Result := 'unknown';
+  if not LoadStringsFromFile(FilePath, Lines) then Exit;
+  if GetArrayLength(Lines) = 0 then Exit;
+  Header := Trim(Lines[0]);
+  // Strip a leading BOM character if present
+  if (Length(Header) > 0) and (Ord(Header[1]) = 65279) then
+    Header := Copy(Header, 2, Length(Header));
+  if Header = PRODUCTS_CSV_HEADER then
+    Result := 'products'
+  else if Header = MODIFIERS_CSV_HEADER then
+    Result := 'modifiers';
+end;
+
+function CountCsvDataRows(FilePath: String): Integer;
+var
+  Lines: TArrayOfString;
+begin
+  Result := 0;
+  if LoadStringsFromFile(FilePath, Lines) then
+    Result := GetArrayLength(Lines) - 1; // minus header
+end;
+
+procedure UpdateCsvStatus;
+var
+  I: Integer;
+  FilePath, Schema, DisplayText: String;
+  HasKnown, HasErrors: Boolean;
+begin
+  HasKnown := False;
+  HasErrors := False;
+
+  CsvListBox.Items.Clear;
+
+  for I := 0 to CsvFullPaths.Count - 1 do
+  begin
+    FilePath := CsvFullPaths[I];
+    Schema := DetectCsvSchema(FilePath);
+
+    if (Schema = 'products') or (Schema = 'modifiers') then
+    begin
+      if CountCsvDataRows(FilePath) > 0 then
+      begin
+        if Schema = 'modifiers' then
+          DisplayText := '[Valid] ' + ExtractFileName(FilePath) + ' — Modifier Groups / Options'
+        else
+          DisplayText := '[Valid] ' + ExtractFileName(FilePath) + ' — Products / Categories / Variants';
+        HasKnown := True;
+      end
+      else
+      begin
+        DisplayText := '[Error] ' + ExtractFileName(FilePath) + ' — No data rows found';
+        HasErrors := True;
+      end;
+    end
+    else
+      DisplayText := '[Warning] ' + ExtractFileName(FilePath) + ' — Unknown schema';
+
+    CsvListBox.Items.Add(DisplayText);
+  end;
+
+  if CsvFullPaths.Count = 0 then
+    CsvStatusLabel.Caption := 'No CSV files added. At least one recognized CSV is required.'
+  else if HasErrors then
+    CsvStatusLabel.Caption := 'One or more CSV files have errors. Please fix or remove them.'
+  else if not HasKnown then
+    CsvStatusLabel.Caption := 'No recognized CSV files. Add a file matching a known schema.'
+  else
+    CsvStatusLabel.Caption := 'Ready. Recognized CSV files will be imported during installation.';
+end;
+
+procedure AddCsvButtonClick(Sender: TObject);
+var
+  TempScript, TempOutput: String;
+  ResultCode, I: Integer;
+  Lines: TArrayOfString;
+  FilePath: String;
+begin
+  TempScript := ExpandConstant('{tmp}\open_csv.ps1');
+  TempOutput := ExpandConstant('{tmp}\csv_paths.txt');
+  DeleteFile(TempOutput);
+
+  SaveStringToFile(TempScript,
+    'Add-Type -AssemblyName System.Windows.Forms' + #13#10 +
+    '$d = New-Object System.Windows.Forms.OpenFileDialog' + #13#10 +
+    '$d.Filter = "CSV files (*.csv)|*.csv"' + #13#10 +
+    '$d.Title = "Select CSV files for POS data import"' + #13#10 +
+    '$d.Multiselect = $true' + #13#10 +
+    'if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {' + #13#10 +
+    '  [System.IO.File]::WriteAllLines("' + TempOutput + '", $d.FileNames)' + #13#10 +
+    '}',
+    False);
+
+  Exec('powershell.exe',
+    '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + TempScript + '"',
+    '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+
+  if FileExists(TempOutput) and LoadStringsFromFile(TempOutput, Lines) then
+  begin
+    for I := 0 to GetArrayLength(Lines) - 1 do
+    begin
+      FilePath := Trim(Lines[I]);
+      if FilePath = '' then Continue;
+      if not FileExists(FilePath) then Continue;
+      if CsvFullPaths.IndexOf(FilePath) >= 0 then Continue; // skip duplicates
+      CsvFullPaths.Add(FilePath);
+    end;
+  end;
+
+  UpdateCsvStatus;
+end;
+
+procedure RemoveCsvButtonClick(Sender: TObject);
+var
+  Idx: Integer;
+begin
+  Idx := CsvListBox.ItemIndex;
+  if Idx >= 0 then
+  begin
+    CsvFullPaths.Delete(Idx);
+    UpdateCsvStatus;
+  end;
+end;
+
 procedure InitializeWizard;
+var
+  AddBtn, RemoveBtn: TButton;
+  InstructLabel: TLabel;
 begin
   KioskNoPage := CreateInputQueryPage(
     wpSelectTasks,
@@ -226,14 +384,76 @@ begin
   );
   KioskNoPage.Add('Kiosk Number:', False);
   KioskNoPage.Values[0] := '1';
+
+  // ── CSV Import page ───────────────────────────────────────────────────
+  CsvFullPaths := TStringList.Create;
+
+  CsvImportPage := CreateCustomPage(
+    KioskNoPage.ID,
+    'Product Catalog Import',
+    'Import your store''s product catalog from CSV files'
+  );
+
+  // Layout note: positions are computed from each control's actual height
+  // (Top + Height + margin) rather than hard-coded offsets, so the multi-line
+  // instruction label never overlaps the list box across DPI/font differences.
+  InstructLabel := TLabel.Create(CsvImportPage);
+  InstructLabel.Parent := CsvImportPage.Surface;
+  InstructLabel.Left := 0;
+  InstructLabel.Top := 0;
+  InstructLabel.Width := CsvImportPage.SurfaceWidth;
+  InstructLabel.WordWrap := True;
+  InstructLabel.AutoSize := True;
+  InstructLabel.Caption :=
+    'Add one or more CSV files. The installer detects their schema automatically.' + #13#10 +
+    'Supported schemas: Products / Categories / Variants, and Modifier Groups / Options.' + #13#10 +
+    'A template CSV is installed to C:\POSKiosk\data\products-template.csv for reference.';
+
+  CsvListBox := TListBox.Create(CsvImportPage);
+  CsvListBox.Parent := CsvImportPage.Surface;
+  CsvListBox.Left := 0;
+  CsvListBox.Top := InstructLabel.Top + InstructLabel.Height + ScaleY(12);
+  CsvListBox.Width := CsvImportPage.SurfaceWidth;
+  CsvListBox.Height := ScaleY(120);
+
+  AddBtn := TButton.Create(CsvImportPage);
+  AddBtn.Parent := CsvImportPage.Surface;
+  AddBtn.Left := 0;
+  AddBtn.Top := CsvListBox.Top + CsvListBox.Height + ScaleY(8);
+  AddBtn.Width := ScaleX(100);
+  AddBtn.Caption := 'Add CSV...';
+  AddBtn.OnClick := @AddCsvButtonClick;
+
+  RemoveBtn := TButton.Create(CsvImportPage);
+  RemoveBtn.Parent := CsvImportPage.Surface;
+  RemoveBtn.Left := AddBtn.Left + AddBtn.Width + ScaleX(10);
+  RemoveBtn.Top := AddBtn.Top;
+  RemoveBtn.Width := ScaleX(100);
+  RemoveBtn.Caption := 'Remove';
+  RemoveBtn.OnClick := @RemoveCsvButtonClick;
+
+  CsvStatusLabel := TLabel.Create(CsvImportPage);
+  CsvStatusLabel.Parent := CsvImportPage.Surface;
+  CsvStatusLabel.Left := 0;
+  CsvStatusLabel.Top := AddBtn.Top + AddBtn.Height + ScaleY(12);
+  CsvStatusLabel.Width := CsvImportPage.SurfaceWidth;
+  CsvStatusLabel.WordWrap := True;
+  CsvStatusLabel.AutoSize := True;
+  CsvStatusLabel.Caption := 'No CSV files added. At least one recognized CSV is required.';
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
 var
   KioskNo: String;
-  Val: Integer;
+  Val, I: Integer;
+  UnknownFiles, ErrorFiles: String;
+  HasKnown, HasErrors: Boolean;
+  FilePath, Schema: String;
+  MsgResult: Integer;
 begin
   Result := True;
+
+  // ── Kiosk Number validation ───────────────────────────────────────────
   if CurPageID = KioskNoPage.ID then begin
     KioskNo := Trim(KioskNoPage.Values[0]);
     if KioskNo = '' then begin
@@ -245,6 +465,69 @@ begin
     if (Val < 1) or (Val > 999) then begin
       MsgBox('Kiosk number must be a whole number between 1 and 999.', mbError, MB_OK);
       Result := False;
+    end;
+  end;
+
+  // ── CSV Import page validation ────────────────────────────────────────
+  if CurPageID = CsvImportPage.ID then begin
+    HasKnown := False;
+    HasErrors := False;
+    UnknownFiles := '';
+    ErrorFiles := '';
+
+    for I := 0 to CsvFullPaths.Count - 1 do
+    begin
+      FilePath := CsvFullPaths[I];
+      Schema := DetectCsvSchema(FilePath);
+
+      if Schema = 'unknown' then
+        UnknownFiles := UnknownFiles + '  - ' + ExtractFileName(FilePath) + #13#10
+      else begin
+        HasKnown := True;
+        if CountCsvDataRows(FilePath) = 0 then begin
+          HasErrors := True;
+          ErrorFiles := ErrorFiles + '  - ' + ExtractFileName(FilePath) + ' (no data rows)' + #13#10;
+        end;
+      end;
+    end;
+
+    if CsvFullPaths.Count = 0 then begin
+      MsgBox('Please add at least one CSV file before continuing.', mbError, MB_OK);
+      Result := False;
+      Exit;
+    end;
+
+    if HasErrors then begin
+      MsgBox(
+        'The following CSV files have errors and must be fixed or removed:' + #13#10 + #13#10 +
+        ErrorFiles,
+        mbError, MB_OK
+      );
+      Result := False;
+      Exit;
+    end;
+
+    if not HasKnown then begin
+      MsgBox(
+        'None of the added CSV files match a recognized schema.' + #13#10 +
+        'At least one recognized CSV file is required to continue.',
+        mbError, MB_OK
+      );
+      Result := False;
+      Exit;
+    end;
+
+    if UnknownFiles <> '' then begin
+      MsgResult := MsgBox(
+        'The following files do not match a known schema and will be skipped:' + #13#10 + #13#10 +
+        UnknownFiles + #13#10 +
+        'Do you want to continue without these files?',
+        mbConfirmation, MB_YESNO
+      );
+      if MsgResult = IDNO then begin
+        Result := False;
+        Exit;
+      end;
     end;
   end;
 end;
@@ -263,11 +546,39 @@ end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 var
-  SettingsPath: String;
+  SettingsPath, CsvDestDir, SrcPath, DestPath: String;
+  I: Integer;
 begin
+  if CurStep = ssInstall then begin
+    // Copy all selected CSV files to {app}\data\csv\ before the [Run] steps
+    CsvDestDir := ExpandConstant('{app}\data\csv');
+    if not DirExists(CsvDestDir) then
+      ForceDirectories(CsvDestDir);
+    for I := 0 to CsvFullPaths.Count - 1 do
+    begin
+      SrcPath := CsvFullPaths[I];
+      DestPath := CsvDestDir + '\' + ExtractFileName(SrcPath);
+      FileCopy(SrcPath, DestPath, False);
+    end;
+  end;
+
   if CurStep = ssPostInstall then begin
     SettingsPath := ExpandConstant('{app}\settings.txt');
     SaveStringToFile(SettingsPath, 'kiosk.no=' + Trim(KioskNoPage.Values[0]), False);
+
+    // Check that CSV seeding completed — the script writes a marker on success.
+    // [Run] steps ignore exit codes so this is the only way to surface failures.
+    if not FileExists(ExpandConstant('{app}\logs\seed-csv-success.marker')) then begin
+      MsgBox(
+        'Product catalog import did not complete successfully.' + #13#10 + #13#10 +
+        'Check the log for details:' + #13#10 +
+        ExpandConstant('{app}\logs\seed-csv-install.log') + #13#10 + #13#10 +
+        'You can re-run seeding after install by placing updated CSV files in:' + #13#10 +
+        ExpandConstant('{app}\data\csv\') + #13#10 +
+        'then running recover-services.bat as administrator.',
+        mbError, MB_OK
+      );
+    end;
 
     // Verify the database + backend services actually came up. Inno's [Run]
     // steps ignore script exit codes, so without this check a failed DB setup
@@ -301,6 +612,12 @@ function NeedRestart(): Boolean;
 begin
   Result := False;
 end;
+
+
+
+
+
+
 
 
 

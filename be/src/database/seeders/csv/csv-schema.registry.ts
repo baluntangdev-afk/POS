@@ -1,5 +1,6 @@
 export enum CsvSchemaType {
   PRODUCTS_CATEGORIES_VARIANTS = 'products_categories_variants',
+  MODIFIERS = 'modifiers',
   UNKNOWN = 'unknown',
 }
 
@@ -13,8 +14,22 @@ export const PRODUCTS_CSV_HEADERS = [
   'Variant Price',
 ] as const;
 
+export const MODIFIERS_CSV_HEADERS = [
+  'Modifier Group Name',
+  'Group Description',
+  'Selection Type',
+  'Is Required',
+  'Min Selection',
+  'Max Selection',
+  'Linked Product Group',
+  'Option Name',
+  'Option Price Add-On',
+  'Option Available',
+] as const;
+
 const KNOWN_SCHEMAS: Array<{ type: CsvSchemaType; headers: readonly string[] }> = [
   { type: CsvSchemaType.PRODUCTS_CATEGORIES_VARIANTS, headers: PRODUCTS_CSV_HEADERS },
+  { type: CsvSchemaType.MODIFIERS, headers: MODIFIERS_CSV_HEADERS },
 ];
 
 /**

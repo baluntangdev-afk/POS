@@ -1,0 +1,48 @@
+Category,Category Description,Product Name,Product Description,Product Base Price,Variant Name,Variant Price
+Ramen,"Authentic Japanese-style ramen bowls",Shoyu Ramen,Classic soy-based broth with chashu pork,295.00,Regular,295.00
+Ramen,"Authentic Japanese-style ramen bowls",Shoyu Ramen,Classic soy-based broth with chashu pork,295.00,Large,345.00
+Ramen,"Authentic Japanese-style ramen bowls",Miso Ramen,Rich miso broth with corn and butter,310.00,Regular,310.00
+Ramen,"Authentic Japanese-style ramen bowls",Miso Ramen,Rich miso broth with corn and butter,310.00,Large,360.00
+Ramen,"Authentic Japanese-style ramen bowls",Tonkotsu Ramen,Creamy pork bone broth with soft-boiled egg,325.00,Regular,325.00
+Ramen,"Authentic Japanese-style ramen bowls",Tonkotsu Ramen,Creamy pork bone broth with soft-boiled egg,325.00,Large,375.00
+Ramen,"Authentic Japanese-style ramen bowls",Spicy Tantanmen,Sesame-chili broth with ground pork,330.00,Regular,330.00
+Ramen,"Authentic Japanese-style ramen bowls",Spicy Tantanmen,Sesame-chili broth with ground pork,330.00,Large,380.00
+Ramen,"Authentic Japanese-style ramen bowls",Vegetarian Ramen,Kombu and shiitake mushroom broth,280.00,Regular,280.00
+Ramen,"Authentic Japanese-style ramen bowls",Vegetarian Ramen,Kombu and shiitake mushroom broth,280.00,Large,330.00
+Rice Bowls,"Japanese rice bowls with premium toppings",Gyudon,Braised beef and onion over steamed rice,265.00,Regular,265.00
+Rice Bowls,"Japanese rice bowls with premium toppings",Gyudon,Braised beef and onion over steamed rice,265.00,Large,315.00
+Rice Bowls,"Japanese rice bowls with premium toppings",Karaage Don,Crispy fried chicken over steamed rice,255.00,Regular,255.00
+Rice Bowls,"Japanese rice bowls with premium toppings",Karaage Don,Crispy fried chicken over steamed rice,255.00,Large,305.00
+Rice Bowls,"Japanese rice bowls with premium toppings",Salmon Teriyaki Don,Grilled salmon with teriyaki glaze over rice,345.00,Regular,345.00
+Rice Bowls,"Japanese rice bowls with premium toppings",Salmon Teriyaki Don,Grilled salmon with teriyaki glaze over rice,345.00,Large,395.00
+Rice Bowls,"Japanese rice bowls with premium toppings",Oyakodon,Chicken and egg simmered in dashi over rice,250.00,Regular,250.00
+Rice Bowls,"Japanese rice bowls with premium toppings",Oyakodon,Chicken and egg simmered in dashi over rice,250.00,Large,300.00
+Appetizers,"Small bites and starters",Gyoza,Pan-fried pork and cabbage dumplings,155.00,6 pcs,155.00
+Appetizers,"Small bites and starters",Gyoza,Pan-fried pork and cabbage dumplings,155.00,12 pcs,295.00
+Appetizers,"Small bites and starters",Karaage,Japanese fried chicken thigh pieces,165.00,Regular,165.00
+Appetizers,"Small bites and starters",Karaage,Japanese fried chicken thigh pieces,165.00,Large,295.00
+Appetizers,"Small bites and starters",Edamame,Salted steamed soy beans,90.00,Regular,90.00
+Appetizers,"Small bites and starters",Takoyaki,Octopus balls with bonito flakes,150.00,6 pcs,150.00
+Appetizers,"Small bites and starters",Takoyaki,Octopus balls with bonito flakes,150.00,12 pcs,285.00
+Appetizers,"Small bites and starters",Agedashi Tofu,Lightly battered tofu in dashi broth,145.00,Regular,145.00
+Bubble Tea,"Premium milk teas and fruit teas",Classic Milk Tea,House blend milk tea with tapioca pearls,130.00,Medium,130.00
+Bubble Tea,"Premium milk teas and fruit teas",Classic Milk Tea,House blend milk tea with tapioca pearls,130.00,Large,150.00
+Bubble Tea,"Premium milk teas and fruit teas",Brown Sugar Boba,Brown sugar milk with tiger pearls,155.00,Medium,155.00
+Bubble Tea,"Premium milk teas and fruit teas",Brown Sugar Boba,Brown sugar milk with tiger pearls,155.00,Large,175.00
+Bubble Tea,"Premium milk teas and fruit teas",Taro Milk Tea,Creamy taro milk tea with pearls,140.00,Medium,140.00
+Bubble Tea,"Premium milk teas and fruit teas",Taro Milk Tea,Creamy taro milk tea with pearls,140.00,Large,160.00
+Bubble Tea,"Premium milk teas and fruit teas",Matcha Latte,Premium matcha with fresh milk,145.00,Medium,145.00
+Bubble Tea,"Premium milk teas and fruit teas",Matcha Latte,Premium matcha with fresh milk,145.00,Large,165.00
+Bubble Tea,"Premium milk teas and fruit teas",Passion Fruit Tea,Refreshing passion fruit iced tea,130.00,Medium,130.00
+Bubble Tea,"Premium milk teas and fruit teas",Passion Fruit Tea,Refreshing passion fruit iced tea,130.00,Large,150.00
+Bubble Tea,"Premium milk teas and fruit teas",Lychee Oolong,Lychee-infused oolong tea,135.00,Medium,135.00
+Bubble Tea,"Premium milk teas and fruit teas",Lychee Oolong,Lychee-infused oolong tea,135.00,Large,155.00
+Desserts,"Japanese-inspired sweet treats",Matcha Ice Cream,Premium matcha soft serve,110.00,Single Scoop,110.00
+Desserts,"Japanese-inspired sweet treats",Matcha Ice Cream,Premium matcha soft serve,110.00,Double Scoop,160.00
+Desserts,"Japanese-inspired sweet treats",Mochi Ice Cream,Japanese rice cake filled with ice cream,95.00,1 pc,95.00
+Desserts,"Japanese-inspired sweet treats",Mochi Ice Cream,Japanese rice cake filled with ice cream,95.00,3 pcs,265.00
+Desserts,"Japanese-inspired sweet treats",Dorayaki,Fluffy pancake sandwich with red bean filling,120.00,Regular,120.00
+Desserts,"Japanese-inspired sweet treats",Taiyaki,Fish-shaped waffle with filling,125.00,Red Bean,125.00
+Desserts,"Japanese-inspired sweet treats",Taiyaki,Fish-shaped waffle with filling,125.00,Chocolate,125.00
+Desserts,"Japanese-inspired sweet treats",Taiyaki,Fish-shaped waffle with filling,125.00,Custard,135.00
+Desserts,"Japanese-inspired sweet treats",Anmitsu,Traditional Japanese jelly dessert with sweet syrup,150.00,Regular,150.00

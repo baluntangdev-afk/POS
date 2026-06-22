@@ -183,7 +183,25 @@
       "PowerShell(sc.exe qfailure POSPostgres 2>&1)",
       "PowerShell(sc.exe qfailure POSBackendService 2>&1)",
       "PowerShell(sc.exe qc POSPostgres 2>&1)",
-      "PowerShell(sc.exe qc POSBackendService 2>&1)"
+      "PowerShell(sc.exe qc POSBackendService 2>&1)",
+      "Bash(npx jest *)",
+      "Bash(PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -p 5432 -tAc \"SELECT 1 FROM pg_database WHERE datname='pos_db'\")",
+      "Bash(PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -p 5432 -d pos_db -tAc \"SELECT count\\(*\\) FROM information_schema.tables WHERE table_name IN \\('products','product_groups','product_variants','users'\\)\")",
+      "Bash(powershell -NoProfile -Command \"Get-Service *postgres*,*POSPostgres* -ErrorAction SilentlyContinue | Select-Object Name,Status | Format-Table -AutoSize\")",
+      "Bash(powershell -NoProfile -Command \"Start-Service POSPostgres -ErrorAction SilentlyContinue; Start-Sleep 2; \\(Get-Service POSPostgres\\).Status\")",
+      "Bash([ -f \"$PGPW\" ])",
+      "Bash(PGPASSWORD=postgres C:/POSKiosk/pgsql/bin/psql.exe -h localhost -p 5432 -U postgres -d pos_db -c 'SELECT r.id AS recipe_id, r.name, r.status, pv.id AS variant_id, pv.name AS variant FROM recipes r JOIN product_variants pv ON pv.id = r.product_variant_id WHERE pv.id IN \\(7,8\\) ORDER BY pv.id;')",
+      "Bash(\"/c/POSKiosk/pgsql/bin/psql.exe\" -U postgres -h localhost -d pos_db -t -c \"SELECT \\(SELECT COUNT\\(*\\) FROM product_variants WHERE deleted_at IS NULL\\) AS active_variants, \\(SELECT COUNT\\(*\\) FROM recipes\\) AS recipes, \\(SELECT COUNT\\(*\\) FROM recipes WHERE deleted_at IS NULL\\) AS active_recipes;\")",
+      "Bash(\"/c/POSKiosk/pgsql/bin/psql.exe\" -U postgres -h localhost -d pos_db -c \"SELECT pv.id, pv.name, pv.status, r.id AS recipe_id, r.status AS recipe_status FROM product_variants pv LEFT JOIN recipes r ON r.product_variant_id = pv.id WHERE pv.id IN \\(7,8,9,82,101\\) ORDER BY pv.id;\")",
+      "Read(//c/Users/Jufiel/Documents/POS/**)",
+      "Bash(\"/c/POSKiosk/pgsql/bin/psql.exe\" -U postgres -h localhost -d pos_db -c \"SELECT code, name FROM uoms WHERE code='SERV';\")",
+      "Bash(\"/c/POSKiosk/pgsql/bin/psql.exe\" -U postgres -h localhost -d pos_db -c \"SELECT name, value FROM tax_categories WHERE name='12% VAT';\")",
+      "Bash(awk -F',' '{print $3}')",
+      "PowerShell(cd C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be; npx eslint --fix src/database/seeders/csv/products-csv.seeder.ts src/database/seeders/csv/products-csv.seeder.spec.ts src/products/entities/product.entity.ts src/database/migrations/1779584300000-products-unique-name-per-group.ts src/database/migrations-index.ts 2>&1 | Select-Object -Last 20; Write-Output \"---EXIT $LASTEXITCODE---\")",
+      "PowerShell(cd C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be; npx eslint src/database/seeders/csv/products-csv.seeder.ts src/database/seeders/csv/products-csv.seeder.spec.ts src/products/entities/product.entity.ts src/database/migrations/1779584300000-products-unique-name-per-group.ts src/database/migrations-index.ts 2>&1 | Select-Object -Last 20; Write-Output \"---EXIT $LASTEXITCODE---\")",
+      "PowerShell(npm run *)",
+      "PowerShell(cd C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be; .\\\\POSBackend.exe --migrate 2>&1 | Select-Object -Last 40; Write-Output \"---EXIT $LASTEXITCODE---\")",
+      "Bash([ -f \"$f\" ])"
     ]
   }
 }

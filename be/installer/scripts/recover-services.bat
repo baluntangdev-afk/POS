@@ -27,7 +27,7 @@ echo  App dir: %APPDIR%
 echo ============================================
 echo.
 
-echo [1/2] Setting up PostgreSQL (init data, register service, create DB, migrate, seed)...
+echo [1/3] Setting up PostgreSQL (init data, register service, create DB, migrate, seed)...
 call "%~dp0setup-postgres.bat" "%APPDIR%"
 if %errorlevel% neq 0 (
     echo.
@@ -38,7 +38,18 @@ if %errorlevel% neq 0 (
 echo     [OK] PostgreSQL ready.
 echo.
 
-echo [2/2] Installing backend service...
+echo [2/3] Importing product catalog from CSV (data\csv)...
+call "%~dp0seed-from-csv.bat" "%APPDIR%"
+if %errorlevel% neq 0 (
+    echo.
+    echo [FAILED] CSV catalog import failed. See %APPDIR%\logs\seed-csv-install.log
+    pause
+    exit /b 1
+)
+echo     [OK] Product catalog imported.
+echo.
+
+echo [3/3] Installing backend service...
 call "%~dp0install-backend-service.bat" "%APPDIR%"
 if %errorlevel% neq 0 (
     echo.

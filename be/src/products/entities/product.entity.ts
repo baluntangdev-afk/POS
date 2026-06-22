@@ -7,6 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
   DeleteDateColumn,
+  Index,
   OneToMany,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
@@ -15,6 +16,12 @@ import { ProductVariant } from './product-variant.entity';
 import { ProductStatus } from '../products.enum';
 
 @Entity('products')
+// Product names are unique per category (group), not globally. Partial index so
+// soft-deleted rows never block re-using a name — see migration 1779584300000.
+@Index('UQ_products_group_name', ['productGroup', 'name'], {
+  unique: true,
+  where: '"deleted_at" IS NULL',
+})
 export class Product {
   @PrimaryGeneratedColumn({ type: 'int' })
   id: number;
@@ -23,7 +30,7 @@ export class Product {
   @JoinColumn({ name: 'group_id' })
   productGroup: ProductGroup;
 
-  @Column({ type: 'varchar', length: 100, unique: true })
+  @Column({ type: 'varchar', length: 100 })
   name: string;
 
   @Column({ type: 'text', nullable: true })

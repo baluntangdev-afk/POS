@@ -1,8 +1,23 @@
-import { detectSchema, CsvSchemaType, PRODUCTS_CSV_HEADERS } from './csv-schema.registry';
+import {
+  detectSchema,
+  CsvSchemaType,
+  PRODUCTS_CSV_HEADERS,
+  MODIFIERS_CSV_HEADERS,
+} from './csv-schema.registry';
 
 describe('detectSchema', () => {
   it('detects products/categories/variants schema from exact headers', () => {
     expect(detectSchema([...PRODUCTS_CSV_HEADERS])).toBe(
+      CsvSchemaType.PRODUCTS_CATEGORIES_VARIANTS,
+    );
+  });
+
+  it('detects modifiers schema from exact headers', () => {
+    expect(detectSchema([...MODIFIERS_CSV_HEADERS])).toBe(CsvSchemaType.MODIFIERS);
+  });
+
+  it('does not confuse products and modifiers schemas', () => {
+    expect(detectSchema([...MODIFIERS_CSV_HEADERS])).not.toBe(
       CsvSchemaType.PRODUCTS_CATEGORIES_VARIANTS,
     );
   });

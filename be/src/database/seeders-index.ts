@@ -8,11 +8,8 @@ import { MaterialTypesSeeder } from './seeders/material-types.seeder';
 import { InventoryTypesSeeder } from './seeders/inventory-types.seeder';
 import { StoreMenusSeeder } from './seeders/store-menus.seeder';
 import { ModifierGroupsSeeder } from './seeders/modifier-groups.seeder';
-import { ProductGroupsSeeder } from './seeders/product-groups.seeder';
 import { MaterialsSeeder } from './seeders/materials.seeder';
 import { ModifierOptionsSeeder } from './seeders/modifier-options.seeder';
-import { ProductsSeeder } from './seeders/products.seeder';
-import { ProductVariantsSeeder } from './seeders/product-variants.seeder';
 import { ProductGroupModifierGroupsSeeder } from './seeders/product-group-modifier-groups.seeder';
 import { ProductModifierGroupsSeeder } from './seeders/product-modifier-groups.seeder';
 import { RecipesSeeder } from './seeders/recipes.seeder';
@@ -35,11 +32,8 @@ export const seeders: Array<new () => Seeder> = [
   InventoryTypesSeeder,
   StoreMenusSeeder,
   ModifierGroupsSeeder,
-  ProductGroupsSeeder,
   MaterialsSeeder,
   ModifierOptionsSeeder,
-  ProductsSeeder,
-  ProductVariantsSeeder,
   ProductGroupModifierGroupsSeeder,
   ProductModifierGroupsSeeder,
   RecipesSeeder,

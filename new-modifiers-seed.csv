@@ -1,0 +1,63 @@
+Modifier Group Name,Group Description,Selection Type,Is Required,Min Selection,Max Selection,Linked Product Group,Option Name,Option Price Add-On,Option Available
+Noodle Type,Choose your noodle style,single,true,1,1,Ramen,Straight Noodles,0.00,true
+Noodle Type,Choose your noodle style,single,true,1,1,Ramen,Wavy Noodles,0.00,true
+Noodle Type,Choose your noodle style,single,true,1,1,Ramen,Thick Noodles,0.00,true
+Noodle Type,Choose your noodle style,single,true,1,1,Ramen,Thin Noodles,0.00,true
+Spice Level,How spicy do you like it?,single,true,1,1,Ramen,Not Spicy,0.00,true
+Spice Level,How spicy do you like it?,single,true,1,1,Ramen,Mild,0.00,true
+Spice Level,How spicy do you like it?,single,true,1,1,Ramen,Medium,0.00,true
+Spice Level,How spicy do you like it?,single,true,1,1,Ramen,Hot,0.00,true
+Spice Level,How spicy do you like it?,single,true,1,1,Ramen,Extra Hot,0.00,true
+Ramen Toppings,Add extra toppings to your bowl,multiple,false,0,5,Ramen,Soft-Boiled Egg,35.00,true
+Ramen Toppings,Add extra toppings to your bowl,multiple,false,0,5,Ramen,Extra Chashu,55.00,true
+Ramen Toppings,Add extra toppings to your bowl,multiple,false,0,5,Ramen,Nori,15.00,true
+Ramen Toppings,Add extra toppings to your bowl,multiple,false,0,5,Ramen,Bamboo Shoots,20.00,true
+Ramen Toppings,Add extra toppings to your bowl,multiple,false,0,5,Ramen,Corn,15.00,true
+Ramen Toppings,Add extra toppings to your bowl,multiple,false,0,5,Ramen,Bean Sprouts,15.00,true
+Ramen Toppings,Add extra toppings to your bowl,multiple,false,0,5,Ramen,Green Onion,10.00,true
+Ramen Extras,Add sides to your ramen,single,false,0,1,Ramen,Add Steamed Rice,30.00,true
+Ramen Extras,Add sides to your ramen,single,false,0,1,Ramen,Add Extra Noodles,35.00,true
+Broth Richness,Choose your broth strength,single,true,1,1,Ramen,Regular,0.00,true
+Broth Richness,Choose your broth strength,single,true,1,1,Ramen,Rich,0.00,true
+Broth Richness,Choose your broth strength,single,true,1,1,Ramen,Extra Rich,0.00,true
+Rice Bowl Protein,Upgrade your protein,single,false,0,1,Rice Bowls,No Upgrade,0.00,true
+Rice Bowl Protein,Upgrade your protein,single,false,0,1,Rice Bowls,Add Extra Protein,55.00,true
+Rice Bowl Protein,Upgrade your protein,single,false,0,1,Rice Bowls,Double Protein,100.00,true
+Rice Bowl Add-Ons,Customise your rice bowl,multiple,false,0,4,Rice Bowls,Soft-Boiled Egg,35.00,true
+Rice Bowl Add-Ons,Customise your rice bowl,multiple,false,0,4,Rice Bowls,Pickled Vegetables,20.00,true
+Rice Bowl Add-Ons,Customise your rice bowl,multiple,false,0,4,Rice Bowls,Nori,15.00,true
+Rice Bowl Add-Ons,Customise your rice bowl,multiple,false,0,4,Rice Bowls,Sesame Seeds,10.00,true
+Dipping Sauce,Choose a dipping sauce for your appetizer,single,false,0,1,Appetizers,Ponzu,0.00,true
+Dipping Sauce,Choose a dipping sauce for your appetizer,single,false,0,1,Appetizers,Tonkatsu Sauce,0.00,true
+Dipping Sauce,Choose a dipping sauce for your appetizer,single,false,0,1,Appetizers,Sesame Dipping Sauce,0.00,true
+Dipping Sauce,Choose a dipping sauce for your appetizer,single,false,0,1,Appetizers,Japanese Mayo,0.00,true
+Dipping Sauce,Choose a dipping sauce for your appetizer,single,false,0,1,Appetizers,Chili Garlic,0.00,true
+Appetizer Add-Ons,Add extras to your starter,multiple,false,0,3,Appetizers,Extra Sauce,10.00,true
+Appetizer Add-Ons,Add extras to your starter,multiple,false,0,3,Appetizers,Bonito Flakes,15.00,true
+Appetizer Add-Ons,Add extras to your starter,multiple,false,0,3,Appetizers,Aonori,10.00,true
+Sugar Level,Choose your sugar level,single,true,1,1,Bubble Tea,0% (Unsweetened),0.00,true
+Sugar Level,Choose your sugar level,single,true,1,1,Bubble Tea,25% (Lightly Sweet),0.00,true
+Sugar Level,Choose your sugar level,single,true,1,1,Bubble Tea,50% (Half Sweet),0.00,true
+Sugar Level,Choose your sugar level,single,true,1,1,Bubble Tea,75% (Less Sweet),0.00,true
+Sugar Level,Choose your sugar level,single,true,1,1,Bubble Tea,100% (Full Sweet),0.00,true
+Ice Level,Choose your ice level,single,true,1,1,Bubble Tea,No Ice,0.00,true
+Ice Level,Choose your ice level,single,true,1,1,Bubble Tea,Less Ice,0.00,true
+Ice Level,Choose your ice level,single,true,1,1,Bubble Tea,Regular Ice,0.00,true
+Ice Level,Choose your ice level,single,true,1,1,Bubble Tea,Extra Ice,0.00,true
+Milk Type,Choose your milk preference,single,false,0,1,Bubble Tea,Regular Milk,0.00,true
+Milk Type,Choose your milk preference,single,false,0,1,Bubble Tea,Oat Milk,20.00,true
+Milk Type,Choose your milk preference,single,false,0,1,Bubble Tea,Almond Milk,20.00,true
+Boba Toppings,Add toppings to your drink,multiple,false,0,3,Bubble Tea,Tapioca Pearls,20.00,true
+Boba Toppings,Add toppings to your drink,multiple,false,0,3,Bubble Tea,Grass Jelly,20.00,true
+Boba Toppings,Add toppings to your drink,multiple,false,0,3,Bubble Tea,Lychee Jelly,20.00,true
+Boba Toppings,Add toppings to your drink,multiple,false,0,3,Bubble Tea,Aloe Vera,20.00,true
+Boba Toppings,Add toppings to your drink,multiple,false,0,3,Bubble Tea,Pudding,25.00,true
+Dessert Flavor,Choose your ice cream flavor,single,true,1,1,Desserts,Matcha,0.00,true
+Dessert Flavor,Choose your ice cream flavor,single,true,1,1,Desserts,Strawberry,0.00,true
+Dessert Flavor,Choose your ice cream flavor,single,true,1,1,Desserts,Vanilla,0.00,true
+Dessert Flavor,Choose your ice cream flavor,single,true,1,1,Desserts,Red Bean,0.00,true
+Dessert Flavor,Choose your ice cream flavor,single,true,1,1,Desserts,Black Sesame,0.00,true
+Dessert Add-Ons,Enhance your dessert,multiple,false,0,3,Desserts,Mochi Toppings,20.00,true
+Dessert Add-Ons,Enhance your dessert,multiple,false,0,3,Desserts,Red Bean Paste,15.00,true
+Dessert Add-Ons,Enhance your dessert,multiple,false,0,3,Desserts,Kinako Powder,10.00,true
+Dessert Add-Ons,Enhance your dessert,multiple,false,0,3,Desserts,Matcha Drizzle,15.00,true

@@ -13,6 +13,12 @@ const CLASS_REGEX = /export\s+class\s+(\w+Seeder)\s+implements\s+Seeder/;
  * needs Products, RecipeItems needs Recipes + Materials. This explicit
  * dependency order is the source of truth. Any seeder not listed here is
  * appended at the end (alphabetically) with a warning so it can be placed.
+ *
+ * NOTE: The product catalog (product groups/categories, products, variants) is
+ * NOT seeded here — it is imported from the store's CSV at install time via
+ * `POSBackend.exe --seed-csv` (see src/database/seeders/csv). The downstream
+ * seeders below that reference the catalog (recipes, menu items, modifier links)
+ * remain but no-op gracefully when the catalog is empty.
  */
 const SEEDER_ORDER = [
   'UsersSeeder', // creates the admin user — must run first
@@ -24,17 +30,14 @@ const SEEDER_ORDER = [
   'InventoryTypesSeeder',
   'StoreMenusSeeder',
   'ModifierGroupsSeeder',
-  'ProductGroupsSeeder',
   'MaterialsSeeder', // needs UomSeeder + MaterialTypesSeeder
   'ModifierOptionsSeeder', // needs ModifierGroupsSeeder
-  'ProductsSeeder', // needs ProductGroupsSeeder
-  'ProductVariantsSeeder', // needs ProductsSeeder
-  'ProductGroupModifierGroupsSeeder', // needs ProductGroupsSeeder + ModifierGroupsSeeder
-  'ProductModifierGroupsSeeder', // needs ProductsSeeder + ModifierGroupsSeeder
-  'RecipesSeeder', // needs ProductsSeeder
+  'ProductGroupModifierGroupsSeeder', // needs ModifierGroupsSeeder (links to CSV-seeded product groups by name)
+  'ProductModifierGroupsSeeder', // needs ModifierGroupsSeeder (links to CSV-seeded products by name)
+  'RecipesSeeder', // operates on CSV-seeded variants; no-ops when catalog empty
   'RecipeItemsSeeder', // needs RecipesSeeder + MaterialsSeeder
-  'MenuItemsSeeder', // needs StoreMenusSeeder + ProductsSeeder/ProductVariantsSeeder
-  'InventoryStocksSeeder', // needs ProductsSeeder/ProductVariantsSeeder
+  'MenuItemsSeeder', // needs StoreMenusSeeder; operates on CSV-seeded variants
+  'InventoryStocksSeeder', // seeds stock per material
   'MenuItemModifiersSeeder', // needs MenuItemsSeeder + ModifierOptionsSeeder
 ];
 

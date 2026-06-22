@@ -371,12 +371,13 @@ export class SalesOrderItemBuildService {
     if (!productVariant) {
       throw new Error(`Product variant not found for product ${product.productVariantId}`);
     }
-    if (!recipeId) {
-      throw new Error(`Recipe not found for product variant ${product.productVariantId}`);
-    }
 
+    // A variant without a recipe (e.g. a simple CSV-imported menu item, which
+    // carries no ingredient data) is still orderable — it just deducts no
+    // inventory. Inventory validation and the order-created event already skip
+    // recipe-less items, so a missing recipe must not block the order.
     product.productVariant = productVariant;
-    product.recipeId = recipeId;
+    product.recipeId = recipeId ?? null;
   }
 
   private buildAddOnItemsForProduct(

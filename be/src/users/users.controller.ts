@@ -14,8 +14,8 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PaginatedQueryDto } from '../utils/pagination';
-import { RequireSystemAdmin } from '../auth/decorators/require-system-admin.decorator';
-import { RequireSystemAdminOrSelf } from '../auth/decorators/require-system-admin-or-self.decorator';
+import { RequireAdminOrSupervisor } from '../auth/decorators/require-admin-or-supervisor.decorator';
+import { RequireAdminOrSupervisorOrSelf } from '../auth/decorators/require-admin-or-supervisor-or-self.decorator';
 import { CurrentUser } from '../utils/decorators/current-user.decorator';
 import { User } from './entities/user.entity';
 import { PaginatedResponse } from '../utils/pagination/dto';
@@ -29,14 +29,14 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @RequireSystemAdmin()
+  @RequireAdminOrSupervisor()
   @InsertUpdateFailedException()
   create(@Body() createUserDto: CreateUserDto, @CurrentUser() causer: User) {
     return this.usersService.create(createUserDto, causer);
   }
 
   @Get()
-  @RequireSystemAdmin()
+  @RequireAdminOrSupervisor()
   @ApiOkResponse({ type: PaginatedResponse(UserListItemDto) })
   findAll(@Query() query: PaginatedQueryDto) {
     return this.usersService.findAll(query);
@@ -61,7 +61,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @RequireSystemAdminOrSelf('id')
+  @RequireAdminOrSupervisorOrSelf('id')
   @ApiOkResponse({ type: UserListItemDto })
   @InsertUpdateFailedException()
   update(
@@ -74,7 +74,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @RequireSystemAdmin()
+  @RequireAdminOrSupervisor()
   remove(@Param('id') id: string) {
     return this.usersService.remove(+id);
   }

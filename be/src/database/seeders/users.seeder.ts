@@ -1,6 +1,7 @@
 import type { DataSource } from 'typeorm';
 import type { Seeder } from './seeder.interface';
 import { User } from '../../users/entities/user.entity';
+import { UserRole } from '../../users/users.enum';
 import { BaseStatus } from '../../utils/shared-enums';
 import bcrypt from 'bcryptjs';
 import { EntityHelper } from '../../utils/entity.helper';
@@ -24,6 +25,7 @@ export class UsersSeeder implements Seeder {
         devicePin: await bcrypt.hash('123456', salt),
         status: BaseStatus.ACTIVE,
         systemAdmin: true,
+        role: UserRole.ADMIN,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -34,7 +36,7 @@ export class UsersSeeder implements Seeder {
       .createQueryBuilder()
       .insert()
       .values(users.map((user) => EntityHelper.toPartialEntity(user)))
-      .orUpdate(['password', 'salt', 'device_pin'], ['email'])
+      .orUpdate(['password', 'salt', 'device_pin', 'role', 'system_admin'], ['email'])
       .execute();
   }
 }

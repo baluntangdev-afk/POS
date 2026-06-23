@@ -27,7 +27,7 @@ class AccessRepositoryImpl implements AccessRepository {
 
   Access _accessFromUserDto(UserDto dto) {
     final Role role;
-    if (dto.systemAdmin) {
+    if (dto.systemAdmin || dto.role == 'admin') {
       role = Role.admin;
     } else if (dto.role == 'supervisor') {
       role = Role.supervisor;

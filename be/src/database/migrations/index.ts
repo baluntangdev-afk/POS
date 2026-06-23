@@ -5,6 +5,7 @@ import { SalesOrdersVoidFields1779583800000 } from './1779583800000-sales-orders
 import { SalesOrdersDoneExport1779584000000 } from './1779584000000-sales-orders-done-export';
 import { SoItemsSaleTypeNote1779584100000 } from './1779584100000-so-items-sale-type-note';
 import { PaymentsMethodName1779584200000 } from './1779584200000-payments-method-name';
+import { FixAdminRole1779584300000 } from './1779584300000-fix-admin-role';
 
 /**
  * Migration classes for POSBackend.exe --migrate (same as npm run migration:up).
@@ -17,4 +18,5 @@ export const migrations: Array<new () => MigrationInterface> = [
   SalesOrdersDoneExport1779584000000,
   SoItemsSaleTypeNote1779584100000,
   PaymentsMethodName1779584200000,
+  FixAdminRole1779584300000,
 ];

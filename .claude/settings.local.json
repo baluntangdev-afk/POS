@@ -201,7 +201,9 @@
       "PowerShell(cd C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be; npx eslint src/database/seeders/csv/products-csv.seeder.ts src/database/seeders/csv/products-csv.seeder.spec.ts src/products/entities/product.entity.ts src/database/migrations/1779584300000-products-unique-name-per-group.ts src/database/migrations-index.ts 2>&1 | Select-Object -Last 20; Write-Output \"---EXIT $LASTEXITCODE---\")",
       "PowerShell(npm run *)",
       "PowerShell(cd C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be; .\\\\POSBackend.exe --migrate 2>&1 | Select-Object -Last 40; Write-Output \"---EXIT $LASTEXITCODE---\")",
-      "Bash([ -f \"$f\" ])"
+      "Bash([ -f \"$f\" ])",
+      "PowerShell(taskkill *)",
+      "PowerShell(Stop-Service *)"
     ]
   }
 }

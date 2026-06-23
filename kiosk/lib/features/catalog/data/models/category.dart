@@ -28,4 +28,36 @@ class CatalogCategory {
       productCount: json['product_count'] as int,
     );
   }
+
+  factory CatalogCategory.draft() {
+    return const CatalogCategory(
+      id: '',
+      name: '',
+      description: null,
+      imageUrl: null,
+      sortOrder: 0,
+      isActive: true,
+      productCount: 0,
+    );
+  }
+
+  CatalogCategory copyWith({
+    String? id,
+    String? name,
+    String? description,
+    String? imageUrl,
+    int? sortOrder,
+    bool? isActive,
+    int? productCount,
+  }) {
+    return CatalogCategory(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      imageUrl: imageUrl ?? this.imageUrl,
+      sortOrder: sortOrder ?? this.sortOrder,
+      isActive: isActive ?? this.isActive,
+      productCount: productCount ?? this.productCount,
+    );
+  }
 }

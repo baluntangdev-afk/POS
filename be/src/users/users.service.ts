@@ -175,6 +175,7 @@ export class UsersService {
         email: true,
         systemAdmin: true,
         isPinChanged: true,
+        role: true,
         ...(includePassword && { password: true }),
       },
     });
@@ -188,6 +189,7 @@ export class UsersService {
         email: true,
         systemAdmin: true,
         isPinChanged: true,
+        role: true,
         ...(includePassword && { password: true, devicePin: true }),
       },
     });

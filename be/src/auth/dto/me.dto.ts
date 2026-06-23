@@ -12,4 +12,7 @@ export class MeDto {
 
   @ApiProperty({ description: 'PIN changed', example: false })
   isPinChanged: boolean;
+
+  @ApiProperty({ description: 'User role', example: 'admin' })
+  role?: string;
 }

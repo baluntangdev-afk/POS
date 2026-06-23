@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { User } from '../users/entities/user.entity';
+import { UserRole } from '../users/users.enum';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SalesOrder } from './entities/sales-order.entity';
 import { Refund } from '../refunds/entities/refund.entity';
@@ -68,7 +69,12 @@ export class SalesOrdersService {
       where.soType = soType;
     }
 
-    if (!currentUser.systemAdmin) {
+    const canSeeAll =
+      currentUser.systemAdmin ||
+      currentUser.role === UserRole.ADMIN ||
+      currentUser.role === UserRole.SUPERVISOR;
+
+    if (!canSeeAll) {
       where.createdBy = { id: currentUser.id };
     } else if (createdBy) {
       where.createdBy = { id: createdBy };

@@ -130,8 +130,19 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
       sort: sort,
     );
 
-    final (salesOrdersResponse, posTerminalDto) =
-        await (_salesOrdersApi.getAll(salesOrdersQuery), _posTerminalsApi.getMyTerminal()).wait;
+    final salesOrdersResponse = await _salesOrdersApi.getAll(salesOrdersQuery);
+
+    PosTerminalDto? posTerminalDto;
+    try {
+      posTerminalDto = await _posTerminalsApi.getMyTerminal();
+    } catch (_) {
+      // Not all users (e.g. supervisors) have a terminal assigned; store info
+      // is not shown on the transactions list so this is safe to ignore.
+    }
+
+    final store = posTerminalDto != null
+        ? _storeFromPosTerminalDto(posTerminalDto)
+        : const Store(legalName: '', tin: '', addressLine1: '', addressLine2: '');
 
     return PaginatedData(
       page: page,
@@ -141,7 +152,7 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
           salesOrdersResponse.data.map((dto) {
             return _receiptFromSalesOrderWithItemsDto(
               dto,
-              store: _storeFromPosTerminalDto(posTerminalDto),
+              store: store,
               cashier: Cashier.unknown(),
               payment: ZeroPayment(),
               refundedAmount: dto.totalRefundAmount > 0

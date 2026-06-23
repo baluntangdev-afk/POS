@@ -34,9 +34,10 @@ class AuthRepositoryImpl implements AuthRepository {
     required AuthApi authApi,
     required AuthStorage authStorage,
     required UserApi userApi,
-  }) : _authApi = authApi,
-       _authStorage = authStorage,
-       _userApi = userApi;
+  })
+      : _authApi = authApi,
+        _authStorage = authStorage,
+        _userApi = userApi;
 
   final AuthApi _authApi;
   final AuthStorage _authStorage;
@@ -82,6 +83,7 @@ class AuthRepositoryImpl implements AuthRepository {
       middleName: dto.middleName,
       suffix: dto.suffix == 'None' ? null : dto.suffix,
       isPinChanged: dto.isPinChanged,
+      role: dto.role,
     );
   }
 }

@@ -1,10 +1,20 @@
-import { Injectable } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { ProductGroup } from '../product-groups/entities/product-group.entity';
+import { User } from '../users/entities/user.entity';
+import { BaseStatus } from '../utils/shared-enums';
+import { EntityHelper } from '../utils/entity.helper';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @Injectable()
 export class CatalogService {
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    @InjectRepository(ProductGroup)
+    private readonly pgRepo: Repository<ProductGroup>,
+  ) {}
 
   async getCategories(): Promise<unknown[]> {
     const rows = await this.dataSource.query<
@@ -43,6 +53,98 @@ export class CatalogService {
       is_active: r.is_active,
       product_count: Number(r.product_count),
     }));
+  }
+
+  async getAllCategoriesForAdmin(): Promise<unknown[]> {
+    const rows = await this.dataSource.query<
+      {
+        id: string;
+        name: string;
+        description: string | null;
+        is_active: boolean;
+        product_count: string;
+      }[]
+    >(`
+      SELECT
+        pg.id::text,
+        pg.name,
+        pg.description,
+        NULL::text                                                              AS image_url,
+        0                                                                       AS sort_order,
+        (pg.status = 'Active')                                                  AS is_active,
+        COUNT(p.id) FILTER (WHERE p.is_available = true
+                              AND p.status       = 'Active'
+                              AND p.deleted_at   IS NULL)::int                  AS product_count
+      FROM   product_groups pg
+      LEFT   JOIN products p ON p.group_id   = pg.id
+      WHERE  pg.deleted_at IS NULL
+      GROUP  BY pg.id
+      ORDER  BY pg.name ASC
+    `);
+
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      image_url: null,
+      sort_order: 0,
+      is_active: r.is_active,
+      product_count: Number(r.product_count),
+    }));
+  }
+
+  async createCategory(dto: CreateCategoryDto, causer: User): Promise<unknown> {
+    const entity = this.pgRepo.create({
+      name: dto.name,
+      description: dto.description ?? null,
+      status: (dto.isActive ?? true) ? BaseStatus.ACTIVE : BaseStatus.CANCELLED,
+      createdBy: causer,
+      updatedBy: causer,
+    });
+    const result = await this.pgRepo.save(entity);
+    return {
+      id: result.id.toString(),
+      name: result.name,
+      description: result.description,
+      image_url: null,
+      sort_order: 0,
+      is_active: result.status === BaseStatus.ACTIVE,
+      product_count: 0,
+    };
+  }
+
+  async updateCategory(id: number, dto: UpdateCategoryDto, causer: User): Promise<unknown> {
+    const existing = await this.pgRepo.findOne({ where: { id } });
+    if (!existing) throw new NotFoundException('Category not found');
+
+    const update: Partial<ProductGroup> = { updatedBy: causer };
+    if (dto.name !== undefined) update.name = dto.name;
+    if (dto.description !== undefined) update.description = dto.description;
+    if (dto.isActive !== undefined) {
+      update.status = dto.isActive ? BaseStatus.ACTIVE : BaseStatus.CANCELLED;
+    }
+
+    await this.pgRepo.update(id, EntityHelper.toPartialEntity(update));
+    const updated = await this.pgRepo.findOne({ where: { id } });
+
+    return {
+      id: updated!.id.toString(),
+      name: updated!.name,
+      description: updated!.description,
+      image_url: null,
+      sort_order: 0,
+      is_active: updated!.status === BaseStatus.ACTIVE,
+      product_count: 0,
+    };
+  }
+
+  async deleteCategory(id: number, causer: User): Promise<{ message: string }> {
+    const existing = await this.pgRepo.findOne({ where: { id } });
+    if (!existing) throw new NotFoundException('Category not found');
+
+    await this.pgRepo.update(id, EntityHelper.toPartialEntity({ deletedBy: causer }));
+    await this.pgRepo.softDelete(id);
+    return { message: 'Category deleted successfully' };
   }
 
   async getProducts(categoryId?: string, search?: string): Promise<unknown[]> {

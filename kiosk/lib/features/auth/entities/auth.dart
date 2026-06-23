@@ -12,6 +12,7 @@ class Auth with AuthMappable {
     this.middleName,
     this.suffix,
     this.isPinChanged = false,
+    this.role = 'user',
   });
 
   final int id;
@@ -21,6 +22,9 @@ class Auth with AuthMappable {
   final String? middleName;
   final String? suffix;
   final bool isPinChanged;
+  final String role;
+
+  bool get isAdminOrSupervisor => role == 'admin' || role == 'supervisor';
 
   String get fullName => [
     firstName.trim(),

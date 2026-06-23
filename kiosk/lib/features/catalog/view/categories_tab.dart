@@ -7,8 +7,10 @@ import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 import '../../../widgets/button.dart';
+import '../../auth/state/login_state_notifier.dart';
 import '../data/models/category.dart';
 import '../state/catalog_categories_notifier.dart';
+import 'category_dialogs.dart';
 
 class CategoriesTab extends ConsumerWidget {
   const CategoriesTab();
@@ -16,6 +18,8 @@ class CategoriesTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(catalogCategoriesProvider);
+    final auth = ref.watch(loginStateProvider).value;
+    final isAdminOrSupervisor = auth?.isAdminOrSupervisor ?? false;
 
     return Padding(
       padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
@@ -55,13 +59,21 @@ class CategoriesTab extends ConsumerWidget {
           ),
         ),
         data: (categories) => categories.isEmpty
-            ? _EmptyCategoriesState()
-            : _CategoriesGrid(categories: categories),
+            ? _EmptyCategoriesState(isAdminOrSupervisor: isAdminOrSupervisor)
+            : _CategoriesGrid(
+                categories: categories,
+                isAdminOrSupervisor: isAdminOrSupervisor,
+              ),
       ),
     );
   }
 }
+
 class _EmptyCategoriesState extends StatelessWidget {
+  const _EmptyCategoriesState({required this.isAdminOrSupervisor});
+
+  final bool isAdminOrSupervisor;
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -90,6 +102,14 @@ class _EmptyCategoriesState extends StatelessWidget {
               color: POSColors.textDisabled,
             ),
           ),
+          if (isAdminOrSupervisor) ...[
+            Gap(context.responsive.value(kiosk: 24, tablet: 20, phone: 16)),
+            Button(
+              label: const Text('Add Category'),
+              leading: const Icon(Icons.add),
+              onPressed: () => showSaveCategoryDialog(context),
+            ),
+          ],
         ],
       ),
     );
@@ -97,9 +117,13 @@ class _EmptyCategoriesState extends StatelessWidget {
 }
 
 class _CategoriesGrid extends StatelessWidget {
-  const _CategoriesGrid({required this.categories});
+  const _CategoriesGrid({
+    required this.categories,
+    required this.isAdminOrSupervisor,
+  });
 
   final List<CatalogCategory> categories;
+  final bool isAdminOrSupervisor;
 
   @override
   Widget build(BuildContext context) {
@@ -118,20 +142,31 @@ class _CategoriesGrid extends StatelessWidget {
                 color: POSColors.textSecondary,
               ),
             ),
-            Button(
-              label: const Text('Add Category'),
-              leading: const Icon(Icons.add),
-              onPressed: () {
-                // TODO: Show add category dialog
-              },
-            ),
+            if (isAdminOrSupervisor)
+              Button(
+                label: const Text('Add Category'),
+                leading: const Icon(Icons.add),
+                onPressed: () => showSaveCategoryDialog(context),
+              ),
           ],
         ),
         Expanded(
           child: ResponsiveBuilder(
-            kiosk: (context) => _CategoryGridView(categories: categories, crossAxisCount: 4),
-            tablet: (context) => _CategoryGridView(categories: categories, crossAxisCount: 3),
-            phone: (context) => _CategoryGridView(categories: categories, crossAxisCount: 2),
+            kiosk: (context) => _CategoryGridView(
+              categories: categories,
+              crossAxisCount: 4,
+              isAdminOrSupervisor: isAdminOrSupervisor,
+            ),
+            tablet: (context) => _CategoryGridView(
+              categories: categories,
+              crossAxisCount: 3,
+              isAdminOrSupervisor: isAdminOrSupervisor,
+            ),
+            phone: (context) => _CategoryGridView(
+              categories: categories,
+              crossAxisCount: 2,
+              isAdminOrSupervisor: isAdminOrSupervisor,
+            ),
           ),
         ),
       ],
@@ -140,10 +175,15 @@ class _CategoriesGrid extends StatelessWidget {
 }
 
 class _CategoryGridView extends StatelessWidget {
-  const _CategoryGridView({required this.categories, required this.crossAxisCount});
+  const _CategoryGridView({
+    required this.categories,
+    required this.crossAxisCount,
+    required this.isAdminOrSupervisor,
+  });
 
   final List<CatalogCategory> categories;
   final int crossAxisCount;
+  final bool isAdminOrSupervisor;
 
   @override
   Widget build(BuildContext context) {
@@ -155,15 +195,22 @@ class _CategoryGridView extends StatelessWidget {
         mainAxisSpacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
       ),
       itemCount: categories.length,
-      itemBuilder: (context, index) => _CategoryCard(category: categories[index]),
+      itemBuilder: (context, index) => _CategoryCard(
+        category: categories[index],
+        isAdminOrSupervisor: isAdminOrSupervisor,
+      ),
     );
   }
 }
 
 class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({required this.category});
+  const _CategoryCard({
+    required this.category,
+    required this.isAdminOrSupervisor,
+  });
 
   final CatalogCategory category;
+  final bool isAdminOrSupervisor;
 
   @override
   Widget build(BuildContext context) {
@@ -220,6 +267,10 @@ class _CategoryCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (isAdminOrSupervisor) ...[
+                      Gap(context.responsive.value(kiosk: 4, tablet: 3, phone: 2)),
+                      _ActionMenu(category: category),
+                    ],
                   ],
                 ),
                 const Spacer(),
@@ -271,3 +322,55 @@ class _CategoryCard extends StatelessWidget {
     );
   }
 }
+
+class _ActionMenu extends StatelessWidget {
+  const _ActionMenu({required this.category});
+
+  final CatalogCategory category;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<_CategoryAction>(
+      onSelected: (action) async {
+        switch (action) {
+          case _CategoryAction.edit:
+            await showSaveCategoryDialog(context, category: category);
+          case _CategoryAction.delete:
+            await showDeleteCategoryDialog(context, category);
+        }
+      },
+      icon: Icon(
+        Icons.more_vert_rounded,
+        size: context.responsive.value(kiosk: 20.0, tablet: 18.0, phone: 16.0),
+        color: POSColors.iconSubtle,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(POSRadius.md),
+      ),
+      itemBuilder: (_) => [
+        const PopupMenuItem(
+          value: _CategoryAction.edit,
+          child: Row(
+            children: [
+              Icon(Icons.edit_rounded, size: 18, color: ColorSet.primary),
+              Gap(12),
+              Text('Edit'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: _CategoryAction.delete,
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline_rounded, size: 18, color: ColorSet.danger),
+              Gap(12),
+              Text('Delete', style: TextStyle(color: ColorSet.danger)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+enum _CategoryAction { edit, delete }

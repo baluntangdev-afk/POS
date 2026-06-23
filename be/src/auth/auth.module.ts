@@ -10,6 +10,8 @@ import { AuthController } from './auth.controller';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { SystemAdminGuard } from './guards/system-admin.guard';
 import { SystemAdminOrSelfGuard } from './guards/system-admin-or-self.guard';
+import { AdminOrSupervisorGuard } from './guards/admin-or-supervisor.guard';
+import { AdminOrSupervisorOrSelfGuard } from './guards/admin-or-supervisor-or-self.guard';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
@@ -39,8 +41,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     JwtAuthGuard,
     SystemAdminGuard,
     SystemAdminOrSelfGuard,
+    AdminOrSupervisorGuard,
+    AdminOrSupervisorOrSelfGuard,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
-  exports: [AuthService, JwtAuthGuard, SystemAdminGuard],
+  exports: [AuthService, JwtAuthGuard, SystemAdminGuard, AdminOrSupervisorGuard],
 })
 export class AuthModule {}

@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:dart_mappable/dart_mappable.dart';
 import 'package:decimal/decimal.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
@@ -32,7 +30,7 @@ class LineItem with LineItemMappable {
   final int productId;
   final String productName;
   final String categoryName;
-  final Uint8List productImage;
+  final String productImage;
   final int quantity;
   final SelectedVariant variant;
   final IList<SelectedModifier> modifiers;

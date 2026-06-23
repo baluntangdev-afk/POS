@@ -15,7 +15,7 @@ export class ProductDetailMapper {
     dto.name = product.name;
     dto.categoryName = product.productGroup?.name ?? null;
     dto.description = product.description;
-    dto.imageUrl = product.imageUrl ? Buffer.from(product.imageUrl).toString('base64') : null;
+    dto.imageUrl = product.imageUrl ?? null;
     dto.currencySign = args?.currencySign ?? '₱';
     dto.displayPrice = product.price ?? '0';
     dto.defaultVariantId = product.productVariants?.[0]?.id ?? null;

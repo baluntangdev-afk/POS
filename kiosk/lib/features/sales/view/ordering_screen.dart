@@ -78,52 +78,53 @@ class _AdaptiveOrderingLayout extends HookConsumerWidget {
           child: const _CategoryChipRow(),
         ),
         Expanded(
-          child: wide
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Expanded(child: _ProductGrid()),
-                    SizedBox(
-                      width: r.value(
-                        kiosk: _panelWidth + 20,
-                        tablet: _panelWidth,
-                        phone: _panelWidth,
+          child:
+              wide
+                  ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Expanded(child: _ProductGrid()),
+                      SizedBox(
+                        width: r.value(
+                          kiosk: _panelWidth + 20,
+                          tablet: _panelWidth,
+                          phone: _panelWidth,
+                        ),
+                        child: const _OrderPanel(),
                       ),
-                      child: const _OrderPanel(),
-                    ),
-                  ],
-                )
-              : Stack(
-                  children: [
-                    const _ProductGrid(),
-                    // Dim backdrop — tapping closes the panel
-                    AnimatedOpacity(
-                      opacity: panelOpen.value ? 1.0 : 0.0,
-                      duration: POSAnimation.normal,
-                      child: IgnorePointer(
-                        ignoring: !panelOpen.value,
-                        child: GestureDetector(
-                          onTap: () => panelOpen.value = false,
-                          child: Container(color: Colors.black.withValues(alpha: 0.35)),
+                    ],
+                  )
+                  : Stack(
+                    children: [
+                      const _ProductGrid(),
+                      // Dim backdrop — tapping closes the panel
+                      AnimatedOpacity(
+                        opacity: panelOpen.value ? 1.0 : 0.0,
+                        duration: POSAnimation.normal,
+                        child: IgnorePointer(
+                          ignoring: !panelOpen.value,
+                          child: GestureDetector(
+                            onTap: () => panelOpen.value = false,
+                            child: Container(color: Colors.black.withValues(alpha: 0.35)),
+                          ),
                         ),
                       ),
-                    ),
-                    // Sliding right panel
-                    AnimatedPositioned(
-                      duration: POSAnimation.normal,
-                      curve: POSAnimation.easeOut,
-                      right: panelOpen.value ? 0 : -(_panelWidth + 8),
-                      top: 0,
-                      bottom: 0,
-                      width: _panelWidth,
-                      child: const Material(
-                        elevation: 8,
-                        shadowColor: Colors.black26,
-                        child: _OrderPanel(),
+                      // Sliding right panel
+                      AnimatedPositioned(
+                        duration: POSAnimation.normal,
+                        curve: POSAnimation.easeOut,
+                        right: panelOpen.value ? 0 : -(_panelWidth + 8),
+                        top: 0,
+                        bottom: 0,
+                        width: _panelWidth,
+                        child: const Material(
+                          elevation: 8,
+                          shadowColor: Colors.black26,
+                          child: _OrderPanel(),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
         ),
       ],
     );
@@ -151,18 +152,17 @@ class _OrderingHeader extends StatelessWidget {
         children: [
           _HeaderBackButton(size: r.value(kiosk: 52.0, tablet: 44.0, phone: 38.0)),
           const Spacer(),
-          Assets.images.cartivoLogo.image(
-            height: r.value(kiosk: 36.0, tablet: 28.0, phone: 22.0),
-          ),
+          Assets.images.cartivoLogo.image(height: r.value(kiosk: 36.0, tablet: 28.0, phone: 22.0)),
           const Spacer(),
           SizedBox(
             width: r.value<double>(kiosk: 110, tablet: 90, phone: 76),
-            child: onCartTap != null
-                ? Align(
-                    alignment: Alignment.centerRight,
-                    child: _CartBadgeButton(count: cartCount, onTap: onCartTap!),
-                  )
-                : null,
+            child:
+                onCartTap != null
+                    ? Align(
+                      alignment: Alignment.centerRight,
+                      child: _CartBadgeButton(count: cartCount, onTap: onCartTap!),
+                    )
+                    : null,
           ),
         ],
       ),
@@ -228,6 +228,7 @@ class _CartBadgeButton extends StatelessWidget {
 
 class _HeaderBackButton extends StatelessWidget {
   const _HeaderBackButton({required this.size});
+
   final double size;
 
   @override
@@ -256,7 +257,6 @@ class _HeaderBackButton extends StatelessWidget {
   }
 }
 
-// â”€â”€ Category chip row for tablet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _CategoryChipRow extends HookConsumerWidget {
   const _CategoryChipRow();
 
@@ -339,7 +339,9 @@ class _CategoryChipRow extends HookConsumerWidget {
                       width: 1.5,
                     ),
                     showCheckmark: false,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.sm)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(POSRadius.sm),
+                    ),
                   ),
                 ),
               );
@@ -356,11 +358,12 @@ class _CategoryChipRow extends HookConsumerWidget {
             child: Align(
               alignment: Alignment.centerLeft,
               child: GestureDetector(
-                onTap: () => scrollController.animateTo(
-                  scrollController.offset - scrollStep,
-                  duration: const Duration(milliseconds: 500),
-                  curve: Curves.decelerate,
-                ),
+                onTap:
+                    () => scrollController.animateTo(
+                      scrollController.offset - scrollStep,
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.decelerate,
+                    ),
                 child: Container(
                   width: arrowWidth,
                   decoration: BoxDecoration(
@@ -402,11 +405,12 @@ class _CategoryChipRow extends HookConsumerWidget {
             child: Align(
               alignment: Alignment.centerRight,
               child: GestureDetector(
-                onTap: () => scrollController.animateTo(
-                  scrollController.offset + scrollStep,
-                  duration: const Duration(milliseconds: 500),
-                  curve: Curves.decelerate,
-                ),
+                onTap:
+                    () => scrollController.animateTo(
+                      scrollController.offset + scrollStep,
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.decelerate,
+                    ),
                 child: Container(
                   width: arrowWidth,
                   decoration: BoxDecoration(
@@ -490,24 +494,27 @@ class _EmptyCartState extends StatelessWidget {
   }
 }
 
-// â”€â”€ Product grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _ProductGrid extends ConsumerWidget {
   const _ProductGrid();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(orderingProvider.select((it) => it.whenData((data) => data.products)));
-    final groupName = ref.watch(
-      orderingProvider.select((it) => it.value?.selectedGroup?.name),
-    );
+    final groupName = ref.watch(orderingProvider.select((it) => it.value?.selectedGroup?.name));
     if (state.isLoading) {
       return const Center(child: _LoadingState());
+    }
+    // Surface load failures instead of disguising them as an empty category —
+    // otherwise an auth/network error looks identical to "no products" and the
+    // grid appears blank for the user with no way to recover.
+    if (state case AsyncError()) {
+      return Center(child: _ProductsErrorState(onRetry: () => ref.invalidate(orderingProvider)));
     }
     final products = switch (state) {
       AsyncData(:final value) => value,
       _ => const IList<Product>.empty(),
     };
-    if (products.isEmpty && !state.isLoading) {
+    if (products.isEmpty) {
       return const Center(child: _EmptyProductsState());
     }
     return RepaintBoundary(
@@ -602,6 +609,60 @@ class _EmptyProductsState extends StatelessWidget {
   }
 }
 
+class _ProductsErrorState extends StatelessWidget {
+  const _ProductsErrorState({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEE2E2),
+            borderRadius: BorderRadius.circular(POSRadius.lg),
+          ),
+          child: const Icon(Icons.cloud_off_rounded, size: 32, color: Color(0xFFDC2626)),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'Could not load products',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: POSColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Check your connection and try again',
+          style: TextStyle(fontSize: 13, color: POSColors.textTertiary),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 44,
+          child: FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Retry'),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorSet.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.md)),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _ProductCard extends StatelessWidget {
   const _ProductCard({required this.product, this.groupName});
 
@@ -633,32 +694,30 @@ class _ProductCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Stack(
+                      fit: StackFit.expand,
                       alignment: Alignment.center,
                       children: [
                         ClipRRect(
                           borderRadius: const BorderRadius.vertical(
                             top: Radius.circular(POSRadius.xl),
                           ),
-                          child: Padding(
-                            padding: EdgeInsets.all(
-                              context.responsive.value(kiosk: 14.0, tablet: 10.0, phone: 8.0),
-                            ),
-                            child: Image.memory(
-                              product.image,
-                              fit: BoxFit.contain,
-                              errorBuilder:
-                                  (_, _, _) => Center(
-                                    child: Icon(
-                                      style.icon,
-                                      size: context.responsive.value(
-                                        kiosk: 48.0,
-                                        tablet: 40.0,
-                                        phone: 32.0,
-                                      ),
-                                      color: style.fg,
+                          child: Image.network(
+                            product.image,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                            errorBuilder:
+                                (_, _, _) => Center(
+                                  child: Icon(
+                                    style.icon,
+                                    size: context.responsive.value(
+                                      kiosk: 48.0,
+                                      tablet: 40.0,
+                                      phone: 32.0,
                                     ),
+                                    color: style.fg,
                                   ),
-                            ),
+                                ),
                           ),
                         ),
                         Positioned(
@@ -764,10 +823,7 @@ class _QuantityStepper extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _StepBtn(
-            icon: Icons.remove_rounded,
-            onTap: quantity > 1 ? onDecrease : null,
-          ),
+          _StepBtn(icon: Icons.remove_rounded, onTap: quantity > 1 ? onDecrease : null),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Text(
@@ -802,17 +858,13 @@ class _StepBtn extends StatelessWidget {
         width: 28,
         height: 28,
         decoration: BoxDecoration(
-          color: filled
-              ? ColorSet.primary
-              : ColorSet.primary.withValues(alpha: 0.1),
+          color: filled ? ColorSet.primary : ColorSet.primary.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
         child: Icon(
           icon,
           size: 14,
-          color: filled
-              ? Colors.white
-              : (enabled ? ColorSet.primary : POSColors.textDisabled),
+          color: filled ? Colors.white : (enabled ? ColorSet.primary : POSColors.textDisabled),
         ),
       ),
     );
@@ -839,16 +891,12 @@ class _SaleTypePill extends StatelessWidget {
           _PillSegment(
             label: 'Dine In',
             isSelected: selected == SaleType.dineIn,
-            onTap: () => onChanged(
-              selected == SaleType.dineIn ? null : SaleType.dineIn,
-            ),
+            onTap: () => onChanged(selected == SaleType.dineIn ? null : SaleType.dineIn),
           ),
           _PillSegment(
             label: 'Take Out',
             isSelected: selected == SaleType.takeOut,
-            onTap: () => onChanged(
-              selected == SaleType.takeOut ? null : SaleType.takeOut,
-            ),
+            onTap: () => onChanged(selected == SaleType.takeOut ? null : SaleType.takeOut),
           ),
         ],
       ),
@@ -857,11 +905,7 @@ class _SaleTypePill extends StatelessWidget {
 }
 
 class _PillSegment extends StatelessWidget {
-  const _PillSegment({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _PillSegment({required this.label, required this.isSelected, required this.onTap});
 
   final String label;
   final bool isSelected;
@@ -902,9 +946,7 @@ class _OrderPanel extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final items = ref.watch(
-      orderingProvider.select(
-        (it) => it.value?.sale.items ?? const IList.empty(),
-      ),
+      orderingProvider.select((it) => it.value?.sale.items ?? const IList.empty()),
     );
     final selectedIndex = useState<int?>(null);
 
@@ -966,39 +1008,45 @@ class _OrderPanel extends HookConsumerWidget {
 
           // Item list
           Expanded(
-            child: items.isEmpty
-                ? const _EmptyCartState()
-                : ListView.separated(
-                    padding: const EdgeInsets.all(8),
-                    itemCount: items.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 6),
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      return _OrderItemRow(
-                        key: ValueKey(item.id),
-                        item: item,
-                        index: index,
-                        isExpanded: selectedIndex.value == index,
-                        onTap: () => selectedIndex.value =
-                            selectedIndex.value == index ? null : index,
-                        onRemove: () {
-                          if (selectedIndex.value == index) selectedIndex.value = null;
-                          ref.read(orderingProvider.notifier).removeLineItem(index: index);
-                        },
-                        onQuantityChanged: (qty) =>
-                            replaceItem(index, item.copyWith(quantity: qty)),
-                        onSaleTypeChanged: (type) =>
-                            replaceItem(index, item.copyWith(itemSaleType: type)),
-                        onNotesChanged: (notes) => replaceItem(
-                          index,
-                          item.copyWith(notes: notes.isEmpty ? null : notes),
-                        ),
-                        onClearDiscount: item.discount != null
-                            ? () => ref.read(orderingProvider.notifier).clearDiscount(index: index)
-                            : null,
-                      );
-                    },
-                  ),
+            child:
+                items.isEmpty
+                    ? const _EmptyCartState()
+                    : ListView.separated(
+                      padding: const EdgeInsets.all(8),
+                      itemCount: items.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 6),
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        return _OrderItemRow(
+                          key: ValueKey(item.id),
+                          item: item,
+                          index: index,
+                          isExpanded: selectedIndex.value == index,
+                          onTap:
+                              () =>
+                                  selectedIndex.value = selectedIndex.value == index ? null : index,
+                          onRemove: () {
+                            if (selectedIndex.value == index) selectedIndex.value = null;
+                            ref.read(orderingProvider.notifier).removeLineItem(index: index);
+                          },
+                          onQuantityChanged:
+                              (qty) => replaceItem(index, item.copyWith(quantity: qty)),
+                          onSaleTypeChanged:
+                              (type) => replaceItem(index, item.copyWith(itemSaleType: type)),
+                          onNotesChanged:
+                              (notes) => replaceItem(
+                                index,
+                                item.copyWith(notes: notes.isEmpty ? null : notes),
+                              ),
+                          onClearDiscount:
+                              item.discount != null
+                                  ? () => ref
+                                      .read(orderingProvider.notifier)
+                                      .clearDiscount(index: index)
+                                  : null,
+                        );
+                      },
+                    ),
           ),
 
           if (items.isNotEmpty) const _OrderPanelFooter(),
@@ -1064,8 +1112,7 @@ class _OrderPanelFooter extends ConsumerWidget {
           if (sale.vatExemptSales > Decimal.zero)
             (label: 'VAT-Exempt Sales', amount: sale.vatExemptSales),
           (label: 'VAT', amount: sale.vatAmount),
-          if (sale.discountAmount > Decimal.zero)
-            (label: 'Discount', amount: -sale.discountAmount),
+          if (sale.discountAmount > Decimal.zero) (label: 'Discount', amount: -sale.discountAmount),
           (label: 'Total', amount: sale.totalAmount),
         ];
       }),
@@ -1073,10 +1120,7 @@ class _OrderPanelFooter extends ConsumerWidget {
 
     final (:isLoading, :lineItemCount) = ref.watch(
       orderingProvider.select(
-        (it) => (
-          isLoading: it.isLoading,
-          lineItemCount: it.value?.sale.items.length ?? 0,
-        ),
+        (it) => (isLoading: it.isLoading, lineItemCount: it.value?.sale.items.length ?? 0),
       ),
     );
 
@@ -1123,10 +1167,7 @@ class _OrderPanelFooter extends ConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    label,
-                    style: const TextStyle(fontSize: 11, color: POSColors.textTertiary),
-                  ),
+                  Text(label, style: const TextStyle(fontSize: 11, color: POSColors.textTertiary)),
                   Text(
                     amount.pesoFormatted,
                     style: const TextStyle(
@@ -1144,18 +1185,14 @@ class _OrderPanelFooter extends ConsumerWidget {
           SizedBox(
             height: 40,
             child: OutlinedButton.icon(
-              onPressed: !isLoading && lineItemCount > 0
-                  ? () => showDiscountDialog(context)
-                  : null,
+              onPressed: !isLoading && lineItemCount > 0 ? () => showDiscountDialog(context) : null,
               icon: const Icon(Icons.local_offer_outlined, size: 14),
               label: const Text('Apply Discount'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: ColorSet.primary,
                 textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                 side: BorderSide(color: ColorSet.primary.withValues(alpha: 0.5)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(POSRadius.md),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.md)),
                 padding: EdgeInsets.zero,
               ),
             ),
@@ -1201,6 +1238,7 @@ class _OrderItemRow extends HookWidget {
       void onFocusChange() {
         if (!notesFocus.hasFocus) onNotesChanged(notesController.text);
       }
+
       notesFocus.addListener(onFocusChange);
       return () => notesFocus.removeListener(onFocusChange);
     }, const []);
@@ -1213,21 +1251,14 @@ class _OrderItemRow extends HookWidget {
       return null;
     }, [item.notes]);
 
-    final modifierSummary = item.modifiers
-        .expand((m) => m.options.map((o) => o.name))
-        .join(', ');
+    final modifierSummary = item.modifiers.expand((m) => m.options.map((o) => o.name)).join(', ');
 
     return AnimatedContainer(
       duration: POSAnimation.fast,
       decoration: BoxDecoration(
-        color: isExpanded
-            ? ColorSet.primary.withValues(alpha: 0.06)
-            : POSColors.surfaceSubtle,
+        color: isExpanded ? ColorSet.primary.withValues(alpha: 0.06) : POSColors.surfaceSubtle,
         borderRadius: BorderRadius.circular(POSRadius.md),
-        border: Border.all(
-          color: isExpanded ? ColorSet.primary : Colors.transparent,
-          width: 1.5,
-        ),
+        border: Border.all(color: isExpanded ? ColorSet.primary : Colors.transparent, width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1251,9 +1282,7 @@ class _OrderItemRow extends HookWidget {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: isExpanded
-                                ? ColorSet.primary
-                                : POSColors.textPrimary,
+                            color: isExpanded ? ColorSet.primary : POSColors.textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1286,7 +1315,11 @@ class _OrderItemRow extends HookWidget {
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.local_offer_rounded, size: 8, color: Color(0xFFD97706)),
+                                      const Icon(
+                                        Icons.local_offer_rounded,
+                                        size: 8,
+                                        color: Color(0xFFD97706),
+                                      ),
                                       const SizedBox(width: 2),
                                       const Text(
                                         'Discounted',
@@ -1298,7 +1331,11 @@ class _OrderItemRow extends HookWidget {
                                       ),
                                       if (onClearDiscount != null) ...[
                                         const SizedBox(width: 3),
-                                        const Icon(Icons.close_rounded, size: 9, color: Color(0xFFD97706)),
+                                        const Icon(
+                                          Icons.close_rounded,
+                                          size: 9,
+                                          color: Color(0xFFD97706),
+                                        ),
                                       ],
                                     ],
                                   ),
@@ -1318,10 +1355,7 @@ class _OrderItemRow extends HookWidget {
                             if (modifierSummary.isNotEmpty)
                               Text(
                                 modifierSummary,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: POSColors.textTertiary,
-                                ),
+                                style: const TextStyle(fontSize: 10, color: POSColors.textTertiary),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -1434,10 +1468,7 @@ class _OrderItemRow extends HookWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  _SaleTypePill(
-                    selected: item.itemSaleType,
-                    onChanged: onSaleTypeChanged,
-                  ),
+                  _SaleTypePill(selected: item.itemSaleType, onChanged: onSaleTypeChanged),
                   const SizedBox(height: 10),
                   const Text(
                     'NOTES',
@@ -1453,10 +1484,7 @@ class _OrderItemRow extends HookWidget {
                     controller: notesController,
                     focusNode: notesFocus,
                     onSubmitted: onNotesChanged,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: POSColors.textPrimary,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: POSColors.textPrimary),
                     decoration: InputDecoration(
                       hintText: 'e.g. no onions, extra rice...',
                       hintStyle: const TextStyle(
@@ -1464,10 +1492,7 @@ class _OrderItemRow extends HookWidget {
                         color: POSColors.textDisabled,
                         fontStyle: FontStyle.italic,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
-                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                       isDense: true,
                       filled: true,
                       fillColor: Colors.white,
@@ -1481,10 +1506,7 @@ class _OrderItemRow extends HookWidget {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(POSRadius.sm),
-                        borderSide: const BorderSide(
-                          color: ColorSet.primary,
-                          width: 1.5,
-                        ),
+                        borderSide: const BorderSide(color: ColorSet.primary, width: 1.5),
                       ),
                     ),
                   ),
@@ -1500,6 +1522,7 @@ class _OrderItemRow extends HookWidget {
 
 class _SaleTypeBadge extends StatelessWidget {
   const _SaleTypeBadge({required this.saleType});
+
   final SaleType saleType;
 
   @override
@@ -1522,6 +1545,3 @@ class _SaleTypeBadge extends StatelessWidget {
     );
   }
 }
-
-
-

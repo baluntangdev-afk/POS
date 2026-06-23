@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../config/environment/app_env.dart';
 import '../../data/backend_api/sources/health_api.dart';
 import '../../gen/assets.gen.dart';
 import '../../navigation/router.dart';
-import '../../styles/color_set.dart';
 import '../../theme/pos_design.dart';
 
 class StartupScreen extends HookConsumerWidget {
@@ -16,6 +16,9 @@ class StartupScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final elapsedSeconds = useState(0);
+    final lastError = useState<String?>(null);
+
+    final backendUrl = ref.read(appEnvProvider).backendApiBaseUrl;
 
     useEffect(() {
       var cancelled = false;
@@ -25,9 +28,12 @@ class StartupScreen extends HookConsumerWidget {
         if (checking || cancelled) return;
         checking = true;
         try {
-          final alive = await ref.read(healthApiProvider).isAlive();
-          if (!cancelled && alive && context.mounted) {
-            const LoginRoute().go(context);
+          final result = await ref.read(healthApiProvider).checkAlive();
+          if (cancelled) return;
+          if (result.isAlive) {
+            if (context.mounted) const LoginRoute().go(context);
+          } else {
+            lastError.value = result.error;
           }
         } finally {
           checking = false;
@@ -119,9 +125,35 @@ class StartupScreen extends HookConsumerWidget {
               if (isSlowStartup) ...[
                 const SizedBox(height: 8),
                 Text(
-                  'If this persists, check that the backend service is running.',
+                  'Connecting to $backendUrl',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.45),
+                    color: Colors.white.withValues(alpha: 0.55),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                if (lastError.value != null) ...[
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 48),
+                    child: Text(
+                      lastError.value!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.40),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Text(
+                  'If this persists, run recover-services.bat as administrator\n'
+                  r'from C:\POSKiosk\scripts\',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.40),
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
                   ),

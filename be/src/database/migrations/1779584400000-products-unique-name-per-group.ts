@@ -11,8 +11,8 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * product never blocks re-inserting/undeleting a same-named one — the CSV seeder
  * relies on this for idempotent re-runs.
  */
-export class ProductsUniqueNamePerGroup1779584300000 implements MigrationInterface {
-  name = 'ProductsUniqueNamePerGroup1779584300000';
+export class ProductsUniqueNamePerGroup1779584400000 implements MigrationInterface {
+  name = 'ProductsUniqueNamePerGroup1779584400000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "products" DROP CONSTRAINT "UQ_products_name"`);

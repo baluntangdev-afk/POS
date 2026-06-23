@@ -417,7 +417,7 @@ class _LineItemSelectionView extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(POSRadius.md),
                               image: item.productImage.isNotEmpty
                                   ? DecorationImage(
-                                      image: MemoryImage(item.productImage),
+                                      image: NetworkImage(item.productImage),
                                       fit: BoxFit.contain,
                                     )
                                   : null,
@@ -1331,7 +1331,7 @@ class _DlgItemPanel extends StatelessWidget {
                                 color: isDiscounted ? style.bg.withValues(alpha: 0.6) : style.bg,
                                 borderRadius: BorderRadius.circular(POSRadius.sm),
                                 image: item.productImage.isNotEmpty
-                                    ? DecorationImage(image: MemoryImage(item.productImage), fit: BoxFit.contain)
+                                    ? DecorationImage(image: NetworkImage(item.productImage), fit: BoxFit.contain)
                                     : null,
                               ),
                               child: item.productImage.isEmpty

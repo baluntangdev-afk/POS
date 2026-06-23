@@ -203,7 +203,30 @@
       "PowerShell(cd C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be; .\\\\POSBackend.exe --migrate 2>&1 | Select-Object -Last 40; Write-Output \"---EXIT $LASTEXITCODE---\")",
       "Bash([ -f \"$f\" ])",
       "PowerShell(taskkill *)",
-      "PowerShell(Stop-Service *)"
+      "PowerShell(Stop-Service *)",
+      "Read(//c/Users/Jufiel/Downloads/**)",
+      "Bash(ls \"logs - Copy.zip\")",
+      "PowerShell(try { Stop-Service POSBackendService -Force -ErrorAction Stop; \"STOPPED via Stop-Service\" } catch { \"Stop-Service failed: $\\($_.Exception.Message\\)\"; try { & 'C:\\\\POSKiosk\\\\nssm\\\\nssm.exe' stop POSBackendService; \"nssm stop attempted\" } catch { \"nssm failed: $\\($_.Exception.Message\\)\" } }; Start-Sleep -Seconds 2; \\(Get-Service POSBackendService\\).Status)",
+      "PowerShell($errs = $null; [void][System.Management.Automation.Language.Parser]::ParseFile\\(\"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\scripts\\\\update-backend.ps1\", [ref]$null, [ref]$errs\\); if \\($errs\\) { $errs | ForEach-Object { $_.Message } } else { \"PARSE OK\" })",
+      "Bash(PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d pos_db -t -c \"select count\\(*\\) as total, count\\(*\\) filter \\(where deleted_at is null\\) as active from product_groups;\")",
+      "Bash(PGPASSWORD=postgres \"/c/pgsql/bin/psql.exe\" -h localhost -p 5432 -U postgres -d pos_db -t -c \"select count\\(*\\) as total, count\\(*\\) filter \\(where deleted_at is null\\) as active from product_groups;\")",
+      "Bash(PGPASSWORD=postgres \"/c/pgsql/bin/psql.exe\" -h localhost -p 5432 -U postgres -d pos_db -t -c \"select count\\(*\\) total, count\\(*\\) filter \\(where deleted_at is null\\) active from products;\")",
+      "Bash(cat .env)",
+      "Bash(cat .env.sample)",
+      "Bash(curl -s -o /dev/null -w \"groups\\(no auth\\): %{http_code}\\\\n\" \"http://localhost:3000/api/v1/product-groups?page=1&limit=100\")",
+      "Bash(curl -s -w \"\\\\nhealth: %{http_code}\\\\n\" \"http://localhost:3000/api/v1/health\")",
+      "Bash(PGPASSWORD=postgres \"/c/pgsql/bin/psql.exe\" -h localhost -p 5432 -U postgres -d pos_db -t -c \"select username, email, role from users limit 5;\")",
+      "Bash(PGPASSWORD=postgres \"/c/pgsql/bin/psql.exe\" -h localhost -p 5432 -U postgres -d pos_db -c \"\\\\d users\")",
+      "Bash(PGPASSWORD=postgres \"/c/pgsql/bin/psql.exe\" -h localhost -p 5432 -U postgres -d pos_db -t -c \"select * from users limit 2;\")",
+      "Bash(grep -ivE \"passwordHash|hashedPassword|//|import\")",
+      "Bash(curl -s http://localhost:3000/api/v1/products/10)",
+      "Bash(curl -s \"http://localhost:3000/api/v1/catalog/products\")",
+      "Bash(taskkill //PID 30056 //T //F)",
+      "PowerShell(try { Stop-Process -Id 30056 -Force -ErrorAction Stop; \"stopped 30056\" } catch { \"30056 gone or error: $_\" }; Start-Sleep -Seconds 1; $p = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue; if \\($p\\) { \"still listening PIDs: \" + \\($p.OwningProcess -join ','\\) } else { \"port 3000 free\" })",
+      "Bash(PORT=3001 npm run start:dev)",
+      "Bash(echo \"started dev server pid $!\")",
+      "PowerShell($log = \"C:\\\\Users\\\\Jufiel\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Jufiel-Documents-POS\\\\12698072-0d50-4d78-bccc-d8235fcb09e9\\\\scratchpad\\\\be-dev.log\"; $deadline = \\(Get-Date\\).AddSeconds\\(90\\); $up = $false; while \\(\\(Get-Date\\) -lt $deadline\\) { if \\(Test-Path $log\\) { $c = Get-Content $log -Raw; if \\($c -match 'Nest application successfully started' -or $c -match 'Application is running' -or $c -match 'started on'\\) { $up = $true; break }; if \\($c -match 'Error|EADDRINUSE|exited|failed to' \\) { } }; Start-Sleep -Seconds 2 }; \"UP=$up\"; \"---- tail ----\"; if \\(Test-Path $log\\) { Get-Content $log -Tail 25 })",
+      "Bash(echo \"exit:$?\")"
     ]
   }
 }

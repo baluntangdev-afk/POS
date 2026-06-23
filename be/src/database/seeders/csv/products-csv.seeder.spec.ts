@@ -1,14 +1,15 @@
 import { groupRows } from './products-csv.seeder';
 
 // Column order: Category, Category Desc, Product Name, Product Desc,
-// Base Price, Variant Name, Variant Price
+// Base Price, Variant Name, Variant Price, [Product Image URL]
 const row = (
   category: string,
   productName: string,
   basePrice: string,
   variantName = '',
   variantPrice = '',
-): string[] => [category, '', productName, '', basePrice, variantName, variantPrice];
+  imageUrl = '',
+): string[] => [category, '', productName, '', basePrice, variantName, variantPrice, imageUrl];
 
 describe('groupRows', () => {
   it('should keep the same product name in different categories as two distinct products', () => {
@@ -54,5 +55,35 @@ describe('groupRows', () => {
 
     expect(categories).toHaveLength(1);
     expect(categories[0].name).toBe('Coffee');
+  });
+
+  it('should capture an optional product image URL from the CSV', () => {
+    const { products } = groupRows([
+      row('Coffee', 'Americano', '120', 'Regular', '120', 'https://cdn.example/americano.png'),
+    ]);
+
+    expect(products[0].imageUrl).toBe('https://cdn.example/americano.png');
+  });
+
+  it('should leave imageUrl null when the image column is absent or blank', () => {
+    // Legacy 7-column row (no image field at all) and an explicit blank both null.
+    const { products } = groupRows([
+      ['Coffee', '', 'Americano', '', '120', 'Regular', '120'],
+      row('Tea', 'Matcha', '130', 'Regular', '130', '   '),
+    ]);
+
+    const byCategory = new Map(products.map((p) => [p.categoryName, p]));
+    expect(byCategory.get('Coffee')!.imageUrl).toBeNull();
+    expect(byCategory.get('Tea')!.imageUrl).toBeNull();
+  });
+
+  it('should take the first non-empty image URL across a product\'s variant rows', () => {
+    const { products } = groupRows([
+      row('Coffee', 'Latte', '150', 'Regular', '150', ''),
+      row('Coffee', 'Latte', '150', 'Large', '200', 'https://cdn.example/latte.png'),
+    ]);
+
+    expect(products).toHaveLength(1);
+    expect(products[0].imageUrl).toBe('https://cdn.example/latte.png');
   });
 });

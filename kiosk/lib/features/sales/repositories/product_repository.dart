@@ -1,7 +1,6 @@
-import 'dart:typed_data';
-
 import 'package:decimal/decimal.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../data/backend_api/schemas/menu_item_modifier_group_dto.dart';
@@ -37,8 +36,14 @@ class ProductRepositoryImpl implements ProductRepository {
 
   @override
   Future<IList<Product>> getByGroup(ProductGroup group) async {
-    final paginatedDto = await _productGroupsApi.getProductsByGroup(group.id);
-    return paginatedDto.data.map(_productFromListItemDto).toIList();
+    try {
+      final paginatedDto = await _productGroupsApi.getProductsByGroup(group.id);
+      return paginatedDto.data.map(_productFromListItemDto).toIList();
+    } catch (e, s) {
+      debugPrint('TESTING $e $s');
+      return IList.empty();
+    }
+
   }
 
   @override
@@ -57,7 +62,7 @@ class ProductRepositoryImpl implements ProductRepository {
       id: dto.id,
       name: dto.name,
       price: Decimal.parse(dto.price),
-      image: dto.imageUrl ?? Uint8List(0),
+      image: dto.imageUrl ?? '',
       modifierGroups: const IList.empty(),
     );
   }
@@ -67,7 +72,7 @@ class ProductRepositoryImpl implements ProductRepository {
       categoryName: dto.categoryName ?? '',
       id: dto.id,
       name: dto.name,
-      image: dto.imageUrl ?? Uint8List(0),
+      image: dto.imageUrl ?? '',
       price: Decimal.parse(dto.displayPrice),
       modifierGroups: dto.modifierGroups.map(_modifierGroupFromDto).toIList(),
       variants: dto.variants.map(_productVariantFromDto).toIList(),

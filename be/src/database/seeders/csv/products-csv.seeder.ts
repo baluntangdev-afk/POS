@@ -39,6 +39,8 @@ interface ProductData {
   categoryName: string;
   variants: VariantData[];
   sortOrder: number;
+  /** Optional product image URL from the CSV; null when the column is absent or blank. */
+  imageUrl: string | null;
 }
 
 /**
@@ -57,8 +59,16 @@ export function groupRows(rows: string[][]): {
   let productOrder = 0;
 
   for (const row of rows) {
-    const [category, categoryDesc, productName, productDesc, basePrice, variantName, variantPrice] =
-      row;
+    const [
+      category,
+      categoryDesc,
+      productName,
+      productDesc,
+      basePrice,
+      variantName,
+      variantPrice,
+      imageUrl,
+    ] = row;
 
     if (!categoryMap.has(category)) {
       categoryMap.set(category, { name: category, description: categoryDesc ?? '' });
@@ -73,7 +83,15 @@ export function groupRows(rows: string[][]): {
         categoryName: category,
         variants: [],
         sortOrder: productOrder++,
+        imageUrl: imageUrl?.trim() ? imageUrl.trim() : null,
       });
+    } else {
+      // First non-empty image URL across the product's rows wins, so a product
+      // spread over many variant rows can carry its image on any single row.
+      const product = productMap.get(productKey)!;
+      if (!product.imageUrl && imageUrl?.trim()) {
+        product.imageUrl = imageUrl.trim();
+      }
     }
 
     if (variantName?.trim()) {
@@ -211,6 +229,9 @@ export class ProductsCsvSeeder {
         existing.price = prod.basePrice;
         existing.isAvailable = true;
         existing.sortOrder = prod.sortOrder;
+        // Only overwrite the image when the CSV provides one, so re-importing a
+        // file without the (optional) image column does not wipe existing images.
+        if (prod.imageUrl) existing.imageUrl = prod.imageUrl;
         existing.status = ProductStatus.ACTIVE;
         existing.deletedAt = null;
         existing.deletedBy = null;
@@ -224,7 +245,7 @@ export class ProductsCsvSeeder {
           price: prod.basePrice,
           isAvailable: true,
           sortOrder: prod.sortOrder,
-          imageUrl: null,
+          imageUrl: prod.imageUrl,
           status: ProductStatus.ACTIVE,
           createdBy: adminUser,
           updatedBy: adminUser,

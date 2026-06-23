@@ -2,12 +2,19 @@ import {
   detectSchema,
   CsvSchemaType,
   PRODUCTS_CSV_HEADERS,
+  PRODUCTS_CSV_HEADERS_WITH_IMAGE,
   MODIFIERS_CSV_HEADERS,
 } from './csv-schema.registry';
 
 describe('detectSchema', () => {
   it('detects products/categories/variants schema from exact headers', () => {
     expect(detectSchema([...PRODUCTS_CSV_HEADERS])).toBe(
+      CsvSchemaType.PRODUCTS_CATEGORIES_VARIANTS,
+    );
+  });
+
+  it('detects products schema when the optional image URL column is present', () => {
+    expect(detectSchema([...PRODUCTS_CSV_HEADERS_WITH_IMAGE])).toBe(
       CsvSchemaType.PRODUCTS_CATEGORIES_VARIANTS,
     );
   });

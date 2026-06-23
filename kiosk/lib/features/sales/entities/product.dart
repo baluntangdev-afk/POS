@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:dart_mappable/dart_mappable.dart';
 import 'package:decimal/decimal.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
@@ -25,7 +23,7 @@ class Product with ProductMappable {
   final int id;
   final String name;
   final String categoryName;
-  final Uint8List image;
+  final String image;
   final Decimal price;
   final IList<ModifierGroup> modifierGroups;
   final IList<ProductVariant> variants;

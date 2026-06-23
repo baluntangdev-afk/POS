@@ -504,7 +504,7 @@ class _LineItemListView extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(POSRadius.lg),
                   image: lineItem.productImage.isNotEmpty
                       ? DecorationImage(
-                          image: MemoryImage(lineItem.productImage),
+                          image: NetworkImage(lineItem.productImage),
                           fit: BoxFit.contain,
                         )
                       : null,

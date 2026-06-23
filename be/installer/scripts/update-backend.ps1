@@ -1,6 +1,7 @@
 param(
-    [string]$AppDir  = "C:\POSKiosk",
-    [string]$ExePath = ""          # path to new POSBackend.exe; defaults to AppDir\backend\POSBackend.exe in-place
+    [string]$AppDir    = "C:\POSKiosk",
+    [string]$ExePath   = "",         # path to new POSBackend.exe; defaults to AppDir\backend\POSBackend.exe in-place
+    [string]$PublicDir = ""          # optional: path to new static assets (be\public) to sync into AppDir\backend\public
 )
 
 $ErrorActionPreference = "Stop"
@@ -41,6 +42,23 @@ try {
     if (!(Test-Path $backend)) {
         Write-Error "POSBackend.exe not found at: $backend"
         exit 1
+    }
+
+    # ── Sync static assets (product images) if a source was provided ──────────
+    # The backend serves these from {AppDir}\backend\public at /static/* (see
+    # main.ts useStaticAssets). The exe does NOT bundle them, so an exe-only
+    # update would otherwise leave images missing. Merge-copy: overwrites shipped
+    # files and adds new ones; admin-added files not in the source are preserved.
+    if ($PublicDir -ne "") {
+        if (!(Test-Path $PublicDir)) {
+            Write-Error "PublicDir not found at: $PublicDir"
+            exit 1
+        }
+        $destPublic = "$AppDir\backend\public"
+        Write-Host "Syncing static assets from $PublicDir to $destPublic..."
+        if (!(Test-Path $destPublic)) { New-Item -ItemType Directory -Force $destPublic | Out-Null }
+        Copy-Item -Path "$PublicDir\*" -Destination $destPublic -Recurse -Force
+        Write-Host "Static assets synced."
     }
 
     # ── Run migrations ────────────────────────────────────────────────────────

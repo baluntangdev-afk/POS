@@ -346,13 +346,15 @@ class _ProductDetails extends StatelessWidget {
     return Row(
       children: [
         Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-        Image.memory(
-          product.image,
-          width: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
-          height: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
-          fit: BoxFit.contain,
-          errorBuilder:
-              (context, error, stackTrace) => Container(
+        ClipRRect(
+          borderRadius: BorderRadius.circular(POSRadius.lg),
+          child: Image.network(
+            product.image,
+            width: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
+            height: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
                 width: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
                 height: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
                 color: style.bg,
@@ -363,7 +365,9 @@ class _ProductDetails extends StatelessWidget {
                     size: context.responsive.value(kiosk: 64, tablet: 48, phone: 32),
                   ),
                 ),
-              ),
+              );
+            },
+          ),
         ),
         Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
         Expanded(

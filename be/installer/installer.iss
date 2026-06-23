@@ -50,7 +50,7 @@
 ; â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 #define MyAppName    "POS Kiosk"
-#define MyAppVersion "1.5.0"
+#define MyAppVersion "1.5.3"
 #define MyAppPublisher "Your Company"
 #define KioskExe     "pos_app.exe"
 #define BackendExe   "POSBackend.exe"
@@ -89,6 +89,7 @@ Name: "{app}\pgsql"
 Name: "{app}\nssm"
 Name: "{app}\scripts"
 Name: "{app}\data\csv"
+Name: "{app}\backend\public"
 
 [Files]
 ; â"€â"€ Flutter kiosk app â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
@@ -100,6 +101,9 @@ Source: "..\..\kiosk\build\windows\x64\runner\Release\data\*";       DestDir: "{
 Source: "..\{#BackendExe}"; DestDir: "{app}\backend"; Flags: ignoreversion
 ; .env.prod copied as .env â€" onlyifdoesntexist preserves custom config on upgrades
 Source: "..\.env.prod"; DestDir: "{app}\backend"; DestName: ".env"; Flags: ignoreversion onlyifdoesntexist
+; Static assets (product images) served by the backend at /static/*. AppDirectory
+; for POSBackendService is {app}\backend, so process.cwd()\public resolves here.
+Source: "..\public\*"; DestDir: "{app}\backend\public"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; â"€â"€ Visual C++ 2015-2022 Redistributable (x64) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 Source: "redist\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: ignoreversion deleteafterinstall
@@ -127,6 +131,7 @@ Source: "scripts\update-backend.ps1";          DestDir: "{app}\scripts"; Flags: 
 Source: "scripts\update-backend.bat";          DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\recover-services.bat";        DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\fix-service-recovery.bat";   DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\configure-security.ps1";      DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\seed-from-csv.ps1";           DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\seed-from-csv.bat";           DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\stop-services.ps1";           DestDir: "{app}\scripts"; Flags: ignoreversion
@@ -145,6 +150,14 @@ Name: "{autodesktop}\{#MyAppName}";                 Filename: "{app}\{#KioskExe}
 [Run]
 ; Step 0 — Visual C++ 2015-2022 Redistributable (silent, skips if already installed)
 Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; Flags: waituntilterminated; StatusMsg: "Installing Visual C++ runtime..."
+
+; Step 0b — Firewall rule + Windows Defender exclusion
+;            Adds an inbound TCP rule for port 3000 and excludes {app} from
+;            real-time scanning so the unsigned backend exe is never quarantined
+;            or scan-locked on first launch (the most common cause of the kiosk
+;            staying stuck on "Starting up..." on a fresh machine).
+;            Logs to: {app}\logs\configure-security-install.log
+Filename: "{cmd}"; Parameters: "/c powershell.exe -ExecutionPolicy Bypass -NonInteractive -File ""{app}\scripts\configure-security.ps1"" ""{app}"""; WorkingDir: "{app}"; Flags: runhidden waituntilterminated; StatusMsg: "Configuring Windows Firewall and Defender..."
 
 ; Step 1 — Initialize PostgreSQL data dir, register + start service, create pos_db
 ;           Logs to: {app}\logs\setup-postgres-install.log
@@ -240,6 +253,7 @@ end;
 
 const
   PRODUCTS_CSV_HEADER = 'Category,Category Description,Product Name,Product Description,Product Base Price,Variant Name,Variant Price';
+  PRODUCTS_CSV_HEADER_WITH_IMAGE = 'Category,Category Description,Product Name,Product Description,Product Base Price,Variant Name,Variant Price,Product Image URL';
   MODIFIERS_CSV_HEADER = 'Modifier Group Name,Group Description,Selection Type,Is Required,Min Selection,Max Selection,Linked Product Group,Option Name,Option Price Add-On,Option Available';
 
 function DetectCsvSchema(FilePath: String): String;
@@ -254,7 +268,7 @@ begin
   // Strip a leading BOM character if present
   if (Length(Header) > 0) and (Ord(Header[1]) = 65279) then
     Header := Copy(Header, 2, Length(Header));
-  if Header = PRODUCTS_CSV_HEADER then
+  if (Header = PRODUCTS_CSV_HEADER) or (Header = PRODUCTS_CSV_HEADER_WITH_IMAGE) then
     Result := 'products'
   else if Header = MODIFIERS_CSV_HEADER then
     Result := 'modifiers';
@@ -407,6 +421,7 @@ begin
   InstructLabel.Caption :=
     'Add one or more CSV files. The installer detects their schema automatically.' + #13#10 +
     'Supported schemas: Products / Categories / Variants, and Modifier Groups / Options.' + #13#10 +
+    'The Products schema takes an optional last column, Product Image URL.' + #13#10 +
     'A template CSV is installed to C:\POSKiosk\data\products-template.csv for reference.';
 
   CsvListBox := TListBox.Create(CsvImportPage);
@@ -612,6 +627,9 @@ function NeedRestart(): Boolean;
 begin
   Result := False;
 end;
+
+
+
 
 
 

@@ -1,6 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { join } from 'node:path';
 import { AppModule } from './app.module';
 import { AppConfigService } from './config/config.service';
 import { runExecArgs } from './exec';
@@ -104,13 +106,20 @@ async function bootstrap(): Promise<void> {
     process.exit(1);
   }
 
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
   const configService = app.get(AppConfigService);
   app.setGlobalPrefix('api/v1', {
     exclude: ['api/docs', 'api/docs-json'],
   });
+
+  // Serve product images and other static assets from the `public/` folder next
+  // to the running process (dev: be/public, installed: C:\POSKiosk\backend\public).
+  // Reachable at /static/* — outside the api/v1 prefix and the global JWT guard,
+  // so the kiosk can load images without auth. Product image_url values point here
+  // (e.g. http://localhost:3000/static/products/hot_americano.jpg).
+  app.useStaticAssets(join(process.cwd(), 'public'), { prefix: '/static/' });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

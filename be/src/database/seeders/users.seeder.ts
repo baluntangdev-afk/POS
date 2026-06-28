@@ -32,11 +32,17 @@ export class UsersSeeder implements Seeder {
     ];
 
     const repo = dataSource.getRepository(User);
+    // Upsert by email. Deliberately exclude password/salt/device_pin from the
+    // update set so re-running the seeder (every install AND every
+    // recover-services run) never reverts an admin whose credentials were
+    // changed after install. Only the structural fields (role, system_admin) are
+    // re-asserted, so recovery still self-heals a mis-flagged admin. On a fresh
+    // install with no admin row, the INSERT sets the default password/PIN.
     await repo
       .createQueryBuilder()
       .insert()
       .values(users.map((user) => EntityHelper.toPartialEntity(user)))
-      .orUpdate(['password', 'salt', 'device_pin', 'role', 'system_admin'], ['email'])
+      .orUpdate(['role', 'system_admin'], ['email'])
       .execute();
   }
 }

@@ -226,7 +226,11 @@
       "Bash(PORT=3001 npm run start:dev)",
       "Bash(echo \"started dev server pid $!\")",
       "PowerShell($log = \"C:\\\\Users\\\\Jufiel\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Jufiel-Documents-POS\\\\12698072-0d50-4d78-bccc-d8235fcb09e9\\\\scratchpad\\\\be-dev.log\"; $deadline = \\(Get-Date\\).AddSeconds\\(90\\); $up = $false; while \\(\\(Get-Date\\) -lt $deadline\\) { if \\(Test-Path $log\\) { $c = Get-Content $log -Raw; if \\($c -match 'Nest application successfully started' -or $c -match 'Application is running' -or $c -match 'started on'\\) { $up = $true; break }; if \\($c -match 'Error|EADDRINUSE|exited|failed to' \\) { } }; Start-Sleep -Seconds 2 }; \"UP=$up\"; \"---- tail ----\"; if \\(Test-Path $log\\) { Get-Content $log -Tail 25 })",
-      "Bash(echo \"exit:$?\")"
+      "Bash(echo \"exit:$?\")",
+      "PowerShell($paths = @\\(\"C:\\\\Program Files \\(x86\\)\\\\Inno Setup 6\\\\ISCC.exe\",\"C:\\\\Program Files\\\\Inno Setup 6\\\\ISCC.exe\"\\); foreach \\($p in $paths\\) { if \\(Test-Path $p\\) { Write-Host \"FOUND: $p\" } }; $cmd = Get-Command ISCC.exe -ErrorAction SilentlyContinue; if \\($cmd\\) { Write-Host \"PATH: $\\($cmd.Source\\)\" } else { Write-Host \"Not on PATH\" })",
+      "PowerShell($iscc = \"$env:LOCALAPPDATA\\\\Programs\\\\Inno Setup 6\\\\ISCC.exe\"; $iss = \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\installer.iss\"; & $iscc $iss 2>&1 | ForEach-Object { $_.ToString\\(\\) })",
+      "Bash(xargs grep -ln 'useEffect')",
+      "PowerShell(fvm flutter *)"
     ]
   }
 }

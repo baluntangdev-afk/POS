@@ -1,5 +1,6 @@
 ﻿import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:decimal/decimal.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
@@ -348,12 +349,14 @@ class _ProductDetails extends StatelessWidget {
         Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
         ClipRRect(
           borderRadius: BorderRadius.circular(POSRadius.lg),
-          child: Image.network(
-            product.image,
+          child: CachedNetworkImage(
+            imageUrl: product.image,
             width: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
             height: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
             fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
+            fadeInDuration: POSAnimation.fast,
+            placeholderFadeInDuration: Duration.zero,
+            errorWidget: (context, url, error) {
               return Container(
                 width: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
                 height: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),

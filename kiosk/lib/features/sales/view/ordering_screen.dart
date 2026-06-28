@@ -1,5 +1,6 @@
 ﻿import 'dart:ui';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -701,12 +702,16 @@ class _ProductCard extends StatelessWidget {
                           borderRadius: const BorderRadius.vertical(
                             top: Radius.circular(POSRadius.xl),
                           ),
-                          child: Image.network(
-                            product.image,
+                          child: CachedNetworkImage(
+                            imageUrl: product.image,
                             fit: BoxFit.cover,
                             width: double.infinity,
                             height: double.infinity,
-                            errorBuilder:
+                            // Fade only on the first decode; cached frames show
+                            // instantly with no placeholder flash on rebuild.
+                            fadeInDuration: POSAnimation.fast,
+                            placeholderFadeInDuration: Duration.zero,
+                            errorWidget:
                                 (_, _, _) => Center(
                                   child: Icon(
                                     style.icon,

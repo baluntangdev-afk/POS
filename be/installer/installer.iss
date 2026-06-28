@@ -171,7 +171,9 @@ Filename: "{cmd}"; Parameters: "/c ""{app}\scripts\run-migrations.bat"" ""{app}"
 
 ; Step 3 - Seed store catalog from imported CSV files
 ;           Logs to: {app}\logs\seed-csv-install.log
-Filename: "{cmd}"; Parameters: "/c ""{app}\scripts\seed-from-csv.bat"" ""{app}"""; WorkingDir: "{app}"; Flags: runhidden waituntilterminated; StatusMsg: "Importing product catalog from CSV..."
+
+;           Check: only runs on a fresh install — upgrades keep the existing catalog.
+Filename: "{cmd}"; Parameters: "/c ""{app}\scripts\seed-from-csv.bat"" ""{app}"""; WorkingDir: "{app}"; Flags: runhidden waituntilterminated; StatusMsg: "Importing product catalog from CSV..."; Check: ShouldSeedCsv
 
 ; NOTE: Seeding is no longer a separate optional step. setup-postgres.ps1 (Step 1,
 ;       and recover-services.bat) now always seeds after migrations. Seeders are
@@ -206,6 +208,17 @@ var
   CsvListBox: TListBox;
   CsvStatusLabel: TLabel;
   CsvFullPaths: TStringList;
+  // True when an initialized PostgreSQL data dir already exists (i.e. this is an
+  // in-place upgrade, not a fresh install). Set in InitializeWizard. When True the
+  // CSV catalog-import page is skipped and the authoritative CSV re-seed is NOT run,
+  // so a version update never touches the store's existing catalog.
+  IsUpgradeInstall: Boolean;
+
+// True only on a fresh install — gates the CSV seed [Run] step so upgrades skip it.
+function ShouldSeedCsv(): Boolean;
+begin
+  Result := not IsUpgradeInstall;
+end;
 
 // Guard for the optional seeding step — skips silently if the exe wasn't extracted.
 function BackendExeExists(): Boolean;
@@ -389,6 +402,10 @@ var
   AddBtn, RemoveBtn: TButton;
   InstructLabel: TLabel;
 begin
+  // An existing, initialized Postgres data dir means the store's catalog is
+  // already seeded — treat this run as an upgrade and skip CSV re-import.
+  IsUpgradeInstall := FileExists('C:\posdata\PG_VERSION');
+
   KioskNoPage := CreateInputQueryPage(
     wpSelectTasks,
     'Kiosk Configuration',
@@ -455,6 +472,14 @@ begin
   CsvStatusLabel.WordWrap := True;
   CsvStatusLabel.AutoSize := True;
   CsvStatusLabel.Caption := 'No CSV files added. At least one recognized CSV is required.';
+end;
+
+// Skip the product-catalog import page on upgrades — the catalog already exists
+// in the database and the CSV seeder is authoritative (would soft-delete anything
+// not in the file). Fresh installs still see the page and must supply a CSV.
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := (PageID = CsvImportPage.ID) and IsUpgradeInstall;
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
@@ -583,7 +608,8 @@ begin
 
     // Check that CSV seeding completed — the script writes a marker on success.
     // [Run] steps ignore exit codes so this is the only way to surface failures.
-    if not FileExists(ExpandConstant('{app}\logs\seed-csv-success.marker')) then begin
+    // Skipped on upgrades, where the seed step intentionally never runs.
+    if (not IsUpgradeInstall) and (not FileExists(ExpandConstant('{app}\logs\seed-csv-success.marker'))) then begin
       MsgBox(
         'Product catalog import did not complete successfully.' + #13#10 + #13#10 +
         'Check the log for details:' + #13#10 +

@@ -81,7 +81,19 @@ if (Get-Service "POSPostgres" -ErrorAction SilentlyContinue) {
     Write-Host "POSPostgres not found, skipping."
 }
 
-# -- 3. Verify -----------------------------------------------------------
+# -- 3. Revert kiosk auto-logon, if configured-autologon.ps1 set it up ----
+$winlogon = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
+if ((Get-ItemProperty -Path $winlogon -Name DefaultUserName -ErrorAction SilentlyContinue).DefaultUserName -eq "POSKiosk") {
+    Write-Host "Reverting kiosk auto-logon registry settings..."
+    Set-ItemProperty -Path $winlogon -Name "AutoAdminLogon" -Value "0" -Type String
+    Remove-ItemProperty -Path $winlogon -Name "DefaultPassword" -ErrorAction SilentlyContinue
+}
+if (Get-LocalUser -Name "POSKiosk" -ErrorAction SilentlyContinue) {
+    Write-Host "Removing POSKiosk local account..."
+    Remove-LocalUser -Name "POSKiosk" -ErrorAction SilentlyContinue
+}
+
+# -- 4. Verify -----------------------------------------------------------
 $beLeft = Get-Service "POSBackendService" -ErrorAction SilentlyContinue
 $pgLeft = Get-Service "POSPostgres"       -ErrorAction SilentlyContinue
 if ($beLeft -or $pgLeft) {

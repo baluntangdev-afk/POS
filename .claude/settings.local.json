@@ -230,7 +230,28 @@
       "PowerShell($paths = @\\(\"C:\\\\Program Files \\(x86\\)\\\\Inno Setup 6\\\\ISCC.exe\",\"C:\\\\Program Files\\\\Inno Setup 6\\\\ISCC.exe\"\\); foreach \\($p in $paths\\) { if \\(Test-Path $p\\) { Write-Host \"FOUND: $p\" } }; $cmd = Get-Command ISCC.exe -ErrorAction SilentlyContinue; if \\($cmd\\) { Write-Host \"PATH: $\\($cmd.Source\\)\" } else { Write-Host \"Not on PATH\" })",
       "PowerShell($iscc = \"$env:LOCALAPPDATA\\\\Programs\\\\Inno Setup 6\\\\ISCC.exe\"; $iss = \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\installer\\\\installer.iss\"; & $iscc $iss 2>&1 | ForEach-Object { $_.ToString\\(\\) })",
       "Bash(xargs grep -ln 'useEffect')",
-      "PowerShell(fvm flutter *)"
+      "PowerShell(fvm flutter *)",
+      "Read(//c//**)",
+      "Read(//c/Users/Jufiel/**)",
+      "Bash(\"C:/Users/Jufiel/fvm/versions/stable/bin/dart.bat\" analyze *)",
+      "Bash(\"C:/Users/Jufiel/fvm/versions/stable/bin/flutter.bat\" devices *)",
+      "Bash(tasklist)",
+      "Bash(powershell -NoProfile -Command \"Start-Sleep -Milliseconds 800\")",
+      "Bash(\"C:/Users/Jufiel/fvm/versions/stable/bin/flutter.bat\" run *)",
+      "Bash(powershell -NoProfile -Command \"Start-Sleep -Seconds 60\")",
+      "PowerShell(reg query *)",
+      "Bash(powershell -Command 'Get-Service | Where-Object {$_.Name -like '\\\\''*postgres*'\\\\'' -or $_.Name -like '\\\\''*POSBackend*'\\\\''}')",
+      "Bash(powershell -Command \"Get-Process | Where-Object {\\\\$_.ProcessName -match 'node|POSBackend'} | Select-Object Id,ProcessName,Path\" 2>&1)",
+      "Bash(powershell -Command \"Get-CimInstance Win32_Process -Filter \\\\\"ProcessId=23744\\\\\" | Select-Object CommandLine\" 2>&1)",
+      "Bash(curl -s http://localhost:3000/api/v1/users)",
+      "Bash(curl -s -X POST http://localhost:3000/api/v1/auth/login -H \"Content-Type: application/json\" -d '{\"userId\":\"admin\",\"pin\":\"000000\"}')",
+      "Bash(curl -s -X POST http://localhost:3000/api/v1/auth/login/user-id -H \"Content-Type: application/json\" -d '{\"userId\":\"admin\",\"password\":\"password\"}')",
+      "Bash(curl -s -w '\\\\nSTATUS:%{http_code}\\\\n' http://localhost:3000/api/v1/users -H 'Authorization: Bearer __TRACKED_VAR__')",
+      "Bash(npx ts-node *)",
+      "Bash(powershell -NoProfile -Command \"Test-NetConnection -ComputerName localhost -Port 5432 | Select-Object -ExpandProperty TcpTestSucceeded\" 2>&1)",
+      "PowerShell(Get-CimInstance *)",
+      "PowerShell(& \"C:\\\\nssm\\\\nssm.exe\" get POSBackendService Application; & \"C:\\\\nssm\\\\nssm.exe\" get POSBackendService AppDirectory)",
+      "PowerShell($p = Start-Process powershell -Verb RunAs -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','C:\\\\Users\\\\Jufiel\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Jufiel-Documents-POS\\\\e6cd5abe-cc73-48d9-88e3-13e00703b044\\\\scratchpad\\\\swap-backend.ps1' -Wait -PassThru; $p.ExitCode)"
     ]
   }
 }

@@ -50,7 +50,7 @@
 ; â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 #define MyAppName    "POS Kiosk"
-#define MyAppVersion "1.5.3"
+#define MyAppVersion "1.6.2"
 #define MyAppPublisher "Your Company"
 #define KioskExe     "pos_app.exe"
 #define BackendExe   "POSBackend.exe"
@@ -81,6 +81,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop shortcut"
+Name: "autologon";   Description: "Automatically sign in and launch the kiosk after every restart (recommended for dedicated POS terminals)"
 
 [Dirs]
 Name: "{app}\logs"
@@ -132,6 +133,8 @@ Source: "scripts\update-backend.bat";          DestDir: "{app}\scripts"; Flags: 
 Source: "scripts\recover-services.bat";        DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\fix-service-recovery.bat";   DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\configure-security.ps1";      DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\configure-autologon.ps1";     DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\configure-autologon.bat";     DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\seed-from-csv.ps1";           DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\seed-from-csv.bat";           DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\stop-services.ps1";           DestDir: "{app}\scripts"; Flags: ignoreversion
@@ -146,6 +149,10 @@ Source: "products-template.csv"; DestDir: "{app}\data"; Flags: ignoreversion onl
 Name: "{group}\{#MyAppName}";                       Filename: "{app}\{#KioskExe}"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}";                 Filename: "{app}\{#KioskExe}"; Tasks: desktopicon
+; Auto-launch the kiosk UI for every user who logs in (backend/DB services already
+; auto-start on their own; this makes the visible app come up too, so a machine
+; reboot ends with the kiosk on screen instead of just background services running).
+Name: "{commonstartup}\{#MyAppName}";                Filename: "{app}\{#KioskExe}"
 
 [Run]
 ; Step 0 — Visual C++ 2015-2022 Redistributable (silent, skips if already installed)
@@ -158,6 +165,13 @@ Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; F
 ;            staying stuck on "Starting up..." on a fresh machine).
 ;            Logs to: {app}\logs\configure-security-install.log
 Filename: "{cmd}"; Parameters: "/c powershell.exe -ExecutionPolicy Bypass -NonInteractive -File ""{app}\scripts\configure-security.ps1"" ""{app}"""; WorkingDir: "{app}"; Flags: runhidden waituntilterminated; StatusMsg: "Configuring Windows Firewall and Defender..."
+
+; Step 0c — Create a dedicated kiosk Windows account and configure auto sign-in,
+;            so the machine comes all the way back up (services + the visible
+;            app, via the {commonstartup} shortcut below) after an unattended
+;            reboot. Opt-in via the "autologon" task selected during setup.
+;            Logs to: {app}\logs\configure-autologon-install.log
+Filename: "{cmd}"; Parameters: "/c ""{app}\scripts\configure-autologon.bat"" ""{app}"""; WorkingDir: "{app}"; Flags: runhidden waituntilterminated; StatusMsg: "Configuring automatic sign-in..."; Tasks: autologon
 
 ; Step 1 — Initialize PostgreSQL data dir, register + start service, create pos_db
 ;           Logs to: {app}\logs\setup-postgres-install.log
@@ -653,6 +667,9 @@ function NeedRestart(): Boolean;
 begin
   Result := False;
 end;
+
+
+
 
 
 

@@ -38,10 +38,16 @@ Future<ProviderContainer> bootstrap(AppEnv env) async {
     await windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.setResizable(true);
       await windowManager.setMinimizable(true);
+      await windowManager.setClosable(true);
       await windowManager.setPreventClose(false);
 
-      // Maximize to fill the screen while keeping title bar and close button
-      await windowManager.maximize();
+      // Cover the entire screen (including over the taskbar) while keeping
+      // the title bar, so minimize/close remain available.
+      final display = PlatformDispatcher.instance.views.first;
+      final screenSize = display.physicalSize / display.devicePixelRatio;
+      await windowManager.setBounds(
+        Rect.fromLTWH(0, 0, screenSize.width, screenSize.height),
+      );
 
       await windowManager.show();
       await windowManager.focus();

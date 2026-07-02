@@ -81,14 +81,17 @@ export class UsersService {
 
     const savedUser = await this.userRepository.save(user);
 
-    // Auto-assign the new user to the same POS terminal as the creating admin
-    const adminTerminal = await this.posTerminalRepository.findOne({
-      where: { assignedUser: { id: causer.id } },
+    // Auto-assign the new user to this deployment's POS terminal, if one has
+    // been registered yet. There is only ever one terminal per installation,
+    // so this applies regardless of whether the causer is an admin or supervisor.
+    const [terminal] = await this.posTerminalRepository.find({
       select: { id: true },
+      order: { id: 'ASC' },
+      take: 1,
     });
-    if (adminTerminal) {
+    if (terminal) {
       await this.userRepository.update(savedUser.id, {
-        posTerminal: { id: adminTerminal.id },
+        posTerminal: { id: terminal.id },
       });
     }
 

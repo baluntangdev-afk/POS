@@ -44,13 +44,22 @@ if ($LASTEXITCODE -eq 0) {
 # while it is running. Unsigned executables on fresh Windows installs are
 # routinely scanned on first launch, which can cause the health-check to time
 # out even when the process appears to be "Running" in Services.
+#
+# C:\posdata is excluded too (separately -- it's outside $AppDir). initdb
+# writes hundreds of brand-new database files there on every install, and
+# since it's re-created from scratch each time (see setup-postgres.ps1),
+# Defender has never seen them before and scans/locks them in real time.
+# That race is what makes POSPostgres intermittently fail to start with
+# "the system cannot find the file specified" right after installation.
 Write-Host "Configuring Windows Defender exclusion..."
-try {
-    Add-MpPreference -ExclusionPath $AppDir -ErrorAction Stop
-    Write-Host "Defender exclusion added for: $AppDir"
-} catch {
-    Write-Warning "Could not add Defender exclusion: $_"
-    Write-Warning "If the kiosk stays on 'Starting up...', add $AppDir to Defender exclusions manually."
+foreach ($path in @($AppDir, "C:\posdata")) {
+    try {
+        Add-MpPreference -ExclusionPath $path -ErrorAction Stop
+        Write-Host "Defender exclusion added for: $path"
+    } catch {
+        Write-Warning "Could not add Defender exclusion for $path : $_"
+        Write-Warning "If the kiosk stays on 'Starting up...', add $path to Defender exclusions manually."
+    }
 }
 
 Write-Host "configure-security.ps1 completed."

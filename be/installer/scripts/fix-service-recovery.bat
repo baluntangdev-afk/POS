@@ -19,18 +19,18 @@ echo ============================================
 echo.
 
 REM ── POSPostgres ──────────────────────────────────────────────────────────
-echo [1/4] Switching POSPostgres to delayed-auto start...
-sc.exe config POSPostgres start= delayed-auto
-if %errorlevel% neq 0 ( echo [WARN] Could not set delayed-auto on POSPostgres )
+echo [1/4] Switching POSPostgres to auto start...
+sc.exe config POSPostgres start= auto
+if %errorlevel% neq 0 ( echo [WARN] Could not set auto start on POSPostgres )
 
 echo [2/4] Configuring POSPostgres failure recovery...
 sc.exe failure POSPostgres reset= 86400 actions= restart/5000/restart/15000/restart/30000
 if %errorlevel% neq 0 ( echo [WARN] Could not set failure recovery on POSPostgres )
 
 REM ── POSBackendService ─────────────────────────────────────────────────────
-echo [3/4] Switching POSBackendService to delayed-auto start...
-sc.exe config POSBackendService start= delayed-auto
-if %errorlevel% neq 0 ( echo [WARN] Could not set delayed-auto on POSBackendService )
+echo [3/4] Switching POSBackendService to auto start...
+sc.exe config POSBackendService start= auto
+if %errorlevel% neq 0 ( echo [WARN] Could not set auto start on POSBackendService )
 
 echo [4/4] Configuring POSBackendService failure recovery...
 sc.exe failure POSBackendService reset= 86400 actions= restart/5000/restart/15000/restart/30000
@@ -51,6 +51,6 @@ echo ── Current status ─────────────────�
 sc.exe query POSPostgres       | findstr /C:"STATE"
 sc.exe query POSBackendService | findstr /C:"STATE"
 echo.
-echo Done. Both services now have auto-restart on failure and delayed-auto start.
+echo Done. Both services now have auto-restart on failure and auto start.
 echo.
 pause

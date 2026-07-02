@@ -137,10 +137,14 @@ try {
     }
     Write-Host "Service registered."
 
-    # Switch to delayed-auto so PostgreSQL starts after core OS services are
-    # fully up, reducing the chance of a boot-time race causing startup failure.
-    sc.exe config POSPostgres start= delayed-auto | Out-Null
-    Write-Host "POSPostgres set to delayed-auto start."
+    # Plain auto-start (not delayed): delayed-auto only starts ~2 minutes after
+    # boot, which is well after autologon reaches the desktop and the kiosk app
+    # auto-launches, leaving it stuck showing "Starting up..." the whole time.
+    # DependOnService (set on POSBackendService below) already guarantees
+    # correct startup order against Postgres, so the delay bought no safety --
+    # only a slower boot-to-ready time on every restart.
+    sc.exe config POSPostgres start= auto | Out-Null
+    Write-Host "POSPostgres set to auto start."
 
     # Configure failure recovery: restart after 5 s, 15 s, 30 s on consecutive
     # failures; reset the failure counter after 24 hours of clean uptime.
@@ -157,22 +161,45 @@ try {
         Write-Warning "$portInUse"
     }
 
-    Write-Host "Starting POSPostgres..."
-    Start-Service "POSPostgres" -ErrorAction SilentlyContinue
-    Start-Sleep -Seconds 3
+    # Retries the whole start+wait cycle a few times before giving up. On an
+    # unknown target machine, the first attempt can lose a race against
+    # third-party AV scanning the brand-new $pgData files (see the exclusion
+    # added in configure-security.ps1) or against Windows still finishing
+    # boot-time setup. A transient loss here must not leave the install
+    # requiring a manual recover-services.bat run, so retry automatically
+    # before surfacing an error.
+    $started = $false
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        Write-Host "Starting POSPostgres (attempt $attempt/3)..."
+        Start-Service "POSPostgres" -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 3
 
-    $svc = Get-Service "POSPostgres"
-    Write-Host "Service status: $($svc.Status)"
+        $svc = Get-Service "POSPostgres"
+        Write-Host "Service status: $($svc.Status)"
 
-    if ($svc.Status -ne "Running") {
-        Write-Host "Service did not reach Running state immediately, waiting..."
-        Start-Sleep -Seconds 10
-        $svc.Refresh()
-        Write-Host "Service status after wait: $($svc.Status)"
+        if ($svc.Status -ne "Running") {
+            Write-Host "Service did not reach Running state immediately, waiting..."
+            Start-Sleep -Seconds 10
+            $svc.Refresh()
+            Write-Host "Service status after wait: $($svc.Status)"
+        }
+
+        if ($svc.Status -eq "Running") {
+            $started = $true
+            break
+        }
+
+        if ($attempt -lt 3) {
+            Write-Host "Attempt $attempt failed. Clearing any stuck process and retrying..."
+            sc.exe stop POSPostgres 2>&1 | Out-Null
+            Get-Process postgres -ErrorAction SilentlyContinue |
+                Stop-Process -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 5
+        }
     }
 
-    if ($svc.Status -ne "Running") {
-        Write-Error "POSPostgres service failed to start. Check that port 5432 is free and no other PostgreSQL is running (including Docker containers). See Application Event Log for details."
+    if (!$started) {
+        Write-Error "POSPostgres service failed to start after 3 attempts. Check that port 5432 is free and no other PostgreSQL is running (including Docker containers). See Application Event Log for details."
         Write-Host "=== PostgreSQL log ==="
         Get-ChildItem "$pgData\log\" -ErrorAction SilentlyContinue |
             Sort-Object LastWriteTime -Descending | Select-Object -First 1 |

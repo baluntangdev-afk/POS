@@ -37,9 +37,21 @@ export class PosTerminalsService {
       }) as Promise<PosTerminal>;
     }
 
-    const terminal = await this.posTerminalRepository.findOne({
+    const assignedTerminal = await this.posTerminalRepository.findOne({
       where: { assignedUser: { id: userId } },
       relations: ['paymentMethods'],
+    });
+
+    if (assignedTerminal) {
+      return assignedTerminal;
+    }
+
+    // This deployment only ever has a single POS terminal, so fall back to
+    // it for any user who was created before the terminal was registered.
+    const [terminal] = await this.posTerminalRepository.find({
+      relations: ['paymentMethods'],
+      order: { id: 'ASC' },
+      take: 1,
     });
 
     if (!terminal) {

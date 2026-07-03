@@ -21,12 +21,11 @@ import { FindProductVariantService } from './services/find-product-variant.servi
 import { UpdateProductVariantService } from './services/update-product-variant.service';
 import { FindProductDetailsService } from './services/find-product-details.service';
 import { DeleteProductVariantService } from './services/delete-product-variant.service';
+import { RecomputeProductPriceService } from './services/recompute-product-price.service';
+import { FindDistinctVariantNamesService } from './services/find-distinct-variant-names.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Product, ProductVariant, ProductGroup]),
-    CurrenciesModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Product, ProductVariant, ProductGroup]), CurrenciesModule],
   controllers: [ProductsController, ProductVariantsController],
   providers: [
     ProductsService,
@@ -44,6 +43,8 @@ import { DeleteProductVariantService } from './services/delete-product-variant.s
     FindProductVariantService,
     UpdateProductVariantService,
     DeleteProductVariantService,
+    RecomputeProductPriceService,
+    FindDistinctVariantNamesService,
   ],
   exports: [ProductsService, ProductVariantsService],
 })

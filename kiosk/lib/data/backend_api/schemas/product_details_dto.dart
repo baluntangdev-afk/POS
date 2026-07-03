@@ -10,7 +10,7 @@ class ProductDetailsDto with ProductDetailsDtoMappable {
   const ProductDetailsDto({
     required this.id,
     required this.name,
-    required this.description,
+    this.description,
     this.imageUrl,
     required this.currencySign,
     required this.displayPrice,
@@ -22,7 +22,7 @@ class ProductDetailsDto with ProductDetailsDtoMappable {
 
   final int id;
   final String name;
-  final String description;
+  final String? description;
   final String? imageUrl;
   final String currencySign;
   final String displayPrice;

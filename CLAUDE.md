@@ -139,7 +139,7 @@ fvm flutter build windows
 fvm dart analyze
 ```
 
-The `.env` file (copy from `.env.sample`) must contain `API_BASE_URL` before running.
+The `.env` file (copy from `.env.sample`) must contain `BACKEND_API_BASE_URL` and `SECURE_STORAGE_KEY` before running. New variables must also be added as `@EnviedField()` properties on the `Env` class in `lib/config/environment/`.
 
 ### Code generation
 

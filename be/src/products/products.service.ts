@@ -27,8 +27,13 @@ export class ProductsService {
     private readonly deleteProductService: DeleteProductService,
   ) {}
 
-  async create(createProductDto: CreateProductDto, image: File, causer: User): Promise<ProductDto> {
-    return this.createProductService.execute(createProductDto, image, causer);
+  async create(
+    createProductDto: CreateProductDto,
+    image: File,
+    causer: User,
+    baseUrl: string,
+  ): Promise<ProductDto> {
+    return this.createProductService.execute(createProductDto, image, causer, baseUrl);
   }
 
   async findAll(query: ProductQueryDto) {
@@ -48,8 +53,9 @@ export class ProductsService {
     updateProductDto: UpdateProductDto,
     image: File,
     causer: User,
+    baseUrl: string,
   ): Promise<ProductDetailsDto> {
-    await this.updateProductService.execute(id, updateProductDto, image, causer);
+    await this.updateProductService.execute(id, updateProductDto, image, causer, baseUrl);
     return this.findProductDetailsService.execute(id);
   }
 

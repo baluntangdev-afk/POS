@@ -116,24 +116,30 @@ class ImagePickerFormField extends HookWidget {
                             height: double.infinity,
                             fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) {
-                              return Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.add_photo_alternate_outlined,
-                                    size: 48,
-                                    color: POSColors.iconSubtle,
+                              return Center(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.add_photo_alternate_outlined,
+                                        size: 48,
+                                        color: POSColors.iconSubtle,
+                                      ),
+                                      const Gap(8),
+                                      Text(
+                                        'No image selected',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          color: POSColors.textTertiary,
+                                          fontWeight: FontWeight.w400,
+                                        ).merge(style),
+                                      ),
+                                    ],
                                   ),
-                                  const Gap(8),
-                                  Text(
-                                    'No image selected',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: POSColors.textTertiary,
-                                      fontWeight: FontWeight.w400,
-                                    ).merge(style),
-                                  ),
-                                ],
+                                ),
                               );
                             },
                           ),

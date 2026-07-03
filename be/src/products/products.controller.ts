@@ -9,6 +9,8 @@ import {
   Query,
   UseInterceptors,
   UploadedFile,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -31,6 +33,9 @@ import { PaginatedResponse } from '../utils/pagination/dto';
 import { ProductDetailsDto } from './dto/product-details/product-details.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { File } from 'multer';
+import type { Request } from 'express';
+import { AdminOrSupervisorGuard } from '../auth/guards/admin-or-supervisor.guard';
+import { getBaseUrl } from '../utils/image-storage.helper';
 
 @ApiTags('Products')
 @Controller('products')
@@ -38,6 +43,7 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
+  @UseGuards(AdminOrSupervisorGuard)
   @UseInterceptors(FileInterceptor('image'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Create a new product' })
@@ -62,8 +68,9 @@ export class ProductsController {
     @Body() createProductDto: CreateProductDto,
     @UploadedFile() image: File,
     @CurrentUser() causer: User,
+    @Req() req: Request,
   ) {
-    return this.productsService.create(createProductDto, image, causer);
+    return this.productsService.create(createProductDto, image, causer, getBaseUrl(req));
   }
 
   @Get()
@@ -88,6 +95,7 @@ export class ProductsController {
   }
 
   @Patch(':id')
+  @UseGuards(AdminOrSupervisorGuard)
   @UseInterceptors(FileInterceptor('image'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Update a product by ID' })
@@ -113,11 +121,13 @@ export class ProductsController {
     @Body() updateProductDto: UpdateProductDto,
     @UploadedFile() image: File,
     @CurrentUser() causer: User,
+    @Req() req: Request,
   ) {
-    return this.productsService.update(+id, updateProductDto, image, causer);
+    return this.productsService.update(+id, updateProductDto, image, causer, getBaseUrl(req));
   }
 
   @Delete(':id')
+  @UseGuards(AdminOrSupervisorGuard)
   @ApiOperation({ summary: 'Remove a product by ID' })
   @ApiParam({ name: 'id', description: 'Product ID', example: 1 })
   @ApiResponse({ status: 200, description: 'The product has been removed.' })

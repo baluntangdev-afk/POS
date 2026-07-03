@@ -140,6 +140,23 @@ class OrderingNotifier extends AsyncNotifier<OrderingData> {
     });
   }
 
+  /// Re-fetches products for the currently selected group in the background.
+  ///
+  /// Unlike [selectGroup], this doesn't touch loading state or the in-progress
+  /// sale — it's meant to be called silently (e.g. whenever the ordering
+  /// screen becomes visible again) so products added/edited/deleted elsewhere
+  /// (Catalog Management) show up without discarding the current cart.
+  Future<void> refreshProducts() async {
+    final current = state.value;
+    final group = current?.selectedGroup;
+    if (group == null) return;
+
+    final products = await ref.read(productRepositoryProvider).getByGroup(group);
+
+    if (!state.hasValue) return;
+    state = AsyncData(state.requireValue.copyWith(products: products));
+  }
+
   void addLineItem(LineItem lineItem) {
     if (!state.hasValue) return;
 

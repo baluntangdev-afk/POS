@@ -16,10 +16,12 @@ import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/product_image_placeholder.dart';
 import '../../../widgets/resposive_wrap_container.dart';
 import '../../../widgets/text_box_form_field.dart';
+import '../../auth/state/login_state_notifier.dart';
 import '../data/models/category.dart';
 import '../data/models/product.dart';
 import '../state/catalog_categories_notifier.dart';
 import '../state/catalog_products_notifier.dart';
+import 'product_dialogs.dart';
 
 class CatalogGridScreen extends HookConsumerWidget {
   const CatalogGridScreen({super.key});
@@ -28,6 +30,8 @@ class CatalogGridScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final categoryId = useState<String?>(null);
     final searchQuery = useState<String?>(null);
+    final isAdminOrSupervisor =
+        ref.watch(loginStateProvider).value?.isAdminOrSupervisor ?? false;
 
     ref.listen(catalogProductsProvider, (_, next) {
       if (next case AsyncError(:final error)) {
@@ -55,9 +59,13 @@ class CatalogGridScreen extends HookConsumerWidget {
       child: Column(
         spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
         children: [
-          _FilterBar(categoryId: categoryId, searchQuery: searchQuery),
+          _FilterBar(
+            categoryId: categoryId,
+            searchQuery: searchQuery,
+            isAdminOrSupervisor: isAdminOrSupervisor,
+          ),
           _CategoryChips(selectedCategoryId: categoryId),
-          Expanded(child: _ProductsGrid()),
+          Expanded(child: _ProductsGrid(isAdminOrSupervisor: isAdminOrSupervisor)),
         ],
       ),
     );
@@ -67,10 +75,15 @@ class CatalogGridScreen extends HookConsumerWidget {
 // ── Filter bar: search + add button ──────────────────────────────────────────
 
 class _FilterBar extends StatelessWidget {
-  const _FilterBar({required this.categoryId, required this.searchQuery});
+  const _FilterBar({
+    required this.categoryId,
+    required this.searchQuery,
+    required this.isAdminOrSupervisor,
+  });
 
   final ValueNotifier<String?> categoryId;
   final ValueNotifier<String?> searchQuery;
+  final bool isAdminOrSupervisor;
 
   @override
   Widget build(BuildContext context) {
@@ -109,25 +122,22 @@ class _FilterBar extends StatelessWidget {
               },
             ),
           ),
-          if (isPhone)
-            FilledButton(
-              onPressed: () {
-                // TODO: Navigate to add product screen
-              },
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(48, 48),
-                padding: EdgeInsets.zero,
+          if (isAdminOrSupervisor)
+            if (isPhone)
+              FilledButton(
+                onPressed: () => showSaveProductDialog(context),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                  padding: EdgeInsets.zero,
+                ),
+                child: const Icon(Icons.add, size: 20),
+              )
+            else
+              Button(
+                label: const Text('Add Product'),
+                leading: const Icon(Icons.add),
+                onPressed: () => showSaveProductDialog(context),
               ),
-              child: const Icon(Icons.add, size: 20),
-            )
-          else
-            Button(
-              label: const Text('Add Product'),
-              leading: const Icon(Icons.add),
-              onPressed: () {
-                // TODO: Navigate to add product screen
-              },
-            ),
         ],
       ),
     );
@@ -375,6 +385,10 @@ class _ScrollArrow extends StatelessWidget {
 // ── Products grid ─────────────────────────────────────────────────────────────
 
 class _ProductsGrid extends ConsumerWidget {
+  const _ProductsGrid({required this.isAdminOrSupervisor});
+
+  final bool isAdminOrSupervisor;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(catalogProductsProvider.select((it) => it.whenData((d) => d.products)));
@@ -395,9 +409,24 @@ class _ProductsGrid extends ConsumerWidget {
         }
 
         return ResponsiveBuilder(
-          kiosk: (context) => _Grid(products: products, crossAxisCount: 4, ratio: 0.72),
-          tablet: (context) => _Grid(products: products, crossAxisCount: 3, ratio: 0.72),
-          phone: (context) => _Grid(products: products, crossAxisCount: 2, ratio: 0.70),
+          kiosk: (context) => _Grid(
+            products: products,
+            crossAxisCount: 4,
+            ratio: 0.72,
+            isAdminOrSupervisor: isAdminOrSupervisor,
+          ),
+          tablet: (context) => _Grid(
+            products: products,
+            crossAxisCount: 3,
+            ratio: 0.72,
+            isAdminOrSupervisor: isAdminOrSupervisor,
+          ),
+          phone: (context) => _Grid(
+            products: products,
+            crossAxisCount: 2,
+            ratio: 0.70,
+            isAdminOrSupervisor: isAdminOrSupervisor,
+          ),
         );
       },
     );
@@ -407,44 +436,60 @@ class _ProductsGrid extends ConsumerWidget {
 class _EmptyProductsState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.inventory_2_rounded,
-            size: context.responsive.value(kiosk: 64, tablet: 52, phone: 40),
-            color: POSColors.textDisabled,
-          ),
-          Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-          Text(
-            'No products found',
-            style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 18, tablet: 15, phone: 13),
-              fontWeight: FontWeight.w700,
-              color: POSColors.textSecondary,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.inventory_2_rounded,
+                    size: context.responsive.value(kiosk: 64, tablet: 52, phone: 40),
+                    color: POSColors.textDisabled,
+                  ),
+                  Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+                  Text(
+                    'No products found',
+                    style: TextStyle(
+                      fontSize: context.responsive.value(kiosk: 18, tablet: 15, phone: 13),
+                      fontWeight: FontWeight.w700,
+                      color: POSColors.textSecondary,
+                    ),
+                  ),
+                  Gap(context.responsive.value(kiosk: 6, tablet: 4, phone: 3)),
+                  Text(
+                    'Try adjusting your search or category filter',
+                    style: TextStyle(
+                      fontSize: context.responsive.value(kiosk: 13, tablet: 12, phone: 11),
+                      color: POSColors.textDisabled,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          Gap(context.responsive.value(kiosk: 6, tablet: 4, phone: 3)),
-          Text(
-            'Try adjusting your search or category filter',
-            style: TextStyle(
-              fontSize: context.responsive.value(kiosk: 13, tablet: 12, phone: 11),
-              color: POSColors.textDisabled,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 class _Grid extends StatelessWidget {
-  const _Grid({required this.products, required this.crossAxisCount, required this.ratio});
+  const _Grid({
+    required this.products,
+    required this.crossAxisCount,
+    required this.ratio,
+    required this.isAdminOrSupervisor,
+  });
 
   final List<CatalogProduct> products;
   final int crossAxisCount;
   final double ratio;
+  final bool isAdminOrSupervisor;
 
   @override
   Widget build(BuildContext context) {
@@ -456,7 +501,10 @@ class _Grid extends StatelessWidget {
         mainAxisSpacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
       ),
       itemCount: products.length,
-      itemBuilder: (context, index) => _ProductCard(product: products[index]),
+      itemBuilder: (context, index) => _ProductCard(
+        product: products[index],
+        isAdminOrSupervisor: isAdminOrSupervisor,
+      ),
     );
   }
 }
@@ -464,9 +512,10 @@ class _Grid extends StatelessWidget {
 // ── Product card ──────────────────────────────────────────────────────────────
 
 class _ProductCard extends StatelessWidget {
-  const _ProductCard({required this.product});
+  const _ProductCard({required this.product, required this.isAdminOrSupervisor});
 
   final CatalogProduct product;
+  final bool isAdminOrSupervisor;
 
   @override
   Widget build(BuildContext context) {
@@ -528,20 +577,41 @@ class _ProductCard extends StatelessWidget {
                         letterSpacing: -0.3,
                       ),
                     ),
-                    const Spacer(),
-                    Gap(r.value(kiosk: 8, tablet: 6, phone: 4)),
-                    SizedBox(
-                      width: double.infinity,
-                      child: Button(
-                        label: Text(
-                          'Manage',
-                          style: TextStyle(fontSize: r.value(kiosk: 12, tablet: 11, phone: 10)),
-                        ),
-                        // onPressed: () => ProductDetailRoute(product.id).push<void>(context),
-                        backgroundColor: ColorSet.primary,
-                        foregroundColor: Colors.white,
+                    if (isAdminOrSupervisor) ...[
+                      const Spacer(),
+                      Gap(r.value(kiosk: 8, tablet: 6, phone: 4)),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Button(
+                              label: Text(
+                                'Edit',
+                                style: TextStyle(fontSize: r.value(kiosk: 12, tablet: 11, phone: 10)),
+                              ),
+                              onPressed: () => showSaveProductDialog(context, product: product),
+                              backgroundColor: ColorSet.primary,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                          Gap(r.value(kiosk: 6, tablet: 5, phone: 4)),
+                          IconButton(
+                            onPressed: () => showDeleteProductDialog(context, product),
+                            icon: Icon(
+                              Icons.delete_outline_rounded,
+                              size: r.value(kiosk: 20, tablet: 18, phone: 16),
+                              color: ColorSet.danger,
+                            ),
+                            style: IconButton.styleFrom(
+                              backgroundColor: ColorSet.danger.withValues(alpha: 0.08),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(POSRadius.md),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+                    ] else
+                      const Spacer(),
                   ],
                 ),
               ),

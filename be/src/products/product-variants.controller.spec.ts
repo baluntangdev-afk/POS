@@ -33,8 +33,9 @@ describe('ProductVariantsController', () => {
           provide: ProductVariantsService,
           useValue: {
             create: jest.fn(),
-            findProductVariantsByProductId: jest.fn(),
+            findByProductId: jest.fn(),
             findOne: jest.fn(),
+            findDistinctNames: jest.fn(),
             update: jest.fn(),
             remove: jest.fn(),
           },
@@ -55,6 +56,7 @@ describe('ProductVariantsController', () => {
       const createDto: CreateProductVariantDto = {
         productId: 1,
         name: 'Large',
+        price: 0,
         isDefault: false,
       };
 

@@ -8,6 +8,7 @@ import { CreateProductVariantService } from './services/create-product-variant.s
 import { FindProductVariantService } from './services/find-product-variant.service';
 import { DeleteProductVariantService } from './services/delete-product-variant.service';
 import { UpdateProductVariantService } from './services/update-product-variant.service';
+import { FindDistinctVariantNamesService } from './services/find-distinct-variant-names.service';
 
 @Injectable()
 export class ProductVariantsService {
@@ -17,6 +18,7 @@ export class ProductVariantsService {
     private readonly findProductVariantService: FindProductVariantService,
     private readonly updateProductVariantService: UpdateProductVariantService,
     private readonly deleteProductVariantService: DeleteProductVariantService,
+    private readonly findDistinctVariantNamesService: FindDistinctVariantNamesService,
   ) {}
 
   async create(
@@ -32,6 +34,10 @@ export class ProductVariantsService {
 
   async findOne(id: number): Promise<ProductVariantDto> {
     return this.findProductVariantService.execute(id);
+  }
+
+  async findDistinctNames(): Promise<string[]> {
+    return this.findDistinctVariantNamesService.execute();
   }
 
   async update(

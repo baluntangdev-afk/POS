@@ -14,7 +14,6 @@ import '../state/catalog_modifier_groups_notifier.dart';
 import '../state/catalog_products_notifier.dart';
 import 'catalog_grid_screen.dart';
 import 'categories_tab.dart';
-import 'modifier_groups_screen.dart';
 
 class CatalogScreen extends HookConsumerWidget {
   const CatalogScreen({super.key});
@@ -45,7 +44,7 @@ class CatalogScreen extends HookConsumerWidget {
 class _AndroidCatalogScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    const tabs = ['Products', 'Modifier Groups', 'Categories'];
+    const tabs = ['Products', 'Categories']; // Modifier Groups hidden for now
     final r = context.responsive;
 
     return DefaultTabController(
@@ -84,7 +83,6 @@ class _AndroidCatalogScreen extends StatelessWidget {
         body: const TabBarView(
           children: [
             CatalogGridScreen(),
-            ModifierGroupsScreen(),
             CategoriesTab(),
           ],
         ),
@@ -109,7 +107,7 @@ class _WindowsCatalogScreen extends HookWidget {
           Expanded(
             child: IndexedStack(
               index: selectedTab.value,
-              children: const [CatalogGridScreen(), ModifierGroupsScreen(), CategoriesTab()],
+              children: const [CatalogGridScreen(), CategoriesTab()],
             ),
           ),
         ],
@@ -125,7 +123,7 @@ class _WindowsTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const tabs = ['Products', 'Modifier Groups', 'Categories'];
+    const tabs = ['Products', 'Categories']; // Modifier Groups hidden for now
     final r = context.responsive;
 
     return Container(

@@ -14,6 +14,44 @@ class CatalogCategoryRef {
   }
 }
 
+class CatalogProductVariant {
+  const CatalogProductVariant({
+    required this.id,
+    required this.name,
+    required this.price,
+    required this.isDefault,
+  });
+
+  final String id;
+  final String name;
+  final double price;
+  final bool isDefault;
+
+  factory CatalogProductVariant.fromJson(Map<String, dynamic> json) {
+    final rawPrice = json['price'] ?? json['displayPrice'];
+    return CatalogProductVariant(
+      id: json['id'].toString(),
+      name: json['name'] as String,
+      price: double.parse(rawPrice.toString()),
+      isDefault: json['isDefault'] as bool,
+    );
+  }
+
+  CatalogProductVariant copyWith({
+    String? id,
+    String? name,
+    double? price,
+    bool? isDefault,
+  }) {
+    return CatalogProductVariant(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      price: price ?? this.price,
+      isDefault: isDefault ?? this.isDefault,
+    );
+  }
+}
+
 class CatalogProduct {
   const CatalogProduct({
     required this.id,
@@ -25,6 +63,7 @@ class CatalogProduct {
     required this.sortOrder,
     this.category,
     required this.modifierGroups,
+    this.variants = const [],
   });
 
   final String id;
@@ -36,6 +75,7 @@ class CatalogProduct {
   final int sortOrder;
   final CatalogCategoryRef? category;
   final List<CatalogModifierGroup> modifierGroups;
+  final List<CatalogProductVariant> variants;
 
   factory CatalogProduct.fromJson(Map<String, dynamic> json) {
     final categoryJson = json['category'];
@@ -55,5 +95,45 @@ class CatalogProduct {
           .toList(),
     );
   }
-}
 
+  factory CatalogProduct.draft() {
+    return const CatalogProduct(
+      id: '',
+      name: '',
+      description: null,
+      price: 0,
+      imageUrl: null,
+      isAvailable: true,
+      sortOrder: 0,
+      category: null,
+      modifierGroups: [],
+      variants: [],
+    );
+  }
+
+  CatalogProduct copyWith({
+    String? id,
+    String? name,
+    String? description,
+    double? price,
+    String? imageUrl,
+    bool? isAvailable,
+    int? sortOrder,
+    CatalogCategoryRef? category,
+    List<CatalogModifierGroup>? modifierGroups,
+    List<CatalogProductVariant>? variants,
+  }) {
+    return CatalogProduct(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      price: price ?? this.price,
+      imageUrl: imageUrl ?? this.imageUrl,
+      isAvailable: isAvailable ?? this.isAvailable,
+      sortOrder: sortOrder ?? this.sortOrder,
+      category: category ?? this.category,
+      modifierGroups: modifierGroups ?? this.modifierGroups,
+      variants: variants ?? this.variants,
+    );
+  }
+}

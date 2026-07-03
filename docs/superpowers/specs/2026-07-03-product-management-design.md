@@ -153,16 +153,27 @@ Public functions: `Future<CatalogProduct?> showSaveProductDialog(BuildContext, {
 
 ### 6. Cleanup — delete orphaned stack
 
-Confirmed unreferenced from `lib/navigation/router.dart` / `catalog_route.dart` except for mock-data screens; delete:
-- `kiosk/lib/features/catalog/entities/product.dart`, `product_variant.dart`, `product_group.dart` (+ their `.mapper.dart`)
-- `kiosk/lib/features/catalog/state/products_notifier.dart`
-- `kiosk/lib/features/catalog/use_cases/save_product.dart`, `delete_product.dart`, `get_products.dart` (and any product-group/variant equivalents)
-- `kiosk/lib/features/catalog/view/products_screen.dart`, `product_dialogs.dart` (old), `product_groups_screen.dart`, `product_group_dialogs.dart`, `product_variants_screen.dart`, `product_detail_screen.dart`
-- `kiosk/lib/data/backend_api/sources/products_api.dart`, `product_variants_api.dart`, and their now-unused schemas (`create_product_dto.dart`, `update_product_dto.dart`, `product_dto.dart`, `product_details_dto.dart`, `product_query_dto.dart` — verify no other live code imports these before deleting)
-- Corresponding dead routes in `lib/navigation/catalog_route.dart` / `router.g.dart` (regenerate via `build_runner` after)
+**Verified by import-graph grep (not just router reachability)** — `data/backend_api/sources/products_api.dart` and `product_groups_api.dart` are each shared between the orphaned catalog stack and the **live** `features/sales/repositories/product_repository.dart` / `product_group_repository.dart` (used by the ordering screen). Deleting either file outright would break live ordering. So this is a mix of full deletions and partial trims:
+
+**Delete outright** (zero importers anywhere outside the orphaned set):
+- `features/catalog/entities/{product,product_variant,product_group,modifier_group}.dart` (+ each `.mapper.dart`) — `entities/modifier_group.dart` has zero importers at all, not even from the orphaned `entities/product.dart`; pure vestigial code.
+- `features/catalog/state/{products_notifier,product_groups_notifier}.dart` (+ `.mapper.dart`)
+- `features/catalog/use_cases/{save_product,delete_product,get_products,save_product_group,delete_product_group,get_product_groups}.dart`
+- `features/catalog/view/{products_screen,product_dialogs,product_groups_screen,product_group_dialogs,product_variants_screen,product_detail_screen}.dart` (`product_dialogs.dart` is replaced by a new file of the same name/purpose, not left absent)
+- `data/backend_api/sources/product_variants_api.dart` — a complete, standalone class with **zero importers anywhere** (never wired to anything, unlike `products_api.dart`)
+- `data/backend_api/schemas/{create_product_dto,update_product_dto,product_dto,product_query_dto,create_product_group_dto,update_product_group_dto}.dart` (+ each `.mapper.dart`) — become unreferenced once the methods below are trimmed and the use-cases above are deleted
+- `navigation/catalog_route.dart` — remove only the `ProductDetailRoute` and `ProductVariantsRoute` `@TypedGoRoute` entries/classes (dead, `product_detail_screen.dart`/`product_variants_screen.dart` are their only consumers)
+
+**Keep, but trim dead methods from:**
+- `data/backend_api/sources/products_api.dart` — remove `create`/`update`/`delete`/`getAll` (only used by the deleted use-cases); **keep** `getById` + `productsApiProvider` — used live by `ProductRepositoryImpl.getById` in the sales/ordering flow.
+- `data/backend_api/sources/product_groups_api.dart` — remove `create`/`update`/`delete`; **keep** `getAll` + `getProductsByGroup` + provider — both used live by `product_group_repository.dart` and `product_repository.dart`.
+- `data/backend_api/schemas/product_group_dto.dart`, `product_group_query_dto.dart`, `product_list_item_dto.dart`, `paginated_response_dto.dart` — all still used by the live `getAll`/`getProductsByGroup` methods above and/or other live API sources (`sales_orders_api.dart`, `refunds_api.dart`, `payments_api.dart`); **not deleted**.
+
+**Explicitly NOT touched** (confirmed live, different files despite similar names): `features/sales/entities/{product,product_variant,product_group,modifier_group,modifier_option}.dart`, `features/sales/repositories/{product_repository,product_group_repository}.dart`, `data/backend_api/schemas/{product_details_dto,product_variant_details_dto,product_list_item_dto}.dart`. **`ProductsRoute`** itself (path `/products`, the container for `CatalogScreen`) is **live** — navigated to from `features/menu/view/menu_grid.dart` — only its two dead child routes are removed, not the route itself.
+
 - `image_picker_form_field.dart` is **kept** — reused by the new dialog.
 
-Exact file list will be re-verified with a grep pass at implementation time before deleting anything (per repo-wide "investigate before deleting" convention).
+This list was produced by grepping actual import statements per file (not filename co-occurrence), since several files share a basename between `features/catalog/` and `features/sales/` but are unrelated. Re-verify with the same grep pass immediately before each deletion in case the branch has moved.
 
 ---
 

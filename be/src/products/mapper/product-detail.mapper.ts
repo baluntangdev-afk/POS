@@ -6,6 +6,7 @@ import { ProductDetailsDto } from '../dto/product-details/product-details.dto';
 import { ProductVariantDetailsDto } from '../dto/product-details/variant.dto';
 import { Product } from '../entities/product.entity';
 import { ProductVariant } from '../entities/product-variant.entity';
+import { ProductVariantStatus } from '../products.enum';
 
 export class ProductDetailMapper {
   static toDto(product: Product, args?: { currencySign?: string }): ProductDetailsDto {
@@ -19,7 +20,9 @@ export class ProductDetailMapper {
     dto.currencySign = args?.currencySign ?? '₱';
     dto.displayPrice = product.price ?? '0';
     dto.defaultVariantId = product.productVariants?.[0]?.id ?? null;
-    dto.variants = (product.productVariants ?? []).map((pv) => this.toVariantDto(pv, args?.currencySign ?? '₱'));
+    dto.variants = (product.productVariants ?? []).map((pv) =>
+      this.toVariantDto(pv, args?.currencySign ?? '₱'),
+    );
     dto.modifierGroups = [];
 
     const modifiers = product.productGroup?.modifiers;
@@ -38,6 +41,7 @@ export class ProductDetailMapper {
     dto.name = variant.name;
     dto.displayPrice = Number(variant.price).toFixed(2);
     dto.isDefault = variant.isDefault;
+    dto.isActive = variant.status === ProductVariantStatus.ACTIVE;
     return dto;
   }
 

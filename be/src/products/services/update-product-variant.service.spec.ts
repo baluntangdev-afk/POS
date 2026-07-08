@@ -52,4 +52,38 @@ describe('UpdateProductVariantService', () => {
     );
     expect(mockRecomputeProductPriceService.execute).toHaveBeenCalledWith(9);
   });
+
+  it('should map isActive: false to status: Disabled', async () => {
+    mockVariantsRepo.findOne.mockResolvedValue({ id: 3, product: { id: 9 } });
+    mockVariantsRepo.update.mockResolvedValue(undefined);
+
+    await service.execute(3, { isActive: false }, mockUser);
+
+    expect(mockVariantsRepo.update).toHaveBeenCalledWith(
+      3,
+      expect.objectContaining({ status: 'Disabled' }),
+    );
+  });
+
+  it('should map isActive: true to status: Active', async () => {
+    mockVariantsRepo.findOne.mockResolvedValue({ id: 3, product: { id: 9 } });
+    mockVariantsRepo.update.mockResolvedValue(undefined);
+
+    await service.execute(3, { isActive: true }, mockUser);
+
+    expect(mockVariantsRepo.update).toHaveBeenCalledWith(
+      3,
+      expect.objectContaining({ status: 'Active' }),
+    );
+  });
+
+  it('should leave status untouched when isActive is omitted', async () => {
+    mockVariantsRepo.findOne.mockResolvedValue({ id: 3, product: { id: 9 } });
+    mockVariantsRepo.update.mockResolvedValue(undefined);
+
+    await service.execute(3, { name: 'Large', price: 150, isDefault: true }, mockUser);
+
+    const [, payload] = mockVariantsRepo.update.mock.calls[0];
+    expect(payload.status).toBeUndefined();
+  });
 });

@@ -21,4 +21,10 @@ export class ProductVariantDto {
     example: false,
   })
   isDefault: boolean;
+
+  @ApiProperty({
+    description: 'Whether this variant is enabled (shown to customers)',
+    example: true,
+  })
+  isActive: boolean;
 }

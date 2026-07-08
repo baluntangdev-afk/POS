@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { UpdateProductVariantDto } from '../dto/update-product-variant.dto';
 import { User } from '../../users/entities/user.entity';
 import { ProductVariant } from '../entities/product-variant.entity';
+import { ProductVariantStatus } from '../products.enum';
 import { EntityHelper } from '../../utils/entity.helper';
 import { RecomputeProductPriceService } from './recompute-product-price.service';
 
@@ -35,6 +36,12 @@ export class UpdateProductVariantService {
       isDefault: updateProductVariantDto.isDefault,
       updatedBy: causer,
     };
+
+    if (updateProductVariantDto.isActive !== undefined) {
+      payload.status = updateProductVariantDto.isActive
+        ? ProductVariantStatus.ACTIVE
+        : ProductVariantStatus.DISABLED;
+    }
 
     await this.productVariantsRepository.update(id, EntityHelper.toPartialEntity(payload));
     await this.recomputeProductPriceService.execute(existing.product.id);

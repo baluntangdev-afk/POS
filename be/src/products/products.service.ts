@@ -13,7 +13,6 @@ import { FindProductService } from './services/find-product.service';
 import { FindProductVariantsService } from './services/find-product-variants.service';
 import { UpdateProductService } from './services/update-product.service';
 import { FindProductDetailsService } from './services/find-product-details.service';
-import { DeleteProductService } from './services/delete-product.service';
 
 @Injectable()
 export class ProductsService {
@@ -24,7 +23,6 @@ export class ProductsService {
     private readonly findProductVariantsService: FindProductVariantsService,
     private readonly updateProductService: UpdateProductService,
     private readonly findProductDetailsService: FindProductDetailsService,
-    private readonly deleteProductService: DeleteProductService,
   ) {}
 
   async create(
@@ -57,11 +55,5 @@ export class ProductsService {
   ): Promise<ProductDetailsDto> {
     await this.updateProductService.execute(id, updateProductDto, image, causer, baseUrl);
     return this.findProductDetailsService.execute(id);
-  }
-
-  async remove(id: number, causer: User) {
-    await this.findProductDetailsService.execute(id);
-    await this.deleteProductService.execute(id, causer);
-    return { message: 'Product deleted successfully' };
   }
 }

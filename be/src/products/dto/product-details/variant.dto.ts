@@ -12,4 +12,7 @@ export class ProductVariantDetailsDto {
 
   @ApiProperty({ description: 'Is the default variant', example: true })
   isDefault: boolean;
+
+  @ApiProperty({ description: 'Whether this variant is enabled', example: true })
+  isActive: boolean;
 }

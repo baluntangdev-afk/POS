@@ -4,6 +4,7 @@ import { CreateProductVariantService } from './create-product-variant.service';
 import { FindProductService } from './find-product.service';
 import { RecomputeProductPriceService } from './recompute-product-price.service';
 import { ProductVariant } from '../entities/product-variant.entity';
+import { ProductVariantStatus } from '../products.enum';
 import { Product } from '../entities/product.entity';
 import { User } from '../../users/entities/user.entity';
 
@@ -43,6 +44,7 @@ describe('CreateProductVariantService', () => {
       name: 'Large',
       price: 150,
       isDefault: true,
+      status: ProductVariantStatus.ACTIVE,
       product: mockProduct,
     };
     mockVariantsRepo.create.mockReturnValue(createdEntity);
@@ -57,6 +59,13 @@ describe('CreateProductVariantService', () => {
       expect.objectContaining({ name: 'Large', price: 150, isDefault: true, product: mockProduct }),
     );
     expect(mockRecomputeProductPriceService.execute).toHaveBeenCalledWith(9);
-    expect(result).toEqual({ id: 3, productId: 9, name: 'Large', price: 150, isDefault: true });
+    expect(result).toEqual({
+      id: 3,
+      productId: 9,
+      name: 'Large',
+      price: 150,
+      isDefault: true,
+      isActive: true,
+    });
   });
 });

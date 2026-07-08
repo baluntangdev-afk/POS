@@ -138,21 +138,14 @@ export class CatalogService {
     };
   }
 
-  async deleteCategory(id: number, causer: User): Promise<{ message: string }> {
-    const existing = await this.pgRepo.findOne({ where: { id } });
-    if (!existing) throw new NotFoundException('Category not found');
-
-    await this.pgRepo.update(id, EntityHelper.toPartialEntity({ deletedBy: causer }));
-    await this.pgRepo.softDelete(id);
-    return { message: 'Category deleted successfully' };
-  }
-
-  async getProducts(categoryId?: string, search?: string): Promise<unknown[]> {
-    const conditions: string[] = [
-      "p.status       = 'Active'",
-      'p.is_available = true',
-      'p.deleted_at   IS NULL',
-    ];
+  async getProducts(
+    categoryId?: string,
+    search?: string,
+    includeDisabled = false,
+  ): Promise<unknown[]> {
+    const conditions: string[] = includeDisabled
+      ? ['p.deleted_at   IS NULL']
+      : ["p.status       = 'Active'", 'p.is_available = true', 'p.deleted_at   IS NULL'];
     const params: unknown[] = [];
 
     if (categoryId) {

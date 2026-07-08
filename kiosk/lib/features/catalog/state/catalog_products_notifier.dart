@@ -30,18 +30,18 @@ class CatalogProductsData {
 
 class CatalogProductsNotifier extends AsyncNotifier<CatalogProductsData> {
   static final saveAction = Mutation<CatalogProduct>();
-  static final deleteAction = Mutation<bool>();
+  static final toggleAvailabilityAction = Mutation<void>();
 
   @override
   Future<CatalogProductsData> build() async {
-    final products = await ref.watch(catalogRepositoryProvider).fetchProducts();
+    final products = await ref.watch(catalogRepositoryProvider).fetchAllProductsAdmin();
     return CatalogProductsData(products: products);
   }
 
   Future<void> getResults({String? categoryId, String? search}) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      final products = await ref.read(catalogRepositoryProvider).fetchProducts(
+      final products = await ref.read(catalogRepositoryProvider).fetchAllProductsAdmin(
             categoryId: categoryId,
             search: search,
           );
@@ -78,9 +78,10 @@ class CatalogProductsNotifier extends AsyncNotifier<CatalogProductsData> {
       );
     }
 
-    final existingIds = draft.id.isEmpty
-        ? const <String>{}
-        : (await repo.fetchProductVariants(productId)).map((v) => v.id).toSet();
+    final existingVariants = draft.id.isEmpty
+        ? const <CatalogProductVariant>[]
+        : await repo.fetchProductVariants(productId);
+    final existingIds = existingVariants.map((v) => v.id).toSet();
     final incomingIds = variants.where((v) => v.id.isNotEmpty).map((v) => v.id).toSet();
 
     for (final variant in variants) {
@@ -97,12 +98,20 @@ class CatalogProductsNotifier extends AsyncNotifier<CatalogProductsData> {
           name: variant.name,
           price: variant.price,
           isDefault: variant.isDefault,
+          isActive: variant.isActive,
         );
       }
     }
 
     for (final removedId in existingIds.difference(incomingIds)) {
-      await repo.deleteVariant(removedId);
+      final removed = existingVariants.firstWhere((v) => v.id == removedId);
+      await repo.updateVariant(
+        id: removed.id,
+        name: removed.name,
+        price: removed.price,
+        isDefault: false,
+        isActive: false,
+      );
     }
 
     final current = state.value;
@@ -111,10 +120,12 @@ class CatalogProductsNotifier extends AsyncNotifier<CatalogProductsData> {
     return draft.copyWith(id: productId);
   }
 
-  Future<bool> delete(String id) async {
-    await ref.read(catalogRepositoryProvider).deleteProduct(id);
+  Future<void> toggleAvailability(CatalogProduct product) async {
+    await ref.read(catalogRepositoryProvider).updateProductAvailability(
+          product.id,
+          isAvailable: !product.isAvailable,
+        );
     final current = state.value;
     await getResults(categoryId: current?.categoryId, search: current?.search);
-    return true;
   }
 }

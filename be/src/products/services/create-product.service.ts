@@ -27,6 +27,7 @@ export class CreateProductService {
     const payload: Partial<Product> = {
       name: createProductDto.name,
       description: createProductDto.description,
+      isAvailable: createProductDto.isAvailable ?? true,
       createdBy: causer,
       updatedBy: causer,
     };

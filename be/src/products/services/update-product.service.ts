@@ -27,6 +27,7 @@ export class UpdateProductService {
     const payload: Partial<Product> = {
       name: updateProductDto.name,
       description: updateProductDto.description,
+      isAvailable: updateProductDto.isAvailable,
       updatedBy: causer,
     };
 

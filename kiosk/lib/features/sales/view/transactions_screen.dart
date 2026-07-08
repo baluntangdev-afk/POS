@@ -356,6 +356,7 @@ class _TransactionsTable extends ConsumerWidget {
                     currentSort: sort,
                   ),
                 ),
+                const Expanded(flex: 2, child: _TableHeader(title: 'Cashier')),
                 Expanded(
                   flex: 2,
                   child: _SortableHeader(
@@ -512,6 +513,8 @@ class _TableHeader extends StatelessWidget {
         letterSpacing: 0.3,
       ),
       textAlign: TextAlign.center,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 }
@@ -661,6 +664,20 @@ class _TransactionRow extends HookWidget {
                       ],
                     ),
                   ),
+                  // Cashier
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      receipt.cashier.fullName,
+                      style: TextStyle(
+                        fontSize: r.value<double>(kiosk: 13, tablet: 13, phone: 12),
+                        color: POSColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                   // Date
                   Expanded(
                     flex: 2,
@@ -671,6 +688,8 @@ class _TransactionRow extends HookWidget {
                         color: POSColors.textSecondary,
                       ),
                       textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   // Time

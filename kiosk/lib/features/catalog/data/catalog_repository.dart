@@ -72,13 +72,23 @@ class CatalogRepository {
     return CatalogCategory.fromJson(data);
   }
 
-  Future<void> deleteCategory(String id) async {
-    await _secureClient.delete<dynamic>('/api/v1/catalog/admin/categories/$id');
-  }
-
   Future<List<CatalogProduct>> fetchProducts({String? categoryId, String? search}) async {
     final response = await _openClient.get<dynamic>(
       '/api/v1/catalog/products',
+      queryParameters: {
+        if (categoryId != null) 'category_id': categoryId,
+        if (search != null) 'search': search,
+      },
+    );
+    final data = (response.data as Map<String, dynamic>)['data'] as List<dynamic>;
+    return data
+        .map((json) => CatalogProduct.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<CatalogProduct>> fetchAllProductsAdmin({String? categoryId, String? search}) async {
+    final response = await _secureClient.get<dynamic>(
+      '/api/v1/catalog/admin/products',
       queryParameters: {
         if (categoryId != null) 'category_id': categoryId,
         if (search != null) 'search': search,
@@ -137,8 +147,11 @@ class CatalogRepository {
     await _secureClient.patch<dynamic>('/api/v1/products/$id', data: formData);
   }
 
-  Future<void> deleteProduct(String id) async {
-    await _secureClient.delete<dynamic>('/api/v1/products/$id');
+  Future<void> updateProductAvailability(String id, {required bool isAvailable}) async {
+    await _secureClient.patch<dynamic>(
+      '/api/v1/products/$id',
+      data: {'isAvailable': isAvailable},
+    );
   }
 
   Future<List<CatalogProductVariant>> fetchProductVariants(String productId) async {
@@ -173,15 +186,12 @@ class CatalogRepository {
     required String name,
     required double price,
     required bool isDefault,
+    required bool isActive,
   }) async {
     await _secureClient.patch<dynamic>(
       '/api/v1/product-variants/$id',
-      data: {'name': name, 'price': price, 'isDefault': isDefault},
+      data: {'name': name, 'price': price, 'isDefault': isDefault, 'isActive': isActive},
     );
-  }
-
-  Future<void> deleteVariant(String id) async {
-    await _secureClient.delete<dynamic>('/api/v1/product-variants/$id');
   }
 
   Future<List<String>> fetchVariantNames() async {

@@ -12,7 +12,7 @@ final catalogCategoriesProvider =
 
 class CatalogCategoriesNotifier extends AsyncNotifier<List<CatalogCategory>> {
   static final saveAction = Mutation<CatalogCategory>();
-  static final deleteAction = Mutation<bool>();
+  static final toggleActiveAction = Mutation<CatalogCategory>();
 
   @override
   Future<List<CatalogCategory>> build() {
@@ -49,9 +49,15 @@ class CatalogCategoriesNotifier extends AsyncNotifier<List<CatalogCategory>> {
     return result;
   }
 
-  Future<bool> delete(String id) async {
-    await ref.read(catalogRepositoryProvider).deleteCategory(id);
+  Future<CatalogCategory> toggleActive(CatalogCategory category) async {
+    final repo = ref.read(catalogRepositoryProvider);
+    final result = await repo.updateCategory(
+      category.id,
+      category.name,
+      category.description,
+      !category.isActive,
+    );
     await refresh();
-    return true;
+    return result;
   }
 }

@@ -3,14 +3,21 @@ import {
   Get,
   Post,
   Patch,
-  Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam, ApiOkResponse, ApiCreatedResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiOkResponse,
+  ApiCreatedResponse,
+} from '@nestjs/swagger';
 import { CatalogService } from './catalog.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -29,6 +36,26 @@ export class CatalogAdminController {
   async getAllCategories(): Promise<{ success: boolean; data: unknown[] }> {
     try {
       const data = await this.catalogService.getAllCategoriesForAdmin();
+      return { success: true, data };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Internal server error';
+      throw new HttpException({ success: false, error: message }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Get('products')
+  @ApiOperation({
+    summary: 'List all products including disabled/unavailable ones (authenticated users)',
+  })
+  @ApiQuery({ name: 'category_id', required: false, description: 'Filter by category UUID' })
+  @ApiQuery({ name: 'search', required: false, description: 'Case-insensitive name search' })
+  @ApiOkResponse({ description: 'All products for the given filters, including disabled ones.' })
+  async getAllProducts(
+    @Query('category_id') categoryId?: string,
+    @Query('search') search?: string,
+  ): Promise<{ success: boolean; data: unknown[] }> {
+    try {
+      const data = await this.catalogService.getProducts(categoryId, search, true);
       return { success: true, data };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Internal server error';
@@ -66,27 +93,6 @@ export class CatalogAdminController {
     try {
       const data = await this.catalogService.updateCategory(+id, dto, causer);
       return { success: true, data };
-    } catch (error) {
-      if (error instanceof HttpException) throw error;
-      const message = error instanceof Error ? error.message : 'Internal server error';
-      const status =
-        message === 'Category not found' ? HttpStatus.NOT_FOUND : HttpStatus.INTERNAL_SERVER_ERROR;
-      throw new HttpException({ success: false, error: message }, status);
-    }
-  }
-
-  @Delete('categories/:id')
-  @UseGuards(AdminOrSupervisorGuard)
-  @ApiOperation({ summary: 'Delete a category (admin/supervisor only)' })
-  @ApiParam({ name: 'id', description: 'Category ID', example: 1 })
-  @ApiOkResponse({ description: 'Category deleted.' })
-  async deleteCategory(
-    @Param('id') id: string,
-    @CurrentUser() causer: User,
-  ): Promise<{ success: boolean; message: string }> {
-    try {
-      const result = await this.catalogService.deleteCategory(+id, causer);
-      return { success: true, message: result.message };
     } catch (error) {
       if (error instanceof HttpException) throw error;
       const message = error instanceof Error ? error.message : 'Internal server error';

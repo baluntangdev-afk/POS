@@ -511,17 +511,19 @@ class _Grid extends StatelessWidget {
 
 // ── Product card ──────────────────────────────────────────────────────────────
 
-class _ProductCard extends StatelessWidget {
+class _ProductCard extends ConsumerWidget {
   const _ProductCard({required this.product, required this.isAdminOrSupervisor});
 
   final CatalogProduct product;
   final bool isAdminOrSupervisor;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final r = context.responsive;
 
-    return Container(
+    return Opacity(
+      opacity: product.isAvailable ? 1.0 : 0.6,
+      child: Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(POSRadius.xl),
@@ -545,6 +547,29 @@ class _ProductCard extends StatelessWidget {
                       left: r.value(kiosk: 8, tablet: 7, phone: 6),
                       bottom: r.value(kiosk: 8, tablet: 7, phone: 6),
                       child: _CategoryBadge(name: product.category!.name),
+                    ),
+                  if (!product.isAvailable)
+                    Positioned(
+                      right: r.value(kiosk: 8, tablet: 7, phone: 6),
+                      top: r.value(kiosk: 8, tablet: 7, phone: 6),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: r.value(kiosk: 8, tablet: 7, phone: 6),
+                          vertical: r.value(kiosk: 3, tablet: 3, phone: 2),
+                        ),
+                        decoration: BoxDecoration(
+                          color: ColorSet.danger,
+                          borderRadius: BorderRadius.circular(POSRadius.sm),
+                        ),
+                        child: Text(
+                          'Disabled',
+                          style: TextStyle(
+                            fontSize: r.value(kiosk: 10, tablet: 9, phone: 8),
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
                     ),
                 ],
               ),
@@ -595,14 +620,21 @@ class _ProductCard extends StatelessWidget {
                           ),
                           Gap(r.value(kiosk: 6, tablet: 5, phone: 4)),
                           IconButton(
-                            onPressed: () => showDeleteProductDialog(context, product),
+                            onPressed: () => ref
+                                .read(catalogProductsProvider.notifier)
+                                .toggleAvailability(product),
                             icon: Icon(
-                              Icons.delete_outline_rounded,
+                              product.isAvailable
+                                  ? Icons.visibility_off_rounded
+                                  : Icons.visibility_rounded,
                               size: r.value(kiosk: 20, tablet: 18, phone: 16),
-                              color: ColorSet.danger,
+                              color: product.isAvailable ? ColorSet.danger : ColorSet.success,
                             ),
                             style: IconButton.styleFrom(
-                              backgroundColor: ColorSet.danger.withValues(alpha: 0.08),
+                              backgroundColor: (product.isAvailable
+                                      ? ColorSet.danger
+                                      : ColorSet.success)
+                                  .withValues(alpha: 0.08),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(POSRadius.md),
                               ),
@@ -618,6 +650,7 @@ class _ProductCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

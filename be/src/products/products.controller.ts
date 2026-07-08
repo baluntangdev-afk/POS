@@ -5,7 +5,6 @@ import {
   Body,
   Patch,
   Param,
-  Delete,
   Query,
   UseInterceptors,
   UploadedFile,
@@ -19,7 +18,6 @@ import {
   ApiBody,
   ApiCreatedResponse,
   ApiOkResponse,
-  ApiResponse,
   ApiConsumes,
 } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
@@ -124,14 +122,5 @@ export class ProductsController {
     @Req() req: Request,
   ) {
     return this.productsService.update(+id, updateProductDto, image, causer, getBaseUrl(req));
-  }
-
-  @Delete(':id')
-  @UseGuards(AdminOrSupervisorGuard)
-  @ApiOperation({ summary: 'Remove a product by ID' })
-  @ApiParam({ name: 'id', description: 'Product ID', example: 1 })
-  @ApiResponse({ status: 200, description: 'The product has been removed.' })
-  remove(@Param('id') id: string, @CurrentUser() causer: User) {
-    return this.productsService.remove(+id, causer);
   }
 }

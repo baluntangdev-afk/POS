@@ -9,12 +9,14 @@ class ProductVariantDetailsDto with ProductVariantDetailsDtoMappable {
     required this.name,
     required this.displayPrice,
     required this.isDefault,
+    this.isActive = true,
   });
 
   final int id;
   final String name;
   final String displayPrice;
   final bool isDefault;
+  final bool isActive;
 
   static const fromJson = ProductVariantDetailsDtoMapper.fromJson;
 }

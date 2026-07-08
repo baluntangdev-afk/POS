@@ -339,6 +339,7 @@ class _VariantRow {
     required this.nameController,
     required this.priceController,
     required this.isDefault,
+    required this.isActive,
   }) : nameFocusNode = FocusNode();
 
   final String id;
@@ -346,6 +347,7 @@ class _VariantRow {
   final TextEditingController priceController;
   final FocusNode nameFocusNode;
   bool isDefault;
+  bool isActive;
 
   factory _VariantRow.blank({required bool isDefault}) {
     return _VariantRow(
@@ -353,6 +355,7 @@ class _VariantRow {
       nameController: TextEditingController(),
       priceController: TextEditingController(),
       isDefault: isDefault,
+      isActive: true,
     );
   }
 
@@ -362,6 +365,7 @@ class _VariantRow {
       nameController: TextEditingController(text: variant.name),
       priceController: TextEditingController(text: variant.price.toStringAsFixed(2)),
       isDefault: variant.isDefault,
+      isActive: variant.isActive,
     );
   }
 
@@ -373,7 +377,7 @@ class _VariantRow {
 }
 
 String? _validateVariantRows(List<_VariantRow> rows) {
-  if (rows.isEmpty) return 'Add at least one variant.';
+  if (rows.where((r) => r.isActive).isEmpty) return 'Add at least one enabled variant.';
   final seenNames = <String>[];
   for (final row in rows) {
     final name = row.nameController.text.trim();
@@ -413,7 +417,7 @@ class _VariantsSection extends HookConsumerWidget {
       rows.value = [...rows.value, _VariantRow.blank(isDefault: rows.value.isEmpty)];
     }
 
-    void removeRow(_VariantRow row) {
+    void removeUnsavedRow(_VariantRow row) {
       final wasDefault = row.isDefault;
       row.dispose();
       final updated = rows.value.where((r) => r != row).toList();
@@ -421,6 +425,16 @@ class _VariantsSection extends HookConsumerWidget {
         updated.first.isDefault = true;
       }
       rows.value = updated;
+    }
+
+    void toggleActive(_VariantRow row) {
+      row.isActive = !row.isActive;
+      if (!row.isActive && row.isDefault) {
+        row.isDefault = false;
+        final firstActive = rows.value.where((r) => r.isActive && r != row);
+        if (firstActive.isNotEmpty) firstActive.first.isDefault = true;
+      }
+      rows.value = [...rows.value];
     }
 
     return Column(
@@ -443,7 +457,8 @@ class _VariantsSection extends HookConsumerWidget {
             row: row,
             existingNames: existingNames,
             onSetDefault: () => setDefault(row),
-            onRemove: rows.value.length > 1 ? () => removeRow(row) : null,
+            onRemove: row.id.isEmpty ? () => removeUnsavedRow(row) : null,
+            onToggleActive: () => toggleActive(row),
           ),
           const Gap(8),
         ],
@@ -470,17 +485,21 @@ class _VariantRowField extends StatelessWidget {
     required this.existingNames,
     required this.onSetDefault,
     required this.onRemove,
+    required this.onToggleActive,
   });
 
   final _VariantRow row;
   final List<String> existingNames;
   final VoidCallback onSetDefault;
   final VoidCallback? onRemove;
+  final VoidCallback onToggleActive;
 
   @override
   Widget build(BuildContext context) {
     final r = context.responsive;
-    return Row(
+    return Opacity(
+      opacity: row.isActive ? 1.0 : 0.5,
+      child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
@@ -534,153 +553,31 @@ class _VariantRowField extends StatelessWidget {
         ),
         const Gap(4),
         IconButton(
-          onPressed: onSetDefault,
+          onPressed: row.isActive ? onSetDefault : null,
           icon: Icon(
             row.isDefault ? Icons.star_rounded : Icons.star_border_rounded,
-            color: row.isDefault ? ColorSet.secondary : POSColors.iconSubtle,
+            color: row.isDefault
+                ? ColorSet.secondary
+                : (row.isActive ? POSColors.iconSubtle : POSColors.textDisabled),
           ),
           tooltip: 'Default variant',
         ),
-        IconButton(
-          onPressed: onRemove,
-          icon: Icon(
-            Icons.close_rounded,
-            color: onRemove != null ? ColorSet.danger : POSColors.textDisabled,
+        if (onRemove != null)
+          IconButton(
+            onPressed: onRemove,
+            icon: const Icon(Icons.close_rounded, color: ColorSet.danger),
+            tooltip: 'Remove variant',
+          )
+        else
+          IconButton(
+            onPressed: onToggleActive,
+            icon: Icon(
+              row.isActive ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+              color: row.isActive ? POSColors.iconSubtle : ColorSet.danger,
+            ),
+            tooltip: row.isActive ? 'Disable variant' : 'Enable variant',
           ),
-          tooltip: 'Remove variant',
-        ),
       ],
-    );
-  }
-}
-
-Future<bool?> showDeleteProductDialog(BuildContext context, CatalogProduct product) {
-  return showDialog<bool>(
-    context: context,
-    builder: (context) => DeleteProductDialog(product: product),
-  );
-}
-
-class DeleteProductDialog extends ConsumerWidget {
-  const DeleteProductDialog({super.key, required this.product});
-
-  final CatalogProduct product;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final deleteAction = CatalogProductsNotifier.deleteAction;
-    final deleteStatus = ref.watch(deleteAction);
-
-    ref.listen(deleteAction, (prev, next) async {
-      if (next case MutationError(:final error)) {
-        return showNetworkErrorDialog(context, error: error);
-      }
-      if (next case MutationSuccess(:final value)
-          when context.mounted && Navigator.of(context).canPop()) {
-        Navigator.of(context).pop(value);
-      }
-    });
-
-    final r = context.responsive;
-
-    return Dialog(
-      backgroundColor: ColorSet.light,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(r.value(kiosk: 24, tablet: 20, phone: 16)),
-      ),
-      child: Container(
-        width: r.value<double>(kiosk: 440, tablet: 380, phone: double.infinity),
-        padding: EdgeInsets.all(r.value(kiosk: 32.0, tablet: 24.0, phone: 20.0)),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: r.value<double>(kiosk: 80, tablet: 64, phone: 56),
-              height: r.value<double>(kiosk: 80, tablet: 64, phone: 56),
-              decoration: BoxDecoration(
-                color: ColorSet.danger.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.delete_outline_rounded,
-                color: ColorSet.danger,
-                size: r.value<double>(kiosk: 40, tablet: 32, phone: 28),
-              ),
-            ),
-            SizedBox(height: r.value<double>(kiosk: 20, tablet: 16, phone: 12)),
-            Text(
-              'Delete Product',
-              style: TextStyle(
-                fontSize: r.value(kiosk: 28.0, tablet: 22.0, phone: 18.0),
-                fontWeight: FontWeight.w700,
-                color: ColorSet.text,
-                letterSpacing: -0.3,
-              ),
-            ),
-            SizedBox(height: r.value<double>(kiosk: 10, tablet: 8, phone: 6)),
-            Text(
-              'Are you sure you want to delete "${product.name}"?\nThis action cannot be undone.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: r.value(kiosk: 16.0, tablet: 14.0, phone: 13.0),
-                color: ColorSet.text.withValues(alpha: 0.6),
-                height: 1.5,
-              ),
-            ),
-            SizedBox(height: r.value<double>(kiosk: 28, tablet: 24, phone: 20)),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(
-                        vertical: r.value(kiosk: 16.0, tablet: 14.0, phone: 12.0),
-                      ),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      side: BorderSide(color: ColorSet.text.withValues(alpha: 0.2)),
-                    ),
-                    child: Text(
-                      'Cancel',
-                      style: TextStyle(
-                        fontSize: r.value(kiosk: 16.0, tablet: 14.0, phone: 13.0),
-                        fontWeight: FontWeight.w600,
-                        color: ColorSet.text,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: r.value<double>(kiosk: 16, tablet: 12, phone: 8)),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: deleteStatus is! MutationPending
-                        ? () {
-                            deleteAction.run(ref, (txn) async {
-                              return txn.get(catalogProductsProvider.notifier).delete(product.id);
-                            }).ignore();
-                          }
-                        : null,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: ColorSet.danger,
-                      padding: EdgeInsets.symmetric(
-                        vertical: r.value(kiosk: 16.0, tablet: 14.0, phone: 12.0),
-                      ),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: Text(
-                      deleteStatus is MutationPending ? 'Deleting...' : 'Delete',
-                      style: TextStyle(
-                        fontSize: r.value(kiosk: 16.0, tablet: 14.0, phone: 13.0),
-                        fontWeight: FontWeight.w600,
-                        color: ColorSet.light,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }

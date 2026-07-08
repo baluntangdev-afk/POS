@@ -47,7 +47,12 @@ describe('CatalogService (admin methods)', () => {
       expect(mockPgRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'Beverages', status: BaseStatus.ACTIVE }),
       );
-      expect(result).toMatchObject({ id: '5', name: 'Beverages', is_active: true, product_count: 0 });
+      expect(result).toMatchObject({
+        id: '5',
+        name: 'Beverages',
+        is_active: true,
+        product_count: 0,
+      });
     });
   });
 
@@ -73,22 +78,26 @@ describe('CatalogService (admin methods)', () => {
     });
   });
 
-  describe('deleteCategory', () => {
-    it('throws NotFoundException when category does not exist', async () => {
-      mockPgRepo.findOne.mockResolvedValue(null);
+  describe('getProducts', () => {
+    it('filters to active/available products by default', async () => {
+      mockDataSource.query.mockResolvedValue([]);
 
-      await expect(service.deleteCategory(999, mockUser)).rejects.toThrow(NotFoundException);
+      await service.getProducts();
+
+      const [sql] = mockDataSource.query.mock.calls[0];
+      expect(sql).toContain("p.status       = 'Active'");
+      expect(sql).toContain('p.is_available = true');
     });
 
-    it('soft deletes an existing category', async () => {
-      mockPgRepo.findOne.mockResolvedValue({ id: 2 });
-      mockPgRepo.update.mockResolvedValue(undefined);
-      mockPgRepo.softDelete.mockResolvedValue(undefined);
+    it('drops the active/available filter when includeDisabled is true', async () => {
+      mockDataSource.query.mockResolvedValue([]);
 
-      const result = await service.deleteCategory(2, mockUser);
+      await service.getProducts(undefined, undefined, true);
 
-      expect(mockPgRepo.softDelete).toHaveBeenCalledWith(2);
-      expect(result).toEqual({ message: 'Category deleted successfully' });
+      const [sql] = mockDataSource.query.mock.calls[0];
+      expect(sql).not.toContain("p.status       = 'Active'");
+      expect(sql).not.toContain('p.is_available = true');
+      expect(sql).toContain('p.deleted_at   IS NULL');
     });
   });
 });

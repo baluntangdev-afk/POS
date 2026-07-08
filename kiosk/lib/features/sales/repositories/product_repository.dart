@@ -68,6 +68,12 @@ class ProductRepositoryImpl implements ProductRepository {
   }
 
   Product _productFromDetailsDto(ProductDetailsDto dto) {
+    final activeVariants = dto.variants.where((v) => v.isActive).toList();
+    final defaultStillActive = activeVariants.any((v) => v.id == dto.defaultVariantId);
+    final resolvedDefaultId = defaultStillActive
+        ? (dto.defaultVariantId ?? 0)
+        : (activeVariants.isNotEmpty ? activeVariants.first.id : 0);
+
     return Product(
       categoryName: dto.categoryName ?? '',
       id: dto.id,
@@ -75,8 +81,8 @@ class ProductRepositoryImpl implements ProductRepository {
       image: dto.imageUrl ?? '',
       price: Decimal.parse(dto.displayPrice),
       modifierGroups: dto.modifierGroups.map(_modifierGroupFromDto).toIList(),
-      variants: dto.variants.map(_productVariantFromDto).toIList(),
-      defaultVariantId: dto.defaultVariantId ?? 0,
+      variants: activeVariants.map(_productVariantFromDto).toIList(),
+      defaultVariantId: resolvedDefaultId,
     );
   }
 

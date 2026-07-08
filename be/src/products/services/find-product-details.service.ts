@@ -32,9 +32,16 @@ export class FindProductDetailsService {
       .leftJoin('pg.modifiers', 'mg')
       .addSelect(['mg.id', 'mg.name', 'mg.minSelection', 'mg.maxSelection'])
       .leftJoin('mg.modifierOptions', 'mo')
-      .addSelect(['mo.id', 'mo.name', 'mo.priceAddOn', 'mo.materialId', 'mo.recipeItemId', 'mo.imageUrl'])
+      .addSelect([
+        'mo.id',
+        'mo.name',
+        'mo.priceAddOn',
+        'mo.materialId',
+        'mo.recipeItemId',
+        'mo.imageUrl',
+      ])
       .leftJoin('product.productVariants', 'pv')
-      .addSelect(['pv.id', 'pv.name', 'pv.price', 'pv.isDefault'])
+      .addSelect(['pv.id', 'pv.name', 'pv.price', 'pv.isDefault', 'pv.status'])
       .where('product.id = :id', { id })
       .orderBy('pv.isDefault', 'DESC')
       .addOrderBy('pv.id', 'ASC')

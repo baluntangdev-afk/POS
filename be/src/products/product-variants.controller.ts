@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -6,7 +6,6 @@ import {
   ApiBody,
   ApiCreatedResponse,
   ApiOkResponse,
-  ApiResponse,
 } from '@nestjs/swagger';
 import { CreateProductVariantDto } from './dto/create-product.variant.dto';
 import { ProductVariantDto } from './dto/product-variant.dto';
@@ -86,14 +85,5 @@ export class ProductVariantsController {
     @CurrentUser() causer: User,
   ) {
     return this.productVariantsService.update(+id, updateProductVariantDto, causer);
-  }
-
-  @Delete(':id')
-  @UseGuards(AdminOrSupervisorGuard)
-  @ApiOperation({ summary: 'Remove a product variant by ID' })
-  @ApiParam({ name: 'id', description: 'Product Variant ID', example: 1 })
-  @ApiResponse({ status: 200, description: 'The product variant has been removed.' })
-  remove(@Param('id') id: string, @CurrentUser() causer: User) {
-    return this.productVariantsService.remove(+id, causer);
   }
 }

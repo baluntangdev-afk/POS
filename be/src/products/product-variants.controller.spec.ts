@@ -23,6 +23,7 @@ describe('ProductVariantsController', () => {
     name: 'Large',
     price: 0,
     isDefault: false,
+    isActive: true,
   };
 
   beforeEach(async () => {
@@ -37,7 +38,6 @@ describe('ProductVariantsController', () => {
             findOne: jest.fn(),
             findDistinctNames: jest.fn(),
             update: jest.fn(),
-            remove: jest.fn(),
           },
         },
       ],
@@ -103,19 +103,6 @@ describe('ProductVariantsController', () => {
 
       expect(service.update).toHaveBeenCalledWith(1, updateDto, mockUser);
       expect(result).toEqual(mockProductVariantDto);
-    });
-  });
-
-  describe('remove', () => {
-    it('should remove a product variant', async () => {
-      jest
-        .spyOn(service, 'remove')
-        .mockResolvedValue({ message: 'Product variant deleted successfully' });
-
-      const result = await controller.remove('1', mockUser);
-
-      expect(service.remove).toHaveBeenCalledWith(1, mockUser);
-      expect(result).toEqual({ message: 'Product variant deleted successfully' });
     });
   });
 });

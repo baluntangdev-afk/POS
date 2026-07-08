@@ -13,14 +13,12 @@ import { FindProductsService } from './services/find-products.service';
 import { FindProductService } from './services/find-product.service';
 import { FindProductVariantsService } from './services/find-product-variants.service';
 import { UpdateProductService } from './services/update-product.service';
-import { DeleteProductService } from './services/delete-product.service';
 import { FindProductGroupService } from './services/find-product-group.service';
 import { CreateProductVariantService } from './services/create-product-variant.service';
 import { FindProductVariantsByProductIdService } from './services/find-product-variants-by-product-id.service';
 import { FindProductVariantService } from './services/find-product-variant.service';
 import { UpdateProductVariantService } from './services/update-product-variant.service';
 import { FindProductDetailsService } from './services/find-product-details.service';
-import { DeleteProductVariantService } from './services/delete-product-variant.service';
 import { RecomputeProductPriceService } from './services/recompute-product-price.service';
 import { FindDistinctVariantNamesService } from './services/find-distinct-variant-names.service';
 
@@ -36,13 +34,11 @@ import { FindDistinctVariantNamesService } from './services/find-distinct-varian
     FindProductDetailsService,
     FindProductVariantsService,
     UpdateProductService,
-    DeleteProductService,
     FindProductGroupService,
     CreateProductVariantService,
     FindProductVariantsByProductIdService,
     FindProductVariantService,
     UpdateProductVariantService,
-    DeleteProductVariantService,
     RecomputeProductPriceService,
     FindDistinctVariantNamesService,
   ],

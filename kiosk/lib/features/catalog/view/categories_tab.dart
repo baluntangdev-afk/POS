@@ -323,20 +323,20 @@ class _CategoryCard extends StatelessWidget {
   }
 }
 
-class _ActionMenu extends StatelessWidget {
+class _ActionMenu extends ConsumerWidget {
   const _ActionMenu({required this.category});
 
   final CatalogCategory category;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return PopupMenuButton<_CategoryAction>(
       onSelected: (action) async {
         switch (action) {
           case _CategoryAction.edit:
             await showSaveCategoryDialog(context, category: category);
-          case _CategoryAction.delete:
-            await showDeleteCategoryDialog(context, category);
+          case _CategoryAction.toggleActive:
+            await ref.read(catalogCategoriesProvider.notifier).toggleActive(category);
         }
       },
       icon: Icon(
@@ -358,13 +358,22 @@ class _ActionMenu extends StatelessWidget {
             ],
           ),
         ),
-        const PopupMenuItem(
-          value: _CategoryAction.delete,
+        PopupMenuItem(
+          value: _CategoryAction.toggleActive,
           child: Row(
             children: [
-              Icon(Icons.delete_outline_rounded, size: 18, color: ColorSet.danger),
-              Gap(12),
-              Text('Delete', style: TextStyle(color: ColorSet.danger)),
+              Icon(
+                category.isActive ? Icons.block_rounded : Icons.check_circle_outline_rounded,
+                size: 18,
+                color: category.isActive ? ColorSet.danger : ColorSet.success,
+              ),
+              const Gap(12),
+              Text(
+                category.isActive ? 'Disable' : 'Enable',
+                style: TextStyle(
+                  color: category.isActive ? ColorSet.danger : ColorSet.success,
+                ),
+              ),
             ],
           ),
         ),
@@ -373,4 +382,4 @@ class _ActionMenu extends StatelessWidget {
   }
 }
 
-enum _CategoryAction { edit, delete }
+enum _CategoryAction { edit, toggleActive }

@@ -144,6 +144,17 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
         ? _storeFromPosTerminalDto(posTerminalDto)
         : const Store(legalName: '', tin: '', addressLine1: '', addressLine2: '');
 
+    final cashiersByUserId = <int, Cashier>{};
+    await Future.wait(
+      salesOrdersResponse.data.map((dto) => dto.createdBy).toSet().map((userId) async {
+        try {
+          cashiersByUserId[userId] = _cashierFromUserDto(await _usersApi.getUserById(userId));
+        } catch (_) {
+          // User may have been deleted; fall back to an unknown cashier below.
+        }
+      }),
+    );
+
     return PaginatedData(
       page: page,
       limit: limit,
@@ -153,7 +164,7 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
             return _receiptFromSalesOrderWithItemsDto(
               dto,
               store: store,
-              cashier: Cashier.unknown(),
+              cashier: cashiersByUserId[dto.createdBy] ?? Cashier.unknown(),
               payment: ZeroPayment(),
               refundedAmount: dto.totalRefundAmount > 0
                   ? Decimal.parse(dto.totalRefundAmount.toString())

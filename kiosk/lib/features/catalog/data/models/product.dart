@@ -20,12 +20,14 @@ class CatalogProductVariant {
     required this.name,
     required this.price,
     required this.isDefault,
+    this.isActive = true,
   });
 
   final String id;
   final String name;
   final double price;
   final bool isDefault;
+  final bool isActive;
 
   factory CatalogProductVariant.fromJson(Map<String, dynamic> json) {
     final rawPrice = json['price'] ?? json['displayPrice'];
@@ -34,6 +36,7 @@ class CatalogProductVariant {
       name: json['name'] as String,
       price: double.parse(rawPrice.toString()),
       isDefault: json['isDefault'] as bool,
+      isActive: json['isActive'] as bool? ?? true,
     );
   }
 
@@ -42,12 +45,14 @@ class CatalogProductVariant {
     String? name,
     double? price,
     bool? isDefault,
+    bool? isActive,
   }) {
     return CatalogProductVariant(
       id: id ?? this.id,
       name: name ?? this.name,
       price: price ?? this.price,
       isDefault: isDefault ?? this.isDefault,
+      isActive: isActive ?? this.isActive,
     );
   }
 }

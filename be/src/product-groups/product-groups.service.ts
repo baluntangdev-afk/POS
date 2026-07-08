@@ -16,6 +16,8 @@ import {
 } from '../utils/pagination';
 import { PRODUCT_LIST_SELECT } from './product-group.constant';
 import { EntityHelper } from '../utils/entity.helper';
+import { BaseStatus } from '../utils/shared-enums';
+import { ProductStatus } from '../products/products.enum';
 import { ProductGroupMapper } from './mapper/product-group.mapper';
 import { ProductListItemDto } from './dto/product-list-item.dto';
 import { File } from 'multer';
@@ -62,7 +64,7 @@ export class ProductGroupsService {
       defaultOrder: { id: 'ASC' },
     });
 
-    const where: FindOptionsWhere<ProductGroup> = {};
+    const where: FindOptionsWhere<ProductGroup> = { status: BaseStatus.ACTIVE };
 
     if (name) {
       where.name = ILike(`%${name}%`);
@@ -106,7 +108,11 @@ export class ProductGroupsService {
     const PRODUCT_FILTERABLE_FIELDS: (keyof Product)[] = ['name', 'description'];
     const filterWhere = buildFilterWhere<Product>(filter, PRODUCT_FILTERABLE_FIELDS);
 
-    const baseWhere = { productGroup: { id: groupId } };
+    const baseWhere = {
+      productGroup: { id: groupId },
+      isAvailable: true,
+      status: ProductStatus.ACTIVE,
+    };
     const where = filterWhere ? filterWhere.map((w) => ({ ...w, ...baseWhere })) : baseWhere;
 
     const [products, total] = await this.productRepository.findAndCount({

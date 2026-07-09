@@ -50,7 +50,9 @@ class ReceiptScreen extends ConsumerWidget {
     });
 
     final isLoading = ref.watch(receiptProvider(receiptId).select((it) => it.isLoading));
-    final isVoided = ref.watch(receiptProvider(receiptId).select((it) => it.value?.isVoided ?? false));
+    final isVoided = ref.watch(
+      receiptProvider(receiptId).select((it) => it.value?.isVoided ?? false),
+    );
 
     final bodyContent = Container(
       width: double.infinity,
@@ -62,134 +64,135 @@ class ReceiptScreen extends ConsumerWidget {
           end: Alignment.bottomRight,
         ),
       ),
-      child: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-            )
-          : Column(
-              children: [
-                // Header
-                Container(
-                  height: r.value<double>(kiosk: 100, tablet: 80, phone: 64),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: r.value<double>(kiosk: 48, tablet: 32, phone: 20),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(POSRadius.md),
-                        ),
-                        child: const Icon(
-                          Icons.receipt_long_rounded,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                      ),
-                      SizedBox(width: r.value<double>(kiosk: 16, tablet: 12, phone: 10)),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Order Receipt',
-                            style: TextStyle(
-                              fontSize: r.value<double>(kiosk: 22, tablet: 18, phone: 15),
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: -0.3,
-                            ),
+      child:
+          isLoading
+              ? const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+              : Column(
+                children: [
+                  // Header
+                  Container(
+                    height: r.value<double>(kiosk: 100, tablet: 80, phone: 64),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: r.value<double>(kiosk: 48, tablet: 32, phone: 20),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(POSRadius.md),
                           ),
-                          Text(
-                            'Transaction complete',
-                            style: TextStyle(
-                              fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
-                              color: Colors.white.withValues(alpha: 0.7),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                      // Status indicator
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: r.value<double>(kiosk: 14, tablet: 12, phone: 10),
-                          vertical: r.value<double>(kiosk: 8, tablet: 6, phone: 5),
-                        ),
-                        decoration: BoxDecoration(
-                          color: isVoided
-                              ? ColorSet.danger.withValues(alpha: 0.25)
-                              : Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(POSRadius.full),
-                          border: Border.all(
-                            color: isVoided
-                                ? ColorSet.danger.withValues(alpha: 0.5)
-                                : Colors.white.withValues(alpha: 0.25),
+                          child: const Icon(
+                            Icons.receipt_long_rounded,
+                            color: Colors.white,
+                            size: 24,
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                        SizedBox(width: r.value<double>(kiosk: 16, tablet: 12, phone: 10)),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: isVoided ? ColorSet.danger : ColorSet.success,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: (isVoided ? ColorSet.danger : ColorSet.success)
-                                        .withValues(alpha: 0.5),
-                                    blurRadius: 6,
-                                    spreadRadius: 1,
-                                  ),
-                                ],
+                            Text(
+                              'Order Receipt',
+                              style: TextStyle(
+                                fontSize: r.value<double>(kiosk: 22, tablet: 18, phone: 15),
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                letterSpacing: -0.3,
                               ),
                             ),
-                            const SizedBox(width: 8),
                             Text(
-                              isVoided ? 'Transaction Voided' : 'Payment Successful',
+                              'Transaction complete',
                               style: TextStyle(
                                 fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
-                                color: Colors.white,
-                                fontWeight: FontWeight.w500,
+                                color: Colors.white.withValues(alpha: 0.7),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
+                        const Spacer(),
+                        // Status indicator
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: r.value<double>(kiosk: 14, tablet: 12, phone: 10),
+                            vertical: r.value<double>(kiosk: 8, tablet: 6, phone: 5),
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                isVoided
+                                    ? ColorSet.danger.withValues(alpha: 0.25)
+                                    : Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(POSRadius.full),
+                            border: Border.all(
+                              color:
+                                  isVoided
+                                      ? ColorSet.danger.withValues(alpha: 0.5)
+                                      : Colors.white.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: isVoided ? ColorSet.danger : ColorSet.success,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: (isVoided ? ColorSet.danger : ColorSet.success)
+                                          .withValues(alpha: 0.5),
+                                      blurRadius: 6,
+                                      spreadRadius: 1,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                isVoided ? 'Transaction Voided' : 'Payment Successful',
+                                style: TextStyle(
+                                  fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                // Receipt preview
-                Expanded(child: _ReceiptPreview(receiptId: receiptId)),
-                // Action buttons
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    r.value<double>(kiosk: 48, tablet: 32, phone: 20),
-                    r.value<double>(kiosk: 20, tablet: 16, phone: 12),
-                    r.value<double>(kiosk: 48, tablet: 32, phone: 20),
-                    r.value<double>(kiosk: 32, tablet: 24, phone: 16),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(child: _PrintButton(receiptId: receiptId)),
-                      SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
-                      const Expanded(child: _NewOrderButton()),
-                      SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
-                      const Expanded(child: _CloseButton()),
-                      if (!isVoided) ... [
+                  // Receipt preview
+                  Expanded(child: _ReceiptPreview(receiptId: receiptId)),
+                  // Action buttons
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      r.value<double>(kiosk: 48, tablet: 32, phone: 20),
+                      r.value<double>(kiosk: 20, tablet: 16, phone: 12),
+                      r.value<double>(kiosk: 48, tablet: 32, phone: 20),
+                      r.value<double>(kiosk: 32, tablet: 24, phone: 16),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Expanded(child: _PrintButton(receiptId: receiptId)),
                         SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
-                        Expanded(child: _VoidButton(receiptId: receiptId)),
-                      ]
-                    ],
+                        const Expanded(child: _NewOrderButton()),
+                        SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                        const Expanded(child: _CloseButton()),
+                        if (!isVoided) ...[
+                          SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                          Expanded(child: _VoidButton(receiptId: receiptId)),
+                        ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
     );
 
     if (isAndroid) {
@@ -200,10 +203,7 @@ class ReceiptScreen extends ConsumerWidget {
       );
     }
 
-    return WindowsScaffold(
-      extendBodyBehindAppBar: true,
-      body: bodyContent,
-    );
+    return WindowsScaffold(extendBodyBehindAppBar: true, body: bodyContent);
   }
 }
 
@@ -264,10 +264,7 @@ class _ReceiptPreview extends ConsumerWidget {
                   const Gap(4),
                   const _ReceiptDivider(char: '*'),
                   Gap(r.value<double>(kiosk: 16, tablet: 12, phone: 8)),
-                  _ItemsView(
-                    items: receipt.items.toList(),
-                    refundedQuantities: refundedQties,
-                  ),
+                  _ItemsView(items: receipt.items.toList(), refundedQuantities: refundedQties),
                   Gap(r.value<double>(kiosk: 16, tablet: 12, phone: 8)),
                   const _ReceiptDivider(char: '-'),
                   Gap(r.value<double>(kiosk: 16, tablet: 12, phone: 8)),
@@ -402,11 +399,7 @@ class _StoreInfoView extends StatelessWidget {
 }
 
 class _DocumentInfoView extends StatelessWidget {
-  const _DocumentInfoView({
-    required this.docNumber,
-    required this.docDate,
-    required this.cashier,
-  });
+  const _DocumentInfoView({required this.docNumber, required this.docDate, required this.cashier});
 
   final String docNumber;
   final DateTime docDate;
@@ -429,10 +422,7 @@ class _DocumentInfoView extends StatelessWidget {
               TextSpan(
                 children: [
                   const TextSpan(text: 'SI# '),
-                  TextSpan(
-                    text: docNumber,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  TextSpan(text: docNumber, style: const TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
               style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
@@ -580,16 +570,9 @@ class _ItemsView extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  '${item.quantity} ${item.description}',
-                  style: lineStyle,
-                ),
-              ),
+              Expanded(child: Text('${item.quantity} ${item.description}', style: lineStyle)),
               Text(
-                item.isMain || item.grossAmount > Decimal.zero
-                    ? item.grossAmount.withCommas
-                    : '',
+                item.isMain || item.grossAmount > Decimal.zero ? item.grossAmount.withCommas : '',
                 style: lineStyle,
               ),
             ],
@@ -637,7 +620,7 @@ class _ItemsView extends StatelessWidget {
 
 class _CategoryGroup {
   const _CategoryGroup({required String? category, required this.items})
-      : category = category ?? 'Other';
+    : category = category ?? 'Other';
 
   final String category;
   final List<ReceiptItem> items;
@@ -666,36 +649,60 @@ class _SummaryView extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text('VATable Sales', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
+            Text(
+              'VATable Sales',
+              style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+            ),
             const Spacer(),
-            Text(vatableSales.withCommas, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
+            Text(
+              vatableSales.withCommas,
+              style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+            ),
           ],
         ),
         const Gap(4),
         if (vatExemptSales > Decimal.zero) ...[
           Row(
             children: [
-              Text('VAT-Exempt Sales', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
+              Text(
+                'VAT-Exempt Sales',
+                style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+              ),
               const Spacer(),
-              Text(vatExemptSales.withCommas, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
+              Text(
+                vatExemptSales.withCommas,
+                style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+              ),
             ],
           ),
           const Gap(4),
         ],
         Row(
           children: [
-            Text('VAT', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
+            Text(
+              'VAT',
+              style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+            ),
             const Spacer(),
-            Text(vatAmount.withCommas, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
+            Text(
+              vatAmount.withCommas,
+              style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+            ),
           ],
         ),
         const Gap(4),
         if (discountAmount > Decimal.zero) ...[
           Row(
             children: [
-              Text('Discount', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
+              Text(
+                'Discount',
+                style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+              ),
               const Spacer(),
-              Text((-discountAmount).withCommas, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
+              Text(
+                (-discountAmount).withCommas,
+                style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+              ),
             ],
           ),
           const Gap(4),
@@ -735,9 +742,7 @@ class _RefundsView extends StatelessWidget {
     final r = context.responsive;
     final totalRefund = refunds.fold(Decimal.zero, (sum, refund) {
       return sum +
-          refund.items
-              .where((ri) => ri.isMain)
-              .fold(Decimal.zero, (s, ri) => s + ri.refundAmount);
+          refund.items.where((ri) => ri.isMain).fold(Decimal.zero, (s, ri) => s + ri.refundAmount);
     });
     final netTotal = originalTotal - totalRefund;
 
@@ -869,32 +874,59 @@ class _PaymentView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Cash', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
-              Text(cashReceived.withCommas, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
+              Text(
+                'Cash',
+                style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+              ),
+              Text(
+                cashReceived.withCommas,
+                style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+              ),
             ],
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Change', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
-              Text(change.withCommas, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
+              Text(
+                'Change',
+                style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+              ),
+              Text(
+                change.withCommas,
+                style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+              ),
             ],
           ),
         ],
       );
-    } else if (payment case CardPayment(:final referenceNumber, :final cardType, :final cardNumber)) {
+    } else if (payment case CardPayment(
+      :final referenceNumber,
+      :final cardType,
+      :final cardNumber,
+    )) {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('$cardType ($cardNumber)', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
-              Text(payment.paidAmount.withCommas, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
+              Text(
+                '$cardType ($cardNumber)',
+                style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+              ),
+              Text(
+                payment.paidAmount.withCommas,
+                style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+              ),
             ],
           ),
           const Gap(4),
-          Center(child: Text('Ref: $referenceNumber', style: TextStyle(fontSize: r.value<double>(kiosk: 12, tablet: 12, phone: 10)))),
+          Center(
+            child: Text(
+              'Ref: $referenceNumber',
+              style: TextStyle(fontSize: r.value<double>(kiosk: 12, tablet: 12, phone: 10)),
+            ),
+          ),
         ],
       );
     } else if (payment case QRPayment(:final referenceNumber, :final walletProvider)) {
@@ -904,18 +936,32 @@ class _PaymentView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(walletProvider, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
-              Text(payment.paidAmount.withCommas, style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
+              Text(
+                walletProvider,
+                style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+              ),
+              Text(
+                payment.paidAmount.withCommas,
+                style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+              ),
             ],
           ),
           const Gap(4),
-          Center(child: Text('Ref: $referenceNumber', style: TextStyle(fontSize: r.value<double>(kiosk: 12, tablet: 12, phone: 10)))),
+          Center(
+            child: Text(
+              'Ref: $referenceNumber',
+              style: TextStyle(fontSize: r.value<double>(kiosk: 12, tablet: 12, phone: 10)),
+            ),
+          ),
         ],
       );
     } else if (payment is ZeroPayment) {
       return Align(
         alignment: Alignment.centerLeft,
-        child: Text('ZERO PAYMENT', style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12))),
+        child: Text(
+          'ZERO PAYMENT',
+          style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+        ),
       );
     }
     return const SizedBox.shrink();
@@ -924,7 +970,7 @@ class _PaymentView extends StatelessWidget {
 
 class _ReceiptDivider extends StatelessWidget {
   const _ReceiptDivider({required this.char})
-      : assert(char.length == 1, 'char should be 1 character long.');
+    : assert(char.length == 1, 'char should be 1 character long.');
 
   final String char;
 
@@ -974,15 +1020,19 @@ class _PrintButton extends ConsumerWidget {
 
     final isPending = printStatus is MutationPending;
     final isSuccess = printStatus is MutationSuccess;
-    final label = isPending ? 'Printing...' : isSuccess ? 'Reprint' : 'Print Receipt';
+    final label =
+        isPending
+            ? 'Printing...'
+            : isSuccess
+            ? 'Reprint'
+            : 'Print Receipt';
     final height = r.value<double>(kiosk: 64, tablet: 56, phone: 48);
     const radius = POSRadius.full;
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: isPending
-            ? Colors.white.withValues(alpha: 0.25)
-            : Colors.white.withValues(alpha: 0.15),
+        color:
+            isPending ? Colors.white.withValues(alpha: 0.25) : Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.5),
       ),
@@ -991,13 +1041,14 @@ class _PrintButton extends ConsumerWidget {
         borderRadius: BorderRadius.circular(radius),
         child: InkWell(
           borderRadius: BorderRadius.circular(radius),
-          onTap: isPending
-              ? null
-              : () {
-                  printAction.run(ref, (txn) {
-                    return txn.get(receiptProvider(receiptId).notifier).print();
-                  }).ignore();
-                },
+          onTap:
+              isPending
+                  ? null
+                  : () {
+                    printAction.run(ref, (txn) {
+                      return txn.get(receiptProvider(receiptId).notifier).print();
+                    }).ignore();
+                  },
           child: SizedBox(
             height: height,
             child: Row(
@@ -1007,10 +1058,7 @@ class _PrintButton extends ConsumerWidget {
                   const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
                 else
                   Icon(

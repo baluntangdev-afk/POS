@@ -36,7 +36,7 @@ export class SalesOrdersService {
     query: SalesOrderQueryDto,
     currentUser: User,
   ): Promise<PaginatedResult<SalesOrderWithItemsResponseDto>> {
-    const { page, limit, sort, soNumber, soDate, soType, createdBy, status } = query;
+    const { page, limit, sort, search, soDate, soType, createdBy, status } = query;
     const skip = (page - 1) * limit;
 
     const SALES_ORDER_SORTABLE_FIELDS: (keyof SalesOrder)[] = [
@@ -53,20 +53,18 @@ export class SalesOrdersService {
       defaultOrder: { id: 'DESC' },
     });
 
-    const where: FindOptionsWhere<SalesOrder> = {};
+    const baseWhere: FindOptionsWhere<SalesOrder> = {};
 
-    if (soNumber) {
-      where.soNumber = ILike(`%${soNumber}%`);
-    }
-
-    if (soDate) {
+    // A search term takes precedence over the date filter so a stale date
+    // pill doesn't hide results while the user is actively searching.
+    if (soDate && !search) {
       const startDate = dayjs(soDate).startOf('day').toDate();
       const endDate = dayjs(soDate).endOf('day').toDate();
-      where.soDate = Between(startDate, endDate);
+      baseWhere.soDate = Between(startDate, endDate);
     }
 
     if (soType) {
-      where.soType = soType;
+      baseWhere.soType = soType;
     }
 
     const canSeeAll =
@@ -75,13 +73,25 @@ export class SalesOrdersService {
       currentUser.role === UserRole.SUPERVISOR;
 
     if (!canSeeAll) {
-      where.createdBy = { id: currentUser.id };
+      baseWhere.createdBy = { id: currentUser.id };
     } else if (createdBy) {
-      where.createdBy = { id: createdBy };
+      baseWhere.createdBy = { id: createdBy };
     }
 
     if (status) {
-      where.status = status;
+      baseWhere.status = status;
+    }
+
+    // Search matches either the sales order number or the cashier's first/last
+    // name; each branch keeps the same AND-ed scoping conditions from baseWhere.
+    let where: FindOptionsWhere<SalesOrder> | FindOptionsWhere<SalesOrder>[] = baseWhere;
+    if (search) {
+      const createdByWhere = (baseWhere.createdBy as FindOptionsWhere<User>) ?? {};
+      where = [
+        { ...baseWhere, soNumber: ILike(`%${search}%`) },
+        { ...baseWhere, createdBy: { ...createdByWhere, firstName: ILike(`%${search}%`) } },
+        { ...baseWhere, createdBy: { ...createdByWhere, lastName: ILike(`%${search}%`) } },
+      ];
     }
 
     const [salesOrders, total] = await this.salesOrderRepository.findAndCount({

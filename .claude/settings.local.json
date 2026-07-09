@@ -324,7 +324,9 @@
       "PowerShell(Start-Process powershell -Verb RunAs -ArgumentList '-NoProfile','-Command','net stop POSBackendService' -Wait)",
       "Bash(powershell -NoProfile -Command \"Get-Content 'C:\\\\Users\\\\Jufiel\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Jufiel-Documents-POS\\\\a49cfe9f-adc0-4e3f-bb95-53c64a9e6775\\\\tasks\\\\bserpvgyz.output' -ErrorAction SilentlyContinue\")",
       "PowerShell(Start-Process powershell -Verb RunAs -Wait -ArgumentList '-NoProfile','-Command','Stop-Service -Name POSBackendService -Force')",
-      "Bash(curl -s http://localhost:3000/api/v1/health/live)"
+      "Bash(curl -s http://localhost:3000/api/v1/health/live)",
+      "PowerShell(net stop *)",
+      "PowerShell(Start-Process powershell -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\Jufiel\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Jufiel-Documents-POS\\\\52bf5b80-5833-4168-9f27-181fbf2b2a93\\\\scratchpad\\\\restart-backend.ps1\"' -Wait)"
     ]
   }
 }

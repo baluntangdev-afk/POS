@@ -13,14 +13,14 @@ class SalesOrderQueryDto extends PaginatedQueryDto with SalesOrderQueryDtoMappab
     super.page,
     super.limit,
     super.sort,
-    this.soNumber,
+    this.search,
     this.soDate,
     this.soType,
     this.createdBy,
     this.status,
   });
 
-  final String? soNumber;
+  final String? search;
   final DateTime? soDate;
   final SalesOrderType? soType;
   final int? createdBy;

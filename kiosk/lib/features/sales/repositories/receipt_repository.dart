@@ -40,7 +40,7 @@ abstract class ReceiptRepository {
   Future<PaginatedData<Receipt>> getAll({
     required int page,
     required int limit,
-    String? soNumber,
+    String? search,
     DateTime? soDate,
     String? sort,
   });
@@ -118,14 +118,14 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
   Future<PaginatedData<Receipt>> getAll({
     required int page,
     required int limit,
-    String? soNumber,
+    String? search,
     DateTime? soDate,
     String? sort,
   }) async {
     final salesOrdersQuery = SalesOrderQueryDto(
       page: page,
       limit: limit,
-      soNumber: soNumber,
+      search: search,
       soDate: soDate,
       sort: sort,
     );

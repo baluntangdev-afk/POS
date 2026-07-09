@@ -308,6 +308,7 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
       isMain: !dto.addOn,
       saleType: _saleTypeFromString(dto.saleType),
       note: dto.note,
+      category: dto.category,
     );
   }
 

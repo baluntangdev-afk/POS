@@ -51,6 +51,7 @@ export class SalesOrderWithItemsMapper {
       recipeItemId: item.recipeItem?.id ?? null,
       saleType: item.saleType ?? null,
       note: item.note ?? null,
+      category: item.productVariant?.product?.productGroup?.name ?? null,
     };
   }
 }

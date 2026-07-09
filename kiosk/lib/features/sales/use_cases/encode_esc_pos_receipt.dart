@@ -11,6 +11,7 @@ import '../../../gen/assets.gen.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../entities/payment.dart';
 import '../entities/receipt.dart';
+import '../entities/receipt_item.dart';
 
 final encodeEscPosReceiptProvider = Provider<EncodeEscPosReceipt>((ref) {
   return EncodeEscPosReceipt();
@@ -31,7 +32,6 @@ class EncodeEscPosReceipt {
         :cashier,
         :docNumber,
         :docDate,
-        :type,
         :items,
         :payment,
         :vatableSales,
@@ -39,7 +39,12 @@ class EncodeEscPosReceipt {
         :vatAmount,
         :discountAmount,
         :totalAmount,
+        :refunds,
+        :isVoided,
+        :voidReason,
       ) = receipt;
+
+      final refundedQuantities = receipt.refundedQuantities;
 
       // Logo
       final image = img.decodeImage(logoBytes);
@@ -90,33 +95,13 @@ class EncodeEscPosReceipt {
       ]);
 
       // Cashier
-      bytes += generator.text('Cashier: ${cashier.id} ${cashier.fullName}');
+      bytes += generator.text('Cashier: ${cashier.id} - ${cashier.fullName}');
 
       // Separator (*)
       bytes += generator.text(
         '************************************************',
         styles: const PosStyles(align: PosAlign.center),
       );
-      bytes += generator.feed(1);
-
-      // Order Type
-      bytes += generator.row([
-        PosColumn(
-          text: '---------------',
-          width: 4,
-          styles: const PosStyles(align: PosAlign.center),
-        ),
-        PosColumn(
-          text: type.displayName.toUpperCase(),
-          width: 4,
-          styles: const PosStyles(align: PosAlign.center, bold: true),
-        ),
-        PosColumn(
-          text: '---------------',
-          width: 4,
-          styles: const PosStyles(align: PosAlign.center),
-        ),
-      ]);
       bytes += generator.feed(1);
 
       // Line Items Header
@@ -130,19 +115,37 @@ class EncodeEscPosReceipt {
       ]);
       bytes += generator.feed(1);
 
-      // Line Items Body
-      for (final item in items) {
-        bytes += generator.row([
-          PosColumn(
-            text: '${item.isMain ? '' : '   '}${item.quantity} ${item.description}',
-            width: 8,
-          ),
-          PosColumn(
-            text: item.isMain || item.grossAmount > Decimal.zero ? item.grossAmount.withCommas : '',
-            width: 4,
-            styles: const PosStyles(align: PosAlign.right),
-          ),
-        ]);
+      // Line Items Body, grouped by category (mirrors receipt_screen.dart's _ItemsView)
+      for (final group in _groupByCategory(items)) {
+        bytes += generator.text(group.category.toUpperCase(), styles: const PosStyles(bold: true));
+
+        for (final item in group.items) {
+          final refundedQty = item.isMain ? (refundedQuantities[item.id] ?? 0) : 0;
+          final isFullyRefunded = item.isMain && refundedQty >= item.quantity;
+          final isPartiallyRefunded = item.isMain && refundedQty > 0 && !isFullyRefunded;
+
+          bytes += generator.row([
+            PosColumn(
+              text: '${item.isMain ? '' : '   '}${item.quantity} ${item.description}',
+              width: 8,
+              styles: PosStyles(reverse: isFullyRefunded),
+            ),
+            PosColumn(
+              text: item.isMain || item.grossAmount > Decimal.zero ? item.grossAmount.withCommas : '',
+              width: 4,
+              styles: PosStyles(align: PosAlign.right, reverse: isFullyRefunded),
+            ),
+          ]);
+
+          if (item.isMain && (item.saleType != null || item.note != null)) {
+            final tag = item.saleType != null ? '[${item.saleType!.displayName}] ' : '';
+            bytes += generator.text('  $tag${item.note ?? ''}'.trimRight());
+          }
+
+          if (isPartiallyRefunded) {
+            bytes += generator.text('  (Refunded: $refundedQty of ${item.quantity})');
+          }
+        }
       }
 
       // Separator (-)
@@ -213,6 +216,85 @@ class EncodeEscPosReceipt {
         ),
       ]);
       bytes += generator.feed(1);
+
+      // Refunds
+      if (refunds.isNotEmpty) {
+        bytes += generator.text(
+          '------------------------------------------------',
+          styles: const PosStyles(align: PosAlign.center),
+        );
+        bytes += generator.feed(1);
+
+        bytes += generator.row([
+          PosColumn(text: 'REFUNDS', width: 6, styles: const PosStyles(bold: true)),
+          PosColumn(
+            text: 'Amount',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.right, bold: true),
+          ),
+        ]);
+
+        var totalRefund = Decimal.zero;
+        for (final refund in refunds) {
+          bytes += generator.text('Reason: ${refund.reason}');
+          for (final ri in refund.items.where((ri) => ri.isMain)) {
+            totalRefund += ri.refundAmount;
+            bytes += generator.row([
+              PosColumn(text: '${ri.quantity} ${ri.description}', width: 6),
+              PosColumn(
+                text: '-${ri.refundAmount.withCommas}',
+                width: 6,
+                styles: const PosStyles(align: PosAlign.right),
+              ),
+            ]);
+          }
+        }
+
+        bytes += generator.row([
+          PosColumn(text: 'Total Refund', width: 6, styles: const PosStyles(bold: true)),
+          PosColumn(
+            text: '-${totalRefund.withCommas}',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.right, bold: true),
+          ),
+        ]);
+        bytes += generator.feed(1);
+
+        bytes += generator.text(
+          '------------------------------------------------',
+          styles: const PosStyles(align: PosAlign.center),
+        );
+
+        bytes += generator.row([
+          PosColumn(
+            text: 'Net Total',
+            width: 6,
+            styles: const PosStyles(height: PosTextSize.size2, width: PosTextSize.size2, bold: true),
+          ),
+          PosColumn(
+            text: receipt.netTotalAmount.withCommas,
+            width: 6,
+            styles: const PosStyles(
+              align: PosAlign.right,
+              height: PosTextSize.size2,
+              width: PosTextSize.size2,
+              bold: true,
+            ),
+          ),
+        ]);
+        bytes += generator.feed(1);
+      }
+
+      // Void reason
+      if (isVoided && voidReason != null) {
+        bytes += generator.text(
+          '------------------------------------------------',
+          styles: const PosStyles(align: PosAlign.center),
+        );
+        bytes += generator.text('VOID REASON:', styles: const PosStyles(bold: true));
+        bytes += generator.text(voidReason, styles: const PosStyles(align: PosAlign.center));
+        bytes += generator.feed(1);
+      }
 
       // Payment Method & Received Amount
       switch (payment) {
@@ -286,4 +368,41 @@ class EncodeEscPosReceipt {
       return Uint8List.fromList(bytes);
     });
   }
+}
+
+// Groups items by their main item's category, preserving first-appearance
+// order. Add-on/modifier lines stay attached to the main item that precedes
+// them regardless of their own category. Uncategorized items are collected
+// into an "Other" group placed last. Mirrors receipt_screen.dart's
+// _ItemsView._groupByCategory so the printed receipt matches the on-screen
+// preview.
+class _CategoryGroup {
+  const _CategoryGroup({required String? category, required this.items})
+      : category = category ?? 'Other';
+
+  final String category;
+  final List<ReceiptItem> items;
+}
+
+List<_CategoryGroup> _groupByCategory(Iterable<ReceiptItem> items) {
+  final clusters = <List<ReceiptItem>>[];
+  for (final item in items) {
+    if (item.isMain || clusters.isEmpty) {
+      clusters.add([item]);
+    } else {
+      clusters.last.add(item);
+    }
+  }
+
+  final itemsByCategory = <String?, List<ReceiptItem>>{};
+  for (final cluster in clusters) {
+    itemsByCategory.putIfAbsent(cluster.first.category, () => []).addAll(cluster);
+  }
+
+  final otherItems = itemsByCategory.remove(null);
+  return [
+    for (final entry in itemsByCategory.entries)
+      _CategoryGroup(category: entry.key, items: entry.value),
+    if (otherItems != null) _CategoryGroup(category: 'Other', items: otherItems),
+  ];
 }

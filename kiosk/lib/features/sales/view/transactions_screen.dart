@@ -1218,7 +1218,9 @@ class _ExpandedItems extends ConsumerWidget {
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          '${item.quantity} ${item.description}',
+                                          item.category != null
+                                              ? '${item.quantity} ${item.description} (${item.category})'
+                                              : '${item.quantity} ${item.description}',
                                           style: TextStyle(
                                             fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
                                             color: textColor,

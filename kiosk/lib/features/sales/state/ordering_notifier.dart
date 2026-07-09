@@ -157,6 +157,22 @@ class OrderingNotifier extends AsyncNotifier<OrderingData> {
     state = AsyncData(state.requireValue.copyWith(products: products));
   }
 
+  /// Re-fetches the list of categories in the background.
+  ///
+  /// Like [refreshProducts], this doesn't touch loading state or the
+  /// in-progress sale — it's meant to be called silently (e.g. whenever the
+  /// ordering screen becomes visible again) so categories added/edited
+  /// elsewhere (Catalog Management) show up without discarding the current
+  /// cart.
+  Future<void> refreshProductGroups() async {
+    if (!state.hasValue) return;
+
+    final productGroups = await ref.read(productGroupRepositoryProvider).getAll();
+
+    if (!state.hasValue) return;
+    state = AsyncData(state.requireValue.copyWith(productGroups: productGroups));
+  }
+
   void addLineItem(LineItem lineItem) {
     if (!state.hasValue) return;
 

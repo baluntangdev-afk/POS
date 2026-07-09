@@ -485,6 +485,33 @@ class _ItemsView extends StatelessWidget {
   final List<ReceiptItem> items;
   final Map<String, int> refundedQuantities;
 
+  // Groups items by their main item's category, preserving first-appearance
+  // order. Add-on/modifier lines stay attached to the main item that
+  // precedes them regardless of their own category. Uncategorized items are
+  // collected into an "Other" group placed last.
+  List<_CategoryGroup> _groupByCategory() {
+    final clusters = <List<ReceiptItem>>[];
+    for (final item in items) {
+      if (item.isMain || clusters.isEmpty) {
+        clusters.add([item]);
+      } else {
+        clusters.last.add(item);
+      }
+    }
+
+    final itemsByCategory = <String?, List<ReceiptItem>>{};
+    for (final cluster in clusters) {
+      itemsByCategory.putIfAbsent(cluster.first.category, () => []).addAll(cluster);
+    }
+
+    final otherItems = itemsByCategory.remove(null);
+    return [
+      for (final entry in itemsByCategory.entries)
+        _CategoryGroup(category: entry.key, items: entry.value),
+      if (otherItems != null) _CategoryGroup(category: 'Other', items: otherItems),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final r = context.responsive;
@@ -510,84 +537,110 @@ class _ItemsView extends StatelessWidget {
             ),
           ],
         ),
-        Gap(r.value<double>(kiosk: 16, tablet: 12, phone: 8)),
-        ...items.map(
-          (item) {
-            final refundedQty = item.isMain ? (refundedQuantities[item.id] ?? 0) : 0;
-            final isFullyRefunded = item.isMain && refundedQty >= item.quantity;
-            final isPartiallyRefunded = item.isMain && refundedQty > 0 && !isFullyRefunded;
-            final lineStyle = TextStyle(
-              fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12),
-              decoration: isFullyRefunded ? TextDecoration.lineThrough : null,
-              color: isFullyRefunded ? POSColors.textTertiary : null,
-            );
+        Gap(r.value<double>(kiosk: 10, tablet: 8, phone: 5)),
+        for (final group in _groupByCategory()) ...[
+          Padding(
+            padding: EdgeInsets.only(top: r.value<double>(kiosk: 6, tablet: 6, phone: 4)),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                group.category.toUpperCase(),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: r.value<double>(kiosk: 12, tablet: 12, phone: 10),
+                  color: POSColors.textTertiary,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+          ),
+          ...group.items.map((item) => _buildItemRow(context, item)),
+        ],
+      ],
+    );
+  }
 
-            return Padding(
-              padding: EdgeInsets.only(left: item.isMain ? 0 : 8, bottom: 2),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildItemRow(BuildContext context, ReceiptItem item) {
+    final r = context.responsive;
+    final refundedQty = item.isMain ? (refundedQuantities[item.id] ?? 0) : 0;
+    final isFullyRefunded = item.isMain && refundedQty >= item.quantity;
+    final isPartiallyRefunded = item.isMain && refundedQty > 0 && !isFullyRefunded;
+    final lineStyle = TextStyle(
+      fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12),
+      decoration: isFullyRefunded ? TextDecoration.lineThrough : null,
+      color: isFullyRefunded ? POSColors.textTertiary : null,
+    );
+
+    return Padding(
+      padding: EdgeInsets.only(left: item.isMain ? 0 : 8, bottom: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  '${item.quantity} ${item.description}',
+                  style: lineStyle,
+                ),
+              ),
+              Text(
+                item.isMain || item.grossAmount > Decimal.zero
+                    ? item.grossAmount.withCommas
+                    : '',
+                style: lineStyle,
+              ),
+            ],
+          ),
+          if (item.isMain && (item.saleType != null || item.note != null))
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${item.quantity} ${item.description}',
-                          style: lineStyle,
-                        ),
-                      ),
-                      Text(
-                        item.isMain || item.grossAmount > Decimal.zero
-                            ? item.grossAmount.withCommas
-                            : '',
-                        style: lineStyle,
-                      ),
-                    ],
-                  ),
-                  if (item.isMain && (item.saleType != null || item.note != null))
-                    Padding(
-                      padding: const EdgeInsets.only(top: 1),
-                      child: Row(
-                        children: [
-                          if (item.saleType != null)
-                            Text(
-                              '[${item.saleType!.displayName}] ',
-                              style: TextStyle(
-                                fontSize: r.value<double>(kiosk: 11, tablet: 11, phone: 10),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          if (item.note != null)
-                            Flexible(
-                              child: Text(
-                                item.note!,
-                                style: TextStyle(
-                                  fontSize: r.value<double>(kiosk: 11, tablet: 11, phone: 10),
-                                  fontStyle: FontStyle.italic,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  if (isPartiallyRefunded)
+                  if (item.saleType != null)
                     Text(
-                      '  (Refunded: $refundedQty of ${item.quantity})',
+                      '[${item.saleType!.displayName}] ',
                       style: TextStyle(
                         fontSize: r.value<double>(kiosk: 11, tablet: 11, phone: 10),
-                        color: ColorSet.danger,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  if (item.note != null)
+                    Flexible(
+                      child: Text(
+                        item.note!,
+                        style: TextStyle(
+                          fontSize: r.value<double>(kiosk: 11, tablet: 11, phone: 10),
+                          fontStyle: FontStyle.italic,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                 ],
               ),
-            );
-          },
-        ),
-      ],
+            ),
+          if (isPartiallyRefunded)
+            Text(
+              '  (Refunded: $refundedQty of ${item.quantity})',
+              style: TextStyle(
+                fontSize: r.value<double>(kiosk: 11, tablet: 11, phone: 10),
+                color: ColorSet.danger,
+              ),
+            ),
+        ],
+      ),
     );
   }
+}
+
+class _CategoryGroup {
+  const _CategoryGroup({required String? category, required this.items})
+      : category = category ?? 'Other';
+
+  final String category;
+  final List<ReceiptItem> items;
 }
 
 class _SummaryView extends StatelessWidget {

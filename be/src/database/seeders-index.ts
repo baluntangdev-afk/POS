@@ -40,5 +40,5 @@ export const seeders: Array<new () => Seeder> = [
   RecipeItemsSeeder,
   MenuItemsSeeder,
   InventoryStocksSeeder,
-  MenuItemModifiersSeeder,
+  MenuItemModifiersSeeder
 ];

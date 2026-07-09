@@ -56,13 +56,16 @@ class _AdaptiveOrderingLayout extends HookConsumerWidget {
       ),
     );
 
-    // Products are fetched once in OrderingNotifier.build() and cached for the
-    // life of the sale (so the cart survives navigating away and back). Silently
-    // re-fetch the current group's products each time this screen is shown, so
-    // products added/edited/deleted in Catalog Management show up without
-    // requiring an app restart.
+    // Products and categories are fetched once in OrderingNotifier.build() and
+    // cached for the life of the sale (so the cart survives navigating away
+    // and back). Silently re-fetch both each time this screen is shown, so
+    // categories/products added/edited/deleted in Catalog Management show up
+    // without requiring an app restart.
     useEffect(() {
-      Future.microtask(() => ref.read(orderingProvider.notifier).refreshProducts());
+      Future.microtask(() {
+        ref.read(orderingProvider.notifier).refreshProductGroups();
+        ref.read(orderingProvider.notifier).refreshProducts();
+      });
       return null;
     }, const []);
 

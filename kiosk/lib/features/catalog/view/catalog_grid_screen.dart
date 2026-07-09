@@ -31,7 +31,10 @@ class CatalogGridScreen extends HookConsumerWidget {
     final categoryId = useState<String?>(null);
     final searchQuery = useState<String?>(null);
     final isAdminOrSupervisor =
-        ref.watch(loginStateProvider).value?.isAdminOrSupervisor ?? false;
+        ref
+            .watch(loginStateProvider)
+            .value
+            ?.isAdminOrSupervisor ?? false;
 
     ref.listen(catalogProductsProvider, (_, next) {
       if (next case AsyncError(:final error)) {
@@ -49,13 +52,15 @@ class CatalogGridScreen extends HookConsumerWidget {
       Future.microtask(() {
         ref
             .read(catalogProductsProvider.notifier)
-            .getResults(categoryId: categoryId.value, search: searchQuery.value);
+            .getResults(
+            categoryId: categoryId.value, search: searchQuery.value);
       });
       return null;
     }, [categoryId.value, searchQuery.value]);
 
     return Padding(
-      padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+      padding: EdgeInsets.all(
+          context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
       child: Column(
         spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
         children: [
@@ -65,7 +70,8 @@ class CatalogGridScreen extends HookConsumerWidget {
             isAdminOrSupervisor: isAdminOrSupervisor,
           ),
           _CategoryChips(selectedCategoryId: categoryId),
-          Expanded(child: _ProductsGrid(isAdminOrSupervisor: isAdminOrSupervisor)),
+          Expanded(
+              child: _ProductsGrid(isAdminOrSupervisor: isAdminOrSupervisor)),
         ],
       ),
     );
@@ -90,7 +96,8 @@ class _FilterBar extends StatelessWidget {
     final isPhone = context.breakpoint.isPhone;
 
     return Container(
-      padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 10)),
+      padding: EdgeInsets.all(
+          context.responsive.value(kiosk: 16, tablet: 12, phone: 10)),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(POSRadius.xl),
@@ -107,15 +114,19 @@ class _FilterBar extends StatelessWidget {
                   hint: 'Search products...',
                   prefixIcon: Icon(
                     Icons.search_rounded,
-                    size: context.responsive.value(kiosk: 20, tablet: 18, phone: 16),
+                    size: context.responsive.value(
+                        kiosk: 20, tablet: 18, phone: 16),
                     color: POSColors.iconSubtle,
                   ),
                   style: TextStyle(
-                    fontSize: context.responsive.value(kiosk: 14, tablet: 14, phone: 12),
+                    fontSize: context.responsive.value(
+                        kiosk: 14, tablet: 14, phone: 12),
                   ),
                   onChanged: (value) {
                     debounce(() {
-                      searchQuery.value = (value?.isEmpty ?? true) ? null : value;
+                      searchQuery.value = (value?.isEmpty ?? true)
+                          ? null
+                          : value;
                     });
                   },
                 );
@@ -186,10 +197,13 @@ class _CategoryChips extends HookConsumerWidget {
       data: (categories) {
         if (categories.isEmpty) return const SizedBox.shrink();
 
-        final bgColor = Theme.of(context).scaffoldBackgroundColor;
+        final bgColor = Theme
+            .of(context)
+            .scaffoldBackgroundColor;
 
         return SizedBox(
-          height: context.responsive.value(kiosk: 40.0, tablet: 36.0, phone: 32.0),
+          height: context.responsive.value(
+              kiosk: 40.0, tablet: 36.0, phone: 32.0),
           child: Stack(
             children: [
               Positioned.fill(
@@ -206,7 +220,9 @@ class _CategoryChips extends HookConsumerWidget {
                     scrollDirection: Axis.horizontal,
                     itemCount: categories.length + 1,
                     separatorBuilder:
-                        (_, __) => Gap(context.responsive.value(kiosk: 8, tablet: 6, phone: 6)),
+                        (_, __) =>
+                        Gap(context.responsive.value(
+                            kiosk: 8, tablet: 6, phone: 6)),
                     itemBuilder: (context, index) {
                       if (index == 0) {
                         return _Chip(
@@ -240,7 +256,8 @@ class _CategoryChips extends HookConsumerWidget {
                       direction: _ArrowDirection.left,
                       bgColor: bgColor,
                       onTap:
-                          () => scrollController.animateTo(
+                          () =>
+                          scrollController.animateTo(
                             (scrollController.offset - 160).clamp(
                               0.0,
                               scrollController.position.maxScrollExtent,
@@ -265,7 +282,8 @@ class _CategoryChips extends HookConsumerWidget {
                       direction: _ArrowDirection.right,
                       bgColor: bgColor,
                       onTap:
-                          () => scrollController.animateTo(
+                          () =>
+                          scrollController.animateTo(
                             (scrollController.offset + 160).clamp(
                               0.0,
                               scrollController.position.maxScrollExtent,
@@ -306,7 +324,8 @@ class _Chip extends StatelessWidget {
       child: AnimatedContainer(
         duration: POSAnimation.fast,
         padding: EdgeInsets.symmetric(
-          horizontal: outerContext.responsive.value(kiosk: 16, tablet: 14, phone: 12),
+          horizontal: outerContext.responsive.value(
+              kiosk: 16, tablet: 14, phone: 12),
         ),
         decoration: BoxDecoration(
           color: isSelected ? ColorSet.primary : Colors.white,
@@ -321,7 +340,8 @@ class _Chip extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              fontSize: outerContext.responsive.value(kiosk: 13.0, tablet: 12.0, phone: 11.0),
+              fontSize: outerContext.responsive.value(
+                  kiosk: 13.0, tablet: 12.0, phone: 11.0),
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               color: isSelected ? Colors.white : POSColors.textSecondary,
             ),
@@ -337,7 +357,8 @@ class _Chip extends StatelessWidget {
 enum _ArrowDirection { left, right }
 
 class _ScrollArrow extends StatelessWidget {
-  const _ScrollArrow({required this.direction, required this.bgColor, required this.onTap});
+  const _ScrollArrow(
+      {required this.direction, required this.bgColor, required this.onTap});
 
   final _ArrowDirection direction;
   final Color bgColor;
@@ -346,7 +367,8 @@ class _ScrollArrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLeft = direction == _ArrowDirection.left;
-    final circleSize = context.responsive.value(kiosk: 30.0, tablet: 26.0, phone: 22.0);
+    final circleSize = context.responsive.value(
+        kiosk: 30.0, tablet: 26.0, phone: 22.0);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -355,7 +377,10 @@ class _ScrollArrow extends StatelessWidget {
           gradient: LinearGradient(
             begin: isLeft ? Alignment.centerRight : Alignment.centerLeft,
             end: isLeft ? Alignment.centerLeft : Alignment.centerRight,
-            colors: [bgColor.withValues(alpha: 0.0), bgColor.withValues(alpha: 0.95)],
+            colors: [
+              bgColor.withValues(alpha: 0.0),
+              bgColor.withValues(alpha: 0.95)
+            ],
             stops: const [0.0, 0.6],
           ),
         ),
@@ -370,8 +395,10 @@ class _ScrollArrow extends StatelessWidget {
             ),
             child: Center(
               child: Icon(
-                isLeft ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
-                size: context.responsive.value(kiosk: 18.0, tablet: 16.0, phone: 14.0),
+                isLeft ? Icons.chevron_left_rounded : Icons
+                    .chevron_right_rounded,
+                size: context.responsive.value(
+                    kiosk: 18.0, tablet: 16.0, phone: 14.0),
                 color: POSColors.textSecondary,
               ),
             ),
@@ -391,17 +418,19 @@ class _ProductsGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(catalogProductsProvider.select((it) => it.whenData((d) => d.products)));
+    final state = ref.watch(
+        catalogProductsProvider.select((it) => it.whenData((d) => d.products)));
 
     return state.when(
       loading:
-          () => const Center(
-            child: CircularProgressIndicator(
-              color: ColorSet.primary,
-              strokeWidth: 3,
-              strokeCap: StrokeCap.round,
-            ),
-          ),
+          () =>
+      const Center(
+        child: CircularProgressIndicator(
+          color: ColorSet.primary,
+          strokeWidth: 3,
+          strokeCap: StrokeCap.round,
+        ),
+      ),
       error: (_, __) => const Center(child: SizedBox.shrink()),
       data: (products) {
         if (products.isEmpty) {
@@ -409,24 +438,27 @@ class _ProductsGrid extends ConsumerWidget {
         }
 
         return ResponsiveBuilder(
-          kiosk: (context) => _Grid(
-            products: products,
-            crossAxisCount: 4,
-            ratio: 0.72,
-            isAdminOrSupervisor: isAdminOrSupervisor,
-          ),
-          tablet: (context) => _Grid(
-            products: products,
-            crossAxisCount: 3,
-            ratio: 0.72,
-            isAdminOrSupervisor: isAdminOrSupervisor,
-          ),
-          phone: (context) => _Grid(
-            products: products,
-            crossAxisCount: 2,
-            ratio: 0.70,
-            isAdminOrSupervisor: isAdminOrSupervisor,
-          ),
+          kiosk: (context) =>
+              _Grid(
+                products: products,
+                crossAxisCount: 4,
+                ratio: 0.72,
+                isAdminOrSupervisor: isAdminOrSupervisor,
+              ),
+          tablet: (context) =>
+              _Grid(
+                products: products,
+                crossAxisCount: 3,
+                ratio: 0.72,
+                isAdminOrSupervisor: isAdminOrSupervisor,
+              ),
+          phone: (context) =>
+              _Grid(
+                products: products,
+                crossAxisCount: 2,
+                ratio: 0.70,
+                isAdminOrSupervisor: isAdminOrSupervisor,
+              ),
         );
       },
     );
@@ -448,14 +480,17 @@ class _EmptyProductsState extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.inventory_2_rounded,
-                    size: context.responsive.value(kiosk: 64, tablet: 52, phone: 40),
+                    size: context.responsive.value(
+                        kiosk: 64, tablet: 52, phone: 40),
                     color: POSColors.textDisabled,
                   ),
-                  Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+                  Gap(context.responsive.value(
+                      kiosk: 16, tablet: 12, phone: 8)),
                   Text(
                     'No products found',
                     style: TextStyle(
-                      fontSize: context.responsive.value(kiosk: 18, tablet: 15, phone: 13),
+                      fontSize: context.responsive.value(
+                          kiosk: 18, tablet: 15, phone: 13),
                       fontWeight: FontWeight.w700,
                       color: POSColors.textSecondary,
                     ),
@@ -464,7 +499,8 @@ class _EmptyProductsState extends StatelessWidget {
                   Text(
                     'Try adjusting your search or category filter',
                     style: TextStyle(
-                      fontSize: context.responsive.value(kiosk: 13, tablet: 12, phone: 11),
+                      fontSize: context.responsive.value(
+                          kiosk: 13, tablet: 12, phone: 11),
                       color: POSColors.textDisabled,
                     ),
                   ),
@@ -497,14 +533,17 @@ class _Grid extends StatelessWidget {
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
         childAspectRatio: ratio,
-        crossAxisSpacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-        mainAxisSpacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+        crossAxisSpacing: context.responsive.value(
+            kiosk: 16, tablet: 12, phone: 8),
+        mainAxisSpacing: context.responsive.value(
+            kiosk: 16, tablet: 12, phone: 8),
       ),
       itemCount: products.length,
-      itemBuilder: (context, index) => _ProductCard(
-        product: products[index],
-        isAdminOrSupervisor: isAdminOrSupervisor,
-      ),
+      itemBuilder: (context, index) =>
+          _ProductCard(
+            product: products[index],
+            isAdminOrSupervisor: isAdminOrSupervisor,
+          ),
     );
   }
 }
@@ -512,7 +551,8 @@ class _Grid extends StatelessWidget {
 // ── Product card ──────────────────────────────────────────────────────────────
 
 class _ProductCard extends ConsumerWidget {
-  const _ProductCard({required this.product, required this.isAdminOrSupervisor});
+  const _ProductCard(
+      {required this.product, required this.isAdminOrSupervisor});
 
   final CatalogProduct product;
   final bool isAdminOrSupervisor;
@@ -524,133 +564,142 @@ class _ProductCard extends ConsumerWidget {
     return Opacity(
       opacity: product.isAvailable ? 1.0 : 0.6,
       child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(POSRadius.xl),
-        boxShadow: POSShadow.card,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(POSRadius.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Image area ──────────────────────────────────────────
-            Expanded(
-              flex: 5,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  _ProductImage(imageUrl: product.imageUrl, categoryName: product.category?.name),
-                  // Category badge overlay
-                  if (product.category != null)
-                    Positioned(
-                      left: r.value(kiosk: 8, tablet: 7, phone: 6),
-                      bottom: r.value(kiosk: 8, tablet: 7, phone: 6),
-                      child: _CategoryBadge(name: product.category!.name),
-                    ),
-                  if (!product.isAvailable)
-                    Positioned(
-                      right: r.value(kiosk: 8, tablet: 7, phone: 6),
-                      top: r.value(kiosk: 8, tablet: 7, phone: 6),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: r.value(kiosk: 8, tablet: 7, phone: 6),
-                          vertical: r.value(kiosk: 3, tablet: 3, phone: 2),
-                        ),
-                        decoration: BoxDecoration(
-                          color: ColorSet.danger,
-                          borderRadius: BorderRadius.circular(POSRadius.sm),
-                        ),
-                        child: Text(
-                          'Disabled',
-                          style: TextStyle(
-                            fontSize: r.value(kiosk: 10, tablet: 9, phone: 8),
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            // ── Info area ────────────────────────────────────────────
-            Expanded(
-              flex: 4,
-              child: Padding(
-                padding: EdgeInsets.all(r.value(kiosk: 12, tablet: 10, phone: 8)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(POSRadius.xl),
+          boxShadow: POSShadow.card,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(POSRadius.xl),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Image area ──────────────────────────────────────────
+              Expanded(
+                flex: 5,
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    Text(
-                      product.name,
-                      style: TextStyle(
-                        fontSize: r.value(kiosk: 14, tablet: 12, phone: 10),
-                        fontWeight: FontWeight.w700,
-                        color: POSColors.textPrimary,
+                    _ProductImage(imageUrl: product.imageUrl,
+                        categoryName: product.category?.name),
+                    // Category badge overlay
+                    if (product.category != null)
+                      Positioned(
+                        left: r.value(kiosk: 8, tablet: 7, phone: 6),
+                        bottom: r.value(kiosk: 8, tablet: 7, phone: 6),
+                        child: _CategoryBadge(name: product.category!.name),
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Gap(r.value(kiosk: 2, tablet: 2, phone: 2)),
-                    Text(
-                      'PHP ${product.price.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: r.value(kiosk: 15, tablet: 13, phone: 11),
-                        fontWeight: FontWeight.w800,
-                        color: ColorSet.primary,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    if (isAdminOrSupervisor) ...[
-                      const Spacer(),
-                      Gap(r.value(kiosk: 8, tablet: 6, phone: 4)),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Button(
-                              label: Text(
-                                'Edit',
-                                style: TextStyle(fontSize: r.value(kiosk: 12, tablet: 11, phone: 10)),
-                              ),
-                              onPressed: () => showSaveProductDialog(context, product: product),
-                              backgroundColor: ColorSet.primary,
-                              foregroundColor: Colors.white,
+                    if (!product.isAvailable)
+                      Positioned(
+                        right: r.value(kiosk: 8, tablet: 7, phone: 6),
+                        top: r.value(kiosk: 8, tablet: 7, phone: 6),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: r.value(kiosk: 8, tablet: 7, phone: 6),
+                            vertical: r.value(kiosk: 3, tablet: 3, phone: 2),
+                          ),
+                          decoration: BoxDecoration(
+                            color: ColorSet.danger,
+                            borderRadius: BorderRadius.circular(POSRadius.sm),
+                          ),
+                          child: Text(
+                            'Disabled',
+                            style: TextStyle(
+                              fontSize: r.value(kiosk: 10, tablet: 9, phone: 8),
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
                           ),
-                          Gap(r.value(kiosk: 6, tablet: 5, phone: 4)),
-                          IconButton(
-                            onPressed: () => ref
-                                .read(catalogProductsProvider.notifier)
-                                .toggleAvailability(product),
-                            icon: Icon(
-                              product.isAvailable
-                                  ? Icons.visibility_off_rounded
-                                  : Icons.visibility_rounded,
-                              size: r.value(kiosk: 20, tablet: 18, phone: 16),
-                              color: product.isAvailable ? ColorSet.danger : ColorSet.success,
-                            ),
-                            style: IconButton.styleFrom(
-                              backgroundColor: (product.isAvailable
-                                      ? ColorSet.danger
-                                      : ColorSet.success)
-                                  .withValues(alpha: 0.08),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(POSRadius.md),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ] else
-                      const Spacer(),
                   ],
                 ),
               ),
-            ),
-          ],
+              // ── Info area ────────────────────────────────────────────
+              Expanded(
+                flex: 4,
+                child: Padding(
+                  padding: EdgeInsets.all(
+                      r.value(kiosk: 12, tablet: 10, phone: 8)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.name,
+                        style: TextStyle(
+                          fontSize: r.value(kiosk: 14, tablet: 12, phone: 10),
+                          fontWeight: FontWeight.w700,
+                          color: POSColors.textPrimary,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Gap(r.value(kiosk: 2, tablet: 2, phone: 2)),
+                      Text(
+                        'PHP ${product.price.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: r.value(kiosk: 15, tablet: 13, phone: 11),
+                          fontWeight: FontWeight.w800,
+                          color: ColorSet.primary,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      if (isAdminOrSupervisor) ...[
+                        const Spacer(),
+                        Gap(r.value(kiosk: 8, tablet: 6, phone: 4)),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Button(
+                                label: Text(
+                                  'Edit',
+                                  style: TextStyle(fontSize: r.value(
+                                      kiosk: 12, tablet: 11, phone: 10)),
+                                ),
+                                onPressed: () =>
+                                    showSaveProductDialog(
+                                        context, product: product),
+                                backgroundColor: ColorSet.primary,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                            Gap(r.value(kiosk: 6, tablet: 5, phone: 4)),
+                            IconButton(
+                              onPressed: () =>
+                                  ref
+                                      .read(catalogProductsProvider.notifier)
+                                      .toggleAvailability(product),
+                              icon: Icon(
+                                product.isAvailable
+                                    ? Icons.visibility_off_rounded
+                                    : Icons.visibility_rounded,
+                                size: r.value(kiosk: 20, tablet: 18, phone: 16),
+                                color: product.isAvailable
+                                    ? ColorSet.danger
+                                    : ColorSet.success,
+                              ),
+                              style: IconButton.styleFrom(
+                                backgroundColor: (product.isAvailable
+                                    ? ColorSet.danger
+                                    : ColorSet.success)
+                                    .withValues(alpha: 0.08),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      POSRadius.md),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else
+                        const Spacer(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }

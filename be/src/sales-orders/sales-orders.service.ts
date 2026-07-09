@@ -194,7 +194,10 @@ export class SalesOrdersService {
           status: true,
           saleType: true,
           note: true,
-          productVariant: { id: true },
+          productVariant: {
+            id: true,
+            product: { id: true, productGroup: { id: true, name: true } },
+          },
           recipe: { id: true },
           uom: { id: true },
           recipeItem: { id: true },
@@ -204,7 +207,7 @@ export class SalesOrdersService {
       relations: {
         createdBy: true,
         salesOrderItems: {
-          productVariant: true,
+          productVariant: { product: { productGroup: true } },
           recipe: true,
           uom: true,
           recipeItem: true,

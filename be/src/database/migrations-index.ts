@@ -172,5 +172,5 @@ export const migrations: Array<new () => MigrationInterface> = [
   SoItemsSaleTypeNote1779584100000,
   PaymentsMethodName1779584200000,
   FixAdminRole1779584300000,
-  ProductsUniqueNamePerGroup1779584400000,
+  ProductsUniqueNamePerGroup1779584400000
 ];

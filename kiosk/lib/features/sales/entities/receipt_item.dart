@@ -23,6 +23,7 @@ class ReceiptItem with ReceiptItemMappable {
     required this.isMain,
     this.saleType,
     this.note,
+    this.category,
   });
 
   final String id;
@@ -40,4 +41,5 @@ class ReceiptItem with ReceiptItemMappable {
   final bool isMain;
   final SaleType? saleType;
   final String? note;
+  final String? category;
 }

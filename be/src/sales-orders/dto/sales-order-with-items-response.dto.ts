@@ -67,6 +67,13 @@ export class SalesOrderItemResponseDto {
 
   @ApiPropertyOptional({ description: 'Item-level note', example: 'No onions please', nullable: true })
   note: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Product category (product group) name',
+    example: 'Burgers',
+    nullable: true,
+  })
+  category: string | null;
 }
 
 /**

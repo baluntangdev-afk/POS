@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
+import '../../../widgets/message_dialog.dart';
 import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
@@ -198,6 +199,14 @@ class _PrintButton extends ConsumerWidget {
       if (next case MutationError(:final error)) {
         showNetworkErrorDialog(context, error: error);
       }
+      if (next is MutationSuccess) {
+        showMessageDialog(
+          context,
+          type: DialogType.success,
+          title: 'Report Printed',
+          message: 'The cashier daily report has been sent to the printer.',
+        );
+      }
     });
 
     return SizedBox(
@@ -246,6 +255,14 @@ class _ReprintButton extends ConsumerWidget {
     ref.listen(printAction, (prev, next) {
       if (next case MutationError(:final error)) {
         showNetworkErrorDialog(context, error: error);
+      }
+      if (next is MutationSuccess) {
+        showMessageDialog(
+          context,
+          type: DialogType.success,
+          title: 'Report Reprinted',
+          message: 'The cashier daily report has been sent to the printer.',
+        );
       }
     });
 

@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 
 import '../../../data/backend_api/schemas/pos_terminal_dto.dart';
 import '../../../gen/assets.gen.dart';
+import '../../../utils/printer_text_sanitizer.dart';
 import '../entities/cashier_x_reading.dart';
 
 final encodeEscPosCashierReportProvider = Provider<EncodeEscPosCashierReport>((ref) {
@@ -40,15 +41,19 @@ class EncodeEscPosCashierReport {
       bytes += generator.feed(1);
 
       bytes += generator.text(
-        terminal.legalName?.trim().isNotEmpty == true ? terminal.legalName!.trim() : 'POS Terminal',
+        sanitizeForPrinter(
+          terminal.legalName?.trim().isNotEmpty == true
+              ? terminal.legalName!.trim()
+              : 'POS Terminal',
+        ),
         styles: const PosStyles(align: PosAlign.center),
       );
       bytes += generator.text(
-        terminal.address.trim(),
+        sanitizeForPrinter(terminal.address.trim()),
         styles: const PosStyles(align: PosAlign.center),
       );
       bytes += generator.text(
-        'TIN: ${terminal.tinNumber}',
+        'TIN: ${sanitizeForPrinter(terminal.tinNumber)}',
         styles: const PosStyles(align: PosAlign.center),
       );
       bytes += generator.feed(1);
@@ -63,7 +68,7 @@ class EncodeEscPosCashierReport {
       bytes += generator.feed(1);
 
       bytes += generator.text(
-        'Cashier: ${report.cashierName}',
+        'Cashier: ${sanitizeForPrinter(report.cashierName)}',
         styles: const PosStyles(align: PosAlign.left),
       );
       bytes += generator.text(
@@ -71,7 +76,7 @@ class EncodeEscPosCashierReport {
         styles: const PosStyles(align: PosAlign.left),
       );
       bytes += generator.text(
-        'Generated: ${DateFormat.yMd().add_jm().format(report.reportGeneratedAt.toLocal()).replaceAll(RegExp(r'\s'), ' ')}',
+        'Generated: ${sanitizeForPrinter(DateFormat.yMd().add_jm().format(report.reportGeneratedAt.toLocal()))}',
         styles: const PosStyles(align: PosAlign.left),
       );
       bytes += _divider(generator);
@@ -93,10 +98,10 @@ class EncodeEscPosCashierReport {
             styles: const PosStyles(bold: true),
           );
           for (final entry in group.entries) {
-            final label =
-                '${timeFormat.format(entry.time.toLocal())}  $nameUpper'
-                        '${entry.reference != null ? '#${entry.reference}' : ''}'
-                    .replaceAll(RegExp(r'\s'), ' ');
+            final label = sanitizeForPrinter(
+              '${timeFormat.format(entry.time.toLocal())}  $nameUpper'
+              '${entry.reference != null ? '#${entry.reference}' : ''}',
+            );
             bytes += _amountRow(generator, label, entry.amount);
           }
         }
@@ -124,6 +129,7 @@ class EncodeEscPosCashierReport {
       bytes += _amountRow(generator, 'VAT-Exempt Sales', report.vatExemptSales);
       bytes += _divider(generator);
 
+      bytes += _sectionHeader(generator, 'CASH COLLECTED');
       bytes += _amountRow(generator, 'Cash Collected', report.cashCollected, bold: true);
       bytes += _divider(generator);
 
@@ -141,7 +147,7 @@ class EncodeEscPosCashierReport {
   }
 
   List<int> _sectionHeader(Generator generator, String title) {
-    return generator.text(title, styles: const PosStyles(bold: true));
+    return generator.text(sanitizeForPrinter(title), styles: const PosStyles(bold: true));
   }
 
   List<int> _divider(Generator generator) {
@@ -153,7 +159,7 @@ class EncodeEscPosCashierReport {
 
   List<int> _amountRow(Generator generator, String label, double amount, {bool bold = false}) {
     return generator.row([
-      PosColumn(text: label, width: 8, styles: PosStyles(bold: bold)),
+      PosColumn(text: sanitizeForPrinter(label), width: 8, styles: PosStyles(bold: bold)),
       PosColumn(
         text: _moneyFormat.format(amount),
         width: 4,
@@ -164,7 +170,7 @@ class EncodeEscPosCashierReport {
 
   List<int> _countRow(Generator generator, String label, int value) {
     return generator.row([
-      PosColumn(text: label, width: 8),
+      PosColumn(text: sanitizeForPrinter(label), width: 8),
       PosColumn(text: '$value', width: 4, styles: const PosStyles(align: PosAlign.right)),
     ]);
   }
@@ -172,7 +178,8 @@ class EncodeEscPosCashierReport {
   String _periodLabel(DateTime? start, DateTime? end) {
     if (start == null || end == null) return 'No transactions yet';
     final format = DateFormat.yMd().add_jm();
-    return '${format.format(start.toLocal())} - ${format.format(end.toLocal())}'
-        .replaceAll(RegExp(r'\s'), ' ');
+    return sanitizeForPrinter(
+      '${format.format(start.toLocal())} - ${format.format(end.toLocal())}',
+    );
   }
 }

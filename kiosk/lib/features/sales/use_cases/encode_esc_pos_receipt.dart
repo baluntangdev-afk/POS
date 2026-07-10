@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 
 import '../../../gen/assets.gen.dart';
 import '../../../utils/decimal_formatter.dart';
+import '../../../utils/printer_text_sanitizer.dart';
 import '../entities/payment.dart';
 import '../entities/receipt.dart';
 import '../entities/receipt_item.dart';
@@ -58,13 +59,25 @@ class EncodeEscPosReceipt {
       bytes += generator.feed(1);
 
       // Header
-      bytes += generator.text(store.legalName, styles: const PosStyles(align: PosAlign.center));
-      bytes += generator.text(store.addressLine1, styles: const PosStyles(align: PosAlign.center));
-      bytes += generator.text(store.addressLine2, styles: const PosStyles(align: PosAlign.center));
+      bytes += generator.text(
+        sanitizeForPrinter(store.legalName),
+        styles: const PosStyles(align: PosAlign.center),
+      );
+      bytes += generator.text(
+        sanitizeForPrinter(store.addressLine1),
+        styles: const PosStyles(align: PosAlign.center),
+      );
+      bytes += generator.text(
+        sanitizeForPrinter(store.addressLine2),
+        styles: const PosStyles(align: PosAlign.center),
+      );
       bytes += generator.feed(1);
 
       // TIN & Invoice Title
-      bytes += generator.text('TIN: ${store.tin}', styles: const PosStyles(align: PosAlign.center));
+      bytes += generator.text(
+        'TIN: ${sanitizeForPrinter(store.tin)}',
+        styles: const PosStyles(align: PosAlign.center),
+      );
       bytes += generator.text(
         'Sales Invoice',
         styles: const PosStyles(
@@ -84,18 +97,20 @@ class EncodeEscPosReceipt {
       // Date and SI# Row
       bytes += generator.row([
         PosColumn(
-          text: DateFormat.yMd().add_jm().format(docDate.toLocal()).replaceAll(RegExp(r'\s'), ' '),
+          text: sanitizeForPrinter(DateFormat.yMd().add_jm().format(docDate.toLocal())),
           width: 6,
         ),
         PosColumn(
-          text: 'SI# $docNumber',
+          text: 'SI# ${sanitizeForPrinter(docNumber)}',
           width: 6,
           styles: const PosStyles(align: PosAlign.right, bold: true),
         ),
       ]);
 
       // Cashier
-      bytes += generator.text('Cashier: ${cashier.id} - ${cashier.fullName}');
+      bytes += generator.text(
+        'Cashier: ${cashier.id} - ${sanitizeForPrinter(cashier.fullName)}',
+      );
 
       // Separator (*)
       bytes += generator.text(
@@ -117,7 +132,10 @@ class EncodeEscPosReceipt {
 
       // Line Items Body, grouped by category (mirrors receipt_screen.dart's _ItemsView)
       for (final group in _groupByCategory(items)) {
-        bytes += generator.text(group.category.toUpperCase(), styles: const PosStyles(bold: true));
+        bytes += generator.text(
+          sanitizeForPrinter(group.category.toUpperCase()),
+          styles: const PosStyles(bold: true),
+        );
 
         for (final item in group.items) {
           final refundedQty = item.isMain ? (refundedQuantities[item.id] ?? 0) : 0;
@@ -126,7 +144,9 @@ class EncodeEscPosReceipt {
 
           bytes += generator.row([
             PosColumn(
-              text: '${item.isMain ? '' : '   '}${item.quantity} ${item.description}',
+              text: sanitizeForPrinter(
+                '${item.isMain ? '' : '   '}${item.quantity} ${item.description}',
+              ),
               width: 8,
               styles: PosStyles(reverse: isFullyRefunded),
             ),
@@ -139,7 +159,7 @@ class EncodeEscPosReceipt {
 
           if (item.isMain && (item.saleType != null || item.note != null)) {
             final tag = item.saleType != null ? '[${item.saleType!.displayName}] ' : '';
-            bytes += generator.text('  $tag${item.note ?? ''}'.trimRight());
+            bytes += generator.text(sanitizeForPrinter('  $tag${item.note ?? ''}'.trimRight()));
           }
 
           if (isPartiallyRefunded) {
@@ -236,11 +256,11 @@ class EncodeEscPosReceipt {
 
         var totalRefund = Decimal.zero;
         for (final refund in refunds) {
-          bytes += generator.text('Reason: ${refund.reason}');
+          bytes += generator.text('Reason: ${sanitizeForPrinter(refund.reason)}');
           for (final ri in refund.items.where((ri) => ri.isMain)) {
             totalRefund += ri.refundAmount;
             bytes += generator.row([
-              PosColumn(text: '${ri.quantity} ${ri.description}', width: 6),
+              PosColumn(text: sanitizeForPrinter('${ri.quantity} ${ri.description}'), width: 6),
               PosColumn(
                 text: '-${ri.refundAmount.withCommas}',
                 width: 6,
@@ -292,7 +312,10 @@ class EncodeEscPosReceipt {
           styles: const PosStyles(align: PosAlign.center),
         );
         bytes += generator.text('VOID REASON:', styles: const PosStyles(bold: true));
-        bytes += generator.text(voidReason, styles: const PosStyles(align: PosAlign.center));
+        bytes += generator.text(
+          sanitizeForPrinter(voidReason),
+          styles: const PosStyles(align: PosAlign.center),
+        );
         bytes += generator.feed(1);
       }
 
@@ -323,7 +346,7 @@ class EncodeEscPosReceipt {
           :final referenceNumber,
         ):
           bytes += generator.row([
-            PosColumn(text: '$cardType ($cardNumber)', width: 6),
+            PosColumn(text: sanitizeForPrinter('$cardType ($cardNumber)'), width: 6),
             PosColumn(
               text: paidAmount.withCommas,
               width: 6,
@@ -331,12 +354,12 @@ class EncodeEscPosReceipt {
             ),
           ]);
           bytes += generator.text(
-            'Ref: $referenceNumber',
+            'Ref: ${sanitizeForPrinter(referenceNumber)}',
             styles: const PosStyles(align: PosAlign.center),
           );
         case QRPayment(:final walletProvider, :final paidAmount, :final referenceNumber):
           bytes += generator.row([
-            PosColumn(text: walletProvider, width: 6),
+            PosColumn(text: sanitizeForPrinter(walletProvider), width: 6),
             PosColumn(
               text: paidAmount.withCommas,
               width: 6,
@@ -344,7 +367,7 @@ class EncodeEscPosReceipt {
             ),
           ]);
           bytes += generator.text(
-            'Ref: $referenceNumber',
+            'Ref: ${sanitizeForPrinter(referenceNumber)}',
             styles: const PosStyles(align: PosAlign.center),
           );
         case ZeroPayment():

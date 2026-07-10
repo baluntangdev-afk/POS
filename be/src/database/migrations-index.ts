@@ -176,5 +176,5 @@ export const migrations: Array<new () => MigrationInterface> = [
   FixAdminRole1779584300000,
   ProductsUniqueNamePerGroup1779584400000,
   SalesOrdersDoneDailyReportAndXReading1783692405858,
-  CashierDailyReportsAndXReadings1783702635689,
+  CashierDailyReportsAndXReadings1783702635689
 ];

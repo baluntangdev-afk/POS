@@ -171,6 +171,12 @@ export class SalesOrder extends UuidIdEntity {
   @Column({ name: 'done_export', type: 'boolean', default: false })
   doneExport: boolean;
 
+  @Column({ name: 'done_daily_report', type: 'boolean', default: false })
+  doneDailyReport: boolean;
+
+  @Column({ name: 'done_x_reading', type: 'boolean', default: false })
+  doneXReading: boolean;
+
   @OneToOne(() => Refund, (refund) => refund.originalSalesOrder)
   refund: Refund | null;
 }

@@ -83,6 +83,7 @@ import { SoItemsSaleTypeNote1779584100000 } from './migrations/1779584100000-so-
 import { PaymentsMethodName1779584200000 } from './migrations/1779584200000-payments-method-name';
 import { FixAdminRole1779584300000 } from './migrations/1779584300000-fix-admin-role';
 import { ProductsUniqueNamePerGroup1779584400000 } from './migrations/1779584400000-products-unique-name-per-group';
+import { SalesOrdersDoneDailyReportAndXReading1783692405858 } from './migrations/1783692405858-sales-orders-done-daily-report-and-x-reading';
 
 /**
  * Migration classes for POSBackend.exe --migrate (same as npm run migration:up).
@@ -172,5 +173,6 @@ export const migrations: Array<new () => MigrationInterface> = [
   SoItemsSaleTypeNote1779584100000,
   PaymentsMethodName1779584200000,
   FixAdminRole1779584300000,
-  ProductsUniqueNamePerGroup1779584400000
+  ProductsUniqueNamePerGroup1779584400000,
+  SalesOrdersDoneDailyReportAndXReading1783692405858,
 ];

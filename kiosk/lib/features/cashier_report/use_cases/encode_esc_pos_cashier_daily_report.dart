@@ -71,7 +71,7 @@ class EncodeEscPosCashierDailyReport {
         ),
       ]);
       bytes += generator.text(
-        'Generated: ${DateFormat.yMd().add_jm().format(report.reportGeneratedAt.toLocal())}',
+        'Generated: ${DateFormat.yMd().add_jm().format(report.reportGeneratedAt.toLocal()).replaceAll(RegExp(r'\s'), ' ')}',
       );
       bytes += _divider(generator);
 
@@ -113,7 +113,8 @@ class EncodeEscPosCashierDailyReport {
       if (report.cashLedgerSummary case final summary?) {
         final label =
             '${timeFormat.format(summary.start.toLocal())}'
-            ' - ${timeFormat.format(summary.end.toLocal())}  CASH';
+                    ' - ${timeFormat.format(summary.end.toLocal())}  CASH'
+                .replaceAll(RegExp(r'\s'), ' ');
         bytes += _amountRow(generator, label, summary.amount);
       }
       bytes += _amountRow(generator, '***** TOTAL CASH', report.totalCashSales, bold: true);

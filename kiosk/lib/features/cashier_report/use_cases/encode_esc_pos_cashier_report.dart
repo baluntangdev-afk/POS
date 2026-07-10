@@ -71,7 +71,7 @@ class EncodeEscPosCashierReport {
         styles: const PosStyles(align: PosAlign.left),
       );
       bytes += generator.text(
-        'Generated: ${DateFormat.yMd().add_jm().format(report.reportGeneratedAt.toLocal())}',
+        'Generated: ${DateFormat.yMd().add_jm().format(report.reportGeneratedAt.toLocal()).replaceAll(RegExp(r'\s'), ' ')}',
         styles: const PosStyles(align: PosAlign.left),
       );
       bytes += _divider(generator);
@@ -90,7 +90,8 @@ class EncodeEscPosCashierReport {
         for (final entry in ledger.entries) {
           final label =
               '${timeFormat.format(entry.time.toLocal())}  $nameUpper'
-              '${entry.reference != null ? '#${entry.reference}' : ''}';
+                      '${entry.reference != null ? '#${entry.reference}' : ''}'
+                  .replaceAll(RegExp(r'\s'), ' ');
           bytes += _amountRow(generator, label, entry.amount);
         }
         bytes += _amountRow(generator, 'Total $nameUpper [${ledger.count}]', ledger.total, bold: true);

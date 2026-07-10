@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
+import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/cashier_daily_report.dart';
@@ -173,6 +174,12 @@ class _PrintButton extends ConsumerWidget {
     final printAction = CashierDailyReportNotifier.printAction;
     final printStatus = ref.watch(printAction);
     final isPending = printStatus is MutationPending;
+
+    ref.listen(printAction, (prev, next) {
+      if (next case MutationError(:final error)) {
+        showNetworkErrorDialog(context, error: error);
+      }
+    });
 
     return SizedBox(
       width: double.infinity,

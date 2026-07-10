@@ -337,7 +337,10 @@
       "Bash(powershell -Command \"Test-NetConnection -ComputerName localhost -Port 5432 -InformationLevel Quiet\" 2>&1)",
       "Bash(powershell -Command \"Test-NetConnection -ComputerName localhost -Port 3000 -InformationLevel Quiet\" 2>&1)",
       "Bash(xargs -I{} basename {})",
-      "PowerShell(npx jest --testPathPattern=src/reports/mapper/cashier-daily-report.mapper.spec.ts 2>$null)"
+      "PowerShell(npx jest --testPathPattern=src/reports/mapper/cashier-daily-report.mapper.spec.ts 2>$null)",
+      "Bash(grep -Ei 'log$|^query$|seed-export|new-.*-seed')",
+      "Bash(PORT=3010 npm run start:dev)",
+      "Bash(echo \"started with pid $!\")"
     ]
   }
 }

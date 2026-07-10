@@ -113,7 +113,7 @@ export class CashierXReadingReportService extends BaseReportService<
       .select(`COALESCE(p.payment_method_name, p.payment_method::text)`, 'name')
       .addSelect('p.payment_date', 'paymentDate')
       .addSelect('p.transaction_reference', 'transactionReference')
-      .addSelect('p.amount_paid', 'amount')
+      .addSelect('p.amount_paid - p.change', 'amount')
       .where('so.status IN (:...statusFilter)', { statusFilter: STATUS_FILTER })
       .andWhere('so.created_by = :userId', { userId })
       .andWhere('so.so_date::date = CURRENT_DATE')

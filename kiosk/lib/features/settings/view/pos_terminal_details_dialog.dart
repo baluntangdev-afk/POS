@@ -64,28 +64,22 @@ class PosTerminalDetailsDialog extends HookConsumerWidget {
       }
     }
 
-    List<PaymentMethod> resolveExistingMethods({int? excludeId}) {
+    List<PaymentMethodEntryDto> resolveExistingEntries({int? excludeId}) {
       final terminal = switch (ref.read(posTerminalProvider)) {
         AsyncData(:final value) => value,
         _ => null,
       };
       final methods = terminal?.paymentMethods ?? <PaymentMethodEntryDto>[];
-      return methods
-          .where((e) => excludeId == null || e.id != excludeId)
-          .map((e) => PaymentMethod.values.firstWhere(
-                (m) => m.toValue() == e.paymentMethod,
-                orElse: () => PaymentMethod.other,
-              ))
-          .toList();
+      return methods.where((e) => excludeId == null || e.id != excludeId).toList();
     }
 
     Future<void> onAddPaymentMethod() async {
       final api = ref.read(posTerminalsApiProvider);
-      final existingMethods = resolveExistingMethods();
+      final existingEntries = resolveExistingEntries();
       await showDialog<void>(
         context: context,
         builder: (_) => _PaymentMethodFormDialog(
-          existingMethods: existingMethods,
+          existingEntries: existingEntries,
           onConfirm: (method, methodName, number) async {
             await api.addPaymentMethod(
               paymentMethod: method,
@@ -100,12 +94,12 @@ class PosTerminalDetailsDialog extends HookConsumerWidget {
 
     Future<void> onEditPaymentMethod(PaymentMethodEntryDto entry) async {
       final api = ref.read(posTerminalsApiProvider);
-      final otherMethods = resolveExistingMethods(excludeId: entry.id);
+      final existingEntries = resolveExistingEntries(excludeId: entry.id);
       await showDialog<void>(
         context: context,
         builder: (_) => _PaymentMethodFormDialog(
           initial: entry,
-          existingMethods: otherMethods,
+          existingEntries: existingEntries,
           onConfirm: (method, methodName, number) async {
             await api.updatePaymentMethod(
               entry.id,
@@ -431,12 +425,12 @@ class _PaymentMethodFormDialog extends HookWidget {
   const _PaymentMethodFormDialog({
     required this.onConfirm,
     this.initial,
-    this.existingMethods = const <PaymentMethod>[],
+    this.existingEntries = const <PaymentMethodEntryDto>[],
   });
 
   final PaymentMethodEntryDto? initial;
   final Future<void> Function(PaymentMethod method, String? methodName, String? number) onConfirm;
-  final List<PaymentMethod> existingMethods;
+  final List<PaymentMethodEntryDto> existingEntries;
 
   static const _labels = {
     PaymentMethod.cash: 'Cash',
@@ -471,8 +465,22 @@ class _PaymentMethodFormDialog extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final formKey = useRef(GlobalKey<FormState>());
+    final existingTypes = existingEntries
+        .where((e) => e.paymentMethod != 'Other')
+        .map((e) => PaymentMethod.values.firstWhere(
+              (m) => m.toValue() == e.paymentMethod,
+              orElse: () => PaymentMethod.other,
+            ))
+        .toSet();
+    final existingOtherNames = existingEntries
+        .where((e) => e.paymentMethod == 'Other')
+        .map((e) => (e.paymentMethodName ?? '').trim().toLowerCase())
+        .where((n) => n.isNotEmpty)
+        .toSet();
     final availableMethods = PaymentMethod.values
-        .where((m) => m != PaymentMethod.creditCard && !existingMethods.contains(m))
+        .where((m) =>
+            m != PaymentMethod.creditCard &&
+            (m == PaymentMethod.other || !existingTypes.contains(m)))
         .toList();
     final selectedMethod = useState(
       initial != null
@@ -579,8 +587,14 @@ class _PaymentMethodFormDialog extends HookWidget {
                   TextFormField(
                     controller: methodNameController,
                     decoration: _fieldDecoration(hint: 'e.g. PayMaya, Bitcoin'),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Payment method name is required' : null,
+                    validator: (v) {
+                      final trimmed = (v ?? '').trim();
+                      if (trimmed.isEmpty) return 'Payment method name is required';
+                      if (existingOtherNames.contains(trimmed.toLowerCase())) {
+                        return 'A payment method with this name already exists';
+                      }
+                      return null;
+                    },
                   ),
                 ],
                 if (selectedMethod.value != PaymentMethod.cash) ...[

@@ -19,6 +19,8 @@ import '../../../widgets/resposive_wrap_container.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
+import '../../cashier_report/state/cashier_daily_report_notifier.dart';
+import '../../cashier_report/state/cashier_x_reading_notifier.dart';
 import '../entities/receipt.dart';
 import '../state/receipt_notifier.dart';
 import '../state/transactions_notifier.dart';
@@ -64,7 +66,7 @@ class TransactionsScreen extends HookConsumerWidget {
     final body = SizedBox.expand(
       child: Column(
         children: [
-          const TopAppBar(title: 'Transactions'),
+          const TopAppBar(title: 'Transactions', trailing: _TransactionsHeaderActions()),
           Expanded(
             child: Padding(
               padding: EdgeInsets.all(r.value<double>(kiosk: 28, tablet: 20, phone: 14)),
@@ -104,7 +106,124 @@ class TransactionsScreen extends HookConsumerWidget {
   }
 }
 
+class _CashierReportButton extends ConsumerWidget {
+  const _CashierReportButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final r = context.responsive;
+    final isLoading = ref.watch(cashierXReadingNotifierProvider.select((it) => it.isLoading));
+
+    return SizedBox(
+      height: r.value<double>(kiosk: 40, tablet: 36, phone: 32),
+      child: FilledButton.icon(
+        onPressed:
+            isLoading
+                ? null
+                : () async {
+                  await ref.read(cashierXReadingNotifierProvider.notifier).load();
+                  if (context.mounted) {
+                    await const CashierReportRoute().push<void>(context);
+                  }
+                },
+        icon:
+            isLoading
+                ? const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: ColorSet.primary),
+                )
+                : Icon(
+                  Icons.receipt_long_rounded,
+                  size: r.value<double>(kiosk: 18, tablet: 16, phone: 14),
+                ),
+        label: Text(
+          'X-Reading',
+          style: TextStyle(fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11)),
+        ),
+        style: FilledButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: ColorSet.primary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.full)),
+          padding: EdgeInsets.symmetric(
+            horizontal: r.value<double>(kiosk: 16, tablet: 14, phone: 10),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ── Pagination + filter controls ──────────────────────────────────────────────
+class _TransactionsHeaderActions extends StatelessWidget {
+  const _TransactionsHeaderActions();
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.responsive;
+
+    return SizedBox(
+      width: r.value<double>(kiosk: 450, tablet: 360, phone: 280),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerRight,
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [_CashierReportButton(), Gap(8), _CashierDailyReportButton()],
+        ),
+      ),
+    );
+  }
+}
+
+class _CashierDailyReportButton extends ConsumerWidget {
+  const _CashierDailyReportButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final r = context.responsive;
+    final isLoading = ref.watch(cashierDailyReportNotifierProvider.select((it) => it.isLoading));
+
+    return SizedBox(
+      height: r.value<double>(kiosk: 40, tablet: 36, phone: 32),
+      child: FilledButton.icon(
+        onPressed:
+            isLoading
+                ? null
+                : () async {
+                  await ref.read(cashierDailyReportNotifierProvider.notifier).load();
+                  if (context.mounted) {
+                    await const CashierDailyReportRoute().push<void>(context);
+                  }
+                },
+        icon:
+            isLoading
+                ? const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: ColorSet.primary),
+                )
+                : Icon(
+                  Icons.assessment_rounded,
+                  size: r.value<double>(kiosk: 18, tablet: 16, phone: 14),
+                ),
+        label: Text(
+          'Cashier Daily Report',
+          style: TextStyle(fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11)),
+        ),
+        style: FilledButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: ColorSet.primary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.full)),
+          padding: EdgeInsets.symmetric(
+            horizontal: r.value<double>(kiosk: 16, tablet: 14, phone: 10),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _PaginationControls extends StatelessWidget {
   const _PaginationControls({
     required this.page,

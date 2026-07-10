@@ -5,6 +5,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../features/reports/state/sales_report_state.dart';
 import '../api_clients.dart';
+import '../schemas/cashier_daily_report_dto.dart';
+import '../schemas/cashier_x_reading_dto.dart';
 import '../schemas/exportable_report_dto.dart';
 import '../schemas/sales_data_item_dto.dart';
 import '../schemas/sales_report_type_dto.dart';
@@ -121,5 +123,15 @@ class ReportsApi {
       '/api/v1/reports/mark-exported',
       data: {'date': dateStr},
     );
+  }
+
+  Future<CashierXReadingDto> getCashierXReading() async {
+    final response = await _httpClient.get<dynamic>('/api/v1/reports/cashier-x-reading');
+    return CashierXReadingDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<CashierDailyReportDto> getCashierDailyReport() async {
+    final response = await _httpClient.get<dynamic>('/api/v1/reports/cashier-daily-report');
+    return CashierDailyReportDto.fromJson(jsonEncode(response.data));
   }
 }

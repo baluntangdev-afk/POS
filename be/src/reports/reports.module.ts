@@ -9,13 +9,19 @@ import { ProductSalesReportService } from './services/product-sales-report.servi
 import { UserSalesReportService } from './services/user-sales-report.service';
 import { PaymentSalesReportService } from './services/payment-sales-report.service';
 import { ExportableReportService } from './services/exportable-report.service';
+import { CashierXReadingReportService } from './services/cashier-x-reading-report.service';
+import { CashierDailyReportService } from './services/cashier-daily-report.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SalesOrder } from '../sales-orders/entities/sales-order.entity';
 import { SalesOrderItem } from '../sales-orders/entities/sales-order-item.entity';
+import { SalesOrderDiscount } from '../sales-orders/entities/sales-order-discount.entity';
 import { Payment } from '../payments/entities/payment.entity';
+import { User } from '../users/entities/user.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([SalesOrder, SalesOrderItem, Payment])],
+  imports: [
+    TypeOrmModule.forFeature([SalesOrder, SalesOrderItem, SalesOrderDiscount, Payment, User]),
+  ],
   controllers: [ReportsController],
   providers: [
     TotalReportService,
@@ -27,6 +33,8 @@ import { Payment } from '../payments/entities/payment.entity';
     UserSalesReportService,
     PaymentSalesReportService,
     ExportableReportService,
+    CashierXReadingReportService,
+    CashierDailyReportService,
   ],
 })
 export class ReportsModule {}

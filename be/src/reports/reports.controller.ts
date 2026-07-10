@@ -24,6 +24,12 @@ import { ProductGroupSalesDataItemDto } from './dto/product-group-sales-response
 import { ProductSalesDataItemDto } from './dto/product-sales-response.dto';
 import { UserSalesDataItemDto } from './dto/user-sales-response.dto';
 import { PaymentMethodSalesDataItemDto } from './dto/payment-sales-response.dto';
+import { User } from '../users/entities/user.entity';
+import { CurrentUser } from '../utils/decorators/current-user.decorator';
+import { CashierXReadingReportService } from './services/cashier-x-reading-report.service';
+import { CashierXReadingResponseDto } from './dto/cashier-x-reading-response.dto';
+import { CashierDailyReportService } from './services/cashier-daily-report.service';
+import { CashierDailyReportResponseDto } from './dto/cashier-daily-report-response.dto';
 
 @ApiTags('Reports')
 @Controller('reports')
@@ -38,6 +44,8 @@ export class ReportsController {
     private readonly userSalesReportService: UserSalesReportService,
     private readonly paymentSalesReportService: PaymentSalesReportService,
     private readonly exportableReportService: ExportableReportService,
+    private readonly cashierXReadingReportService: CashierXReadingReportService,
+    private readonly cashierDailyReportService: CashierDailyReportService,
   ) {}
 
   @Get()
@@ -141,5 +149,21 @@ export class ReportsController {
   @ApiOkResponse({ schema: { example: { updatedCount: 45 } } })
   markExported(@Body() body: MarkExportedBodyDto): Promise<{ updatedCount: number }> {
     return this.exportableReportService.markExported(body.date);
+  }
+
+  @Get('cashier-x-reading')
+  @ApiOperation({ summary: "Get the current cashier's X Reading (today, self, own terminal)" })
+  @ApiOkResponse({ description: 'Cashier X Reading snapshot.', type: CashierXReadingResponseDto })
+  getCashierXReading(@CurrentUser() causer: User): Promise<CashierXReadingResponseDto> {
+    return this.cashierXReadingReportService.getReport(causer);
+  }
+
+  @Get('cashier-daily-report')
+  @ApiOperation({
+    summary: "Get the current cashier's daily report (today, self, itemized by product)",
+  })
+  @ApiOkResponse({ description: 'Cashier daily report.', type: CashierDailyReportResponseDto })
+  getCashierDailyReport(@CurrentUser() causer: User): Promise<CashierDailyReportResponseDto> {
+    return this.cashierDailyReportService.getReport(causer);
   }
 }

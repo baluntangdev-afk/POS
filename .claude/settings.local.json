@@ -326,7 +326,18 @@
       "PowerShell(Start-Process powershell -Verb RunAs -Wait -ArgumentList '-NoProfile','-Command','Stop-Service -Name POSBackendService -Force')",
       "Bash(curl -s http://localhost:3000/api/v1/health/live)",
       "PowerShell(net stop *)",
-      "PowerShell(Start-Process powershell -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\Jufiel\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Jufiel-Documents-POS\\\\52bf5b80-5833-4168-9f27-181fbf2b2a93\\\\scratchpad\\\\restart-backend.ps1\"' -Wait)"
+      "PowerShell(Start-Process powershell -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\Jufiel\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Jufiel-Documents-POS\\\\52bf5b80-5833-4168-9f27-181fbf2b2a93\\\\scratchpad\\\\restart-backend.ps1\"' -Wait)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/api/v1/health --max-time 5)",
+      "Bash(curl *)",
+      "Bash(wmic process *)",
+      "PowerShell(Stop-Process *)",
+      "PowerShell(sc.exe stop POSBackendService)",
+      "Bash(C:\\\\nssm\\\\nssm.exe stop *)",
+      "Bash(psql -h localhost -p 5432 -U postgres -d pos_db -c \"SELECT id, user_id, email, first_name, last_name, role, status FROM users;\")",
+      "Bash(powershell -Command \"Test-NetConnection -ComputerName localhost -Port 5432 -InformationLevel Quiet\" 2>&1)",
+      "Bash(powershell -Command \"Test-NetConnection -ComputerName localhost -Port 3000 -InformationLevel Quiet\" 2>&1)",
+      "Bash(xargs -I{} basename {})",
+      "PowerShell(npx jest --testPathPattern=src/reports/mapper/cashier-daily-report.mapper.spec.ts 2>$null)"
     ]
   }
 }

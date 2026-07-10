@@ -5,6 +5,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../features/auth/entities/auth.dart';
 import '../features/auth/view/login_screen.dart';
 import '../features/auth/view/setup_pin_screen.dart';
+import '../features/cashier_report/view/cashier_daily_report_screen.dart';
+import '../features/cashier_report/view/cashier_report_preview_screen.dart';
 import '../features/catalog/view/catalog_screen.dart';
 import '../features/menu/view/menu_screen.dart';
 import '../features/onboarding/view/onboarding_screen.dart';
@@ -20,6 +22,8 @@ import '../features/sales/view/transactions_screen.dart';
 import '../features/startup/startup_screen.dart';
 import '../features/users/view/user_management_screen.dart';
 
+part 'cashier_daily_report_route.dart';
+part 'cashier_report_route.dart';
 part 'catalog_route.dart';
 part 'login_route.dart';
 part 'menu_route.dart';

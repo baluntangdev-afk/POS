@@ -10,7 +10,7 @@ import { toDecimalNumber } from '../../utils/calculation.helper';
 const DEFAULT_TAX_CATEGORY_NAME = '12% VAT';
 
 /** Discount names that imply VAT exemption (e.g. Senior Citizen / PWD). */
-const VAT_EXEMPT_DISCOUNT_NAME_PATTERNS = 'Senior Citizen / PWD';
+export const VAT_EXEMPT_DISCOUNT_NAME_PATTERNS = 'Senior Citizen / PWD';
 
 /**
  * All numeric formulas for sales orders: subtotal, discount, tax, order totals.

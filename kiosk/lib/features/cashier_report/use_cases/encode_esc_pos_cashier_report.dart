@@ -67,7 +67,7 @@ class EncodeEscPosCashierReport {
         styles: const PosStyles(align: PosAlign.left),
       );
       bytes += generator.text(
-        'Business Date: ${report.businessDate}',
+        'Period: ${_periodLabel(report.periodStart, report.periodEnd)}',
         styles: const PosStyles(align: PosAlign.left),
       );
       bytes += generator.text(
@@ -87,12 +87,18 @@ class EncodeEscPosCashierReport {
         final nameUpper = ledger.name.toUpperCase();
         final timeFormat = DateFormat.jm();
         bytes += _sectionHeader(generator, '$nameUpper LEDGER');
-        for (final entry in ledger.entries) {
-          final label =
-              '${timeFormat.format(entry.time.toLocal())}  $nameUpper'
-                      '${entry.reference != null ? '#${entry.reference}' : ''}'
-                  .replaceAll(RegExp(r'\s'), ' ');
-          bytes += _amountRow(generator, label, entry.amount);
+        for (final group in ledger.entriesByDate) {
+          bytes += generator.text(
+            DateFormat.yMd().format(group.date),
+            styles: const PosStyles(bold: true),
+          );
+          for (final entry in group.entries) {
+            final label =
+                '${timeFormat.format(entry.time.toLocal())}  $nameUpper'
+                        '${entry.reference != null ? '#${entry.reference}' : ''}'
+                    .replaceAll(RegExp(r'\s'), ' ');
+            bytes += _amountRow(generator, label, entry.amount);
+          }
         }
         bytes += _amountRow(generator, 'Total $nameUpper [${ledger.count}]', ledger.total, bold: true);
         bytes += _divider(generator);
@@ -161,5 +167,12 @@ class EncodeEscPosCashierReport {
       PosColumn(text: label, width: 8),
       PosColumn(text: '$value', width: 4, styles: const PosStyles(align: PosAlign.right)),
     ]);
+  }
+
+  String _periodLabel(DateTime? start, DateTime? end) {
+    if (start == null || end == null) return 'No transactions yet';
+    final format = DateFormat.yMd().add_jm();
+    return '${format.format(start.toLocal())} - ${format.format(end.toLocal())}'
+        .replaceAll(RegExp(r'\s'), ' ');
   }
 }

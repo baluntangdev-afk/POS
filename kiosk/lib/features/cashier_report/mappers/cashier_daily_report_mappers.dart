@@ -13,9 +13,11 @@ extension CashLedgerEntryDTOMapper on CashLedgerEntryDto {
 
 extension CashierDailyReportDTOMapper on CashierDailyReportDto {
   CashierDailyReport get toEntity => CashierDailyReport(
+    id: id,
     cashierName: cashierName,
     terminalName: terminalName,
-    businessDate: businessDate,
+    periodStart: periodStart != null ? DateTime.parse(periodStart!) : null,
+    periodEnd: periodEnd != null ? DateTime.parse(periodEnd!) : null,
     reportGeneratedAt: DateTime.parse(reportGeneratedAt),
     grossSales: grossSales,
     vatableSales: vatableSales,
@@ -29,5 +31,16 @@ extension CashierDailyReportDTOMapper on CashierDailyReportDto {
     cashSalesCount: cashSalesCount,
     salesByProduct: salesByProduct.map((e) => e.toEntity).toList(),
     cashLedger: cashLedger.map((e) => e.toEntity).toList(),
+  );
+}
+
+extension CashierDailyReportHistoryItemDTOMapper on CashierDailyReportHistoryItemDto {
+  CashierDailyReportHistoryItem get toEntity => CashierDailyReportHistoryItem(
+    id: id,
+    periodStart: periodStart != null ? DateTime.parse(periodStart!) : null,
+    periodEnd: periodEnd != null ? DateTime.parse(periodEnd!) : null,
+    generatedAt: DateTime.parse(generatedAt),
+    grossSales: grossSales,
+    transactionCount: transactionCount,
   );
 }

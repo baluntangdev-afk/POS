@@ -9,3 +9,15 @@ class CashierReportRoute extends GoRouteData with $CashierReportRoute {
     return const CashierReportPreviewScreen();
   }
 }
+
+@TypedGoRoute<CashierReportHistoryDetailRoute>(path: '/cashier-report/history/:id')
+class CashierReportHistoryDetailRoute extends GoRouteData with $CashierReportHistoryDetailRoute {
+  const CashierReportHistoryDetailRoute(this.id);
+
+  final String id;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return CashierReportPreviewScreen(historyId: id);
+  }
+}

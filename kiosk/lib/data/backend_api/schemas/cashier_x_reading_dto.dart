@@ -37,9 +37,11 @@ class PaymentLedgerDto with PaymentLedgerDtoMappable {
 @MappableClass()
 class CashierXReadingDto with CashierXReadingDtoMappable {
   const CashierXReadingDto({
+    this.id,
     required this.cashierName,
     required this.terminalName,
-    required this.businessDate,
+    required this.periodStart,
+    required this.periodEnd,
     required this.reportGeneratedAt,
     required this.salesByPaymentMethod,
     required this.paymentLedgers,
@@ -60,9 +62,11 @@ class CashierXReadingDto with CashierXReadingDtoMappable {
     required this.totalQuantitySold,
   });
 
+  final String? id;
   final String cashierName;
   final String terminalName;
-  final String businessDate;
+  final String? periodStart;
+  final String? periodEnd;
   final String reportGeneratedAt;
   final List<NameAmountDto> salesByPaymentMethod;
   final List<PaymentLedgerDto> paymentLedgers;
@@ -83,4 +87,25 @@ class CashierXReadingDto with CashierXReadingDtoMappable {
   final int totalQuantitySold;
 
   static const fromJson = CashierXReadingDtoMapper.fromJson;
+}
+
+@MappableClass()
+class CashierXReadingHistoryItemDto with CashierXReadingHistoryItemDtoMappable {
+  const CashierXReadingHistoryItemDto({
+    required this.id,
+    required this.periodStart,
+    required this.periodEnd,
+    required this.generatedAt,
+    required this.totalSales,
+    required this.completedTransactions,
+  });
+
+  final String id;
+  final String? periodStart;
+  final String? periodEnd;
+  final String generatedAt;
+  final double totalSales;
+  final int completedTransactions;
+
+  static const fromJson = CashierXReadingHistoryItemDtoMapper.fromJson;
 }

@@ -1,5 +1,8 @@
 import { User } from '../../users/entities/user.entity';
-import { CashierDailyReportMapper, CashierDailyReportRawInputs } from './cashier-daily-report.mapper';
+import {
+  CashierDailyReportMapper,
+  CashierDailyReportRawInputs,
+} from './cashier-daily-report.mapper';
 
 function makeUser(): User {
   const user = new User();
@@ -9,10 +12,17 @@ function makeUser(): User {
   return user;
 }
 
-function makeRaw(overrides: Partial<CashierDailyReportRawInputs> = {}): CashierDailyReportRawInputs {
+function makeRaw(
+  overrides: Partial<CashierDailyReportRawInputs> = {},
+): CashierDailyReportRawInputs {
   return {
     currentUser: makeUser(),
-    salesTotals: { totalSales: '10839.00', completedTransactions: '73' },
+    salesTotals: {
+      totalSales: '10839.00',
+      completedTransactions: '73',
+      periodStart: new Date('2026-07-10T20:15:00.000Z'),
+      periodEnd: new Date('2026-07-11T03:02:00.000Z'),
+    },
     tax: { vatSales: '9677.69', vatAmount: '1161.31' },
     vatExempt: { vatExemptSales: null },
     quantity: { totalQuantitySold: '106' },
@@ -34,11 +44,23 @@ function makeRaw(overrides: Partial<CashierDailyReportRawInputs> = {}): CashierD
 }
 
 describe('CashierDailyReportMapper', () => {
+  it('defaults id to null when not provided', () => {
+    const dto = CashierDailyReportMapper.toDto(makeRaw());
+    expect(dto.id).toBeNull();
+  });
+
+  it('carries the given id through when provided (closed/history report)', () => {
+    const dto = CashierDailyReportMapper.toDto(makeRaw(), 'report-id-123');
+    expect(dto.id).toBe('report-id-123');
+  });
+
   it('maps raw rows into the response DTO', () => {
     const dto = CashierDailyReportMapper.toDto(makeRaw());
 
     expect(dto.cashierName).toBe('Kayesha Mae Cabigas');
     expect(dto.terminalName).toBe('T/M#0003');
+    expect(dto.periodStart).toBe('2026-07-10T20:15:00.000Z');
+    expect(dto.periodEnd).toBe('2026-07-11T03:02:00.000Z');
     expect(dto.grossSales).toBe(10839);
     expect(dto.vatableSales).toBe(9677.69);
     expect(dto.vatAmount).toBe(1161.31);
@@ -81,6 +103,8 @@ describe('CashierDailyReportMapper', () => {
       }),
     );
 
+    expect(dto.periodStart).toBeNull();
+    expect(dto.periodEnd).toBeNull();
     expect(dto.grossSales).toBe(0);
     expect(dto.vatableSales).toBe(0);
     expect(dto.vatAmount).toBe(0);

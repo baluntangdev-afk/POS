@@ -8,6 +8,7 @@ import '../api_clients.dart';
 import '../schemas/cashier_daily_report_dto.dart';
 import '../schemas/cashier_x_reading_dto.dart';
 import '../schemas/exportable_report_dto.dart';
+import '../schemas/paginated_response_dto.dart';
 import '../schemas/sales_data_item_dto.dart';
 import '../schemas/sales_report_type_dto.dart';
 import '../schemas/sales_summary_dto.dart';
@@ -132,6 +133,58 @@ class ReportsApi {
 
   Future<CashierDailyReportDto> getCashierDailyReport() async {
     final response = await _httpClient.get<dynamic>('/api/v1/reports/cashier-daily-report');
+    return CashierDailyReportDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<CashierXReadingDto> closeCashierXReading() async {
+    final response = await _httpClient.post<dynamic>('/api/v1/reports/cashier-x-reading/close');
+    return CashierXReadingDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<PaginatedResponseDto<CashierXReadingHistoryItemDto>> getCashierXReadingHistory({
+    required int page,
+    required int limit,
+  }) async {
+    final response = await _httpClient.get<dynamic>(
+      '/api/v1/reports/cashier-x-reading/history',
+      queryParameters: {'page': page, 'limit': limit},
+    );
+    CashierXReadingHistoryItemDtoMapper.ensureInitialized();
+    return PaginatedResponseDtoMapper.fromJson<CashierXReadingHistoryItemDto>(
+      jsonEncode(response.data),
+    );
+  }
+
+  Future<CashierXReadingDto> getCashierXReadingHistoryDetail(String id) async {
+    final response = await _httpClient.get<dynamic>(
+      '/api/v1/reports/cashier-x-reading/history/$id',
+    );
+    return CashierXReadingDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<CashierDailyReportDto> closeCashierDailyReport() async {
+    final response = await _httpClient.post<dynamic>('/api/v1/reports/cashier-daily-report/close');
+    return CashierDailyReportDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<PaginatedResponseDto<CashierDailyReportHistoryItemDto>> getCashierDailyReportHistory({
+    required int page,
+    required int limit,
+  }) async {
+    final response = await _httpClient.get<dynamic>(
+      '/api/v1/reports/cashier-daily-report/history',
+      queryParameters: {'page': page, 'limit': limit},
+    );
+    CashierDailyReportHistoryItemDtoMapper.ensureInitialized();
+    return PaginatedResponseDtoMapper.fromJson<CashierDailyReportHistoryItemDto>(
+      jsonEncode(response.data),
+    );
+  }
+
+  Future<CashierDailyReportDto> getCashierDailyReportHistoryDetail(String id) async {
+    final response = await _httpClient.get<dynamic>(
+      '/api/v1/reports/cashier-daily-report/history/$id',
+    );
     return CashierDailyReportDto.fromJson(jsonEncode(response.data));
   }
 }

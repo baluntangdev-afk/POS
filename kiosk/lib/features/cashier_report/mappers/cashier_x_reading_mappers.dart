@@ -21,9 +21,11 @@ extension PaymentLedgerDTOMapper on PaymentLedgerDto {
 
 extension CashierXReadingDTOMapper on CashierXReadingDto {
   CashierXReading get toEntity => CashierXReading(
+    id: id,
     cashierName: cashierName,
     terminalName: terminalName,
-    businessDate: businessDate,
+    periodStart: periodStart != null ? DateTime.parse(periodStart!) : null,
+    periodEnd: periodEnd != null ? DateTime.parse(periodEnd!) : null,
     reportGeneratedAt: DateTime.parse(reportGeneratedAt),
     salesByPaymentMethod: salesByPaymentMethod.map((e) => e.toEntity).toList(),
     paymentLedgers: paymentLedgers.map((e) => e.toEntity).toList(),
@@ -42,5 +44,16 @@ extension CashierXReadingDTOMapper on CashierXReadingDto {
     highestSale: highestSale,
     lowestSale: lowestSale,
     totalQuantitySold: totalQuantitySold,
+  );
+}
+
+extension CashierXReadingHistoryItemDTOMapper on CashierXReadingHistoryItemDto {
+  CashierXReadingHistoryItem get toEntity => CashierXReadingHistoryItem(
+    id: id,
+    periodStart: periodStart != null ? DateTime.parse(periodStart!) : null,
+    periodEnd: periodEnd != null ? DateTime.parse(periodEnd!) : null,
+    generatedAt: DateTime.parse(generatedAt),
+    totalSales: totalSales,
+    completedTransactions: completedTransactions,
   );
 }

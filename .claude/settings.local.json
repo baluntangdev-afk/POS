@@ -340,7 +340,18 @@
       "PowerShell(npx jest --testPathPattern=src/reports/mapper/cashier-daily-report.mapper.spec.ts 2>$null)",
       "Bash(grep -Ei 'log$|^query$|seed-export|new-.*-seed')",
       "Bash(PORT=3010 npm run start:dev)",
-      "Bash(echo \"started with pid $!\")"
+      "Bash(echo \"started with pid $!\")",
+      "Bash(npx typeorm-ts-node-commonjs *)",
+      "PowerShell(Start-Process powershell -Verb RunAs -ArgumentList '-NoProfile -Command Stop-Service -Name POSBackendService -Force' -Wait)",
+      "Bash(kill %1)",
+      "Bash(jobs -l)",
+      "Bash(awk '{print $5}')",
+      "Bash(PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d pos_db -c \"select id, username, first_name, last_name, role from users where username ilike '%cashier1%' or first_name ilike '%cashier%';\")",
+      "PowerShell(Start-Process powershell -Verb RunAs -ArgumentList '-NoExit', '-ExecutionPolicy', 'Bypass', '-File', 'C:\\\\Users\\\\Jufiel\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Jufiel-Documents-POS\\\\75e9b571-0d80-45bc-8045-2ecf980d9716\\\\scratchpad\\\\start-dev-elevated.ps1')",
+      "Bash(find kiosk/lib/features/reports -type f)",
+      "Bash(find kiosk/lib/features/cashier_report -type f)",
+      "Bash(grep -v -E '^be/installer/installer\\\\.iss$|^be/src/reports/dto/cashier-daily-report-response\\\\.dto\\\\.ts$|^be/src/reports/dto/cashier-x-reading-response\\\\.dto\\\\.ts$|^be/src/reports/mapper/cashier-daily-report\\\\.mapper\\\\.spec\\\\.ts$|^be/src/reports/mapper/cashier-daily-report\\\\.mapper\\\\.ts$|^be/src/reports/mapper/cashier-x-reading-report\\\\.mapper\\\\.ts$|^be/src/reports/reports\\\\.interface\\\\.ts$|^be/src/reports/services/cashier-daily-report\\\\.service\\\\.ts$|^be/src/reports/services/cashier-x-reading-report\\\\.service\\\\.ts$|^be/src/database/migrations-index\\\\.ts$' /tmp/modified_be.txt)",
+      "Bash(npx kill-port *)"
     ]
   }
 }

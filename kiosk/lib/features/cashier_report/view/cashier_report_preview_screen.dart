@@ -11,15 +11,24 @@ import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/cashier_x_reading.dart';
+import '../state/cashier_report_history_notifier.dart';
 import '../state/cashier_x_reading_notifier.dart';
 import 'report_preview_widgets.dart';
 
 class CashierReportPreviewScreen extends ConsumerWidget {
-  const CashierReportPreviewScreen({super.key});
+  const CashierReportPreviewScreen({super.key, this.historyId});
+
+  /// When set, shows a previously closed X-Reading from history (read-only, Reprint only)
+  /// instead of the live in-progress preview.
+  final String? historyId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(cashierXReadingNotifierProvider);
+    final historyId = this.historyId;
+    final state =
+        historyId != null
+            ? ref.watch(cashierXReadingHistoryDetailProvider(historyId))
+            : ref.watch(cashierXReadingNotifierProvider);
 
     final body = Column(
       children: [
@@ -30,11 +39,14 @@ class CashierReportPreviewScreen extends ConsumerWidget {
             error:
                 (error, _) => ReportErrorView(
                   message: 'Failed to load X-Reading',
-                  onRetry: () => ref.read(cashierXReadingNotifierProvider.notifier).load(),
+                  onRetry:
+                      historyId != null
+                          ? () => ref.invalidate(cashierXReadingHistoryDetailProvider(historyId))
+                          : () => ref.read(cashierXReadingNotifierProvider.notifier).load(),
                 ),
             data: (report) {
               if (report == null) return const SizedBox.shrink();
-              return _ReportPreview(report: report);
+              return _ReportPreview(report: report, isHistory: historyId != null);
             },
           ),
         ),
@@ -46,9 +58,10 @@ class CashierReportPreviewScreen extends ConsumerWidget {
 }
 
 class _ReportPreview extends ConsumerWidget {
-  const _ReportPreview({required this.report});
+  const _ReportPreview({required this.report, required this.isHistory});
 
   final CashierXReading report;
+  final bool isHistory;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -77,7 +90,7 @@ class _ReportPreview extends ConsumerWidget {
               const ReportDashedDivider(),
               const Gap(6),
               ReportKeyValueRow('Cashier', report.cashierName),
-              ReportKeyValueRow('Business Date', report.businessDate),
+              ReportPeriodRow(formatReportPeriod(report.periodStart, report.periodEnd)),
               ReportKeyValueRow(
                 'Generated',
                 DateFormat.yMd().add_jm().format(report.reportGeneratedAt.toLocal()),
@@ -142,7 +155,7 @@ class _ReportPreview extends ConsumerWidget {
             r.value<double>(kiosk: 48, tablet: 32, phone: 20),
             r.value<double>(kiosk: 24, tablet: 20, phone: 16),
           ),
-          child: const _PrintButton(),
+          child: isHistory ? _ReprintButton(report: report) : const _PrintButton(),
         ),
       ],
     );
@@ -162,12 +175,15 @@ class _LedgerSection extends StatelessWidget {
     return ReportSection(
       title: '$nameUpper LEDGER',
       rows: [
-        for (final entry in ledger.entries)
-          ReportAmountRow(
-            '${timeFormat.format(entry.time.toLocal())}  $nameUpper'
-            '${entry.reference != null ? '#${entry.reference}' : ''}',
-            entry.amount,
-          ),
+        for (final group in ledger.entriesByDate) ...[
+          ReportDateGroupHeader(group.date),
+          for (final entry in group.entries)
+            ReportAmountRow(
+              '${timeFormat.format(entry.time.toLocal())}  $nameUpper'
+              '${entry.reference != null ? '#${entry.reference}' : ''}',
+              entry.amount,
+            ),
+        ],
         ReportAmountRow('Total $nameUpper [${ledger.count}]', ledger.total, bold: true),
       ],
     );
@@ -176,6 +192,58 @@ class _LedgerSection extends StatelessWidget {
 
 class _PrintButton extends ConsumerWidget {
   const _PrintButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final r = context.responsive;
+    final printAction = CashierXReadingNotifier.printAction;
+    final printStatus = ref.watch(printAction);
+    final isPending = printStatus is MutationPending;
+    final hasTransactions = ref.watch(
+      cashierXReadingNotifierProvider.select((it) => it.value?.periodStart != null),
+    );
+
+    ref.listen(printAction, (prev, next) {
+      if (next case MutationError(:final error)) {
+        showNetworkErrorDialog(context, error: error);
+      }
+    });
+
+    return SizedBox(
+      width: double.infinity,
+      height: r.value<double>(kiosk: 56, tablet: 50, phone: 44),
+      child: FilledButton.icon(
+        onPressed:
+            isPending || !hasTransactions
+                ? null
+                : () {
+                  printAction.run(ref, (txn) {
+                    return txn.get(cashierXReadingNotifierProvider.notifier).print();
+                  }).ignore();
+                },
+        icon:
+            isPending
+                ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+                : const Icon(Icons.print_rounded),
+        label: Text(isPending ? 'Printing...' : 'Print X-Reading'),
+        style: FilledButton.styleFrom(
+          backgroundColor: ColorSet.primary,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.full)),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReprintButton extends ConsumerWidget {
+  const _ReprintButton({required this.report});
+
+  final CashierXReading report;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -199,7 +267,7 @@ class _PrintButton extends ConsumerWidget {
                 ? null
                 : () {
                   printAction.run(ref, (txn) {
-                    return txn.get(cashierXReadingNotifierProvider.notifier).print();
+                    return txn.get(cashierXReadingNotifierProvider.notifier).reprint(report);
                   }).ignore();
                 },
         icon:
@@ -210,7 +278,7 @@ class _PrintButton extends ConsumerWidget {
                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 )
                 : const Icon(Icons.print_rounded),
-        label: Text(isPending ? 'Printing...' : 'Print X-Reading'),
+        label: Text(isPending ? 'Printing...' : 'Reprint X-Reading'),
         style: FilledButton.styleFrom(
           backgroundColor: ColorSet.primary,
           foregroundColor: Colors.white,

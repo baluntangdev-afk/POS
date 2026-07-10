@@ -1,4 +1,3 @@
-import dayjs from 'dayjs';
 import { User } from '../../users/entities/user.entity';
 import { toDecimalNumber } from '../../utils/calculation.helper';
 import {
@@ -6,7 +5,6 @@ import {
   NameAmountDto,
   PaymentLedgerDto,
 } from '../dto/cashier-x-reading-response.dto';
-import { DATE_FORMAT } from '../reports.constants';
 import type {
   CashierPaymentLedgerRawRow,
   CashierQuantityRawRow,
@@ -37,7 +35,10 @@ export interface CashierXReadingRawInputs {
  * All money/count fields default to 0 when the underlying query returned no rows.
  */
 export class CashierXReadingReportMapper {
-  static toDto(raw: CashierXReadingRawInputs): CashierXReadingResponseDto {
+  static toDto(
+    raw: CashierXReadingRawInputs,
+    id: string | null = null,
+  ): CashierXReadingResponseDto {
     const { currentUser } = raw;
     const cashierName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
     const terminalName =
@@ -52,9 +53,11 @@ export class CashierXReadingReportMapper {
     const cashCollected = salesByPaymentMethod.find((row) => row.name === 'Cash')?.amount ?? 0;
 
     return {
+      id,
       cashierName,
       terminalName,
-      businessDate: dayjs().format(DATE_FORMAT),
+      periodStart: toIsoOrNull(raw.salesTotals?.periodStart),
+      periodEnd: toIsoOrNull(raw.salesTotals?.periodEnd),
       reportGeneratedAt: new Date().toISOString(),
       salesByPaymentMethod,
       paymentLedgers,
@@ -102,4 +105,8 @@ function toPaymentLedgers(rows: CashierPaymentLedgerRawRow[]): PaymentLedgerDto[
   }
 
   return Array.from(ledgersByName.values()).sort((a, b) => b.total - a.total);
+}
+
+function toIsoOrNull(value: Date | string | null | undefined): string | null {
+  return value ? new Date(value).toISOString() : null;
 }

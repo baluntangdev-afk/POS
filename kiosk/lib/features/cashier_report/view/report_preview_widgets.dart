@@ -1,6 +1,7 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:intl/intl.dart';
 
 import '../../../data/backend_api/schemas/pos_terminal_dto.dart';
 import '../../../gen/assets.gen.dart';
@@ -55,7 +56,9 @@ class ReportStoreHeader extends StatelessWidget {
         Assets.images.cartivoLogo.image(height: r.value<double>(kiosk: 32, tablet: 28, phone: 24)),
         Gap(r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
         Text(
-          terminal.legalName?.trim().isNotEmpty ?? false ? terminal.legalName!.trim() : 'POS Terminal',
+          terminal.legalName?.trim().isNotEmpty ?? false
+              ? terminal.legalName!.trim()
+              : 'POS Terminal',
           textAlign: TextAlign.center,
           style: style,
         ),
@@ -107,6 +110,32 @@ class ReportSection extends StatelessWidget {
   }
 }
 
+/// Small bold date label used to separate ledger entries grouped by calendar date.
+class ReportDateGroupHeader extends StatelessWidget {
+  const ReportDateGroupHeader(this.date, {super.key});
+
+  final DateTime date;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.responsive;
+    return Padding(
+      padding: const EdgeInsets.only(top: 2, bottom: 1),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          DateFormat.yMd().format(date),
+          style: TextStyle(
+            fontSize: r.value<double>(kiosk: 12, tablet: 12, phone: 11),
+            fontWeight: FontWeight.w700,
+            color: POSColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Label/value row where the value is arbitrary text.
 class ReportKeyValueRow extends StatelessWidget {
   const ReportKeyValueRow(this.label, this.value, {super.key});
@@ -123,6 +152,41 @@ class ReportKeyValueRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [Text(label, style: style), Text(value, style: style)],
+      ),
+    );
+  }
+}
+
+const noReportTransactionsYetText = 'No transactions yet';
+
+/// Formats the earliest/latest transaction covered by a report as a single range string,
+/// or a placeholder when the cashier has no unreported transactions yet.
+String formatReportPeriod(DateTime? periodStart, DateTime? periodEnd) {
+  if (periodStart == null || periodEnd == null) return noReportTransactionsYetText;
+  final format = DateFormat.yMd().add_jm();
+  return '${format.format(periodStart.toLocal())} - ${format.format(periodEnd.toLocal())}';
+}
+
+/// Label-above-value row for the report's covered-transaction period, which can be long
+/// enough (spanning two calendar days) to overflow a side-by-side [ReportKeyValueRow].
+class ReportPeriodRow extends StatelessWidget {
+  const ReportPeriodRow(this.value, {super.key});
+
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.responsive;
+    final labelStyle = TextStyle(fontSize: r.value<double>(kiosk: 13, tablet: 13, phone: 12));
+    final valueStyle = labelStyle.copyWith(fontWeight: FontWeight.w600);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: Text('Period', style: labelStyle)),
+          Expanded(child: Text(value, style: valueStyle, textAlign: TextAlign.end)),
+        ],
       ),
     );
   }

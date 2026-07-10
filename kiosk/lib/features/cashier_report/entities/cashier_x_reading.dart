@@ -19,6 +19,13 @@ class PaymentLedgerEntry with PaymentLedgerEntryMappable {
   final double amount;
 }
 
+class PaymentLedgerDateGroup {
+  const PaymentLedgerDateGroup({required this.date, required this.entries});
+
+  final DateTime date;
+  final List<PaymentLedgerEntry> entries;
+}
+
 @MappableClass()
 class PaymentLedger with PaymentLedgerMappable {
   const PaymentLedger({
@@ -32,14 +39,31 @@ class PaymentLedger with PaymentLedgerMappable {
   final double total;
   final int count;
   final List<PaymentLedgerEntry> entries;
+
+  /// Entries bucketed by local calendar date, oldest date first. Entries within each
+  /// bucket keep the ascending order they arrive in from the backend.
+  List<PaymentLedgerDateGroup> get entriesByDate {
+    final groups = <DateTime, List<PaymentLedgerEntry>>{};
+    for (final entry in entries) {
+      final local = entry.time.toLocal();
+      final dateKey = DateTime(local.year, local.month, local.day);
+      groups.putIfAbsent(dateKey, () => []).add(entry);
+    }
+    final sortedDates = groups.keys.toList()..sort();
+    return [
+      for (final date in sortedDates) PaymentLedgerDateGroup(date: date, entries: groups[date]!),
+    ];
+  }
 }
 
 @MappableClass()
 class CashierXReading with CashierXReadingMappable {
   const CashierXReading({
+    this.id,
     required this.cashierName,
     required this.terminalName,
-    required this.businessDate,
+    required this.periodStart,
+    required this.periodEnd,
     required this.reportGeneratedAt,
     required this.salesByPaymentMethod,
     required this.paymentLedgers,
@@ -60,9 +84,11 @@ class CashierXReading with CashierXReadingMappable {
     required this.totalQuantitySold,
   });
 
+  final String? id;
   final String cashierName;
   final String terminalName;
-  final String businessDate;
+  final DateTime? periodStart;
+  final DateTime? periodEnd;
   final DateTime reportGeneratedAt;
   final List<NameAmount> salesByPaymentMethod;
   final List<PaymentLedger> paymentLedgers;
@@ -81,4 +107,23 @@ class CashierXReading with CashierXReadingMappable {
   final double highestSale;
   final double lowestSale;
   final int totalQuantitySold;
+}
+
+@MappableClass()
+class CashierXReadingHistoryItem with CashierXReadingHistoryItemMappable {
+  const CashierXReadingHistoryItem({
+    required this.id,
+    required this.periodStart,
+    required this.periodEnd,
+    required this.generatedAt,
+    required this.totalSales,
+    required this.completedTransactions,
+  });
+
+  final String id;
+  final DateTime? periodStart;
+  final DateTime? periodEnd;
+  final DateTime generatedAt;
+  final double totalSales;
+  final int completedTransactions;
 }

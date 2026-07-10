@@ -27,9 +27,11 @@ class CashLedgerEntryDto with CashLedgerEntryDtoMappable {
 @MappableClass()
 class CashierDailyReportDto with CashierDailyReportDtoMappable {
   const CashierDailyReportDto({
+    this.id,
     required this.cashierName,
     required this.terminalName,
-    required this.businessDate,
+    required this.periodStart,
+    required this.periodEnd,
     required this.reportGeneratedAt,
     required this.grossSales,
     required this.vatableSales,
@@ -45,9 +47,11 @@ class CashierDailyReportDto with CashierDailyReportDtoMappable {
     required this.cashLedger,
   });
 
+  final String? id;
   final String cashierName;
   final String terminalName;
-  final String businessDate;
+  final String? periodStart;
+  final String? periodEnd;
   final String reportGeneratedAt;
   final double grossSales;
   final double vatableSales;
@@ -63,4 +67,25 @@ class CashierDailyReportDto with CashierDailyReportDtoMappable {
   final List<CashLedgerEntryDto> cashLedger;
 
   static const fromJson = CashierDailyReportDtoMapper.fromJson;
+}
+
+@MappableClass()
+class CashierDailyReportHistoryItemDto with CashierDailyReportHistoryItemDtoMappable {
+  const CashierDailyReportHistoryItemDto({
+    required this.id,
+    required this.periodStart,
+    required this.periodEnd,
+    required this.generatedAt,
+    required this.grossSales,
+    required this.transactionCount,
+  });
+
+  final String id;
+  final String? periodStart;
+  final String? periodEnd;
+  final String generatedAt;
+  final double grossSales;
+  final int transactionCount;
+
+  static const fromJson = CashierDailyReportHistoryItemDtoMapper.fromJson;
 }

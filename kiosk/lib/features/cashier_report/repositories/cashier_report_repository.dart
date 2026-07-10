@@ -1,6 +1,8 @@
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../data/backend_api/sources/reports_api.dart';
+import '../../../utils/paginated_data.dart';
 import '../entities/cashier_daily_report.dart';
 import '../entities/cashier_x_reading.dart';
 import '../mappers/cashier_daily_report_mappers.dart';
@@ -10,6 +12,24 @@ abstract class CashierReportRepository {
   Future<CashierXReading> getXReading();
 
   Future<CashierDailyReport> getDailyReport();
+
+  Future<CashierXReading> closeXReading();
+
+  Future<CashierDailyReport> closeDailyReport();
+
+  Future<PaginatedData<CashierXReadingHistoryItem>> getXReadingHistory({
+    required int page,
+    required int limit,
+  });
+
+  Future<PaginatedData<CashierDailyReportHistoryItem>> getDailyReportHistory({
+    required int page,
+    required int limit,
+  });
+
+  Future<CashierXReading> getXReadingHistoryDetail(String id);
+
+  Future<CashierDailyReport> getDailyReportHistoryDetail(String id);
 }
 
 final cashierReportRepositoryProvider = Provider<CashierReportRepository>((ref) {
@@ -31,6 +51,58 @@ class CashierReportRepositoryImpl implements CashierReportRepository {
   @override
   Future<CashierDailyReport> getDailyReport() async {
     final dto = await _reportsApi.getCashierDailyReport();
+    return dto.toEntity;
+  }
+
+  @override
+  Future<CashierXReading> closeXReading() async {
+    final dto = await _reportsApi.closeCashierXReading();
+    return dto.toEntity;
+  }
+
+  @override
+  Future<CashierDailyReport> closeDailyReport() async {
+    final dto = await _reportsApi.closeCashierDailyReport();
+    return dto.toEntity;
+  }
+
+  @override
+  Future<PaginatedData<CashierXReadingHistoryItem>> getXReadingHistory({
+    required int page,
+    required int limit,
+  }) async {
+    final response = await _reportsApi.getCashierXReadingHistory(page: page, limit: limit);
+    return PaginatedData(
+      page: response.page,
+      limit: response.limit,
+      total: response.total,
+      data: response.data.map((dto) => dto.toEntity).toIList(),
+    );
+  }
+
+  @override
+  Future<PaginatedData<CashierDailyReportHistoryItem>> getDailyReportHistory({
+    required int page,
+    required int limit,
+  }) async {
+    final response = await _reportsApi.getCashierDailyReportHistory(page: page, limit: limit);
+    return PaginatedData(
+      page: response.page,
+      limit: response.limit,
+      total: response.total,
+      data: response.data.map((dto) => dto.toEntity).toIList(),
+    );
+  }
+
+  @override
+  Future<CashierXReading> getXReadingHistoryDetail(String id) async {
+    final dto = await _reportsApi.getCashierXReadingHistoryDetail(id);
+    return dto.toEntity;
+  }
+
+  @override
+  Future<CashierDailyReport> getDailyReportHistoryDetail(String id) async {
+    final dto = await _reportsApi.getCashierDailyReportHistoryDetail(id);
     return dto.toEntity;
   }
 }

@@ -16,6 +16,8 @@ import { SalesOrderItem } from './sales-order-item.entity';
 import { SalesOrderDiscount } from './sales-order-discount.entity';
 import { Payment } from '../../payments/entities/payment.entity';
 import { Refund } from '../../refunds/entities/refund.entity';
+import { CashierDailyReport } from '../../reports/entities/cashier-daily-report.entity';
+import { CashierXReading } from '../../reports/entities/cashier-x-reading.entity';
 
 @Entity('sales_orders')
 export class SalesOrder extends UuidIdEntity {
@@ -176,6 +178,14 @@ export class SalesOrder extends UuidIdEntity {
 
   @Column({ name: 'done_x_reading', type: 'boolean', default: false })
   doneXReading: boolean;
+
+  @ManyToOne(() => CashierDailyReport, { nullable: true })
+  @JoinColumn({ name: 'daily_report_id' })
+  dailyReport: CashierDailyReport | null;
+
+  @ManyToOne(() => CashierXReading, { nullable: true })
+  @JoinColumn({ name: 'x_reading_id' })
+  xReading: CashierXReading | null;
 
   @OneToOne(() => Refund, (refund) => refund.originalSalesOrder)
   refund: Refund | null;

@@ -38,9 +38,22 @@ class CashierXReadingNotifier extends Notifier<AsyncValue<CashierXReading?>> {
     }
   }
 
+  /// Closes the current unreported window (persists a snapshot, marks the covered
+  /// transactions as reported) and prints the resulting closed report.
   Future<void> print() async {
     final report = state.value;
-    if (report == null) return;
+    if (report == null || report.periodStart == null) return;
+
+    final repository = ref.read(cashierReportRepositoryProvider);
+    final closed = await repository.closeXReading();
+    state = AsyncValue.data(closed);
+    await printReport(closed);
+  }
+
+  /// Re-prints an already-closed report (from history) without touching the backend.
+  Future<void> reprint(CashierXReading report) => printReport(report);
+
+  Future<void> printReport(CashierXReading report) async {
     if (kIsWeb || !Platform.isWindows) return;
 
     final terminal = await ref.read(posTerminalsApiProvider).getMyTerminal();

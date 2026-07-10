@@ -30,14 +30,32 @@ export class CashLedgerEntryDto {
 }
 
 export class CashierDailyReportResponseDto {
+  @ApiProperty({
+    description: 'Persisted report id; null for a live, not-yet-closed preview',
+    nullable: true,
+    example: '0198f2b1-7c3a-7c3a-8b1a-2f6e9c1d4a10',
+  })
+  id: string | null;
+
   @ApiProperty({ description: 'Cashier full name', example: 'Juan Dela Cruz' })
   cashierName: string;
 
   @ApiProperty({ description: 'Terminal/register name', example: 'POS-01' })
   terminalName: string;
 
-  @ApiProperty({ description: 'Business date (today), formatted MM/DD/YYYY', example: '07/10/2026' })
-  businessDate: string;
+  @ApiProperty({
+    description: 'Earliest unreported transaction in this report, if any (ISO 8601)',
+    nullable: true,
+    example: '2026-07-10T20:15:00.000Z',
+  })
+  periodStart: string | null;
+
+  @ApiProperty({
+    description: 'Latest unreported transaction in this report, if any (ISO 8601)',
+    nullable: true,
+    example: '2026-07-11T03:02:00.000Z',
+  })
+  periodEnd: string | null;
 
   @ApiProperty({
     description: 'Report generation timestamp (ISO 8601)',
@@ -45,7 +63,10 @@ export class CashierDailyReportResponseDto {
   })
   reportGeneratedAt: string;
 
-  @ApiProperty({ description: 'Gross sales, net of refunds, excludes voided orders', example: 10839.0 })
+  @ApiProperty({
+    description: 'Gross sales, net of refunds, excludes voided orders',
+    example: 10839.0,
+  })
   grossSales: number;
 
   @ApiProperty({ description: 'VAT-applicable sales (VAT-exclusive amount)', example: 9677.69 })
@@ -88,4 +109,32 @@ export class CashierDailyReportResponseDto {
     isArray: true,
   })
   cashLedger: CashLedgerEntryDto[];
+}
+
+export class CashierDailyReportHistoryItemDto {
+  @ApiProperty({ description: 'Report id', example: '0198f2b1-7c3a-7c3a-8b1a-2f6e9c1d4a10' })
+  id: string;
+
+  @ApiProperty({
+    description: 'Earliest transaction covered by this report, if any (ISO 8601)',
+    nullable: true,
+    example: '2026-07-10T20:15:00.000Z',
+  })
+  periodStart: string | null;
+
+  @ApiProperty({
+    description: 'Latest transaction covered by this report, if any (ISO 8601)',
+    nullable: true,
+    example: '2026-07-11T03:02:00.000Z',
+  })
+  periodEnd: string | null;
+
+  @ApiProperty({ description: 'When this report was closed/generated (ISO 8601)' })
+  generatedAt: string;
+
+  @ApiProperty({ description: 'Gross sales for this report', example: 10839.0 })
+  grossSales: number;
+
+  @ApiProperty({ description: 'Completed transactions in this report', example: 73 })
+  transactionCount: number;
 }

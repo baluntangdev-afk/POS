@@ -1,4 +1,3 @@
-import dayjs from 'dayjs';
 import { User } from '../../users/entities/user.entity';
 import { toDecimalNumber } from '../../utils/calculation.helper';
 import {
@@ -6,7 +5,6 @@ import {
   CashLedgerEntryDto,
   ProductSalesLineDto,
 } from '../dto/cashier-daily-report-response.dto';
-import { DATE_FORMAT } from '../reports.constants';
 import type {
   CashierCashSalesRawRow,
   CashierPaymentLedgerRawRow,
@@ -35,7 +33,10 @@ export interface CashierDailyReportRawInputs {
  * Zero-rated sales are not tracked by the system and are always reported as 0.
  */
 export class CashierDailyReportMapper {
-  static toDto(raw: CashierDailyReportRawInputs): CashierDailyReportResponseDto {
+  static toDto(
+    raw: CashierDailyReportRawInputs,
+    id: string | null = null,
+  ): CashierDailyReportResponseDto {
     const { currentUser } = raw;
     const cashierName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
     const terminalName =
@@ -45,9 +46,11 @@ export class CashierDailyReportMapper {
     const vatAmount = toDecimalNumber(raw.tax?.vatAmount);
 
     return {
+      id,
       cashierName,
       terminalName,
-      businessDate: dayjs().format(DATE_FORMAT),
+      periodStart: toIsoOrNull(raw.salesTotals?.periodStart),
+      periodEnd: toIsoOrNull(raw.salesTotals?.periodEnd),
       reportGeneratedAt: new Date().toISOString(),
       grossSales,
       vatableSales: toDecimalNumber(raw.tax?.vatSales),
@@ -79,4 +82,8 @@ function toCashLedgerEntryDto(row: CashierPaymentLedgerRawRow): CashLedgerEntryD
     reference: row.transactionReference,
     amount: toDecimalNumber(row.amount),
   };
+}
+
+function toIsoOrNull(value: Date | string | null | undefined): string | null {
+  return value ? new Date(value).toISOString() : null;
 }

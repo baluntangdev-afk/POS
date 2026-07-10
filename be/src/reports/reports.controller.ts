@@ -1,5 +1,8 @@
-import { Body, Controller, Get, Patch, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
+import { PaginatedResponse } from '../utils/pagination/dto';
+import { PaginatedQueryDto } from '../utils/pagination/paginated-query.dto';
+import type { PaginatedResult } from '../utils/pagination/interfaces';
 import { TotalReportService } from './services/total-report.service';
 import { HourlySalesReportService } from './services/hourly-sales-report.service';
 import { DailySalesReportService } from './services/daily-sales-report.service';
@@ -29,7 +32,11 @@ import { CurrentUser } from '../utils/decorators/current-user.decorator';
 import { CashierXReadingReportService } from './services/cashier-x-reading-report.service';
 import { CashierXReadingResponseDto } from './dto/cashier-x-reading-response.dto';
 import { CashierDailyReportService } from './services/cashier-daily-report.service';
-import { CashierDailyReportResponseDto } from './dto/cashier-daily-report-response.dto';
+import {
+  CashierDailyReportHistoryItemDto,
+  CashierDailyReportResponseDto,
+} from './dto/cashier-daily-report-response.dto';
+import { CashierXReadingHistoryItemDto } from './dto/cashier-x-reading-response.dto';
 
 @ApiTags('Reports')
 @Controller('reports')
@@ -158,6 +165,36 @@ export class ReportsController {
     return this.cashierXReadingReportService.getReport(causer);
   }
 
+  @Post('cashier-x-reading/close')
+  @ApiOperation({
+    summary: 'Close the current X Reading window: persists a snapshot and marks the covered '
+      + 'transactions as reported',
+  })
+  @ApiOkResponse({ description: 'Closed X Reading snapshot.', type: CashierXReadingResponseDto })
+  closeCashierXReading(@CurrentUser() causer: User): Promise<CashierXReadingResponseDto> {
+    return this.cashierXReadingReportService.closeReport(causer);
+  }
+
+  @Get('cashier-x-reading/history')
+  @ApiOperation({ summary: "List the current cashier's past closed X Readings" })
+  @ApiOkResponse({ type: PaginatedResponse(CashierXReadingHistoryItemDto) })
+  getCashierXReadingHistory(
+    @CurrentUser() causer: User,
+    @Query() query: PaginatedQueryDto,
+  ): Promise<PaginatedResult<CashierXReadingHistoryItemDto>> {
+    return this.cashierXReadingReportService.getHistory(causer, query);
+  }
+
+  @Get('cashier-x-reading/history/:id')
+  @ApiOperation({ summary: 'Get a past closed X Reading by id' })
+  @ApiOkResponse({ description: 'Closed X Reading snapshot.', type: CashierXReadingResponseDto })
+  getCashierXReadingHistoryDetail(
+    @CurrentUser() causer: User,
+    @Param('id') id: string,
+  ): Promise<CashierXReadingResponseDto> {
+    return this.cashierXReadingReportService.getHistoryDetail(causer, id);
+  }
+
   @Get('cashier-daily-report')
   @ApiOperation({
     summary: "Get the current cashier's daily report (today, self, itemized by product)",
@@ -165,5 +202,35 @@ export class ReportsController {
   @ApiOkResponse({ description: 'Cashier daily report.', type: CashierDailyReportResponseDto })
   getCashierDailyReport(@CurrentUser() causer: User): Promise<CashierDailyReportResponseDto> {
     return this.cashierDailyReportService.getReport(causer);
+  }
+
+  @Post('cashier-daily-report/close')
+  @ApiOperation({
+    summary: 'Close the current daily report window: persists a snapshot and marks the covered '
+      + 'transactions as reported',
+  })
+  @ApiOkResponse({ description: 'Closed cashier daily report.', type: CashierDailyReportResponseDto })
+  closeCashierDailyReport(@CurrentUser() causer: User): Promise<CashierDailyReportResponseDto> {
+    return this.cashierDailyReportService.closeReport(causer);
+  }
+
+  @Get('cashier-daily-report/history')
+  @ApiOperation({ summary: "List the current cashier's past closed daily reports" })
+  @ApiOkResponse({ type: PaginatedResponse(CashierDailyReportHistoryItemDto) })
+  getCashierDailyReportHistory(
+    @CurrentUser() causer: User,
+    @Query() query: PaginatedQueryDto,
+  ): Promise<PaginatedResult<CashierDailyReportHistoryItemDto>> {
+    return this.cashierDailyReportService.getHistory(causer, query);
+  }
+
+  @Get('cashier-daily-report/history/:id')
+  @ApiOperation({ summary: 'Get a past closed cashier daily report by id' })
+  @ApiOkResponse({ description: 'Closed cashier daily report.', type: CashierDailyReportResponseDto })
+  getCashierDailyReportHistoryDetail(
+    @CurrentUser() causer: User,
+    @Param('id') id: string,
+  ): Promise<CashierDailyReportResponseDto> {
+    return this.cashierDailyReportService.getHistoryDetail(causer, id);
   }
 }

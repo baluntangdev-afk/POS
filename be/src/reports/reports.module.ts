@@ -17,10 +17,20 @@ import { SalesOrderItem } from '../sales-orders/entities/sales-order-item.entity
 import { SalesOrderDiscount } from '../sales-orders/entities/sales-order-discount.entity';
 import { Payment } from '../payments/entities/payment.entity';
 import { User } from '../users/entities/user.entity';
+import { CashierDailyReport } from './entities/cashier-daily-report.entity';
+import { CashierXReading } from './entities/cashier-x-reading.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([SalesOrder, SalesOrderItem, SalesOrderDiscount, Payment, User]),
+    TypeOrmModule.forFeature([
+      SalesOrder,
+      SalesOrderItem,
+      SalesOrderDiscount,
+      Payment,
+      User,
+      CashierDailyReport,
+      CashierXReading,
+    ]),
   ],
   controllers: [ReportsController],
   providers: [

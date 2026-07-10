@@ -169,7 +169,13 @@ class _TransactionsHeaderActions extends StatelessWidget {
         alignment: Alignment.centerRight,
         child: const Row(
           mainAxisSize: MainAxisSize.min,
-          children: [_CashierReportButton(), Gap(8), _CashierDailyReportButton()],
+          children: [
+            _CashierReportButton(),
+            Gap(8),
+            _CashierDailyReportButton(),
+            Gap(8),
+            _ReportsButton(),
+          ],
         ),
       ),
     );
@@ -209,6 +215,35 @@ class _CashierDailyReportButton extends ConsumerWidget {
                 ),
         label: Text(
           'Cashier Daily Report',
+          style: TextStyle(fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11)),
+        ),
+        style: FilledButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: ColorSet.primary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.full)),
+          padding: EdgeInsets.symmetric(
+            horizontal: r.value<double>(kiosk: 16, tablet: 14, phone: 10),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReportsButton extends StatelessWidget {
+  const _ReportsButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.responsive;
+
+    return SizedBox(
+      height: r.value<double>(kiosk: 40, tablet: 36, phone: 32),
+      child: FilledButton.icon(
+        onPressed: () => const CashierReportsRoute().push<void>(context),
+        icon: Icon(Icons.history_rounded, size: r.value<double>(kiosk: 18, tablet: 16, phone: 14)),
+        label: Text(
+          'Reports',
           style: TextStyle(fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11)),
         ),
         style: FilledButton.styleFrom(

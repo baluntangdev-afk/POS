@@ -58,10 +58,7 @@ class EncodeEscPosCashierDailyReport {
       );
       bytes += generator.feed(1);
 
-      bytes += generator.row([
-        PosColumn(text: report.terminalName, width: 6),
-        PosColumn(text: report.businessDate, width: 6, styles: const PosStyles(align: PosAlign.right)),
-      ]);
+      bytes += generator.text(report.terminalName);
       bytes += generator.row([
         PosColumn(text: 'CASHIER REPORT', width: 6),
         PosColumn(
@@ -70,6 +67,7 @@ class EncodeEscPosCashierDailyReport {
           styles: const PosStyles(align: PosAlign.right),
         ),
       ]);
+      bytes += generator.text('Period: ${_periodLabel(report.periodStart, report.periodEnd)}');
       bytes += generator.text(
         'Generated: ${DateFormat.yMd().add_jm().format(report.reportGeneratedAt.toLocal()).replaceAll(RegExp(r'\s'), ' ')}',
       );
@@ -110,7 +108,11 @@ class EncodeEscPosCashierDailyReport {
 
       bytes += generator.text('CASH LEDGER', styles: const PosStyles(bold: true));
       final timeFormat = DateFormat.jm();
-      if (report.cashLedgerSummary case final summary?) {
+      for (final summary in report.cashLedgerSummariesByDate) {
+        bytes += generator.text(
+          DateFormat.yMd().format(summary.date),
+          styles: const PosStyles(bold: true),
+        );
         final label =
             '${timeFormat.format(summary.start.toLocal())}'
                     ' - ${timeFormat.format(summary.end.toLocal())}  CASH'
@@ -149,5 +151,12 @@ class EncodeEscPosCashierDailyReport {
       PosColumn(text: label, width: 8),
       PosColumn(text: '$value', width: 4, styles: const PosStyles(align: PosAlign.right)),
     ]);
+  }
+
+  String _periodLabel(DateTime? start, DateTime? end) {
+    if (start == null || end == null) return 'No transactions yet';
+    final format = DateFormat.yMd().add_jm();
+    return '${format.format(start.toLocal())} - ${format.format(end.toLocal())}'
+        .replaceAll(RegExp(r'\s'), ' ');
   }
 }

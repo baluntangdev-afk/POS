@@ -36,19 +36,41 @@ export class PaymentLedgerDto {
   @ApiProperty({ description: 'Number of entries for this payment method', example: 17 })
   count: number;
 
-  @ApiProperty({ description: 'Itemized payments, oldest first', type: PaymentLedgerEntryDto, isArray: true })
+  @ApiProperty({
+    description: 'Itemized payments, oldest first',
+    type: PaymentLedgerEntryDto,
+    isArray: true,
+  })
   entries: PaymentLedgerEntryDto[];
 }
 
 export class CashierXReadingResponseDto {
+  @ApiProperty({
+    description: 'Persisted report id; null for a live, not-yet-closed preview',
+    nullable: true,
+    example: '0198f2b1-7c3a-7c3a-8b1a-2f6e9c1d4a10',
+  })
+  id: string | null;
+
   @ApiProperty({ description: 'Cashier full name', example: 'Juan Dela Cruz' })
   cashierName: string;
 
   @ApiProperty({ description: 'Terminal/register name', example: 'POS-01' })
   terminalName: string;
 
-  @ApiProperty({ description: 'Business date (today), formatted MM/DD/YYYY', example: '07/09/2026' })
-  businessDate: string;
+  @ApiProperty({
+    description: 'Earliest unreported transaction in this report, if any (ISO 8601)',
+    nullable: true,
+    example: '2026-07-10T20:15:00.000Z',
+  })
+  periodStart: string | null;
+
+  @ApiProperty({
+    description: 'Latest unreported transaction in this report, if any (ISO 8601)',
+    nullable: true,
+    example: '2026-07-11T03:02:00.000Z',
+  })
+  periodEnd: string | null;
 
   @ApiProperty({
     description: 'Report generation timestamp (ISO 8601)',
@@ -56,7 +78,11 @@ export class CashierXReadingResponseDto {
   })
   reportGeneratedAt: string;
 
-  @ApiProperty({ description: 'Sales grouped by payment method', type: NameAmountDto, isArray: true })
+  @ApiProperty({
+    description: 'Sales grouped by payment method',
+    type: NameAmountDto,
+    isArray: true,
+  })
   salesByPaymentMethod: NameAmountDto[];
 
   @ApiProperty({
@@ -66,7 +92,10 @@ export class CashierXReadingResponseDto {
   })
   paymentLedgers: PaymentLedgerDto[];
 
-  @ApiProperty({ description: 'Total sales, net of refunds, excludes voided orders', example: 19050.0 })
+  @ApiProperty({
+    description: 'Total sales, net of refunds, excludes voided orders',
+    example: 19050.0,
+  })
   totalSales: number;
 
   @ApiProperty({ description: 'Total transactions (completed + voided)', example: 43 })
@@ -81,7 +110,11 @@ export class CashierXReadingResponseDto {
   @ApiProperty({ description: 'Transactions with at least one refund', example: 1 })
   refundedTransactions: number;
 
-  @ApiProperty({ description: 'Discounts grouped by discount name', type: NameAmountDto, isArray: true })
+  @ApiProperty({
+    description: 'Discounts grouped by discount name',
+    type: NameAmountDto,
+    isArray: true,
+  })
   discounts: NameAmountDto[];
 
   @ApiProperty({ description: 'Total discounts applied', example: 665.0 })
@@ -113,4 +146,32 @@ export class CashierXReadingResponseDto {
 
   @ApiProperty({ description: 'Total quantity of items sold', example: 187 })
   totalQuantitySold: number;
+}
+
+export class CashierXReadingHistoryItemDto {
+  @ApiProperty({ description: 'Report id', example: '0198f2b1-7c3a-7c3a-8b1a-2f6e9c1d4a10' })
+  id: string;
+
+  @ApiProperty({
+    description: 'Earliest transaction covered by this report, if any (ISO 8601)',
+    nullable: true,
+    example: '2026-07-10T20:15:00.000Z',
+  })
+  periodStart: string | null;
+
+  @ApiProperty({
+    description: 'Latest transaction covered by this report, if any (ISO 8601)',
+    nullable: true,
+    example: '2026-07-11T03:02:00.000Z',
+  })
+  periodEnd: string | null;
+
+  @ApiProperty({ description: 'When this report was closed/generated (ISO 8601)' })
+  generatedAt: string;
+
+  @ApiProperty({ description: 'Total sales for this report', example: 19050.0 })
+  totalSales: number;
+
+  @ApiProperty({ description: 'Completed transactions in this report', example: 42 })
+  completedTransactions: number;
 }

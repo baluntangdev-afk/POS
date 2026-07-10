@@ -57,6 +57,8 @@ export interface CashierSalesTotalsRawRow {
   averageSale?: string | number | null;
   highestSale?: string | number | null;
   lowestSale?: string | number | null;
+  periodStart?: Date | string | null;
+  periodEnd?: Date | string | null;
 }
 
 /**

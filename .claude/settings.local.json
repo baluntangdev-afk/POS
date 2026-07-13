@@ -351,7 +351,8 @@
       "Bash(find kiosk/lib/features/reports -type f)",
       "Bash(find kiosk/lib/features/cashier_report -type f)",
       "Bash(grep -v -E '^be/installer/installer\\\\.iss$|^be/src/reports/dto/cashier-daily-report-response\\\\.dto\\\\.ts$|^be/src/reports/dto/cashier-x-reading-response\\\\.dto\\\\.ts$|^be/src/reports/mapper/cashier-daily-report\\\\.mapper\\\\.spec\\\\.ts$|^be/src/reports/mapper/cashier-daily-report\\\\.mapper\\\\.ts$|^be/src/reports/mapper/cashier-x-reading-report\\\\.mapper\\\\.ts$|^be/src/reports/reports\\\\.interface\\\\.ts$|^be/src/reports/services/cashier-daily-report\\\\.service\\\\.ts$|^be/src/reports/services/cashier-x-reading-report\\\\.service\\\\.ts$|^be/src/database/migrations-index\\\\.ts$' /tmp/modified_be.txt)",
-      "Bash(npx kill-port *)"
+      "Bash(npx kill-port *)",
+      "WebSearch"
     ]
   }
 }

@@ -252,6 +252,7 @@ class TextBoxFormField extends HookWidget {
             const SizedBox(height: 4.0),
           ],
           TextFormField(
+            focusNode: focusNode,
             onTap: readOnly ? onTap : null,
             readOnly: readOnly,
             enabled: enabled,

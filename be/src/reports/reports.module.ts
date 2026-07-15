@@ -19,6 +19,9 @@ import { Payment } from '../payments/entities/payment.entity';
 import { User } from '../users/entities/user.entity';
 import { CashierDailyReport } from './entities/cashier-daily-report.entity';
 import { CashierXReading } from './entities/cashier-x-reading.entity';
+import { ZReadingReportService } from './services/z-reading-report.service';
+import { ZReading } from './entities/z-reading.entity';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -30,7 +33,9 @@ import { CashierXReading } from './entities/cashier-x-reading.entity';
       User,
       CashierDailyReport,
       CashierXReading,
+      ZReading,
     ]),
+    UsersModule,
   ],
   controllers: [ReportsController],
   providers: [
@@ -45,6 +50,7 @@ import { CashierXReading } from './entities/cashier-x-reading.entity';
     ExportableReportService,
     CashierXReadingReportService,
     CashierDailyReportService,
+    ZReadingReportService,
   ],
 })
 export class ReportsModule {}

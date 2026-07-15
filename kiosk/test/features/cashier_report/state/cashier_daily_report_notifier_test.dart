@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:pos_app/features/cashier_report/entities/cashier_daily_report.dart';
 import 'package:pos_app/features/cashier_report/entities/cashier_x_reading.dart';
+import 'package:pos_app/features/cashier_report/entities/z_reading.dart';
 import 'package:pos_app/features/cashier_report/repositories/cashier_report_repository.dart';
 import 'package:pos_app/features/cashier_report/state/cashier_daily_report_notifier.dart';
 import 'package:pos_app/utils/paginated_data.dart';
@@ -74,6 +75,22 @@ class _FakeCashierReportRepository implements CashierReportRepository {
   @override
   Future<CashierDailyReport> getDailyReportHistoryDetail(String id) async =>
       throw UnimplementedError();
+
+  @override
+  Future<ZReading> getZReading() async => throw UnimplementedError();
+
+  @override
+  Future<ZReading> closeZReading({required String authorizerId, required String pin}) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<PaginatedData<ZReadingHistoryItem>> getZReadingHistory({
+    required int page,
+    required int limit,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<ZReading> getZReadingHistoryDetail(String id) async => throw UnimplementedError();
 }
 
 class _ThrowingCashierReportRepository implements CashierReportRepository {
@@ -109,6 +126,22 @@ class _ThrowingCashierReportRepository implements CashierReportRepository {
   @override
   Future<CashierDailyReport> getDailyReportHistoryDetail(String id) async =>
       throw UnimplementedError();
+
+  @override
+  Future<ZReading> getZReading() async => throw UnimplementedError();
+
+  @override
+  Future<ZReading> closeZReading({required String authorizerId, required String pin}) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<PaginatedData<ZReadingHistoryItem>> getZReadingHistory({
+    required int page,
+    required int limit,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<ZReading> getZReadingHistoryDetail(String id) async => throw UnimplementedError();
 }
 
 void main() {

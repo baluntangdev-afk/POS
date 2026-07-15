@@ -37,6 +37,9 @@ import {
   CashierDailyReportResponseDto,
 } from './dto/cashier-daily-report-response.dto';
 import { CashierXReadingHistoryItemDto } from './dto/cashier-x-reading-response.dto';
+import { ZReadingReportService } from './services/z-reading-report.service';
+import { ZReadingHistoryItemDto, ZReadingResponseDto } from './dto/z-reading-response.dto';
+import { CloseZReadingDto } from './dto/close-z-reading.dto';
 
 @ApiTags('Reports')
 @Controller('reports')
@@ -53,6 +56,7 @@ export class ReportsController {
     private readonly exportableReportService: ExportableReportService,
     private readonly cashierXReadingReportService: CashierXReadingReportService,
     private readonly cashierDailyReportService: CashierDailyReportService,
+    private readonly zReadingReportService: ZReadingReportService,
   ) {}
 
   @Get()
@@ -167,8 +171,9 @@ export class ReportsController {
 
   @Post('cashier-x-reading/close')
   @ApiOperation({
-    summary: 'Close the current X Reading window: persists a snapshot and marks the covered '
-      + 'transactions as reported',
+    summary:
+      'Close the current X Reading window: persists a snapshot and marks the covered ' +
+      'transactions as reported',
   })
   @ApiOkResponse({ description: 'Closed X Reading snapshot.', type: CashierXReadingResponseDto })
   closeCashierXReading(@CurrentUser() causer: User): Promise<CashierXReadingResponseDto> {
@@ -206,10 +211,14 @@ export class ReportsController {
 
   @Post('cashier-daily-report/close')
   @ApiOperation({
-    summary: 'Close the current daily report window: persists a snapshot and marks the covered '
-      + 'transactions as reported',
+    summary:
+      'Close the current daily report window: persists a snapshot and marks the covered ' +
+      'transactions as reported',
   })
-  @ApiOkResponse({ description: 'Closed cashier daily report.', type: CashierDailyReportResponseDto })
+  @ApiOkResponse({
+    description: 'Closed cashier daily report.',
+    type: CashierDailyReportResponseDto,
+  })
   closeCashierDailyReport(@CurrentUser() causer: User): Promise<CashierDailyReportResponseDto> {
     return this.cashierDailyReportService.closeReport(causer);
   }
@@ -226,11 +235,54 @@ export class ReportsController {
 
   @Get('cashier-daily-report/history/:id')
   @ApiOperation({ summary: 'Get a past closed cashier daily report by id' })
-  @ApiOkResponse({ description: 'Closed cashier daily report.', type: CashierDailyReportResponseDto })
+  @ApiOkResponse({
+    description: 'Closed cashier daily report.',
+    type: CashierDailyReportResponseDto,
+  })
   getCashierDailyReportHistoryDetail(
     @CurrentUser() causer: User,
     @Param('id') id: string,
   ): Promise<CashierDailyReportResponseDto> {
     return this.cashierDailyReportService.getHistoryDetail(causer, id);
+  }
+
+  @Get('z-reading')
+  @ApiOperation({
+    summary: 'Get the store-wide Z-Reading preview (all cashiers, since last Z-Reading close)',
+  })
+  @ApiOkResponse({ description: 'Z-Reading snapshot.', type: ZReadingResponseDto })
+  getZReading(@CurrentUser() causer: User): Promise<ZReadingResponseDto> {
+    return this.zReadingReportService.getReport(causer);
+  }
+
+  @Post('z-reading/close')
+  @ApiOperation({
+    summary:
+      'Close the store-wide Z-Reading window under supervisor/admin PIN authorization: ' +
+      'persists a snapshot, allocates the next Z-counter, and marks the covered transactions ' +
+      'as reported',
+  })
+  @ApiOkResponse({ description: 'Closed Z-Reading snapshot.', type: ZReadingResponseDto })
+  closeZReading(
+    @CurrentUser() causer: User,
+    @Body() body: CloseZReadingDto,
+  ): Promise<ZReadingResponseDto> {
+    return this.zReadingReportService.closeReport(causer, body.authorizerId, body.pin);
+  }
+
+  @Get('z-reading/history')
+  @ApiOperation({ summary: 'List past closed Z-Readings, store-wide' })
+  @ApiOkResponse({ type: PaginatedResponse(ZReadingHistoryItemDto) })
+  getZReadingHistory(
+    @Query() query: PaginatedQueryDto,
+  ): Promise<PaginatedResult<ZReadingHistoryItemDto>> {
+    return this.zReadingReportService.getHistory(query);
+  }
+
+  @Get('z-reading/history/:id')
+  @ApiOperation({ summary: 'Get a past closed Z-Reading by id' })
+  @ApiOkResponse({ description: 'Closed Z-Reading snapshot.', type: ZReadingResponseDto })
+  getZReadingHistoryDetail(@Param('id') id: string): Promise<ZReadingResponseDto> {
+    return this.zReadingReportService.getHistoryDetail(id);
   }
 }

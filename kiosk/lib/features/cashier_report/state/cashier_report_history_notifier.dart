@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../utils/paginated_data.dart';
 import '../entities/cashier_daily_report.dart';
 import '../entities/cashier_x_reading.dart';
+import '../entities/z_reading.dart';
 import '../repositories/cashier_report_repository.dart';
 
 final cashierXReadingHistoryNotifierProvider =
@@ -61,3 +62,32 @@ final cashierDailyReportHistoryDetailProvider = FutureProvider.autoDispose
     .family<CashierDailyReport, String>((ref, id) {
       return ref.watch(cashierReportRepositoryProvider).getDailyReportHistoryDetail(id);
     }, name: 'cashierDailyReportHistoryDetailProvider');
+
+final zReadingHistoryNotifierProvider =
+    AsyncNotifierProvider<ZReadingHistoryNotifier, PaginatedData<ZReadingHistoryItem>>(
+      ZReadingHistoryNotifier.new,
+      name: 'zReadingHistoryNotifierProvider',
+    );
+
+class ZReadingHistoryNotifier extends AsyncNotifier<PaginatedData<ZReadingHistoryItem>> {
+  @override
+  Future<PaginatedData<ZReadingHistoryItem>> build() async {
+    final repository = ref.watch(cashierReportRepositoryProvider);
+    return repository.getZReadingHistory(page: 1, limit: 10);
+  }
+
+  Future<void> getResults({required int page, required int limit}) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final repository = ref.read(cashierReportRepositoryProvider);
+      return repository.getZReadingHistory(page: page, limit: limit);
+    });
+  }
+}
+
+final zReadingHistoryDetailProvider = FutureProvider.autoDispose.family<ZReading, String>((
+  ref,
+  id,
+) {
+  return ref.watch(cashierReportRepositoryProvider).getZReadingHistoryDetail(id);
+}, name: 'zReadingHistoryDetailProvider');

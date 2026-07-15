@@ -8,6 +8,7 @@ import '../features/auth/view/setup_pin_screen.dart';
 import '../features/cashier_report/view/cashier_daily_report_screen.dart';
 import '../features/cashier_report/view/cashier_report_preview_screen.dart';
 import '../features/cashier_report/view/cashier_reports_screen.dart';
+import '../features/cashier_report/view/cashier_z_reading_screen.dart';
 import '../features/catalog/view/catalog_screen.dart';
 import '../features/menu/view/menu_screen.dart';
 import '../features/onboarding/view/onboarding_screen.dart';
@@ -37,6 +38,7 @@ part 'setup_pin_route.dart';
 part 'startup_route.dart';
 part 'transactions_route.dart';
 part 'user_management_route.dart';
+part 'z_reading_route.dart';
 
 final routerProvider = Provider((ref) {
   final router = GoRouter(initialLocation: const StartupRoute().location, routes: $appRoutes);

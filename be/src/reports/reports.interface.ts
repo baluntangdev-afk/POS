@@ -123,3 +123,14 @@ export interface CashierCashSalesRawRow {
   totalCashSales?: string | number | null;
   cashSalesCount?: string | number | null;
 }
+
+/**
+ * Raw row for Z-Reading's per-cashier sales breakdown (supplementary, not part of the
+ * mandatory BIR-style totals).
+ */
+export interface ZReadingCashierBreakdownRawRow {
+  cashierId: number;
+  cashierName: string;
+  transactionCount?: string | number | null;
+  salesTotal?: string | number | null;
+}

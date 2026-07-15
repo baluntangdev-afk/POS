@@ -352,7 +352,19 @@
       "Bash(find kiosk/lib/features/cashier_report -type f)",
       "Bash(grep -v -E '^be/installer/installer\\\\.iss$|^be/src/reports/dto/cashier-daily-report-response\\\\.dto\\\\.ts$|^be/src/reports/dto/cashier-x-reading-response\\\\.dto\\\\.ts$|^be/src/reports/mapper/cashier-daily-report\\\\.mapper\\\\.spec\\\\.ts$|^be/src/reports/mapper/cashier-daily-report\\\\.mapper\\\\.ts$|^be/src/reports/mapper/cashier-x-reading-report\\\\.mapper\\\\.ts$|^be/src/reports/reports\\\\.interface\\\\.ts$|^be/src/reports/services/cashier-daily-report\\\\.service\\\\.ts$|^be/src/reports/services/cashier-x-reading-report\\\\.service\\\\.ts$|^be/src/database/migrations-index\\\\.ts$' /tmp/modified_be.txt)",
       "Bash(npx kill-port *)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(powershell -Command \"Get-Process -Id 2752 | Select-Object Id,ProcessName,Path\")",
+      "Bash(powershell -Command 'Get-Service | Where-Object {$_.Name -like '\\\\''*POS*'\\\\''}')",
+      "Bash(powershell -Command \"Get-Item 'C:\\\\POSKiosk\\\\backend\\\\POSBackend.exe' | Select-Object LastWriteTime; Get-Item 'C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\be\\\\POSBackend.exe' | Select-Object LastWriteTime\")",
+      "Bash(powershell -Command \"Get-Service POSBackendService | Select Status\")",
+      "Bash(powershell -Command \"Get-Process POSBackend -ErrorAction SilentlyContinue | Select Id,StartTime\")",
+      "Bash(powershell -Command \"Get-ChildItem 'C:\\\\POSKiosk\\\\logs' | Sort-Object LastWriteTime -Descending | Select-Object -First 5 Name,LastWriteTime\")",
+      "Bash(powershell -Command \"Get-Content 'C:\\\\POSKiosk\\\\logs\\\\backend-error.log' -Tail 50\")",
+      "Bash(powershell -Command \"Get-Content 'C:\\\\POSKiosk\\\\logs\\\\backend-error.log' -Tail 15\")",
+      "Bash(powershell -Command \"Get-Content 'C:\\\\POSKiosk\\\\logs\\\\backend-output.log' -Tail 20\")",
+      "Bash(powershell -Command \"Get-Content 'C:\\\\POSKiosk\\\\logs\\\\backend-error.log' -Tail 5\")",
+      "Bash(powershell -Command \"Get-Content 'C:\\\\POSKiosk\\\\logs\\\\backend-output.log' | Select-String '29436' | Select-String -Pattern 'Nest application successfully started|listening|Mapped'  | Select-Object -First 5\")",
+      "Bash(powershell -Command \"Get-Content 'C:\\\\POSKiosk\\\\logs\\\\backend-output.log' | Select-String '29436' | Select-String -Pattern 'z-reading'\")"
     ]
   }
 }

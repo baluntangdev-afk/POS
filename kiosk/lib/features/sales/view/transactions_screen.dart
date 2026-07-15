@@ -21,6 +21,7 @@ import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../../cashier_report/state/cashier_daily_report_notifier.dart';
 import '../../cashier_report/state/cashier_x_reading_notifier.dart';
+import '../../cashier_report/state/z_reading_notifier.dart';
 import '../entities/receipt.dart';
 import '../state/receipt_notifier.dart';
 import '../state/transactions_notifier.dart';
@@ -174,6 +175,8 @@ class _TransactionsHeaderActions extends StatelessWidget {
             Gap(8),
             _CashierDailyReportButton(),
             Gap(8),
+            _ZReadingButton(),
+            Gap(8),
             _ReportsButton(),
           ],
         ),
@@ -215,6 +218,54 @@ class _CashierDailyReportButton extends ConsumerWidget {
                 ),
         label: Text(
           'Cashier Daily Report',
+          style: TextStyle(fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11)),
+        ),
+        style: FilledButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: ColorSet.primary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.full)),
+          padding: EdgeInsets.symmetric(
+            horizontal: r.value<double>(kiosk: 16, tablet: 14, phone: 10),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ZReadingButton extends ConsumerWidget {
+  const _ZReadingButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final r = context.responsive;
+    final isLoading = ref.watch(zReadingNotifierProvider.select((it) => it.isLoading));
+
+    return SizedBox(
+      height: r.value<double>(kiosk: 40, tablet: 36, phone: 32),
+      child: FilledButton.icon(
+        onPressed:
+            isLoading
+                ? null
+                : () async {
+                  await ref.read(zReadingNotifierProvider.notifier).load();
+                  if (context.mounted) {
+                    await const ZReadingRoute().push<void>(context);
+                  }
+                },
+        icon:
+            isLoading
+                ? const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: ColorSet.primary),
+                )
+                : Icon(
+                  Icons.lock_clock_rounded,
+                  size: r.value<double>(kiosk: 18, tablet: 16, phone: 14),
+                ),
+        label: Text(
+          'Z-Reading',
           style: TextStyle(fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11)),
         ),
         style: FilledButton.styleFrom(

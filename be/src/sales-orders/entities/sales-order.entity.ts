@@ -18,6 +18,7 @@ import { Payment } from '../../payments/entities/payment.entity';
 import { Refund } from '../../refunds/entities/refund.entity';
 import { CashierDailyReport } from '../../reports/entities/cashier-daily-report.entity';
 import { CashierXReading } from '../../reports/entities/cashier-x-reading.entity';
+import { ZReading } from '../../reports/entities/z-reading.entity';
 
 @Entity('sales_orders')
 export class SalesOrder extends UuidIdEntity {
@@ -178,6 +179,13 @@ export class SalesOrder extends UuidIdEntity {
 
   @Column({ name: 'done_x_reading', type: 'boolean', default: false })
   doneXReading: boolean;
+
+  @Column({ name: 'done_z_reading', type: 'boolean', default: false })
+  doneZReading: boolean;
+
+  @ManyToOne(() => ZReading, { nullable: true })
+  @JoinColumn({ name: 'z_reading_id' })
+  zReading: ZReading | null;
 
   @ManyToOne(() => CashierDailyReport, { nullable: true })
   @JoinColumn({ name: 'daily_report_id' })

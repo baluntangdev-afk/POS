@@ -12,6 +12,7 @@ import '../schemas/paginated_response_dto.dart';
 import '../schemas/sales_data_item_dto.dart';
 import '../schemas/sales_report_type_dto.dart';
 import '../schemas/sales_summary_dto.dart';
+import '../schemas/z_reading_dto.dart';
 
 final reportsApiProvider = Provider<ReportsApi>((ref) {
   final httpClient = ref.watch(secureApiClientProvider);
@@ -186,5 +187,35 @@ class ReportsApi {
       '/api/v1/reports/cashier-daily-report/history/$id',
     );
     return CashierDailyReportDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<ZReadingDto> getZReading() async {
+    final response = await _httpClient.get<dynamic>('/api/v1/reports/z-reading');
+    return ZReadingDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<ZReadingDto> closeZReading({required String authorizerId, required String pin}) async {
+    final response = await _httpClient.post<dynamic>(
+      '/api/v1/reports/z-reading/close',
+      data: {'authorizerId': authorizerId, 'pin': pin},
+    );
+    return ZReadingDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<PaginatedResponseDto<ZReadingHistoryItemDto>> getZReadingHistory({
+    required int page,
+    required int limit,
+  }) async {
+    final response = await _httpClient.get<dynamic>(
+      '/api/v1/reports/z-reading/history',
+      queryParameters: {'page': page, 'limit': limit},
+    );
+    ZReadingHistoryItemDtoMapper.ensureInitialized();
+    return PaginatedResponseDtoMapper.fromJson<ZReadingHistoryItemDto>(jsonEncode(response.data));
+  }
+
+  Future<ZReadingDto> getZReadingHistoryDetail(String id) async {
+    final response = await _httpClient.get<dynamic>('/api/v1/reports/z-reading/history/$id');
+    return ZReadingDto.fromJson(jsonEncode(response.data));
   }
 }

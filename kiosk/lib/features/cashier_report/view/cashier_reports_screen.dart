@@ -14,6 +14,7 @@ import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/cashier_daily_report.dart';
 import '../entities/cashier_x_reading.dart';
+import '../entities/z_reading.dart';
 import '../state/cashier_report_history_notifier.dart';
 import 'report_preview_widgets.dart';
 
@@ -25,7 +26,7 @@ class CashierReportsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final body = DefaultTabController(
-      length: 2,
+      length: 3,
       child: Column(
         children: [
           const TopAppBar(title: 'Reports'),
@@ -36,11 +37,13 @@ class CashierReportsScreen extends StatelessWidget {
               unselectedLabelColor: POSColors.textTertiary,
               indicatorColor: ColorSet.primary,
               labelStyle: TextStyle(fontWeight: FontWeight.w700),
-              tabs: [Tab(text: 'X-Reading'), Tab(text: 'Cashier Daily Report')],
+              tabs: [Tab(text: 'X-Reading'), Tab(text: 'Cashier Daily Report'), Tab(text: 'Z-Reading')],
             ),
           ),
           const Expanded(
-            child: TabBarView(children: [_XReadingHistoryTab(), _DailyReportHistoryTab()]),
+            child: TabBarView(
+              children: [_XReadingHistoryTab(), _DailyReportHistoryTab(), _ZReadingHistoryTab()],
+            ),
           ),
         ],
       ),
@@ -121,6 +124,44 @@ class _DailyReportHistoryTab extends HookConsumerWidget {
             amount: item.grossSales,
             transactionCount: item.transactionCount,
             onTap: () => CashierDailyReportHistoryDetailRoute(item.id).push<void>(context),
+          ),
+    );
+  }
+}
+
+class _ZReadingHistoryTab extends HookConsumerWidget {
+  const _ZReadingHistoryTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final page = useState(1);
+
+    useEffect(() {
+      Future.microtask(() {
+        ref
+            .read(zReadingHistoryNotifierProvider.notifier)
+            .getResults(page: page.value, limit: _historyPageLimit);
+      });
+      return null;
+    }, [page.value]);
+
+    final asyncState = ref.watch(zReadingHistoryNotifierProvider);
+
+    return _HistoryTabBody<ZReadingHistoryItem>(
+      asyncState: asyncState,
+      page: page,
+      emptyMessage: 'No closed Z-Readings yet',
+      onRetry:
+          () => ref
+              .read(zReadingHistoryNotifierProvider.notifier)
+              .getResults(page: page.value, limit: _historyPageLimit),
+      itemBuilder:
+          (item) => _HistoryRow(
+            period: formatReportPeriod(item.periodStart, item.periodEnd),
+            generatedAt: item.generatedAt,
+            amount: item.totalSales,
+            transactionCount: item.completedTransactions,
+            onTap: () => ZReadingHistoryDetailRoute(item.id).push<void>(context),
           ),
     );
   }

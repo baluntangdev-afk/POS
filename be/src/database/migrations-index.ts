@@ -85,6 +85,7 @@ import { FixAdminRole1779584300000 } from './migrations/1779584300000-fix-admin-
 import { ProductsUniqueNamePerGroup1779584400000 } from './migrations/1779584400000-products-unique-name-per-group';
 import { SalesOrdersDoneDailyReportAndXReading1783692405858 } from './migrations/1783692405858-sales-orders-done-daily-report-and-x-reading';
 import { CashierDailyReportsAndXReadings1783702635689 } from './migrations/1783702635689-cashier-daily-reports-and-x-readings';
+import { ZReadings1784000000000 } from './migrations/1784000000000-z-readings';
 
 /**
  * Migration classes for POSBackend.exe --migrate (same as npm run migration:up).
@@ -176,5 +177,6 @@ export const migrations: Array<new () => MigrationInterface> = [
   FixAdminRole1779584300000,
   ProductsUniqueNamePerGroup1779584400000,
   SalesOrdersDoneDailyReportAndXReading1783692405858,
-  CashierDailyReportsAndXReadings1783702635689
+  CashierDailyReportsAndXReadings1783702635689,
+  ZReadings1784000000000
 ];

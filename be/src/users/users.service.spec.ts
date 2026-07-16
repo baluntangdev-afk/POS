@@ -4,12 +4,15 @@ import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { PosTerminal } from '../pos-terminals/entities/pos-terminal.entity';
 import { UserDetailsService } from '../user-details/user-details.service';
+import { BaseStatus } from '../utils/shared-enums';
+import { LOGIN_ROSTER_SELECT } from './dto/login-roster-item.dto';
 
 const mockUserRepo = {
   create: jest.fn(),
   save: jest.fn(),
   update: jest.fn(),
   findOne: jest.fn(),
+  find: jest.fn(),
 };
 
 const mockPosTerminalRepo = {
@@ -73,6 +76,25 @@ describe('UsersService', () => {
       await service.create(dto as never, causer);
 
       expect(mockUserRepo.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('findLoginRoster', () => {
+    it('queries only active, unlocked users and selects roster fields', async () => {
+      mockUserRepo.find.mockResolvedValue([
+        { id: 1, userId: 'USR-001', firstName: 'Jane', middleName: null, lastName: 'Doe', suffix: null, image: null },
+      ]);
+
+      const result = await service.findLoginRoster();
+
+      expect(mockUserRepo.find).toHaveBeenCalledWith({
+        where: { status: BaseStatus.ACTIVE, locked: false },
+        select: LOGIN_ROSTER_SELECT,
+        order: { firstName: 'ASC' },
+      });
+      expect(result).toEqual([
+        { id: 1, userId: 'USR-001', firstName: 'Jane', middleName: null, lastName: 'Doe', suffix: null, image: null },
+      ]);
     });
   });
 });

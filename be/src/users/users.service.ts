@@ -18,6 +18,8 @@ import {
   buildFilterWhere,
 } from '../utils/pagination';
 import { USER_LIST_SELECT } from './dto/user-list-item.dto';
+import { LOGIN_ROSTER_SELECT } from './dto/login-roster-item.dto';
+import { BaseStatus } from '../utils/shared-enums';
 import * as bcrypt from 'bcryptjs';
 import { UserDetailsService } from '../user-details/user-details.service';
 import { EntityHelper } from '../utils/entity.helper';
@@ -121,6 +123,14 @@ export class UsersService {
     return this.userRepository.find({
       where: [{ role: UserRole.ADMIN }, { role: UserRole.SUPERVISOR }],
       select: { id: true, userId: true, firstName: true, lastName: true, role: true },
+      order: { firstName: 'ASC' },
+    });
+  }
+
+  async findLoginRoster() {
+    return this.userRepository.find({
+      where: { status: BaseStatus.ACTIVE, locked: false },
+      select: LOGIN_ROSTER_SELECT,
       order: { firstName: 'ASC' },
     });
   }

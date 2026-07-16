@@ -5,8 +5,8 @@ function makeRaw(overrides: Partial<ZReadingRawInputs> = {}): ZReadingRawInputs 
     terminalName: 'POS-01',
     paymentRows: [{ name: 'Cash', amount: '19050.00' }],
     categoryRows: [
-      { name: 'Beverages', amount: '12000.00' },
-      { name: 'Food', amount: '7050.00' },
+      { name: 'Beverages', amount: '12000.00', quantity: '84' },
+      { name: 'Food', amount: '7050.00', quantity: '35' },
     ],
     discountRows: [{ name: 'Senior Citizen / PWD', amount: '665.00' }],
     salesTotals: {
@@ -86,8 +86,8 @@ describe('ZReadingReportMapper', () => {
     const dto = ZReadingReportMapper.toDto(makeRaw());
 
     expect(dto.salesByCategory).toEqual([
-      { name: 'Beverages', amount: 12000 },
-      { name: 'Food', amount: 7050 },
+      { name: 'Beverages', amount: 12000, quantity: 84 },
+      { name: 'Food', amount: 7050, quantity: 35 },
     ]);
   });
 

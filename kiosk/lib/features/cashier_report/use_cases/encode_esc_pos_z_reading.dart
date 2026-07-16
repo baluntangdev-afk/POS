@@ -104,7 +104,7 @@ class EncodeEscPosZReading {
 
       bytes += _sectionHeader(generator, 'SALES BY CATEGORY');
       for (final row in report.salesByCategory) {
-        bytes += _amountRow(generator, row.name, row.amount);
+        bytes += _amountRow(generator, '${row.name} [${row.quantity}]', row.amount);
       }
       bytes += _divider(generator);
 

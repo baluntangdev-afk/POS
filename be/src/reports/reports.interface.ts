@@ -48,6 +48,15 @@ export interface NameAmountRawRow {
 }
 
 /**
+ * Raw row for Z-Reading's sales-by-category breakdown (name + summed amount + summed quantity).
+ */
+export interface CategorySalesRawRow {
+  name: string;
+  amount?: string | number | null;
+  quantity?: string | number | null;
+}
+
+/**
  * Raw row for cashier X-Reading's order-level aggregates (totals, discounts, completed count, avg/high/low).
  */
 export interface CashierSalesTotalsRawRow {

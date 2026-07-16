@@ -129,7 +129,7 @@ class _ReportPreview extends ConsumerWidget {
                 title: 'SALES BY CATEGORY',
                 rows: [
                   for (final entry in report.salesByCategory)
-                    ReportAmountRow(entry.name, entry.amount),
+                    ReportAmountRow('${entry.name} [${entry.quantity}]', entry.amount),
                 ],
               ),
               ReportSection(

@@ -1,6 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { NameAmountDto } from './cashier-x-reading-response.dto';
 
+export class CategorySalesDto {
+  @ApiProperty({ description: 'Product category (product group) name', example: 'Beverages' })
+  name: string;
+
+  @ApiProperty({ description: 'Sales total for this category', example: 12000.0 })
+  amount: number;
+
+  @ApiProperty({ description: 'Quantity of items sold in this category', example: 84 })
+  quantity: number;
+}
+
 export class ZReadingCashierBreakdownDto {
   @ApiProperty({ description: 'Cashier user id', example: 7 })
   cashierId: number;
@@ -88,10 +99,10 @@ export class ZReadingResponseDto {
 
   @ApiProperty({
     description: 'Sales grouped by product category (product group), store-wide',
-    type: NameAmountDto,
+    type: CategorySalesDto,
     isArray: true,
   })
-  salesByCategory: NameAmountDto[];
+  salesByCategory: CategorySalesDto[];
 
   @ApiProperty({
     description: 'Total sales, net of refunds, excludes voided orders',

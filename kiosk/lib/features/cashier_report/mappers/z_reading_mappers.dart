@@ -2,6 +2,11 @@ import '../../../data/backend_api/schemas/z_reading_dto.dart';
 import '../entities/z_reading.dart';
 import 'cashier_x_reading_mappers.dart';
 
+extension CategorySalesDTOMapper on CategorySalesDto {
+  CategorySales get toEntity =>
+      CategorySales(name: name, amount: amount, quantity: quantity);
+}
+
 extension ZReadingCashierBreakdownDTOMapper on ZReadingCashierBreakdownDto {
   ZReadingCashierBreakdown get toEntity => ZReadingCashierBreakdown(
     cashierId: cashierId,

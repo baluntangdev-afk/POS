@@ -371,7 +371,8 @@
       "Bash(\"/c/Python314/python.exe\" --version)",
       "Bash(/c/Python314/python.exe *)",
       "Bash(powershell -NoProfile -Command \"Get-Process -Id 23112 | Select-Object Id,ProcessName,Path\")",
-      "Bash(powershell -NoProfile -Command \"Get-Process -Id 23112 | Select-Object -ExpandProperty Path; Get-CimInstance Win32_Process -Filter \\\\\"ProcessId=23112\\\\\" | Select-Object CommandLine\")"
+      "Bash(powershell -NoProfile -Command \"Get-Process -Id 23112 | Select-Object -ExpandProperty Path; Get-CimInstance Win32_Process -Filter \\\\\"ProcessId=23112\\\\\" | Select-Object CommandLine\")",
+      "Bash(grep -o '\"salesByCategory\":{[^}]*\"items\":{\"\\\\$ref\":\"[^\"]*\"}[^}]*}')"
     ]
   }
 }

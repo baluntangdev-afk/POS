@@ -1,6 +1,10 @@
 import { toDecimalNumber } from '../../utils/calculation.helper';
 import { NameAmountDto } from '../dto/cashier-x-reading-response.dto';
-import { ZReadingCashierBreakdownDto, ZReadingResponseDto } from '../dto/z-reading-response.dto';
+import {
+  CategorySalesDto,
+  ZReadingCashierBreakdownDto,
+  ZReadingResponseDto,
+} from '../dto/z-reading-response.dto';
 import type {
   CashierQuantityRawRow,
   CashierRefundedRawRow,
@@ -8,6 +12,7 @@ import type {
   CashierTaxRawRow,
   CashierVatExemptRawRow,
   CashierVoidedRawRow,
+  CategorySalesRawRow,
   NameAmountRawRow,
   ZReadingCashierBreakdownRawRow,
 } from '../reports.interface';
@@ -16,7 +21,7 @@ import type {
 export interface ZReadingRawInputs {
   terminalName: string;
   paymentRows: NameAmountRawRow[];
-  categoryRows: NameAmountRawRow[];
+  categoryRows: CategorySalesRawRow[];
   discountRows: NameAmountRawRow[];
   salesTotals: CashierSalesTotalsRawRow | undefined;
   voided: CashierVoidedRawRow | undefined;
@@ -41,7 +46,7 @@ export class ZReadingReportMapper {
     authorizedByName: string | null = null,
   ): ZReadingResponseDto {
     const salesByPaymentMethod = raw.paymentRows.map(toNameAmountDto);
-    const salesByCategory = raw.categoryRows.map(toNameAmountDto);
+    const salesByCategory = raw.categoryRows.map(toCategorySalesDto);
     const discounts = raw.discountRows.map(toNameAmountDto);
 
     const completedTransactions = toDecimalNumber(raw.salesTotals?.completedTransactions, 0);
@@ -82,6 +87,14 @@ export class ZReadingReportMapper {
 
 function toNameAmountDto(row: NameAmountRawRow): NameAmountDto {
   return { name: row.name, amount: toDecimalNumber(row.amount) };
+}
+
+function toCategorySalesDto(row: CategorySalesRawRow): CategorySalesDto {
+  return {
+    name: row.name,
+    amount: toDecimalNumber(row.amount),
+    quantity: toDecimalNumber(row.quantity, 0),
+  };
 }
 
 function toSalesByCashier(rows: ZReadingCashierBreakdownRawRow[]): ZReadingCashierBreakdownDto[] {

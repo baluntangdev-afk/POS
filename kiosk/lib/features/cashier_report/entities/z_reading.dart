@@ -5,6 +5,15 @@ import 'cashier_x_reading.dart';
 part 'z_reading.mapper.dart';
 
 @MappableClass()
+class CategorySales with CategorySalesMappable {
+  const CategorySales({required this.name, required this.amount, required this.quantity});
+
+  final String name;
+  final double amount;
+  final int quantity;
+}
+
+@MappableClass()
 class ZReadingCashierBreakdown with ZReadingCashierBreakdownMappable {
   const ZReadingCashierBreakdown({
     required this.cashierId,
@@ -60,7 +69,7 @@ class ZReading with ZReadingMappable {
   final double beginningBalance;
   final double endingBalance;
   final List<NameAmount> salesByPaymentMethod;
-  final List<NameAmount> salesByCategory;
+  final List<CategorySales> salesByCategory;
   final double totalSales;
   final int totalTransactions;
   final int completedTransactions;

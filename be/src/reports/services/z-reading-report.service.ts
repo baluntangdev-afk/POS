@@ -22,6 +22,7 @@ import type {
   CashierTaxRawRow,
   CashierVatExemptRawRow,
   CashierVoidedRawRow,
+  CategorySalesRawRow,
   NameAmountRawRow,
   ZReadingCashierBreakdownRawRow,
 } from '../reports.interface';
@@ -219,7 +220,7 @@ export class ZReadingReportService extends BaseReportService<User, ZReadingRespo
   private getSalesByCategory(
     requestTime: Date,
     manager: EntityManager,
-  ): Promise<NameAmountRawRow[]> {
+  ): Promise<CategorySalesRawRow[]> {
     return manager
       .createQueryBuilder(SalesOrderItem, 'soi')
       .innerJoin('soi.salesOrder', 'so')
@@ -228,11 +229,12 @@ export class ZReadingReportService extends BaseReportService<User, ZReadingRespo
       .leftJoin('p.productGroup', 'pg')
       .select(`COALESCE(pg.name, 'Uncategorized')`, 'name')
       .addSelect('SUM(soi.item_total_amount)', 'amount')
+      .addSelect('SUM(soi.qty)', 'quantity')
       .where('so.status IN (:...statusFilter)', { statusFilter: STATUS_FILTER })
       .andWhere('so.done_z_reading = :doneZReading', { doneZReading: false })
       .andWhere('so.so_date <= :requestTime', { requestTime })
       .groupBy(`COALESCE(pg.name, 'Uncategorized')`)
-      .getRawMany<NameAmountRawRow>();
+      .getRawMany<CategorySalesRawRow>();
   }
 
   private getDiscountBreakdown(

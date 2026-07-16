@@ -178,6 +178,7 @@ class SetupPinView extends HookConsumerWidget {
               context,
               message: 'User pin has been updated successfully. Please Login again.',
               type: DialogType.success,
+              barrierDismissible: false,
               onPrimaryPressed: () {
                 const LoginRoute().go(context);
               },

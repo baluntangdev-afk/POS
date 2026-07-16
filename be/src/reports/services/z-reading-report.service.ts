@@ -11,18 +11,28 @@ import { SalesOrderStatus } from '../../sales-orders/sales-orders.enum';
 import { ZReading } from '../entities/z-reading.entity';
 import { VAT_EXEMPT_DISCOUNT_NAME_PATTERNS } from '../../sales-orders/services/sales-order-calculation.service';
 import { STATUS_FILTER } from '../reports.constants';
-import { ZReadingHistoryItemDto, ZReadingResponseDto } from '../dto/z-reading-response.dto';
-import { ZReadingReportMapper, ZReadingRawInputs } from '../mapper/z-reading-report.mapper';
+import { toDecimalNumber } from '../../utils/calculation.helper';
+import {
+  ItemSalesDto,
+  ZReadingHistoryItemDto,
+  ZReadingResponseDto,
+} from '../dto/z-reading-response.dto';
+import {
+  ZReadingReportMapper,
+  ZReadingRawInputs,
+  toPaymentLedgers,
+} from '../mapper/z-reading-report.mapper';
 import { BaseReportService } from './base-report.service';
 import type { PaginatedQueryParams, PaginatedResult } from '../../utils/pagination/interfaces';
 import type {
+  CashierPaymentLedgerRawRow,
   CashierQuantityRawRow,
   CashierRefundedRawRow,
   CashierSalesTotalsRawRow,
   CashierTaxRawRow,
   CashierVatExemptRawRow,
   CashierVoidedRawRow,
-  CategorySalesRawRow,
+  ItemSalesRawRow,
   NameAmountRawRow,
   ZReadingCashierBreakdownRawRow,
 } from '../reports.interface';
@@ -127,7 +137,27 @@ export class ZReadingReportService extends BaseReportService<User, ZReadingRespo
     if (report == null) {
       throw new NotFoundException(`Z-Reading ${id} not found.`);
     }
-    return { ...(report.snapshot as unknown as ZReadingResponseDto), id: report.id };
+    const snapshot = report.snapshot as unknown as ZReadingResponseDto;
+
+    // Snapshots persisted before the item-level breakdown / payment ledgers were introduced
+    // only have `salesByCategory`; reconstruct the missing fields from the covered orders so
+    // older Z-Readings can still show items sold and per-payment-method ledgers.
+    if (!Array.isArray(snapshot.salesByItem)) {
+      const itemRows = await this.getSalesByItemForClosedReport(
+        id,
+        this.salesOrderRepository.manager,
+      );
+      snapshot.salesByItem = itemRows.map(toItemSalesDtoForBackfill);
+    }
+    if (!Array.isArray(snapshot.paymentLedgers)) {
+      const paymentLedgerRows = await this.getPaymentLedgerEntriesForClosedReport(
+        id,
+        this.salesOrderRepository.manager,
+      );
+      snapshot.paymentLedgers = toPaymentLedgers(paymentLedgerRows);
+    }
+
+    return { ...snapshot, id: report.id };
   }
 
   private async computeReport(
@@ -137,7 +167,8 @@ export class ZReadingReportService extends BaseReportService<User, ZReadingRespo
     const [
       latestOrder,
       paymentRows,
-      categoryRows,
+      paymentLedgerRows,
+      itemRows,
       discountRows,
       salesTotals,
       voided,
@@ -155,7 +186,8 @@ export class ZReadingReportService extends BaseReportService<User, ZReadingRespo
         .orderBy('so.created_at', 'DESC')
         .getOne(),
       this.getPaymentBreakdown(requestTime, manager),
-      this.getSalesByCategory(requestTime, manager),
+      this.getPaymentLedgerEntries(requestTime, manager),
+      this.getSalesByItem(requestTime, manager),
       this.getDiscountBreakdown(requestTime, manager),
       this.getSalesTotals(requestTime, manager),
       this.getVoidedCount(requestTime, manager),
@@ -175,7 +207,8 @@ export class ZReadingReportService extends BaseReportService<User, ZReadingRespo
     const raw: ZReadingRawInputs = {
       terminalName,
       paymentRows,
-      categoryRows,
+      paymentLedgerRows,
+      itemRows,
       discountRows,
       salesTotals,
       voided,
@@ -217,24 +250,85 @@ export class ZReadingReportService extends BaseReportService<User, ZReadingRespo
       .getRawMany<NameAmountRawRow>();
   }
 
-  private getSalesByCategory(
+  private getPaymentLedgerEntries(
     requestTime: Date,
     manager: EntityManager,
-  ): Promise<CategorySalesRawRow[]> {
+  ): Promise<CashierPaymentLedgerRawRow[]> {
+    return manager
+      .createQueryBuilder(Payment, 'p')
+      .innerJoin('p.salesOrder', 'so')
+      .select(`COALESCE(p.payment_method_name, p.payment_method::text)`, 'name')
+      .addSelect('p.payment_date', 'paymentDate')
+      .addSelect('p.transaction_reference', 'transactionReference')
+      .addSelect('p.amount_paid - p.change', 'amount')
+      .where('so.status IN (:...statusFilter)', { statusFilter: STATUS_FILTER })
+      .andWhere('so.done_z_reading = :doneZReading', { doneZReading: false })
+      .andWhere('so.so_date <= :requestTime', { requestTime })
+      .orderBy('p.payment_date', 'ASC')
+      .getRawMany<CashierPaymentLedgerRawRow>();
+  }
+
+  /**
+   * Backfills `paymentLedgers` for a closed report whose persisted snapshot predates the
+   * payment-ledger breakdown, by re-deriving it from the orders already tagged with this
+   * report's z_reading_id (set at close time).
+   */
+  private getPaymentLedgerEntriesForClosedReport(
+    reportId: string,
+    manager: EntityManager,
+  ): Promise<CashierPaymentLedgerRawRow[]> {
+    return manager
+      .createQueryBuilder(Payment, 'p')
+      .innerJoin('p.salesOrder', 'so')
+      .select(`COALESCE(p.payment_method_name, p.payment_method::text)`, 'name')
+      .addSelect('p.payment_date', 'paymentDate')
+      .addSelect('p.transaction_reference', 'transactionReference')
+      .addSelect('p.amount_paid - p.change', 'amount')
+      .where('so.status IN (:...statusFilter)', { statusFilter: STATUS_FILTER })
+      .andWhere('so.z_reading_id = :reportId', { reportId })
+      .orderBy('p.payment_date', 'ASC')
+      .getRawMany<CashierPaymentLedgerRawRow>();
+  }
+
+  private getSalesByItem(requestTime: Date, manager: EntityManager): Promise<ItemSalesRawRow[]> {
     return manager
       .createQueryBuilder(SalesOrderItem, 'soi')
       .innerJoin('soi.salesOrder', 'so')
       .leftJoin('soi.productVariant', 'pv')
       .leftJoin('pv.product', 'p')
-      .leftJoin('p.productGroup', 'pg')
-      .select(`COALESCE(pg.name, 'Uncategorized')`, 'name')
+      .select(`COALESCE(p.name, 'Unknown Item')`, 'name')
       .addSelect('SUM(soi.item_total_amount)', 'amount')
       .addSelect('SUM(soi.qty)', 'quantity')
       .where('so.status IN (:...statusFilter)', { statusFilter: STATUS_FILTER })
       .andWhere('so.done_z_reading = :doneZReading', { doneZReading: false })
       .andWhere('so.so_date <= :requestTime', { requestTime })
-      .groupBy(`COALESCE(pg.name, 'Uncategorized')`)
-      .getRawMany<CategorySalesRawRow>();
+      .groupBy(`COALESCE(p.name, 'Unknown Item')`)
+      .orderBy(`COALESCE(p.name, 'Unknown Item')`, 'ASC')
+      .getRawMany<ItemSalesRawRow>();
+  }
+
+  /**
+   * Backfills `salesByItem` for a closed report whose persisted snapshot predates the
+   * item-level breakdown, by re-deriving it from the orders already tagged with this report's
+   * z_reading_id (set at close time).
+   */
+  private getSalesByItemForClosedReport(
+    reportId: string,
+    manager: EntityManager,
+  ): Promise<ItemSalesRawRow[]> {
+    return manager
+      .createQueryBuilder(SalesOrderItem, 'soi')
+      .innerJoin('soi.salesOrder', 'so')
+      .leftJoin('soi.productVariant', 'pv')
+      .leftJoin('pv.product', 'p')
+      .select(`COALESCE(p.name, 'Unknown Item')`, 'name')
+      .addSelect('SUM(soi.item_total_amount)', 'amount')
+      .addSelect('SUM(soi.qty)', 'quantity')
+      .where('so.status IN (:...statusFilter)', { statusFilter: STATUS_FILTER })
+      .andWhere('so.z_reading_id = :reportId', { reportId })
+      .groupBy(`COALESCE(p.name, 'Unknown Item')`)
+      .orderBy(`COALESCE(p.name, 'Unknown Item')`, 'ASC')
+      .getRawMany<ItemSalesRawRow>();
   }
 
   private getDiscountBreakdown(
@@ -382,5 +476,13 @@ function toHistoryItemDto(report: ZReading): ZReadingHistoryItemDto {
     totalSales: snapshot.totalSales,
     endingBalance: parseFloat(report.endingBalance),
     completedTransactions: snapshot.completedTransactions,
+  };
+}
+
+function toItemSalesDtoForBackfill(row: ItemSalesRawRow): ItemSalesDto {
+  return {
+    name: row.name,
+    quantity: toDecimalNumber(row.quantity, 0),
+    amount: toDecimalNumber(row.amount),
   };
 }

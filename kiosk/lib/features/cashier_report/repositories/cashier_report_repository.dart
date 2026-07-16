@@ -36,7 +36,8 @@ abstract class CashierReportRepository {
 
   Future<ZReading> getZReading();
 
-  Future<ZReading> closeZReading({required String authorizerId, required String pin});
+  Future<ZReading> closeZReading(
+      {required String authorizerId, required String pin});
 
   Future<PaginatedData<ZReadingHistoryItem>> getZReadingHistory({
     required int page,
@@ -46,13 +47,15 @@ abstract class CashierReportRepository {
   Future<ZReading> getZReadingHistoryDetail(String id);
 }
 
-final cashierReportRepositoryProvider = Provider<CashierReportRepository>((ref) {
+final cashierReportRepositoryProvider = Provider<CashierReportRepository>((
+    ref) {
   final reportsApi = ref.watch(reportsApiProvider);
   return CashierReportRepositoryImpl(reportsApi: reportsApi);
 });
 
 class CashierReportRepositoryImpl implements CashierReportRepository {
-  CashierReportRepositoryImpl({required ReportsApi reportsApi}) : _reportsApi = reportsApi;
+  CashierReportRepositoryImpl({required ReportsApi reportsApi})
+      : _reportsApi = reportsApi;
 
   final ReportsApi _reportsApi;
 
@@ -85,7 +88,8 @@ class CashierReportRepositoryImpl implements CashierReportRepository {
     required int page,
     required int limit,
   }) async {
-    final response = await _reportsApi.getCashierXReadingHistory(page: page, limit: limit);
+    final response = await _reportsApi.getCashierXReadingHistory(
+        page: page, limit: limit);
     return PaginatedData(
       page: response.page,
       limit: response.limit,
@@ -99,7 +103,8 @@ class CashierReportRepositoryImpl implements CashierReportRepository {
     required int page,
     required int limit,
   }) async {
-    final response = await _reportsApi.getCashierDailyReportHistory(page: page, limit: limit);
+    final response = await _reportsApi.getCashierDailyReportHistory(
+        page: page, limit: limit);
     return PaginatedData(
       page: response.page,
       limit: response.limit,
@@ -127,8 +132,10 @@ class CashierReportRepositoryImpl implements CashierReportRepository {
   }
 
   @override
-  Future<ZReading> closeZReading({required String authorizerId, required String pin}) async {
-    final dto = await _reportsApi.closeZReading(authorizerId: authorizerId, pin: pin);
+  Future<ZReading> closeZReading(
+      {required String authorizerId, required String pin}) async {
+    final dto = await _reportsApi.closeZReading(
+        authorizerId: authorizerId, pin: pin);
     return dto.toEntity;
   }
 
@@ -137,7 +144,8 @@ class CashierReportRepositoryImpl implements CashierReportRepository {
     required int page,
     required int limit,
   }) async {
-    final response = await _reportsApi.getZReadingHistory(page: page, limit: limit);
+    final response = await _reportsApi.getZReadingHistory(
+        page: page, limit: limit);
     return PaginatedData(
       page: response.page,
       limit: response.limit,
@@ -148,7 +156,13 @@ class CashierReportRepositoryImpl implements CashierReportRepository {
 
   @override
   Future<ZReading> getZReadingHistoryDetail(String id) async {
-    final dto = await _reportsApi.getZReadingHistoryDetail(id);
-    return dto.toEntity;
+    try {
+      final dto = await _reportsApi.getZReadingHistoryDetail(id);
+      return dto.toEntity;
+    } catch(e, s) {
+      debugPrint("Test Error ${e} ${s}");
+      throw Exception();
+    }
+
   }
 }

@@ -107,7 +107,7 @@ class _ReportPreview extends ConsumerWidget {
                   ReportAmountRow('Total Sales', report.totalSales, bold: true),
                 ],
               ),
-              for (final ledger in report.paymentLedgers) _LedgerSection(ledger: ledger),
+              for (final ledger in report.paymentLedgers) PaymentLedgerSection(ledger: ledger),
               ReportSection(
                 title: 'TRANSACTION SUMMARY',
                 rows: [
@@ -158,34 +158,6 @@ class _ReportPreview extends ConsumerWidget {
           ),
           child: isHistory ? _ReprintButton(report: report) : const _PrintButton(),
         ),
-      ],
-    );
-  }
-}
-
-class _LedgerSection extends StatelessWidget {
-  const _LedgerSection({required this.ledger});
-
-  final PaymentLedger ledger;
-
-  @override
-  Widget build(BuildContext context) {
-    final nameUpper = ledger.name.toUpperCase();
-    final timeFormat = DateFormat.jm();
-
-    return ReportSection(
-      title: '$nameUpper LEDGER',
-      rows: [
-        for (final group in ledger.entriesByDate) ...[
-          ReportDateGroupHeader(group.date),
-          for (final entry in group.entries)
-            ReportAmountRow(
-              '${timeFormat.format(entry.time.toLocal())}  $nameUpper'
-              '${entry.reference != null ? '#${entry.reference}' : ''}',
-              entry.amount,
-            ),
-        ],
-        ReportAmountRow('Total $nameUpper [${ledger.count}]', ledger.total, bold: true),
       ],
     );
   }

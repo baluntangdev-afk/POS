@@ -9,6 +9,7 @@ import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
+import '../entities/cashier_x_reading.dart';
 
 /// White receipt-style card that hosts a report preview, centered and scrollable.
 class ReportReceiptCard extends StatelessWidget {
@@ -70,37 +71,41 @@ class ReportStoreHeader extends StatelessWidget {
   }
 }
 
-/// Titled group of rows with an optional trailing dashed divider.
+/// Titled group of rows with an optional trailing dashed divider. When [trailingTitle] is
+/// given, the title renders as a two-column table header (e.g. "QTY x PRODUCT" / "AMOUNT")
+/// instead of a single left-aligned label.
 class ReportSection extends StatelessWidget {
   const ReportSection({
     required this.title,
     required this.rows,
+    this.trailingTitle,
     this.showDividerAfter = true,
     super.key,
   });
 
   final String title;
+  final String? trailingTitle;
   final List<Widget> rows;
   final bool showDividerAfter;
 
   @override
   Widget build(BuildContext context) {
     final r = context.responsive;
+    final style = TextStyle(
+      fontSize: r.value<double>(kiosk: 12, tablet: 12, phone: 11),
+      fontWeight: FontWeight.w700,
+      color: ColorSet.primary,
+      letterSpacing: 0.4,
+    );
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: r.value<double>(kiosk: 12, tablet: 12, phone: 11),
-              fontWeight: FontWeight.w700,
-              color: ColorSet.primary,
-              letterSpacing: 0.4,
-            ),
-          ),
-        ),
+        trailingTitle == null
+            ? Align(alignment: Alignment.centerLeft, child: Text(title, style: style))
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [Text(title, style: style), Text(trailingTitle!, style: style)],
+              ),
         const Gap(4),
         ...rows,
         const Gap(6),
@@ -285,6 +290,36 @@ class ReportErrorView extends StatelessWidget {
           OutlinedButton(onPressed: onRetry, child: const Text('Retry')),
         ],
       ),
+    );
+  }
+}
+
+/// Itemized per-payment-method ledger: entries grouped by calendar date, each with a
+/// time/reference label, followed by a bold running total. Shared by X-Reading and Z-Reading.
+class PaymentLedgerSection extends StatelessWidget {
+  const PaymentLedgerSection({required this.ledger, super.key});
+
+  final PaymentLedger ledger;
+
+  @override
+  Widget build(BuildContext context) {
+    final nameUpper = ledger.name.toUpperCase();
+    final timeFormat = DateFormat.jm();
+
+    return ReportSection(
+      title: '$nameUpper LEDGER',
+      rows: [
+        for (final group in ledger.entriesByDate) ...[
+          ReportDateGroupHeader(group.date),
+          for (final entry in group.entries)
+            ReportAmountRow(
+              '${timeFormat.format(entry.time.toLocal())}  $nameUpper'
+              '${entry.reference != null ? '#${entry.reference}' : ''}',
+              entry.amount,
+            ),
+        ],
+        ReportAmountRow('Total $nameUpper [${ledger.count}]', ledger.total, bold: true),
+      ],
     );
   }
 }

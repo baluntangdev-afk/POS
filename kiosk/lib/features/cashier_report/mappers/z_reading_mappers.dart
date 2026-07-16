@@ -2,9 +2,8 @@ import '../../../data/backend_api/schemas/z_reading_dto.dart';
 import '../entities/z_reading.dart';
 import 'cashier_x_reading_mappers.dart';
 
-extension CategorySalesDTOMapper on CategorySalesDto {
-  CategorySales get toEntity =>
-      CategorySales(name: name, amount: amount, quantity: quantity);
+extension ItemSalesDTOMapper on ItemSalesDto {
+  ItemSales get toEntity => ItemSales(name: name, quantity: quantity, amount: amount);
 }
 
 extension ZReadingCashierBreakdownDTOMapper on ZReadingCashierBreakdownDto {
@@ -29,7 +28,8 @@ extension ZReadingDTOMapper on ZReadingDto {
     beginningBalance: beginningBalance,
     endingBalance: endingBalance,
     salesByPaymentMethod: salesByPaymentMethod.map((e) => e.toEntity).toList(),
-    salesByCategory: salesByCategory.map((e) => e.toEntity).toList(),
+    paymentLedgers: paymentLedgers.map((e) => e.toEntity).toList(),
+    salesByItem: salesByItem.map((e) => e.toEntity).toList(),
     totalSales: totalSales,
     totalTransactions: totalTransactions,
     completedTransactions: completedTransactions,

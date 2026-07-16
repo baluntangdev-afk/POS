@@ -5,12 +5,12 @@ import 'cashier_x_reading_dto.dart';
 part 'z_reading_dto.mapper.dart';
 
 @MappableClass()
-class CategorySalesDto with CategorySalesDtoMappable {
-  const CategorySalesDto({required this.name, required this.amount, this.quantity = 0});
+class ItemSalesDto with ItemSalesDtoMappable {
+  const ItemSalesDto({required this.name, this.quantity = 0, required this.amount});
 
   final String name;
-  final double amount;
   final int quantity;
+  final double amount;
 }
 
 @MappableClass()
@@ -42,7 +42,8 @@ class ZReadingDto with ZReadingDtoMappable {
     required this.beginningBalance,
     required this.endingBalance,
     required this.salesByPaymentMethod,
-    required this.salesByCategory,
+    this.paymentLedgers = const [],
+    this.salesByItem = const [],
     required this.totalSales,
     required this.totalTransactions,
     required this.completedTransactions,
@@ -69,7 +70,8 @@ class ZReadingDto with ZReadingDtoMappable {
   final double beginningBalance;
   final double endingBalance;
   final List<NameAmountDto> salesByPaymentMethod;
-  final List<CategorySalesDto> salesByCategory;
+  final List<PaymentLedgerDto> paymentLedgers;
+  final List<ItemSalesDto> salesByItem;
   final double totalSales;
   final int totalTransactions;
   final int completedTransactions;

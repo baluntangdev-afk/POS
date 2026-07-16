@@ -102,9 +102,30 @@ class EncodeEscPosZReading {
       bytes += _amountRow(generator, 'Total Sales', report.totalSales, bold: true);
       bytes += _divider(generator);
 
-      bytes += _sectionHeader(generator, 'SALES BY CATEGORY');
-      for (final row in report.salesByCategory) {
-        bytes += _amountRow(generator, '${row.name} [${row.quantity}]', row.amount);
+      for (final ledger in report.paymentLedgers) {
+        final nameUpper = ledger.name.toUpperCase();
+        final timeFormat = DateFormat.jm();
+        bytes += _sectionHeader(generator, '$nameUpper LEDGER');
+        for (final group in ledger.entriesByDate) {
+          bytes += generator.text(
+            DateFormat.yMd().format(group.date),
+            styles: const PosStyles(bold: true),
+          );
+          for (final entry in group.entries) {
+            final label = sanitizeForPrinter(
+              '${timeFormat.format(entry.time.toLocal())}  $nameUpper'
+              '${entry.reference != null ? '#${entry.reference}' : ''}',
+            );
+            bytes += _amountRow(generator, label, entry.amount);
+          }
+        }
+        bytes += _amountRow(generator, 'Total $nameUpper [${ledger.count}]', ledger.total, bold: true);
+        bytes += _divider(generator);
+      }
+
+      bytes += _twoColumnHeader(generator, 'QTY x PRODUCT', 'AMOUNT');
+      for (final row in report.salesByItem) {
+        bytes += _amountRow(generator, '${row.quantity} ${row.name}', row.amount);
       }
       bytes += _divider(generator);
 
@@ -154,6 +175,17 @@ class EncodeEscPosZReading {
 
   List<int> _sectionHeader(Generator generator, String title) {
     return generator.text(sanitizeForPrinter(title), styles: const PosStyles(bold: true));
+  }
+
+  List<int> _twoColumnHeader(Generator generator, String label, String trailingLabel) {
+    return generator.row([
+      PosColumn(text: sanitizeForPrinter(label), width: 8, styles: const PosStyles(bold: true)),
+      PosColumn(
+        text: sanitizeForPrinter(trailingLabel),
+        width: 4,
+        styles: const PosStyles(align: PosAlign.right, bold: true),
+      ),
+    ]);
   }
 
   List<int> _divider(Generator generator) {

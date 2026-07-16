@@ -373,7 +373,9 @@
       "Bash(powershell -NoProfile -Command \"Get-Process -Id 23112 | Select-Object Id,ProcessName,Path\")",
       "Bash(powershell -NoProfile -Command \"Get-Process -Id 23112 | Select-Object -ExpandProperty Path; Get-CimInstance Win32_Process -Filter \\\\\"ProcessId=23112\\\\\" | Select-Object CommandLine\")",
       "Bash(grep -o '\"salesByCategory\":{[^}]*\"items\":{\"\\\\$ref\":\"[^\"]*\"}[^}]*}')",
-      "Bash(pm2 list *)"
+      "Bash(pm2 list *)",
+      "Bash(sc.exe qc *)",
+      "PowerShell(Start-Process -FilePath \"cmd.exe\" -ArgumentList \"/c net stop POSBackendService\" -Verb RunAs -Wait -WindowStyle Hidden)"
     ]
   }
 }

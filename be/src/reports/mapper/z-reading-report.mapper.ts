@@ -1,18 +1,19 @@
 import { toDecimalNumber } from '../../utils/calculation.helper';
-import { NameAmountDto } from '../dto/cashier-x-reading-response.dto';
+import { NameAmountDto, PaymentLedgerDto } from '../dto/cashier-x-reading-response.dto';
 import {
-  CategorySalesDto,
+  ItemSalesDto,
   ZReadingCashierBreakdownDto,
   ZReadingResponseDto,
 } from '../dto/z-reading-response.dto';
 import type {
+  CashierPaymentLedgerRawRow,
   CashierQuantityRawRow,
   CashierRefundedRawRow,
   CashierSalesTotalsRawRow,
   CashierTaxRawRow,
   CashierVatExemptRawRow,
   CashierVoidedRawRow,
-  CategorySalesRawRow,
+  ItemSalesRawRow,
   NameAmountRawRow,
   ZReadingCashierBreakdownRawRow,
 } from '../reports.interface';
@@ -21,7 +22,8 @@ import type {
 export interface ZReadingRawInputs {
   terminalName: string;
   paymentRows: NameAmountRawRow[];
-  categoryRows: CategorySalesRawRow[];
+  paymentLedgerRows: CashierPaymentLedgerRawRow[];
+  itemRows: ItemSalesRawRow[];
   discountRows: NameAmountRawRow[];
   salesTotals: CashierSalesTotalsRawRow | undefined;
   voided: CashierVoidedRawRow | undefined;
@@ -46,7 +48,8 @@ export class ZReadingReportMapper {
     authorizedByName: string | null = null,
   ): ZReadingResponseDto {
     const salesByPaymentMethod = raw.paymentRows.map(toNameAmountDto);
-    const salesByCategory = raw.categoryRows.map(toCategorySalesDto);
+    const paymentLedgers = toPaymentLedgers(raw.paymentLedgerRows);
+    const salesByItem = raw.itemRows.map(toItemSalesDto);
     const discounts = raw.discountRows.map(toNameAmountDto);
 
     const completedTransactions = toDecimalNumber(raw.salesTotals?.completedTransactions, 0);
@@ -67,7 +70,8 @@ export class ZReadingReportMapper {
       beginningBalance,
       endingBalance: beginningBalance + totalSales,
       salesByPaymentMethod,
-      salesByCategory,
+      paymentLedgers,
+      salesByItem,
       totalSales,
       totalTransactions: completedTransactions + voidedTransactions,
       completedTransactions,
@@ -89,12 +93,35 @@ function toNameAmountDto(row: NameAmountRawRow): NameAmountDto {
   return { name: row.name, amount: toDecimalNumber(row.amount) };
 }
 
-function toCategorySalesDto(row: CategorySalesRawRow): CategorySalesDto {
+function toItemSalesDto(row: ItemSalesRawRow): ItemSalesDto {
   return {
     name: row.name,
-    amount: toDecimalNumber(row.amount),
     quantity: toDecimalNumber(row.quantity, 0),
+    amount: toDecimalNumber(row.amount),
   };
+}
+
+/** Groups itemized payment rows by name into per-method ledgers, sorted by total descending. */
+export function toPaymentLedgers(rows: CashierPaymentLedgerRawRow[]): PaymentLedgerDto[] {
+  const ledgersByName = new Map<string, PaymentLedgerDto>();
+
+  for (const row of rows) {
+    const amount = toDecimalNumber(row.amount);
+    let ledger = ledgersByName.get(row.name);
+    if (ledger == null) {
+      ledger = { name: row.name, total: 0, count: 0, entries: [] };
+      ledgersByName.set(row.name, ledger);
+    }
+    ledger.total += amount;
+    ledger.count += 1;
+    ledger.entries.push({
+      time: new Date(row.paymentDate).toISOString(),
+      reference: row.transactionReference,
+      amount,
+    });
+  }
+
+  return Array.from(ledgersByName.values()).sort((a, b) => b.total - a.total);
 }
 
 function toSalesByCashier(rows: ZReadingCashierBreakdownRawRow[]): ZReadingCashierBreakdownDto[] {

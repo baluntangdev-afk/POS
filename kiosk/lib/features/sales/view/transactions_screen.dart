@@ -165,10 +165,10 @@ class _TransactionsHeaderActions extends StatelessWidget {
 
     return SizedBox(
       width: r.value<double>(kiosk: 450, tablet: 360, phone: 280),
-      child: FittedBox(
+      child: const FittedBox(
         fit: BoxFit.scaleDown,
         alignment: Alignment.centerRight,
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             _CashierReportButton(),
@@ -667,7 +667,7 @@ class _TransactionsTable extends ConsumerWidget {
                         Container(
                           width: 72,
                           height: 72,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: POSColors.surfaceSubtle,
                             shape: BoxShape.circle,
                           ),
@@ -1076,7 +1076,7 @@ class _TransactionsMobileList extends ConsumerWidget {
                 Container(
                   width: 72,
                   height: 72,
-                  decoration: BoxDecoration(color: POSColors.surfaceSubtle, shape: BoxShape.circle),
+                  decoration: const BoxDecoration(color: POSColors.surfaceSubtle, shape: BoxShape.circle),
                   child: const Icon(
                     Icons.receipt_long_outlined,
                     size: 32,

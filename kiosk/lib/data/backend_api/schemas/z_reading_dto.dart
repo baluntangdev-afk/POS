@@ -6,7 +6,7 @@ part 'z_reading_dto.mapper.dart';
 
 @MappableClass()
 class CategorySalesDto with CategorySalesDtoMappable {
-  const CategorySalesDto({required this.name, required this.amount, required this.quantity});
+  const CategorySalesDto({required this.name, required this.amount, this.quantity = 0});
 
   final String name;
   final double amount;

@@ -25,14 +25,14 @@ class CashierReportsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final body = DefaultTabController(
+    const body = DefaultTabController(
       length: 3,
       child: Column(
         children: [
-          const TopAppBar(title: 'Reports'),
-          Container(
+          TopAppBar(title: 'Reports'),
+          ColoredBox(
             color: Colors.white,
-            child: const TabBar(
+            child: TabBar(
               labelColor: ColorSet.primary,
               unselectedLabelColor: POSColors.textTertiary,
               indicatorColor: ColorSet.primary,
@@ -40,7 +40,7 @@ class CashierReportsScreen extends StatelessWidget {
               tabs: [Tab(text: 'X-Reading'), Tab(text: 'Cashier Daily Report'), Tab(text: 'Z-Reading')],
             ),
           ),
-          const Expanded(
+          Expanded(
             child: TabBarView(
               children: [_XReadingHistoryTab(), _DailyReportHistoryTab(), _ZReadingHistoryTab()],
             ),
@@ -49,7 +49,7 @@ class CashierReportsScreen extends StatelessWidget {
       ),
     );
 
-    return WindowsScaffold(backgroundColor: ColorSet.background, body: body);
+    return const WindowsScaffold(backgroundColor: ColorSet.background, body: body);
   }
 }
 

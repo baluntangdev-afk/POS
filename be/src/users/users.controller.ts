@@ -23,6 +23,8 @@ import { UserListItemDto } from './dto/user-list-item.dto';
 import { ApiOkResponse } from '@nestjs/swagger';
 import { InsertUpdateFailedException } from './exceptions/insert-update.filter';
 import { VerifyPinDto } from './dto/verify-pin.dto';
+import { Public } from '../auth/decorators/public.decorator';
+import { LoginRosterItemDto } from './dto/login-roster-item.dto';
 
 @Controller('users')
 export class UsersController {
@@ -46,6 +48,13 @@ export class UsersController {
   @ApiOkResponse({ type: [UserListItemDto] })
   findAuthorizers() {
     return this.usersService.findAuthorizers();
+  }
+
+  @Get('roster')
+  @Public()
+  @ApiOkResponse({ type: [LoginRosterItemDto] })
+  findLoginRoster() {
+    return this.usersService.findLoginRoster();
   }
 
   @Post('verify-pin')

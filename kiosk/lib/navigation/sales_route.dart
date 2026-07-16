@@ -41,13 +41,14 @@ class PaymentRoute extends GoRouteData with $PaymentRoute {
 
 @TypedGoRoute<ReceiptRoute>(path: '/receipt/:receiptId')
 class ReceiptRoute extends GoRouteData with $ReceiptRoute {
-  const ReceiptRoute(this.receiptId);
+  const ReceiptRoute(this.receiptId, {this.autoPrint = false});
 
   final String receiptId;
+  final bool autoPrint;
 
   @override
   Widget build(BuildContext context, GoRouterState state) {
-    return ReceiptScreen(receiptId: receiptId);
+    return ReceiptScreen(receiptId: receiptId, autoPrint: autoPrint);
   }
 }
 @TypedGoRoute<DiscountRoute>(path: '/discount')

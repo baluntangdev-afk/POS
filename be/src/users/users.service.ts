@@ -46,9 +46,7 @@ export class UsersService {
         where: { email },
       });
       if (existingByEmail) {
-        throw new ConflictException(
-          `The email address "${email}" is already in use.`,
-        );
+        throw new ConflictException(`The email address "${email}" is already in use.`);
       }
     }
 
@@ -57,9 +55,7 @@ export class UsersService {
       where: { userId: createUserDto.userId },
     });
     if (existingByUserId) {
-      throw new ConflictException(
-        `The Employee ID "${createUserDto.userId}" is already in use.`,
-      );
+      throw new ConflictException(`The Employee ID "${createUserDto.userId}" is already in use.`);
     }
 
     const salt = await bcrypt.genSalt();
@@ -265,9 +261,7 @@ export class UsersService {
     }
 
     const canAuthorize =
-      user.systemAdmin ||
-      user.role === UserRole.ADMIN ||
-      user.role === UserRole.SUPERVISOR;
+      user.systemAdmin || user.role === UserRole.ADMIN || user.role === UserRole.SUPERVISOR;
 
     if (!canAuthorize) {
       throw new ForbiddenException('Only admins and supervisors can authorize this action');

@@ -373,7 +373,6 @@ class UserFormDialog extends HookConsumerWidget {
             focusNode: phoneFocusNode,
             validator: Validate(
               rules: [
-                isRequired(message: 'Phone number is required.'),
                 isPhone(message: 'Please enter a valid phone number.'),
               ],
             ).call,

@@ -6,12 +6,14 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../api_clients.dart';
 import '../schemas/authorizer_dto.dart';
 import '../schemas/create_user_dto.dart';
+import '../schemas/login_roster_item_dto.dart';
 import '../schemas/user_dto.dart';
 import '../schemas/users_response_dto.dart';
 
 final userApiProvider = Provider<UserApi>((ref) {
   final secureClient = ref.watch(secureApiClientProvider);
-  return UserApi(secureClient);
+  final openClient = ref.watch(openApiClientProvider);
+  return UserApi(secureClient, openClient);
 });
 
 final authorizersProvider = FutureProvider.autoDispose<List<AuthorizerDto>>((ref) {
@@ -19,9 +21,18 @@ final authorizersProvider = FutureProvider.autoDispose<List<AuthorizerDto>>((ref
 });
 
 class UserApi {
-  UserApi(this._secureClient);
+  UserApi(this._secureClient, this._openClient);
 
   final Dio _secureClient;
+  final Dio _openClient;
+
+  Future<List<LoginRosterItemDto>> getLoginRoster() async {
+    final response = await _openClient.get<dynamic>('/api/v1/users/roster');
+    final list = response.data as List<dynamic>;
+    return list
+        .map((item) => LoginRosterItemDto.fromJson(jsonEncode(item as Map<String, dynamic>)))
+        .toList();
+  }
 
   Future<List<AuthorizerDto>> getAuthorizers() async {
     final response = await _secureClient.get<dynamic>('/api/v1/users/authorizers');

@@ -620,7 +620,7 @@ class _ConfirmButton extends ConsumerWidget {
 
     ref.listen(orderingProvider.select((it) => it.whenData((data) => data.receipt)), (_, next) {
       if (next case AsyncData(value: final receipt) when receipt != null) {
-        ReceiptRoute(receipt.id).go(context);
+        ReceiptRoute(receipt.id, autoPrint: true).go(context);
       } else if (next case AsyncError(:final error)) {
         showNetworkErrorDialog(context, error: error);
       }

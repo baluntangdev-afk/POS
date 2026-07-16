@@ -8,12 +8,15 @@ import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
-import '../../../validation/rules/is_required.dart';
 import '../../../widgets/message_dialog.dart';
 import '../../../widgets/pin_indicator.dart';
 import '../../../widgets/pin_pad.dart';
+import '../entities/login_roster_item.dart';
+import '../state/login_roster_notifier.dart';
 import '../state/login_state_notifier.dart';
-import 'username_input.dart';
+import 'user_grid.dart';
+
+enum _LoginStep { selectUser, enterPin }
 
 class LoginView extends HookConsumerWidget {
   const LoginView({super.key, required this.isSmallHeight});
@@ -22,12 +25,17 @@ class LoginView extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final usernameController = useTextEditingController();
+    final step = useState(_LoginStep.selectUser);
+    final selectedUser = useState<LoginRosterItem?>(null);
     final pin = useState('');
     final selectedButton = useState<int?>(null);
-    final usernameError = useState<String?>(null);
     final loginError = useState<String?>(null);
     final isDialogShowing = useRef(false);
+
+    useEffect(() {
+      Future.microtask(() => ref.invalidate(loginRosterProvider));
+      return null;
+    }, const []);
 
     ref.listen(loginStateProvider, (previous, next) {
       if (next.isLoading) {
@@ -73,37 +81,20 @@ class LoginView extends HookConsumerWidget {
       );
     });
 
-    useEffect(() {
-      void listener() {
-        if (usernameController.text.isNotEmpty && usernameError.value != null) {
-          usernameError.value = null;
-        }
-      }
-
-      usernameController.addListener(listener);
-      return () => usernameController.removeListener(listener);
-    }, [usernameController, usernameError.value]);
-
     void attemptLogin() {
-      if (usernameController.text.isNotEmpty && pin.value.length == 6) {
-        ref.read(loginStateProvider.notifier).login(usernameController.text, pin.value);
+      final user = selectedUser.value;
+      if (user != null && pin.value.length == 6) {
+        ref.read(loginStateProvider.notifier).login(user.userId, pin.value);
       }
     }
 
     void onNumberPressed(String number) {
-      final usernameValidationError = isRequired(message: 'Username is required.');
-      if (usernameValidationError(usernameController.text) != null) {
-        usernameError.value = usernameValidationError(usernameController.text);
-        return;
-      }
-
-      usernameError.value = null;
       loginError.value = null;
 
       if (pin.value.length < 6) {
         pin.value += number;
 
-        if (pin.value.length == 6 && usernameController.text.isNotEmpty) {
+        if (pin.value.length == 6) {
           Future.delayed(const Duration(milliseconds: 300), attemptLogin);
         }
       }
@@ -116,55 +107,150 @@ class LoginView extends HookConsumerWidget {
       }
     }
 
+    void selectUser(LoginRosterItem user) {
+      selectedUser.value = user;
+      pin.value = '';
+      loginError.value = null;
+      step.value = _LoginStep.enterPin;
+    }
+
+    void backToUserSelection() {
+      step.value = _LoginStep.selectUser;
+      selectedUser.value = null;
+      pin.value = '';
+      loginError.value = null;
+    }
+
     final hPad = context.responsive.value<double>(phone: 28, tablet: 36, kiosk: 48);
     final vPad = context.responsive.value<double>(phone: 24, tablet: 28, kiosk: 36);
 
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Sign In',
-            style: TextStyle(
-              color: POSColors.textPrimary,
-              fontSize: context.responsive.value<double>(phone: 26, tablet: 30, kiosk: 34),
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.5,
+      child: step.value == _LoginStep.selectUser
+          ? _SelectUserStep(onUserSelected: selectUser)
+          : _EnterPinStep(
+              user: selectedUser.value!,
+              pin: pin.value,
+              loginError: loginError.value,
+              selectedButton: selectedButton,
+              onNumberPressed: onNumberPressed,
+              onBackspace: onBackspace,
+              onConfirm: attemptLogin,
+              onBack: backToUserSelection,
             ),
-            textAlign: TextAlign.center,
+    );
+  }
+}
+
+class _SelectUserStep extends StatelessWidget {
+  const _SelectUserStep({required this.onUserSelected});
+
+  final void Function(LoginRosterItem user) onUserSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          "Who's working?",
+          style: TextStyle(
+            color: POSColors.textPrimary,
+            fontSize: context.responsive.value<double>(phone: 26, tablet: 30, kiosk: 34),
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
           ),
-          const SizedBox(height: 6),
-          Text(
-            'Enter your username and 6-digit PIN',
-            style: TextStyle(
-              color: POSColors.textTertiary,
-              fontSize: context.responsive.value<double>(phone: 13, tablet: 14, kiosk: 15),
-              fontWeight: FontWeight.w400,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Tap your name to continue',
+          style: TextStyle(
+            color: POSColors.textTertiary,
+            fontSize: context.responsive.value<double>(phone: 13, tablet: 14, kiosk: 15),
+            fontWeight: FontWeight.w400,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        Gap(context.responsive.value<double>(phone: 28, tablet: 32, kiosk: 36)),
+        UserGrid(onUserSelected: onUserSelected),
+      ],
+    );
+  }
+}
+
+class _EnterPinStep extends StatelessWidget {
+  const _EnterPinStep({
+    required this.user,
+    required this.pin,
+    required this.loginError,
+    required this.selectedButton,
+    required this.onNumberPressed,
+    required this.onBackspace,
+    required this.onConfirm,
+    required this.onBack,
+  });
+
+  final LoginRosterItem user;
+  final String pin;
+  final String? loginError;
+  final ValueNotifier<int?> selectedButton;
+  final void Function(String) onNumberPressed;
+  final VoidCallback onBackspace;
+  final VoidCallback onConfirm;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            IconButton(
+              onPressed: onBack,
+              icon: const Icon(Icons.arrow_back_rounded, color: POSColors.textPrimary),
             ),
-            textAlign: TextAlign.center,
-          ),
-          Gap(context.responsive.value<double>(phone: 28, tablet: 32, kiosk: 36)),
-          UsernameInput(
-            controller: usernameController,
-            errorText: usernameError.value,
-          ),
-          Gap(context.responsive.value<double>(phone: 24, tablet: 28, kiosk: 32)),
-          _PinSection(pin: pin.value),
-          Gap(context.responsive.value<double>(phone: 24, tablet: 28, kiosk: 32)),
-          PinPad(
-            onNumberPressed: onNumberPressed,
-            onBackspace: onBackspace,
-            onConfirm: attemptLogin,
-            selectedButton: selectedButton,
-          ),
-          if (loginError.value != null) ...[
-            Gap(context.responsive.value<double>(phone: 16, tablet: 18, kiosk: 20)),
-            _ErrorBanner(message: loginError.value!),
+            Expanded(
+              child: Text(
+                'Hi, ${user.firstName}',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: POSColors.textPrimary,
+                  fontSize: context.responsive.value<double>(phone: 22, tablet: 26, kiosk: 30),
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ),
+            const SizedBox(width: 48),
           ],
-          Gap(context.responsive.value<double>(phone: 16, tablet: 20, kiosk: 24)),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Enter your 6-digit PIN',
+          style: TextStyle(
+            color: POSColors.textTertiary,
+            fontSize: context.responsive.value<double>(phone: 13, tablet: 14, kiosk: 15),
+            fontWeight: FontWeight.w400,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        Gap(context.responsive.value<double>(phone: 28, tablet: 32, kiosk: 36)),
+        _PinSection(pin: pin),
+        Gap(context.responsive.value<double>(phone: 24, tablet: 28, kiosk: 32)),
+        PinPad(
+          onNumberPressed: onNumberPressed,
+          onBackspace: onBackspace,
+          onConfirm: onConfirm,
+          selectedButton: selectedButton,
+        ),
+        if (loginError != null) ...[
+          Gap(context.responsive.value<double>(phone: 16, tablet: 18, kiosk: 20)),
+          _ErrorBanner(message: loginError!),
         ],
-      ),
+        Gap(context.responsive.value<double>(phone: 16, tablet: 20, kiosk: 24)),
+      ],
     );
   }
 }

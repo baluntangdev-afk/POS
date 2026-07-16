@@ -364,7 +364,14 @@
       "Bash(powershell -Command \"Get-Content 'C:\\\\POSKiosk\\\\logs\\\\backend-output.log' -Tail 20\")",
       "Bash(powershell -Command \"Get-Content 'C:\\\\POSKiosk\\\\logs\\\\backend-error.log' -Tail 5\")",
       "Bash(powershell -Command \"Get-Content 'C:\\\\POSKiosk\\\\logs\\\\backend-output.log' | Select-String '29436' | Select-String -Pattern 'Nest application successfully started|listening|Mapped'  | Select-Object -First 5\")",
-      "Bash(powershell -Command \"Get-Content 'C:\\\\POSKiosk\\\\logs\\\\backend-output.log' | Select-String '29436' | Select-String -Pattern 'z-reading'\")"
+      "Bash(powershell -Command \"Get-Content 'C:\\\\POSKiosk\\\\logs\\\\backend-output.log' | Select-String '29436' | Select-String -Pattern 'z-reading'\")",
+      "Skill(fewer-permission-prompts)",
+      "Bash(mkdir -p \"C:\\\\Users\\\\Jufiel\\\\AppData\\\\Local\\\\Temp\\\\claude\")",
+      "Bash(cp /tmp/recent_transcripts.txt \"C:\\\\Users\\\\Jufiel\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\recent_transcripts.txt\")",
+      "Bash(\"/c/Python314/python.exe\" --version)",
+      "Bash(/c/Python314/python.exe *)",
+      "Bash(powershell -NoProfile -Command \"Get-Process -Id 23112 | Select-Object Id,ProcessName,Path\")",
+      "Bash(powershell -NoProfile -Command \"Get-Process -Id 23112 | Select-Object -ExpandProperty Path; Get-CimInstance Win32_Process -Filter \\\\\"ProcessId=23112\\\\\" | Select-Object CommandLine\")"
     ]
   }
 }

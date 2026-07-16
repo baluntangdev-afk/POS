@@ -82,7 +82,15 @@ describe('UsersService', () => {
   describe('findLoginRoster', () => {
     it('queries only active, unlocked users and selects roster fields', async () => {
       mockUserRepo.find.mockResolvedValue([
-        { id: 1, userId: 'USR-001', firstName: 'Jane', middleName: null, lastName: 'Doe', suffix: null, image: null },
+        {
+          id: 1,
+          userId: 'USR-001',
+          firstName: 'Jane',
+          middleName: null,
+          lastName: 'Doe',
+          suffix: null,
+          image: null,
+        },
       ]);
 
       const result = await service.findLoginRoster();
@@ -93,7 +101,15 @@ describe('UsersService', () => {
         order: { firstName: 'ASC' },
       });
       expect(result).toEqual([
-        { id: 1, userId: 'USR-001', firstName: 'Jane', middleName: null, lastName: 'Doe', suffix: null, image: null },
+        {
+          id: 1,
+          userId: 'USR-001',
+          firstName: 'Jane',
+          middleName: null,
+          lastName: 'Doe',
+          suffix: null,
+          image: null,
+        },
       ]);
     });
   });

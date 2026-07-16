@@ -1,5 +1,6 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart' hide Store;
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/experimental/mutation.dart';
@@ -28,15 +29,31 @@ import '../state/ordering_notifier.dart';
 import '../state/receipt_notifier.dart';
 import 'void_transaction_dialog.dart';
 
-class ReceiptScreen extends ConsumerWidget {
-  const ReceiptScreen({super.key, required this.receiptId});
+class ReceiptScreen extends HookConsumerWidget {
+  const ReceiptScreen({super.key, required this.receiptId, this.autoPrint = false});
 
   final String receiptId;
+  final bool autoPrint;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAndroid = context.breakpoint.isAndroid;
     final r = context.responsive;
+
+    final autoPrinted = useRef(false);
+    useEffect(() {
+      if (!autoPrint) return null;
+      final sub = ref.listenManual(receiptProvider(receiptId), (previous, next) {
+        if (autoPrinted.value) return;
+        if (next case AsyncData(:final value) when !value.isVoided) {
+          autoPrinted.value = true;
+          ReceiptNotifier.printAction.run(ref, (txn) {
+            return txn.get(receiptProvider(receiptId).notifier).print();
+          }).ignore();
+        }
+      });
+      return sub.close;
+    }, const []);
 
     ref.listen(receiptProvider(receiptId), (previous, next) async {
       if (next case AsyncError(:final error)) {

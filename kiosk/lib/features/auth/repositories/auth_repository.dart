@@ -1,15 +1,19 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../data/backend_api/schemas/login_request_dto.dart';
+import '../../../data/backend_api/schemas/login_roster_item_dto.dart';
 import '../../../data/backend_api/schemas/user_dto.dart';
 import '../../../data/backend_api/sources/auth_api.dart';
 import '../../../data/backend_api/sources/user_api.dart';
 import '../../../data/secure_storage/schemas/auth_doc.dart';
 import '../../../data/secure_storage/sources/auth_storage.dart';
 import '../entities/auth.dart';
+import '../entities/login_roster_item.dart';
 
 abstract class AuthRepository {
   Future<Auth> getCurrent();
+
+  Future<List<LoginRosterItem>> getLoginRoster();
 
   Future<Auth> login(String username, String pin);
 
@@ -50,6 +54,12 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<List<LoginRosterItem>> getLoginRoster() async {
+    final dtos = await _userApi.getLoginRoster();
+    return dtos.map(_rosterItemFromDto).toList();
+  }
+
+  @override
   Future<Auth> login(String username, String pin) async {
     final loginRequest = LoginRequestDto(userId: username, devicePin: pin);
     final loginResponse = await _authApi.login(loginRequest);
@@ -72,6 +82,18 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Auth> changePin(int id, String newPin) async {
     final dto = await _userApi.updatePin(userId: '$id', pin: newPin);
     return _authFromUserDto(dto);
+  }
+
+  LoginRosterItem _rosterItemFromDto(LoginRosterItemDto dto) {
+    return LoginRosterItem(
+      id: dto.id,
+      userId: dto.userId,
+      firstName: dto.firstName,
+      middleName: dto.middleName,
+      lastName: dto.lastName,
+      suffix: dto.suffix == 'None' ? null : dto.suffix,
+      image: dto.image,
+    );
   }
 
   Auth _authFromUserDto(UserDto dto) {

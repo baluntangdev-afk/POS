@@ -375,7 +375,8 @@
       "Bash(grep -o '\"salesByCategory\":{[^}]*\"items\":{\"\\\\$ref\":\"[^\"]*\"}[^}]*}')",
       "Bash(pm2 list *)",
       "Bash(sc.exe qc *)",
-      "PowerShell(Start-Process -FilePath \"cmd.exe\" -ArgumentList \"/c net stop POSBackendService\" -Verb RunAs -Wait -WindowStyle Hidden)"
+      "PowerShell(Start-Process -FilePath \"cmd.exe\" -ArgumentList \"/c net stop POSBackendService\" -Verb RunAs -Wait -WindowStyle Hidden)",
+      "PowerShell(\\(Get-CimInstance -ClassName Win32_BIOS\\).SerialNumber)"
     ]
   }
 }

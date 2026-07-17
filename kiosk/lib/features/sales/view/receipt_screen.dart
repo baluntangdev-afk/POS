@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import '../../../exceptions/exception_extension.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../navigation/router.dart';
+import '../../../services/device/device_serial_number.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
@@ -379,15 +380,17 @@ class _ReceiptPreview extends ConsumerWidget {
 
 // ── Receipt internal widgets (thermal print format — unchanged) ───────────────
 
-class _StoreInfoView extends StatelessWidget {
+class _StoreInfoView extends ConsumerWidget {
   const _StoreInfoView({required this.store});
 
   final Store store;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final Store(:legalName, :addressLine1, :addressLine2, :tin) = store;
     final r = context.responsive;
+    final style = TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12));
+    final serialNumber = ref.watch(deviceSerialNumberProvider).value;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -396,12 +399,10 @@ class _StoreInfoView extends StatelessWidget {
         Text(
           [legalName, addressLine1, addressLine2].join('\n'),
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
+          style: style,
         ),
-        Text(
-          'TIN: $tin',
-          style: TextStyle(fontSize: r.value<double>(kiosk: 14, tablet: 14, phone: 12)),
-        ),
+        Text('TIN: $tin', style: style),
+        if (serialNumber != null) Text('S/N: $serialNumber', style: style),
         Text(
           'Sales Invoice',
           style: TextStyle(

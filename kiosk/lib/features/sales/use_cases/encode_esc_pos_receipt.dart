@@ -1,13 +1,11 @@
 import 'dart:isolate';
+import 'dart:typed_data';
 
 import 'package:decimal/decimal.dart';
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
-import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart';
 
-import '../../../gen/assets.gen.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../utils/printer_text_sanitizer.dart';
 import '../entities/payment.dart';
@@ -19,10 +17,8 @@ final encodeEscPosReceiptProvider = Provider<EncodeEscPosReceipt>((ref) {
 });
 
 class EncodeEscPosReceipt {
-  Future<Uint8List> call({required Receipt receipt}) async {
+  Future<Uint8List> call({required Receipt receipt, String? serialNumber}) async {
     final profile = await CapabilityProfile.load();
-    final logoData = await rootBundle.load(Assets.images.cartivoLogo.path);
-    final logoBytes = logoData.buffer.asUint8List();
 
     return Isolate.run(() async {
       var bytes = <int>[];
@@ -47,14 +43,6 @@ class EncodeEscPosReceipt {
 
       final refundedQuantities = receipt.refundedQuantities;
 
-      // Logo
-      final image = img.decodeImage(logoBytes);
-      if (image != null) {
-        final resized = img.copyResize(image, width: 380);
-        final grayscale = img.grayscale(resized);
-        bytes += generator.image(grayscale);
-      }
-      // Reset after printing the logo to prevent formatting issues with subsequent text
       bytes += generator.reset();
       bytes += generator.feed(1);
 
@@ -78,6 +66,12 @@ class EncodeEscPosReceipt {
         'TIN: ${sanitizeForPrinter(store.tin)}',
         styles: const PosStyles(align: PosAlign.center),
       );
+      if (serialNumber != null) {
+        bytes += generator.text(
+          'S/N: ${sanitizeForPrinter(serialNumber)}',
+          styles: const PosStyles(align: PosAlign.center),
+        );
+      }
       bytes += generator.text(
         'Sales Invoice',
         styles: const PosStyles(

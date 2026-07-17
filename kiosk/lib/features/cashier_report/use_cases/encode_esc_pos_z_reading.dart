@@ -2,13 +2,10 @@ import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
-import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart';
 
 import '../../../data/backend_api/schemas/pos_terminal_dto.dart';
-import '../../../gen/assets.gen.dart';
 import '../../../utils/printer_text_sanitizer.dart';
 import '../entities/z_reading.dart';
 
@@ -19,21 +16,17 @@ final encodeEscPosZReadingProvider = Provider<EncodeEscPosZReading>((ref) {
 class EncodeEscPosZReading {
   static final _moneyFormat = NumberFormat('#,##0.00');
 
-  Future<Uint8List> call({required ZReading report, required PosTerminalDto terminal}) async {
+  Future<Uint8List> call({
+    required ZReading report,
+    required PosTerminalDto terminal,
+    String? serialNumber,
+  }) async {
     final profile = await CapabilityProfile.load();
-    final logoData = await rootBundle.load(Assets.images.cartivoLogo.path);
-    final logoBytes = logoData.buffer.asUint8List();
 
     return Isolate.run(() async {
       var bytes = <int>[];
       final generator = Generator(PaperSize.mm80, profile);
 
-      final logo = img.decodeImage(logoBytes);
-      if (logo != null) {
-        final resized = img.copyResize(logo, width: 380);
-        final grayscale = img.grayscale(resized);
-        bytes += generator.image(grayscale);
-      }
       bytes += generator.reset();
       bytes += generator.feed(1);
 
@@ -53,6 +46,12 @@ class EncodeEscPosZReading {
         'TIN: ${sanitizeForPrinter(terminal.tinNumber)}',
         styles: const PosStyles(align: PosAlign.center),
       );
+      if (serialNumber != null) {
+        bytes += generator.text(
+          'S/N: ${sanitizeForPrinter(serialNumber)}',
+          styles: const PosStyles(align: PosAlign.center),
+        );
+      }
       bytes += generator.feed(1);
 
       bytes += generator.text(

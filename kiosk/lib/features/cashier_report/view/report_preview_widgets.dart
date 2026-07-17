@@ -1,10 +1,12 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../data/backend_api/schemas/pos_terminal_dto.dart';
 import '../../../gen/assets.gen.dart';
+import '../../../services/device/device_serial_number.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
@@ -41,16 +43,18 @@ class ReportReceiptCard extends StatelessWidget {
   }
 }
 
-/// Store identity block (logo, legal name, address, TIN) shown at the top of report previews.
-class ReportStoreHeader extends StatelessWidget {
+/// Store identity block (logo, legal name, address, TIN, device S/N) shown at the top of
+/// report previews.
+class ReportStoreHeader extends ConsumerWidget {
   const ReportStoreHeader({required this.terminal, super.key});
 
   final PosTerminalDto terminal;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final r = context.responsive;
     final style = TextStyle(fontSize: r.value<double>(kiosk: 13, tablet: 13, phone: 12));
+    final serialNumber = ref.watch(deviceSerialNumberProvider).value;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -66,6 +70,8 @@ class ReportStoreHeader extends StatelessWidget {
         Text(terminal.address.trim(), textAlign: TextAlign.center, style: style),
         const Gap(8),
         Text('TIN: ${terminal.tinNumber}', textAlign: TextAlign.center, style: style),
+        if (serialNumber != null)
+          Text('S/N: $serialNumber', textAlign: TextAlign.center, style: style),
       ],
     );
   }

@@ -26,6 +26,11 @@ class OrderingScreen extends HookConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('New Order'),
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+      ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           if (Breakpoints.isTablet(constraints.maxWidth)) {

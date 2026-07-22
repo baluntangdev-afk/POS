@@ -6,6 +6,7 @@ import '../../features/auth/state/auth_providers.dart';
 import '../../features/auth/state/auth_state.dart';
 import '../../features/auth/view/login_screen.dart';
 import '../../features/catalog/view/catalog_screen.dart';
+import '../../features/dashboard/view/dashboard_screen.dart';
 import '../../features/ordering/view/ordering_screen.dart';
 import '../../features/ordering/view/payment_screen.dart';
 import '../../features/ordering/view/receipt_screen.dart';
@@ -15,7 +16,6 @@ import '../../features/settings/view/printer_setup_screen.dart';
 import '../../features/settings/view/settings_screen.dart';
 import '../../features/settings/view/store_info_screen.dart';
 import '../../features/users/view/users_screen.dart';
-import 'adaptive_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -26,7 +26,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isOnLogin = state.matchedLocation == '/login';
 
       if (!isAuthenticated && !isOnLogin) return '/login';
-      if (isAuthenticated && isOnLogin) return '/order';
+      if (isAuthenticated && isOnLogin) return '/dashboard';
       return null;
     },
     refreshListenable: _AuthStateListenable(ref),
@@ -35,54 +35,52 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/login',
         builder: (context, state) => const LoginScreen(),
       ),
-      StatefulShellRoute.indexedStack(
-        builder: (context, state, shell) => AdaptiveShell(navigationShell: shell),
-        branches: [
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/order',
-              builder: (context, state) => const OrderingScreen(),
-              routes: [
-                GoRoute(
-                  path: 'payment',
-                  builder: (context, state) => const PaymentScreen(),
-                ),
-                GoRoute(
-                  path: 'receipt',
-                  builder: (context, state) => const ReceiptScreen(),
-                ),
-              ],
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/reports', builder: (context, state) => const ReportsScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/catalog', builder: (context, state) => const CatalogScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/users', builder: (context, state) => const UsersScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/settings',
-              builder: (context, state) => const SettingsScreen(),
-              routes: [
-                GoRoute(
-                  path: 'csv-import',
-                  builder: (context, state) => const CsvImportScreen(),
-                ),
-                GoRoute(
-                  path: 'store-info',
-                  builder: (context, state) => const StoreInfoScreen(),
-                ),
-                GoRoute(
-                  path: 'printer',
-                  builder: (context, state) => const PrinterSetupScreen(),
-                ),
-              ],
-            ),
-          ]),
+      GoRoute(
+        path: '/dashboard',
+        builder: (context, state) => const DashboardScreen(),
+      ),
+      GoRoute(
+        path: '/order',
+        builder: (context, state) => const OrderingScreen(),
+        routes: [
+          GoRoute(
+            path: 'payment',
+            builder: (context, state) => const PaymentScreen(),
+          ),
+          GoRoute(
+            path: 'receipt',
+            builder: (context, state) => const ReceiptScreen(),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/reports',
+        builder: (context, state) => const ReportsScreen(),
+      ),
+      GoRoute(
+        path: '/catalog',
+        builder: (context, state) => const CatalogScreen(),
+      ),
+      GoRoute(
+        path: '/users',
+        builder: (context, state) => const UsersScreen(),
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsScreen(),
+        routes: [
+          GoRoute(
+            path: 'csv-import',
+            builder: (context, state) => const CsvImportScreen(),
+          ),
+          GoRoute(
+            path: 'store-info',
+            builder: (context, state) => const StoreInfoScreen(),
+          ),
+          GoRoute(
+            path: 'printer',
+            builder: (context, state) => const PrinterSetupScreen(),
+          ),
         ],
       ),
     ],

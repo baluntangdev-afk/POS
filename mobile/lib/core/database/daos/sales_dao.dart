@@ -6,6 +6,10 @@ import '../tables/sale_item_modifiers_table.dart';
 import '../tables/payments_table.dart';
 import '../tables/refunds_table.dart';
 import '../tables/refund_items_table.dart';
+import '../tables/users_table.dart';
+import '../tables/products_table.dart';
+import '../../features/transactions/entities/transaction_summary.dart';
+import '../../features/transactions/entities/history_receipt_data.dart';
 
 part 'sales_dao.g.dart';
 
@@ -16,6 +20,8 @@ part 'sales_dao.g.dart';
   PaymentsTable,
   RefundsTable,
   RefundItemsTable,
+  UsersTable,
+  ProductsTable,
 ])
 class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   SalesDao(super.db);
@@ -130,5 +136,178 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       'qty': r.read<int>('qty'),
       'amount': r.read<double>('amount'),
     }).toList();
+  }
+
+  Future<List<TransactionSummary>> getTransactions({
+    DateTime? date,
+    String? search,
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    final q = select(salesTable).join([
+      leftOuterJoin(usersTable, usersTable.id.equalsExp(salesTable.cashierId)),
+    ]);
+
+    if (date != null) {
+      final from = DateTime(date.year, date.month, date.day);
+      final to = DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
+      q.where(salesTable.createdAt.isBetweenValues(from, to));
+    }
+
+    final searchId = int.tryParse((search ?? '').replaceAll('#', ''));
+    if (searchId != null) q.where(salesTable.id.equals(searchId));
+
+    q.orderBy([OrderingTerm.desc(salesTable.createdAt)]);
+    q.limit(limit, offset: offset);
+
+    final rows = await q.get();
+    final saleIds = rows.map((r) => r.readTable(salesTable).id).toList();
+    final refundedByIds = await _refundedAmountsBySaleIds(saleIds);
+
+    return rows.map((row) {
+      final sale = row.readTable(salesTable);
+      final user = row.readTableOrNull(usersTable);
+      return TransactionSummary(
+        id: sale.id,
+        cashierName: user?.name ?? 'Unknown',
+        createdAt: sale.createdAt,
+        total: sale.total,
+        discount: sale.discount,
+        status: sale.status,
+        type: sale.type,
+        refundedAmount: refundedByIds[sale.id] ?? 0,
+      );
+    }).toList();
+  }
+
+  Future<Map<int, double>> _refundedAmountsBySaleIds(List<int> ids) async {
+    if (ids.isEmpty) return {};
+    final refunds = await (select(refundsTable)
+          ..where((t) => t.saleId.isIn(ids)))
+        .get();
+    final map = <int, double>{};
+    for (final r in refunds) {
+      map[r.saleId] = (map[r.saleId] ?? 0) + r.total;
+    }
+    return map;
+  }
+
+  Future<int> getTransactionCount({DateTime? date, String? search}) async {
+    final q = selectOnly(salesTable)..addColumns([salesTable.id.count()]);
+
+    if (date != null) {
+      final from = DateTime(date.year, date.month, date.day);
+      final to = DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
+      q.where(salesTable.createdAt.isBetweenValues(from, to));
+    }
+
+    final searchId = int.tryParse((search ?? '').replaceAll('#', ''));
+    if (searchId != null) q.where(salesTable.id.equals(searchId));
+
+    final row = await q.getSingle();
+    return row.read(salesTable.id.count()) ?? 0;
+  }
+
+  Future<HistoryReceiptData?> getHistoryReceipt(int saleId) async {
+    // Sale + cashier name
+    final saleQ = select(salesTable).join([
+      leftOuterJoin(usersTable, usersTable.id.equalsExp(salesTable.cashierId)),
+    ]);
+    saleQ.where(salesTable.id.equals(saleId));
+    final saleRow = await saleQ.getSingleOrNull();
+    if (saleRow == null) return null;
+
+    final sale = saleRow.readTable(salesTable);
+    final user = saleRow.readTableOrNull(usersTable);
+
+    // Items + product names
+    final itemQ = select(saleItemsTable).join([
+      leftOuterJoin(productsTable, productsTable.id.equalsExp(saleItemsTable.productId)),
+    ]);
+    itemQ.where(saleItemsTable.saleId.equals(saleId));
+    final itemRows = await itemQ.get();
+
+    final items = <HistoryReceiptItem>[];
+    for (final ir in itemRows) {
+      final item = ir.readTable(saleItemsTable);
+      final product = ir.readTableOrNull(productsTable);
+      final mods = await (select(saleItemModifiersTable)
+            ..where((t) => t.itemId.equals(item.id)))
+          .get();
+      items.add(HistoryReceiptItem(
+        saleItemId: item.id,
+        productName: product?.name ?? 'Unknown Product',
+        qty: item.qty,
+        unitPrice: item.unitPrice,
+        modifiers: mods.map((m) => m.modifierName).toList(),
+      ));
+    }
+
+    // Payment
+    final payments = await (select(paymentsTable)
+          ..where((t) => t.saleId.equals(saleId)))
+        .get();
+    final payment = payments.isEmpty ? null : payments.first;
+
+    final subtotal = items.fold(0.0, (s, i) => s + i.lineTotal);
+    final total = sale.total - sale.discount;
+    final amountPaid = payment?.amount ?? 0;
+    final change = payment?.method == 'cash'
+        ? (amountPaid - total).clamp(0.0, double.infinity)
+        : 0.0;
+
+    return HistoryReceiptData(
+      saleId: sale.id,
+      createdAt: sale.createdAt,
+      saleType: sale.type,
+      cashierName: user?.name ?? 'Unknown',
+      items: items,
+      subtotal: subtotal,
+      discount: sale.discount,
+      total: total,
+      paymentMethod: payment?.method ?? 'cash',
+      amountPaid: amountPaid,
+      change: change,
+      reference: payment?.reference,
+    );
+  }
+
+  Future<List<HistoryReceiptItem>> getRefundableItems(int saleId) async {
+    final itemQ = select(saleItemsTable).join([
+      leftOuterJoin(productsTable, productsTable.id.equalsExp(saleItemsTable.productId)),
+    ]);
+    itemQ.where(saleItemsTable.saleId.equals(saleId));
+    final itemRows = await itemQ.get();
+
+    // Get already-refunded qty per sale item
+    final refunds = await (select(refundsTable)
+          ..where((t) => t.saleId.equals(saleId)))
+        .get();
+    final refundedQty = <int, int>{};
+    for (final r in refunds) {
+      final ris = await (select(refundItemsTable)
+            ..where((t) => t.refundId.equals(r.id)))
+          .get();
+      for (final ri in ris) {
+        refundedQty[ri.saleItemId] = (refundedQty[ri.saleItemId] ?? 0) + ri.qty;
+      }
+    }
+
+    final result = <HistoryReceiptItem>[];
+    for (final ir in itemRows) {
+      final item = ir.readTable(saleItemsTable);
+      final product = ir.readTableOrNull(productsTable);
+      final alreadyRefunded = refundedQty[item.id] ?? 0;
+      final available = item.qty - alreadyRefunded;
+      if (available <= 0) continue;
+      result.add(HistoryReceiptItem(
+        saleItemId: item.id,
+        productName: product?.name ?? 'Unknown Product',
+        qty: available,
+        unitPrice: item.unitPrice,
+        modifiers: const [],
+      ));
+    }
+    return result;
   }
 }

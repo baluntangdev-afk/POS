@@ -7,6 +7,8 @@ import '../../../core/database/app_database.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../auth/state/auth_providers.dart';
+import '../../auth/state/auth_state.dart';
 import '../state/users_notifier.dart';
 
 class UsersScreen extends ConsumerWidget {
@@ -15,6 +17,8 @@ class UsersScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final usersAsync = ref.watch(usersProvider);
+    final authState = ref.watch(authNotifierProvider);
+    final isAdmin = authState is AuthAuthenticated && authState.user.isAdmin;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -30,13 +34,15 @@ class UsersScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddUserDialog(context, ref),
-        icon: const Icon(Icons.person_add_rounded),
-        label: const Text('Add User'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textOnPrimary,
-      ),
+      floatingActionButton: isAdmin
+          ? FloatingActionButton.extended(
+              onPressed: () => _showAddUserDialog(context, ref),
+              icon: const Icon(Icons.person_add_rounded),
+              label: const Text('Add User'),
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.textOnPrimary,
+            )
+          : null,
       body: usersAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
@@ -77,16 +83,17 @@ class UsersScreen extends ConsumerWidget {
             );
           }
           return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(
+            padding: EdgeInsets.fromLTRB(
               AppSpacing.lg,
               AppSpacing.lg,
               AppSpacing.lg,
-              AppSpacing.xxl + AppSpacing.lg,
+              isAdmin ? AppSpacing.xxl + AppSpacing.lg : AppSpacing.lg,
             ),
             itemCount: users.length,
             separatorBuilder: (_, _) => const Gap(AppSpacing.sm),
             itemBuilder: (context, index) => _UserCard(
               user: users[index],
+              isAdmin: isAdmin,
               onEdit: () => _showEditUserDialog(context, ref, users[index]),
               onChangePin: () => _showChangePinDialog(context, ref, users[index]),
               onDeactivate: () => _confirmDeactivate(context, ref, users[index]),
@@ -176,12 +183,14 @@ class UsersScreen extends ConsumerWidget {
 
 class _UserCard extends StatelessWidget {
   final UsersTableData user;
+  final bool isAdmin;
   final VoidCallback onEdit;
   final VoidCallback onChangePin;
   final VoidCallback onDeactivate;
 
   const _UserCard({
     required this.user,
+    required this.isAdmin,
     required this.onEdit,
     required this.onChangePin,
     required this.onDeactivate,
@@ -224,44 +233,46 @@ class _UserCard extends StatelessWidget {
           padding: const EdgeInsets.only(top: 4),
           child: _RoleBadge(role: user.role),
         ),
-        trailing: PopupMenuButton<String>(
-          onSelected: (action) {
-            switch (action) {
-              case 'edit':
-                onEdit();
-              case 'pin':
-                onChangePin();
-              case 'deactivate':
-                onDeactivate();
-            }
-          },
-          itemBuilder: (ctx) => [
-            const PopupMenuItem(
-              value: 'edit',
-              child: Row(children: [
-                Icon(Icons.edit_outlined, size: 18),
-                Gap(AppSpacing.sm),
-                Text('Edit'),
-              ]),
-            ),
-            const PopupMenuItem(
-              value: 'pin',
-              child: Row(children: [
-                Icon(Icons.pin_outlined, size: 18),
-                Gap(AppSpacing.sm),
-                Text('Change PIN'),
-              ]),
-            ),
-            const PopupMenuItem(
-              value: 'deactivate',
-              child: Row(children: [
-                Icon(Icons.person_off_outlined, size: 18, color: AppColors.error),
-                Gap(AppSpacing.sm),
-                Text('Deactivate', style: TextStyle(color: AppColors.error)),
-              ]),
-            ),
-          ],
-        ),
+        trailing: isAdmin
+            ? PopupMenuButton<String>(
+                onSelected: (action) {
+                  switch (action) {
+                    case 'edit':
+                      onEdit();
+                    case 'pin':
+                      onChangePin();
+                    case 'deactivate':
+                      onDeactivate();
+                  }
+                },
+                itemBuilder: (ctx) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Row(children: [
+                      Icon(Icons.edit_outlined, size: 18),
+                      Gap(AppSpacing.sm),
+                      Text('Edit'),
+                    ]),
+                  ),
+                  const PopupMenuItem(
+                    value: 'pin',
+                    child: Row(children: [
+                      Icon(Icons.pin_outlined, size: 18),
+                      Gap(AppSpacing.sm),
+                      Text('Change PIN'),
+                    ]),
+                  ),
+                  const PopupMenuItem(
+                    value: 'deactivate',
+                    child: Row(children: [
+                      Icon(Icons.person_off_outlined, size: 18, color: AppColors.error),
+                      Gap(AppSpacing.sm),
+                      Text('Deactivate', style: TextStyle(color: AppColors.error)),
+                    ]),
+                  ),
+                ],
+              )
+            : null,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         ),

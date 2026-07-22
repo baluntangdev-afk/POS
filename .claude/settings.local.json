@@ -379,7 +379,18 @@
       "PowerShell(\\(Get-CimInstance -ClassName Win32_BIOS\\).SerialNumber)",
       "Bash(fvm --version)",
       "Bash(\"C:\\\\Users\\\\jufie\\\\AppData\\\\Local\\\\Pub\\\\Cache\\\\bin\\\\fvm.bat\" dart *)",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "Bash(xargs grep -l \"dashboard\\\\|home\\\\|Dashboard\\\\|Home\")",
+      "Bash(xargs grep -l \"New Order\\\\|dashboard\\\\|home_screen\\\\|HomeScreen\\\\|menu_screen\\\\|MenuScreen\")",
+      "Bash(xargs grep -l \"pos_app\\\\|PosApp\\\\|dashboard\\\\|Dashboard\\\\|module\\\\|Module\\\\|tile\\\\|Tile\")",
+      "Bash(xargs grep -l \"New Order\\\\|pos_home\\\\|PosHome\\\\|ModuleTile\\\\|module_tile\")",
+      "Bash(xargs grep -l \"Inventory\\\\|Replenishment\\\\|Promos\\\\|Transactions\\\\|Sync Data\\\\|module\")",
+      "Bash(xargs grep -l \"pos_app\\\\|PosApp\\\\|pos_home\\\\|PosHome\\\\|home_screen\\\\|HomeScreen\")",
+      "Bash(Out-Null)",
+      "PowerShell($fvm = Get-Command fvm -ErrorAction SilentlyContinue; if \\($fvm\\) { $fvm.Source } else { \"fvm not found\" }; $dart = Get-Command dart -ErrorAction SilentlyContinue; if \\($dart\\) { $dart.Source } else { \"dart not found\" })",
+      "PowerShell(& \"$env:USERPROFILE\\\\.pub-cache\\\\bin\\\\fvm.bat\" dart run build_runner build --delete-conflicting-outputs 2>&1)",
+      "PowerShell($pubCacheBin = \"$env:LOCALAPPDATA\\\\Pub\\\\Cache\\\\bin\"; if \\(Test-Path $pubCacheBin\\) { Get-ChildItem $pubCacheBin | Select-Object Name })",
+      "PowerShell(Set-Location \"C:\\\\Users\\\\jufie\\\\Documents\\\\POS\\\\mobile\"; $dartExe = \"C:\\\\Users\\\\jufie\\\\fvm\\\\versions\\\\stable\\\\bin\\\\dart.bat\"; $buildScript = \".dart_tool\\\\build\\\\entrypoint\\\\build.dart\"; & $dartExe $buildScript \"build\" \"--delete-conflicting-outputs\" 2>&1 | Select-Object -First 100)"
     ]
   }
 }

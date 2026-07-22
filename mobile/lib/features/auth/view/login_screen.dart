@@ -30,7 +30,7 @@ class LoginScreen extends HookConsumerWidget {
 
     ref.listen<AuthState>(authNotifierProvider, (_, next) {
       if (next is AuthAuthenticated) {
-        context.go('/order');
+        context.go('/dashboard');
       } else if (next is AuthError) {
         errorMsg.value = next.message;
         pinDigits.value = '';

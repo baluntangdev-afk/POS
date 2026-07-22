@@ -376,7 +376,10 @@
       "Bash(pm2 list *)",
       "Bash(sc.exe qc *)",
       "PowerShell(Start-Process -FilePath \"cmd.exe\" -ArgumentList \"/c net stop POSBackendService\" -Verb RunAs -Wait -WindowStyle Hidden)",
-      "PowerShell(\\(Get-CimInstance -ClassName Win32_BIOS\\).SerialNumber)"
+      "PowerShell(\\(Get-CimInstance -ClassName Win32_BIOS\\).SerialNumber)",
+      "Bash(fvm --version)",
+      "Bash(\"C:\\\\Users\\\\jufie\\\\AppData\\\\Local\\\\Pub\\\\Cache\\\\bin\\\\fvm.bat\" dart *)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }

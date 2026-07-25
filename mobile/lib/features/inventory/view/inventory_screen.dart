@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
@@ -11,27 +11,27 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/empty_state_widget.dart';
 import '../../../core/widgets/error_state_widget.dart';
-import '../entities/catalog_product.dart';
-import '../state/catalog_notifier.dart';
+import '../entities/inventory_product.dart';
+import '../state/inventory_notifier.dart';
 import 'category_form_dialog.dart';
 import 'product_form_dialog.dart';
 
-class CatalogScreen extends HookConsumerWidget {
-  const CatalogScreen({super.key});
+class InventoryScreen extends HookConsumerWidget {
+  const InventoryScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     useEffect(() {
-      WidgetsBinding.instance.addPostFrameCallback((_) => ref.invalidate(catalogNotifierProvider));
+      WidgetsBinding.instance.addPostFrameCallback((_) => ref.invalidate(inventoryNotifierProvider));
       return null;
     }, const []);
 
-    final state = ref.watch(catalogNotifierProvider);
+    final state = ref.watch(inventoryNotifierProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Catalog Management'),
+        title: const Text('Inventory Management'),
         actions: [
           IconButton(
             onPressed: () => _showManageCategoriesSheet(context, ref),
@@ -39,7 +39,7 @@ class CatalogScreen extends HookConsumerWidget {
             tooltip: 'Manage Categories',
           ),
           IconButton(
-            onPressed: () => ref.read(catalogNotifierProvider.notifier).refresh(),
+            onPressed: () => ref.read(inventoryNotifierProvider.notifier).refresh(),
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
@@ -48,9 +48,9 @@ class CatalogScreen extends HookConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => ErrorStateWidget(
           message: e.toString(),
-          onRetry: () => ref.read(catalogNotifierProvider.notifier).refresh(),
+          onRetry: () => ref.read(inventoryNotifierProvider.notifier).refresh(),
         ),
-        data: (s) => _CatalogBody(state: s),
+        data: (s) => _InventoryBody(state: s),
       ),
       floatingActionButton: state.maybeWhen(
         data: (s) => FloatingActionButton.extended(
@@ -69,9 +69,9 @@ class CatalogScreen extends HookConsumerWidget {
   }
 }
 
-class _CatalogBody extends HookConsumerWidget {
-  final CatalogState state;
-  const _CatalogBody({required this.state});
+class _InventoryBody extends HookConsumerWidget {
+  final InventoryState state;
+  const _InventoryBody({required this.state});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -88,7 +88,7 @@ class _CatalogBody extends HookConsumerWidget {
 
     return Column(
       children: [
-        // ── Search + filter bar ────────────────────────────────────────
+        // â”€â”€ Search + filter bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Padding(
           padding: const EdgeInsets.fromLTRB(
               AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0),
@@ -119,22 +119,22 @@ class _CatalogBody extends HookConsumerWidget {
               ),
               style: AppTextStyles.bodyLg,
               onChanged: (v) {
-                ref.read(catalogNotifierProvider.notifier).setSearch(v);
+                ref.read(inventoryNotifierProvider.notifier).setSearch(v);
               },
             ),
           ),
         ),
-        // ── Category chips ─────────────────────────────────────────────
+        // â”€â”€ Category chips â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if (state.groups.isNotEmpty) ...[
           const Gap(AppSpacing.sm),
           _CategoryChips(
             groups: state.groups,
             selectedGroupId: state.selectedGroupId,
-            onSelect: (id) => ref.read(catalogNotifierProvider.notifier).selectGroup(id),
+            onSelect: (id) => ref.read(inventoryNotifierProvider.notifier).selectGroup(id),
           ),
         ],
         const Gap(AppSpacing.md),
-        // ── Products grid ──────────────────────────────────────────────
+        // â”€â”€ Products grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Expanded(
           child: filtered.isEmpty
               ? EmptyStateWidget(
@@ -149,10 +149,10 @@ class _CatalogBody extends HookConsumerWidget {
   }
 }
 
-// ── Category chips ─────────────────────────────────────────────────────────────
+// â”€â”€ Category chips â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _CategoryChips extends StatelessWidget {
-  final List<CatalogGroup> groups;
+  final List<InventoryGroup> groups;
   final int? selectedGroupId;
   final ValueChanged<int?> onSelect;
 
@@ -230,10 +230,10 @@ class _Chip extends StatelessWidget {
   }
 }
 
-// ── Products grid ──────────────────────────────────────────────────────────────
+// â”€â”€ Products grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _ProductsGrid extends StatelessWidget {
-  final List<CatalogProduct> products;
+  final List<InventoryProduct> products;
   const _ProductsGrid({required this.products});
 
   @override
@@ -259,7 +259,7 @@ class _ProductsGrid extends StatelessWidget {
 }
 
 class _ProductCard extends ConsumerWidget {
-  final CatalogProduct product;
+  final InventoryProduct product;
   const _ProductCard({required this.product});
 
   @override
@@ -283,7 +283,7 @@ class _ProductCard extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Image ──────────────────────────────────────────────
+              // â”€â”€ Image â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
               Expanded(
                 flex: 5,
                 child: Stack(
@@ -305,7 +305,7 @@ class _ProductCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              // ── Info ───────────────────────────────────────────────
+              // â”€â”€ Info â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
               Expanded(
                 flex: 4,
                 child: Padding(
@@ -331,7 +331,7 @@ class _ProductCard extends ConsumerWidget {
                           Expanded(
                             child: FilledButton(
                               onPressed: () => ref
-                                  .read(catalogNotifierProvider.notifier)
+                                  .read(inventoryNotifierProvider.notifier)
                                   .toggleAvailability(product),
                               style: FilledButton.styleFrom(
                                 backgroundColor: product.isAvailable
@@ -380,7 +380,7 @@ class _ProductCard extends ConsumerWidget {
                           _CardIconButton(
                             icon: Icons.tune_rounded,
                             color: AppColors.secondary,
-                            onPressed: () => context.push('/catalog/products/${product.id}/modifiers'),
+                            onPressed: () => context.push('/inventory/products/${product.id}/modifiers'),
                           ),
                           const Gap(4),
                           _CardIconButton(
@@ -434,7 +434,7 @@ class _ManageCategoriesSheetState extends ConsumerState<_ManageCategoriesSheet> 
   Future<void> _refresh() async {
     setState(_loadGroups);
     await _groupsFuture;
-    await ref.read(catalogNotifierProvider.notifier).refresh();
+    await ref.read(inventoryNotifierProvider.notifier).refresh();
   }
 
   Future<void> _openAddDialog() async {
@@ -474,7 +474,7 @@ class _ManageCategoriesSheetState extends ConsumerState<_ManageCategoriesSheet> 
     if (confirmed != true) return;
     if (!mounted) return;
     try {
-      await ref.read(catalogNotifierProvider.notifier).deleteCategory(group.id);
+      await ref.read(inventoryNotifierProvider.notifier).deleteCategory(group.id);
       if (!mounted) return;
       setState(_loadGroups);
     } on StateError catch (e) {
@@ -561,7 +561,7 @@ class _ManageCategoriesSheetState extends ConsumerState<_ManageCategoriesSheet> 
 Future<void> _confirmDeleteProduct(
   BuildContext context,
   WidgetRef ref,
-  CatalogProduct product,
+  InventoryProduct product,
 ) async {
   final confirmed = await showDialog<bool>(
     context: context,
@@ -579,7 +579,7 @@ Future<void> _confirmDeleteProduct(
     ),
   );
   if (confirmed != true) return;
-  await ref.read(catalogNotifierProvider.notifier).deleteProduct(product.id);
+  await ref.read(inventoryNotifierProvider.notifier).deleteProduct(product.id);
 }
 
 class _CardIconButton extends StatelessWidget {

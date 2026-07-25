@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +15,7 @@ import '../../../core/providers/database_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../catalog/state/catalog_notifier.dart';
+import '../../inventory/state/inventory_notifier.dart';
 
 class CsvImportScreen extends HookConsumerWidget {
   const CsvImportScreen({super.key});
@@ -112,9 +112,9 @@ class _ImportCard extends HookConsumerWidget {
       try {
         final importResult = await config.importer.importFile(File(path));
         result.value = importResult;
-        // Refresh catalog if products/modifiers were imported
+        // Refresh inventory if products/modifiers were imported
         if (config.title == 'Products' || config.title == 'Modifiers') {
-          ref.invalidate(catalogNotifierProvider);
+          ref.invalidate(inventoryNotifierProvider);
         }
       } catch (e) {
         result.value = ImportResult(
@@ -145,7 +145,7 @@ class _ImportCard extends HookConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header ────────────────────────────────────────────────────
+          // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Row(
@@ -177,7 +177,7 @@ class _ImportCard extends HookConsumerWidget {
             ),
           ),
 
-          // ── Result banner ─────────────────────────────────────────────
+          // â”€â”€ Result banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           if (hasResult) ...[
             const Divider(height: 1, color: AppColors.divider),
             _ResultBanner(result: r, fileName: fileName.value),
@@ -234,7 +234,7 @@ class _ImportCard extends HookConsumerWidget {
             ],
           ],
 
-          // ── Action button ─────────────────────────────────────────────
+          // â”€â”€ Action button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Padding(
             padding: const EdgeInsets.fromLTRB(
                 AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
@@ -250,7 +250,7 @@ class _ImportCard extends HookConsumerWidget {
                             strokeWidth: 2, color: Colors.white),
                       )
                     : const Icon(Icons.upload_file_rounded),
-                label: Text(isLoading.value ? 'Importing…' : 'Choose CSV file'),
+                label: Text(isLoading.value ? 'Importingâ€¦' : 'Choose CSV file'),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size(0, AppSpacing.touchPreferred),
                 ),
@@ -294,8 +294,8 @@ class _ResultBanner extends StatelessWidget {
                 const Gap(2),
                 Text(
                   '${result.successCount} imported'
-                  '${result.skippedCount > 0 ? ' · ${result.skippedCount} skipped' : ''}'
-                  '${result.errors.isNotEmpty ? ' · ${result.errors.length} failed' : ''}',
+                  '${result.skippedCount > 0 ? ' Â· ${result.skippedCount} skipped' : ''}'
+                  '${result.errors.isNotEmpty ? ' Â· ${result.errors.length} failed' : ''}',
                   style: AppTextStyles.bodySm.copyWith(
                     color: color,
                     fontWeight: FontWeight.w600,

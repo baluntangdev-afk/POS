@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -9,7 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../auth/state/auth_providers.dart';
 import '../../auth/state/auth_state.dart';
 
-// ─── Tile definition ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Tile definition â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _Tile {
   final String label;
@@ -27,12 +27,12 @@ class _Tile {
 
 const _kTileNew     = _Tile(label: 'New Order',     icon: Icons.shopping_cart_outlined,    accent: Color(0xFF1B7A8C), route: '/order');
 const _kTileTransactions = _Tile(label: 'Transactions', icon: Icons.receipt_long_outlined, accent: Color(0xFF16A085), route: '/transactions');
-const _kTileCatalog = _Tile(label: 'Inventory',     icon: Icons.storefront_outlined,       accent: Color(0xFFE67E22), route: '/catalog');
+const _kTileInventory = _Tile(label: 'Inventory',     icon: Icons.storefront_outlined,       accent: Color(0xFFE67E22), route: '/inventory');
 const _kTileSettings= _Tile(label: 'Settings',      icon: Icons.settings_outlined,         accent: Color(0xFF6B7280), route: '/settings');
 const _kTileUsers   = _Tile(label: 'Users',         icon: Icons.manage_accounts_outlined,  accent: Color(0xFF7B68EE), route: '/users');
 const _kTileCashierAccounting = _Tile(label: 'Cashier Accounting', icon: Icons.point_of_sale_outlined, accent: Color(0xFF8E44AD), route: '/cashier-accounting');
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class DashboardScreen extends HookConsumerWidget {
   const DashboardScreen({super.key});
@@ -54,7 +54,7 @@ class DashboardScreen extends HookConsumerWidget {
     final tiles = [
       _kTileNew,
       _kTileTransactions,
-      _kTileCatalog,
+      _kTileInventory,
       // _kTileReports hidden for now
       _kTileCashierAccounting,
       _kTileSettings,
@@ -94,7 +94,7 @@ class DashboardScreen extends HookConsumerWidget {
   }
 }
 
-// ─── Header ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _Header extends StatelessWidget {
   final DateTime now;
@@ -385,7 +385,7 @@ class _UserPill extends StatelessWidget {
   }
 }
 
-// ─── Grid ─────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _TileGrid extends StatelessWidget {
   final List<_Tile> tiles;
@@ -422,7 +422,7 @@ class _TileGrid extends StatelessWidget {
   }
 }
 
-// ─── Tile Card ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Tile Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _TileCard extends HookWidget {
   final _Tile tile;

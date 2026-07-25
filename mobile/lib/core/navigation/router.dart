@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -13,8 +13,8 @@ import '../../features/cashier_accounting/x_reading/view/x_reading_history_scree
 import '../../features/cashier_accounting/x_reading/view/x_reading_screen.dart';
 import '../../features/cashier_accounting/z_reading/view/z_reading_history_screen.dart';
 import '../../features/cashier_accounting/z_reading/view/z_reading_screen.dart';
-import '../../features/catalog/view/catalog_screen.dart';
-import '../../features/catalog/view/modifier_groups_screen.dart';
+import '../../features/inventory/view/inventory_screen.dart';
+import '../../features/inventory/view/modifier_groups_screen.dart';
 import '../../features/dashboard/view/dashboard_screen.dart';
 import '../../features/ordering/view/ordering_screen.dart';
 import '../../features/ordering/view/payment_screen.dart';
@@ -149,8 +149,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       GoRoute(
-        path: '/catalog',
-        builder: (context, state) => const CatalogScreen(),
+        path: '/inventory',
+        builder: (context, state) => const InventoryScreen(),
         routes: [
           GoRoute(
             path: 'products/:id/modifiers',

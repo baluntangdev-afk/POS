@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class ShellNavItem {
   final String label;
@@ -24,7 +24,7 @@ const shellNavItems = [
     selectedIcon: Icons.bar_chart,
   ),
   ShellNavItem(
-    label: 'Catalog',
+    label: 'Inventory',
     icon: Icons.grid_view_outlined,
     selectedIcon: Icons.grid_view,
   ),

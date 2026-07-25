@@ -1,17 +1,17 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../state/catalog_notifier.dart';
+import '../state/inventory_notifier.dart';
 
 /// Create/edit dialog for a product category (a.k.a. "group").
 ///
 /// [existing] is `null` for create-mode; passing a [ProductGroupsTableData]
 /// switches to edit-mode. We need the raw table row here (rather than the
-/// lighter [CatalogGroup] entity) because [CatalogGroup] doesn't expose
-/// `isActive` — that's a DAO/table-level concept the edit form needs to show
+/// lighter [InventoryGroup] entity) because [InventoryGroup] doesn't expose
+/// `isActive` â€” that's a DAO/table-level concept the edit form needs to show
 /// and let the user toggle.
 class CategoryFormDialog extends ConsumerStatefulWidget {
   final ProductGroupsTableData? existing;
@@ -52,7 +52,7 @@ class _CategoryFormDialogState extends ConsumerState<CategoryFormDialog> {
 
     setState(() => _isSaving = true);
     try {
-      final notifier = ref.read(catalogNotifierProvider.notifier);
+      final notifier = ref.read(inventoryNotifierProvider.notifier);
       if (_isEditing) {
         await notifier.updateCategory(
           id: widget.existing!.id,

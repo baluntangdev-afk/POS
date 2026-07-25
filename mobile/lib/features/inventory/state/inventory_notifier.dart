@@ -1,24 +1,24 @@
-import 'package:drift/drift.dart';
+﻿import 'package:drift/drift.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
-import '../entities/catalog_product.dart';
+import '../entities/inventory_product.dart';
 
-class CatalogState {
-  final List<CatalogGroup> groups;
-  final List<CatalogProduct> products;
+class InventoryState {
+  final List<InventoryGroup> groups;
+  final List<InventoryProduct> products;
   final int? selectedGroupId;
   final String? search;
 
-  const CatalogState({
+  const InventoryState({
     this.groups = const [],
     this.products = const [],
     this.selectedGroupId,
     this.search,
   });
 
-  List<CatalogProduct> get filtered {
+  List<InventoryProduct> get filtered {
     var list = products;
     if (selectedGroupId != null) {
       list = list.where((p) => p.groupId == selectedGroupId).toList();
@@ -30,13 +30,13 @@ class CatalogState {
     return list;
   }
 
-  CatalogState copyWith({
-    List<CatalogGroup>? groups,
-    List<CatalogProduct>? products,
+  InventoryState copyWith({
+    List<InventoryGroup>? groups,
+    List<InventoryProduct>? products,
     int? Function()? selectedGroupId,
     String? Function()? search,
   }) =>
-      CatalogState(
+      InventoryState(
         groups: groups ?? this.groups,
         products: products ?? this.products,
         selectedGroupId: selectedGroupId != null ? selectedGroupId() : this.selectedGroupId,
@@ -44,11 +44,11 @@ class CatalogState {
       );
 }
 
-class CatalogNotifier extends AsyncNotifier<CatalogState> {
+class InventoryNotifier extends AsyncNotifier<InventoryState> {
   @override
-  Future<CatalogState> build() => _load();
+  Future<InventoryState> build() => _load();
 
-  Future<CatalogState> _load() async {
+  Future<InventoryState> _load() async {
     final db = ref.watch(databaseProvider);
     final groupRows = await db.productsDao.getAllActiveGroups();
     final productRows = await db.productsDao.getAllProducts();
@@ -59,13 +59,13 @@ class CatalogNotifier extends AsyncNotifier<CatalogState> {
     }
 
     final groups = groupRows
-        .map((g) => CatalogGroup(id: g.id, name: g.name, productCount: groupCounts[g.id] ?? 0))
+        .map((g) => InventoryGroup(id: g.id, name: g.name, productCount: groupCounts[g.id] ?? 0))
         .toList();
 
     final groupById = {for (final g in groups) g.id: g};
 
     final products = productRows
-        .map((p) => CatalogProduct(
+        .map((p) => InventoryProduct(
               id: p.id,
               groupId: p.groupId,
               name: p.name,
@@ -77,7 +77,7 @@ class CatalogNotifier extends AsyncNotifier<CatalogState> {
             ))
         .toList();
 
-    return CatalogState(groups: groups, products: products);
+    return InventoryState(groups: groups, products: products);
   }
 
   void selectGroup(int? groupId) {
@@ -88,7 +88,7 @@ class CatalogNotifier extends AsyncNotifier<CatalogState> {
     state = state.whenData((s) => s.copyWith(search: () => query?.isEmpty == true ? null : query));
   }
 
-  Future<void> toggleAvailability(CatalogProduct product) async {
+  Future<void> toggleAvailability(InventoryProduct product) async {
     final db = ref.read(databaseProvider);
     await db.productsDao.toggleProductAvailability(product.id, isAvailable: !product.isAvailable);
     state = state.whenData((s) {
@@ -171,5 +171,5 @@ class CatalogNotifier extends AsyncNotifier<CatalogState> {
   }
 }
 
-final catalogNotifierProvider =
-    AsyncNotifierProvider<CatalogNotifier, CatalogState>(CatalogNotifier.new);
+final inventoryNotifierProvider =
+    AsyncNotifierProvider<InventoryNotifier, InventoryState>(InventoryNotifier.new);

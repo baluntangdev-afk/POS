@@ -1,4 +1,4 @@
-import 'package:drift/native.dart';
+﻿import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mobile/core/database/app_database.dart';
@@ -7,7 +7,7 @@ import 'package:mobile/core/database/tables/products_table.dart';
 import 'package:mobile/core/database/tables/modifier_groups_table.dart';
 import 'package:mobile/core/database/tables/modifier_options_table.dart';
 import 'package:mobile/core/providers/database_provider.dart';
-import 'package:mobile/features/catalog/state/modifier_groups_notifier.dart';
+import 'package:mobile/features/inventory/state/modifier_groups_notifier.dart';
 
 void main() {
   late AppDatabase db;

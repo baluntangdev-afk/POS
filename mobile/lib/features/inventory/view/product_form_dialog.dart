@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,18 +9,18 @@ import '../../../core/services/image_storage_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../entities/catalog_product.dart';
-import '../state/catalog_notifier.dart';
+import '../entities/inventory_product.dart';
+import '../state/inventory_notifier.dart';
 
-/// Create/edit dialog for a catalog product.
+/// Create/edit dialog for a inventory product.
 ///
-/// [existing] is `null` for create-mode; passing a [CatalogProduct] switches
-/// to edit-mode. We take the lighter [CatalogProduct] entity (rather than the
+/// [existing] is `null` for create-mode; passing a [InventoryProduct] switches
+/// to edit-mode. We take the lighter [InventoryProduct] entity (rather than the
 /// raw `ProductsTableData` row) because it already carries every field this
-/// form needs (id/groupId/name/price/imageUrl) — fetching the raw row from
+/// form needs (id/groupId/name/price/imageUrl) â€” fetching the raw row from
 /// the DAO would be an unnecessary extra round-trip.
 class ProductFormDialog extends ConsumerStatefulWidget {
-  final CatalogProduct? existing;
+  final InventoryProduct? existing;
   final int? groupId;
 
   const ProductFormDialog({super.key, this.existing, this.groupId});
@@ -48,14 +48,14 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
     _priceController =
         TextEditingController(text: existing != null ? _formatPrice(existing.price) : '');
     final candidateGroupId = existing?.groupId ?? widget.groupId;
-    // `CatalogNotifier.groups` only lists ACTIVE categories, but a product's own
+    // `InventoryNotifier.groups` only lists ACTIVE categories, but a product's own
     // `groupId` may belong to a category that has since been deactivated. If we set
     // `_selectedGroupId` to a value that isn't among the dropdown's items,
     // DropdownButtonFormField asserts/crashes (its value must be null or match an
     // item exactly). Fall back to null in that case and require the user to pick an
-    // active category explicitly — the existing "category required" validator
+    // active category explicitly â€” the existing "category required" validator
     // already enforces this before save.
-    final loadedGroups = ref.read(catalogNotifierProvider).value?.groups ?? const [];
+    final loadedGroups = ref.read(inventoryNotifierProvider).value?.groups ?? const [];
     _selectedGroupId =
         (candidateGroupId != null && loadedGroups.any((g) => g.id == candidateGroupId))
             ? candidateGroupId
@@ -95,7 +95,7 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
 
     setState(() => _isSaving = true);
     try {
-      final notifier = ref.read(catalogNotifierProvider.notifier);
+      final notifier = ref.read(inventoryNotifierProvider.notifier);
       if (_isEditing) {
         await notifier.updateProduct(
           id: widget.existing!.id,
@@ -122,8 +122,8 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final catalogState = ref.watch(catalogNotifierProvider).value;
-    final groups = catalogState?.groups ?? const [];
+    final inventoryState = ref.watch(inventoryNotifierProvider).value;
+    final groups = inventoryState?.groups ?? const [];
 
     return AlertDialog(
       title: Text(_isEditing ? 'Edit Product' : 'Add Product'),

@@ -1,11 +1,11 @@
-class CatalogGroup {
+﻿class InventoryGroup {
   final int id;
   final String name;
   final int productCount;
-  const CatalogGroup({required this.id, required this.name, required this.productCount});
+  const InventoryGroup({required this.id, required this.name, required this.productCount});
 }
 
-class CatalogProduct {
+class InventoryProduct {
   final int id;
   final int groupId;
   final String name;
@@ -13,9 +13,9 @@ class CatalogProduct {
   final bool isAvailable;
   final String? imageUrl;
   final int sortOrder;
-  final CatalogGroup? group;
+  final InventoryGroup? group;
 
-  const CatalogProduct({
+  const InventoryProduct({
     required this.id,
     required this.groupId,
     required this.name,
@@ -26,7 +26,7 @@ class CatalogProduct {
     this.group,
   });
 
-  CatalogProduct copyWith({bool? isAvailable}) => CatalogProduct(
+  InventoryProduct copyWith({bool? isAvailable}) => InventoryProduct(
         id: id,
         groupId: groupId,
         name: name,

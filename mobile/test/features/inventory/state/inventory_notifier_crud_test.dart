@@ -1,12 +1,12 @@
-import 'package:drift/native.dart';
+﻿import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mobile/core/database/app_database.dart';
 import 'package:mobile/core/providers/database_provider.dart';
-import 'package:mobile/features/catalog/state/catalog_notifier.dart';
+import 'package:mobile/features/inventory/state/inventory_notifier.dart';
 
 void main() {
-  test('createProduct inserts and refreshes the catalog', () async {
+  test('createProduct inserts and refreshes the inventory', () async {
     final db = AppDatabase(NativeDatabase.memory());
     final groupId = await db.productsDao
         .insertProductGroup(ProductGroupsTableCompanion.insert(name: 'Drinks'));
@@ -17,15 +17,15 @@ void main() {
       db.close();
     });
 
-    await container.read(catalogNotifierProvider.future);
-    await container.read(catalogNotifierProvider.notifier).createProduct(
+    await container.read(inventoryNotifierProvider.future);
+    await container.read(inventoryNotifierProvider.notifier).createProduct(
           groupId: groupId,
           name: 'Latte',
           price: 100,
           imageUrl: null,
         );
 
-    final state = await container.read(catalogNotifierProvider.future);
+    final state = await container.read(inventoryNotifierProvider.future);
     expect(state.products.any((p) => p.name == 'Latte'), isTrue);
   });
 
@@ -40,8 +40,8 @@ void main() {
       db.close();
     });
 
-    await container.read(catalogNotifierProvider.future);
-    await container.read(catalogNotifierProvider.notifier).createProduct(
+    await container.read(inventoryNotifierProvider.future);
+    await container.read(inventoryNotifierProvider.notifier).createProduct(
           groupId: groupId,
           name: 'Latte',
           price: 100,
@@ -49,7 +49,7 @@ void main() {
         );
 
     expect(
-      () => container.read(catalogNotifierProvider.notifier).createProduct(
+      () => container.read(inventoryNotifierProvider.notifier).createProduct(
             groupId: groupId,
             name: 'latte',
             price: 120,
@@ -70,17 +70,17 @@ void main() {
       db.close();
     });
 
-    await container.read(catalogNotifierProvider.future);
-    await container.read(catalogNotifierProvider.notifier).createProduct(
+    await container.read(inventoryNotifierProvider.future);
+    await container.read(inventoryNotifierProvider.notifier).createProduct(
           groupId: groupId,
           name: 'Latte',
           price: 100,
           imageUrl: null,
         );
-    var state = await container.read(catalogNotifierProvider.future);
+    var state = await container.read(inventoryNotifierProvider.future);
     final productId = state.products.firstWhere((p) => p.name == 'Latte').id;
 
-    await container.read(catalogNotifierProvider.notifier).updateProduct(
+    await container.read(inventoryNotifierProvider.notifier).updateProduct(
           id: productId,
           groupId: groupId,
           name: 'Iced Latte',
@@ -88,7 +88,7 @@ void main() {
           imageUrl: null,
         );
 
-    state = await container.read(catalogNotifierProvider.future);
+    state = await container.read(inventoryNotifierProvider.future);
     final updated = state.products.firstWhere((p) => p.id == productId);
     expect(updated.name, 'Iced Latte');
     expect(updated.price, 120);
@@ -105,24 +105,24 @@ void main() {
       db.close();
     });
 
-    await container.read(catalogNotifierProvider.future);
-    await container.read(catalogNotifierProvider.notifier).createProduct(
+    await container.read(inventoryNotifierProvider.future);
+    await container.read(inventoryNotifierProvider.notifier).createProduct(
           groupId: groupId,
           name: 'Latte',
           price: 100,
           imageUrl: null,
         );
-    await container.read(catalogNotifierProvider.notifier).createProduct(
+    await container.read(inventoryNotifierProvider.notifier).createProduct(
           groupId: groupId,
           name: 'Mocha',
           price: 110,
           imageUrl: null,
         );
-    final state = await container.read(catalogNotifierProvider.future);
+    final state = await container.read(inventoryNotifierProvider.future);
     final mochaId = state.products.firstWhere((p) => p.name == 'Mocha').id;
 
     expect(
-      () => container.read(catalogNotifierProvider.notifier).updateProduct(
+      () => container.read(inventoryNotifierProvider.notifier).updateProduct(
             id: mochaId,
             groupId: groupId,
             name: 'latte',
@@ -144,19 +144,19 @@ void main() {
       db.close();
     });
 
-    await container.read(catalogNotifierProvider.future);
-    await container.read(catalogNotifierProvider.notifier).createProduct(
+    await container.read(inventoryNotifierProvider.future);
+    await container.read(inventoryNotifierProvider.notifier).createProduct(
           groupId: groupId,
           name: 'Latte',
           price: 100,
           imageUrl: null,
         );
-    var state = await container.read(catalogNotifierProvider.future);
+    var state = await container.read(inventoryNotifierProvider.future);
     final productId = state.products.firstWhere((p) => p.name == 'Latte').id;
 
-    await container.read(catalogNotifierProvider.notifier).deleteProduct(productId);
+    await container.read(inventoryNotifierProvider.notifier).deleteProduct(productId);
 
-    state = await container.read(catalogNotifierProvider.future);
+    state = await container.read(inventoryNotifierProvider.future);
     expect(state.products.any((p) => p.id == productId), isFalse);
   });
 
@@ -168,23 +168,23 @@ void main() {
       db.close();
     });
 
-    await container.read(catalogNotifierProvider.future);
-    await container.read(catalogNotifierProvider.notifier).createCategory(name: 'Snacks');
+    await container.read(inventoryNotifierProvider.future);
+    await container.read(inventoryNotifierProvider.notifier).createCategory(name: 'Snacks');
 
-    var state = await container.read(catalogNotifierProvider.future);
+    var state = await container.read(inventoryNotifierProvider.future);
     final group = state.groups.firstWhere((g) => g.name == 'Snacks');
     expect(group.name, 'Snacks');
 
-    await container.read(catalogNotifierProvider.notifier).updateCategory(
+    await container.read(inventoryNotifierProvider.notifier).updateCategory(
           id: group.id,
           name: 'Sweet Snacks',
           isActive: true,
         );
-    state = await container.read(catalogNotifierProvider.future);
+    state = await container.read(inventoryNotifierProvider.future);
     expect(state.groups.firstWhere((g) => g.id == group.id).name, 'Sweet Snacks');
 
-    await container.read(catalogNotifierProvider.notifier).deleteCategory(group.id);
-    state = await container.read(catalogNotifierProvider.future);
+    await container.read(inventoryNotifierProvider.notifier).deleteCategory(group.id);
+    state = await container.read(inventoryNotifierProvider.future);
     expect(state.groups.any((g) => g.id == group.id), isFalse);
   });
 
@@ -199,8 +199,8 @@ void main() {
       db.close();
     });
 
-    await container.read(catalogNotifierProvider.future);
-    await container.read(catalogNotifierProvider.notifier).createProduct(
+    await container.read(inventoryNotifierProvider.future);
+    await container.read(inventoryNotifierProvider.notifier).createProduct(
           groupId: groupId,
           name: 'Latte',
           price: 100,
@@ -208,7 +208,7 @@ void main() {
         );
 
     expect(
-      () => container.read(catalogNotifierProvider.notifier).deleteCategory(groupId),
+      () => container.read(inventoryNotifierProvider.notifier).deleteCategory(groupId),
       throwsA(anything),
     );
   });

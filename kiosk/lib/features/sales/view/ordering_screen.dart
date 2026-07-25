@@ -59,7 +59,7 @@ class _AdaptiveOrderingLayout extends HookConsumerWidget {
     // Products and categories are fetched once in OrderingNotifier.build() and
     // cached for the life of the sale (so the cart survives navigating away
     // and back). Silently re-fetch both each time this screen is shown, so
-    // categories/products added/edited/deleted in Catalog Management show up
+    // categories/products added/edited/deleted in Inventory Management show up
     // without requiring an app restart.
     useEffect(() {
       Future.microtask(() {

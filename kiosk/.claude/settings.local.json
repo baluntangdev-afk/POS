@@ -50,7 +50,9 @@
       "Bash(\"/c/Users/Jufiel/AppData/Local/Pub/Cache/bin/fvm.bat\" flutter *)",
       "Bash(echo \"started with PID $!\")",
       "Bash(tasklist)",
-      "Bash(mkdir *)"
+      "Bash(mkdir *)",
+      "Bash(git mv *)",
+      "PowerShell(fvm dart *)"
     ]
   }
 }

@@ -15,14 +15,14 @@ import '../../../widgets/image_picker_form_field.dart';
 import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/pos_loading_overlay.dart';
 import '../../../widgets/text_box_form_field.dart';
-import '../data/catalog_repository.dart';
+import '../data/inventory_repository.dart';
 import '../data/models/category.dart';
 import '../data/models/product.dart';
-import '../state/catalog_categories_notifier.dart';
-import '../state/catalog_products_notifier.dart';
+import '../state/inventory_categories_notifier.dart';
+import '../state/inventory_products_notifier.dart';
 
-Future<CatalogProduct?> showSaveProductDialog(BuildContext context, {CatalogProduct? product}) {
-  return showDialog<CatalogProduct>(
+Future<InventoryProduct?> showSaveProductDialog(BuildContext context, {InventoryProduct? product}) {
+  return showDialog<InventoryProduct>(
     context: context,
     barrierDismissible: true,
     builder: (context) => SaveProductDialog(product: product),
@@ -32,7 +32,7 @@ Future<CatalogProduct?> showSaveProductDialog(BuildContext context, {CatalogProd
 class SaveProductDialog extends HookConsumerWidget {
   const SaveProductDialog({super.key, this.product});
 
-  final CatalogProduct? product;
+  final InventoryProduct? product;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,8 +43,8 @@ class SaveProductDialog extends HookConsumerWidget {
 
     final variantsFuture = useMemoized(
       () => product != null
-          ? ref.read(catalogRepositoryProvider).fetchProductVariants(product!.id)
-          : Future.value(const <CatalogProductVariant>[]),
+          ? ref.read(inventoryRepositoryProvider).fetchProductVariants(product!.id)
+          : Future.value(const <InventoryProductVariant>[]),
       [product?.id],
     );
     final variantsSnapshot = useFuture(variantsFuture);
@@ -74,10 +74,10 @@ class SaveProductDialog extends HookConsumerWidget {
       };
     }, const []);
 
-    final categoriesAsync = ref.watch(catalogCategoriesProvider);
-    final categories = categoriesAsync.value ?? const <CatalogCategory>[];
+    final categoriesAsync = ref.watch(inventoryCategoriesProvider);
+    final categories = categoriesAsync.value ?? const <InventoryCategory>[];
 
-    final saveAction = CatalogProductsNotifier.saveAction;
+    final saveAction = InventoryProductsNotifier.saveAction;
     final saveStatus = ref.watch(saveAction);
 
     ref.listen(saveAction, (prev, next) async {
@@ -208,16 +208,16 @@ class SaveProductDialog extends HookConsumerWidget {
                               final selectedCategory = categories.firstWhere(
                                 (c) => c.id == categoryId.value,
                               );
-                              final draft = (product ?? CatalogProduct.draft()).copyWith(
+                              final draft = (product ?? InventoryProduct.draft()).copyWith(
                                 name: nameController.text.trim(),
-                                category: CatalogCategoryRef(
+                                category: InventoryCategoryRef(
                                   id: selectedCategory.id,
                                   name: selectedCategory.name,
                                 ),
                               );
                               final variants = variantRows.value
                                   .map(
-                                    (row) => CatalogProductVariant(
+                                    (row) => InventoryProductVariant(
                                       id: row.id,
                                       name: row.nameController.text.trim(),
                                       price: double.parse(row.priceController.text.trim()),
@@ -227,7 +227,7 @@ class SaveProductDialog extends HookConsumerWidget {
                                   .toList();
 
                               saveAction.run(ref, (txn) async {
-                                return txn.get(catalogProductsProvider.notifier).save(
+                                return txn.get(inventoryProductsProvider.notifier).save(
                                       draft,
                                       variants,
                                       imageBytes: imageController.value,
@@ -259,7 +259,7 @@ class SaveProductDialog extends HookConsumerWidget {
 class _CategoryField extends StatelessWidget {
   const _CategoryField({required this.categories, required this.value, required this.onChanged});
 
-  final List<CatalogCategory> categories;
+  final List<InventoryCategory> categories;
   final String? value;
   final ValueChanged<String?> onChanged;
 
@@ -359,7 +359,7 @@ class _VariantRow {
     );
   }
 
-  factory _VariantRow.fromVariant(CatalogProductVariant variant) {
+  factory _VariantRow.fromVariant(InventoryProductVariant variant) {
     return _VariantRow(
       id: variant.id,
       nameController: TextEditingController(text: variant.name),
@@ -403,7 +403,7 @@ class _VariantsSection extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final r = context.responsive;
-    final namesAsync = ref.watch(catalogVariantNamesProvider);
+    final namesAsync = ref.watch(inventoryVariantNamesProvider);
     final existingNames = namesAsync.value ?? const <String>[];
 
     void setDefault(_VariantRow target) {

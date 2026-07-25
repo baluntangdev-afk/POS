@@ -6,6 +6,6 @@ class ProductsRoute extends GoRouteData with $ProductsRoute {
 
   @override
   Widget build(BuildContext context, GoRouterState state) {
-    return const CatalogScreen();
+    return const InventoryScreen();
   }
 }

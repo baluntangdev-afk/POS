@@ -1,5 +1,5 @@
-class CatalogCategory {
-  const CatalogCategory({
+class InventoryCategory {
+  const InventoryCategory({
     required this.id,
     required this.name,
     this.description,
@@ -17,8 +17,8 @@ class CatalogCategory {
   final bool isActive;
   final int productCount;
 
-  factory CatalogCategory.fromJson(Map<String, dynamic> json) {
-    return CatalogCategory(
+  factory InventoryCategory.fromJson(Map<String, dynamic> json) {
+    return InventoryCategory(
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String?,
@@ -29,8 +29,8 @@ class CatalogCategory {
     );
   }
 
-  factory CatalogCategory.draft() {
-    return const CatalogCategory(
+  factory InventoryCategory.draft() {
+    return const InventoryCategory(
       id: '',
       name: '',
       description: null,
@@ -41,7 +41,7 @@ class CatalogCategory {
     );
   }
 
-  CatalogCategory copyWith({
+  InventoryCategory copyWith({
     String? id,
     String? name,
     String? description,
@@ -50,7 +50,7 @@ class CatalogCategory {
     bool? isActive,
     int? productCount,
   }) {
-    return CatalogCategory(
+    return InventoryCategory(
       id: id ?? this.id,
       name: name ?? this.name,
       description: description ?? this.description,

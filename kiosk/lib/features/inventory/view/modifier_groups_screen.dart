@@ -12,7 +12,7 @@ import '../../../widgets/button.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../data/models/modifier.dart';
 import '../data/models/modifier_group.dart';
-import '../state/catalog_modifier_groups_notifier.dart';
+import '../state/inventory_modifier_groups_notifier.dart';
 
 class ModifierGroupsScreen extends HookConsumerWidget {
   const ModifierGroupsScreen({super.key});
@@ -23,7 +23,7 @@ class ModifierGroupsScreen extends HookConsumerWidget {
     final expandedGroups = useState<Set<String>>(<String>{});
     final isPhone = context.breakpoint.isPhone;
 
-    final state = ref.watch(catalogModifierGroupsProvider);
+    final state = ref.watch(inventoryModifierGroupsProvider);
 
     return Padding(
       padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
@@ -62,7 +62,7 @@ class ModifierGroupsScreen extends HookConsumerWidget {
                     Button(
                       label: const Text('Retry'),
                       leading: const Icon(Icons.refresh_rounded),
-                      onPressed: () => ref.read(catalogModifierGroupsProvider.notifier).refresh(),
+                      onPressed: () => ref.read(inventoryModifierGroupsProvider.notifier).refresh(),
                     ),
                   ],
                 ),
@@ -198,7 +198,7 @@ class _ModifierGroupsMobileList extends StatelessWidget {
     required this.expandedGroups,
   });
 
-  final List<CatalogModifierGroup> groups;
+  final List<InventoryModifierGroup> groups;
   final ValueNotifier<String?> searchQuery;
   final ValueNotifier<Set<String>> expandedGroups;
 
@@ -246,7 +246,7 @@ class _ModifierGroupCard extends StatelessWidget {
     required this.onToggle,
   });
 
-  final CatalogModifierGroup group;
+  final InventoryModifierGroup group;
   final bool isExpanded;
   final VoidCallback onToggle;
 
@@ -345,7 +345,7 @@ class _ModifierGroupsTable extends StatelessWidget {
     required this.expandedGroups,
   });
 
-  final List<CatalogModifierGroup> groups;
+  final List<InventoryModifierGroup> groups;
   final ValueNotifier<String?> searchQuery;
   final ValueNotifier<Set<String>> expandedGroups;
 
@@ -454,7 +454,7 @@ class _HeaderCell extends StatelessWidget {
 class _ModifierGroupRow extends StatelessWidget {
   const _ModifierGroupRow({required this.group, required this.isExpanded, required this.onToggle});
 
-  final CatalogModifierGroup group;
+  final InventoryModifierGroup group;
   final bool isExpanded;
   final VoidCallback onToggle;
 
@@ -571,7 +571,7 @@ class _ModifierGroupRow extends StatelessWidget {
 class _ModifiersList extends StatelessWidget {
   const _ModifiersList({required this.group});
 
-  final CatalogModifierGroup group;
+  final InventoryModifierGroup group;
 
   @override
   Widget build(BuildContext context) {
@@ -615,7 +615,7 @@ class _ModifiersList extends StatelessWidget {
 class _ModifierItem extends StatelessWidget {
   const _ModifierItem({required this.modifier});
 
-  final CatalogModifier modifier;
+  final InventoryModifier modifier;
 
   @override
   Widget build(BuildContext context) {

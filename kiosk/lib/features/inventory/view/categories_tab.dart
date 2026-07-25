@@ -9,7 +9,7 @@ import '../../../theme/pos_design.dart';
 import '../../../widgets/button.dart';
 import '../../auth/state/login_state_notifier.dart';
 import '../data/models/category.dart';
-import '../state/catalog_categories_notifier.dart';
+import '../state/inventory_categories_notifier.dart';
 import 'category_dialogs.dart';
 
 class CategoriesTab extends ConsumerWidget {
@@ -17,7 +17,7 @@ class CategoriesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(catalogCategoriesProvider);
+    final state = ref.watch(inventoryCategoriesProvider);
     final auth = ref.watch(loginStateProvider).value;
     final isAdminOrSupervisor = auth?.isAdminOrSupervisor ?? false;
 
@@ -53,7 +53,7 @@ class CategoriesTab extends ConsumerWidget {
               Button(
                 label: const Text('Retry'),
                 leading: const Icon(Icons.refresh_rounded),
-                onPressed: () => ref.read(catalogCategoriesProvider.notifier).refresh(),
+                onPressed: () => ref.read(inventoryCategoriesProvider.notifier).refresh(),
               ),
             ],
           ),
@@ -96,7 +96,7 @@ class _EmptyCategoriesState extends StatelessWidget {
           ),
           Gap(context.responsive.value(kiosk: 8, tablet: 6, phone: 4)),
           Text(
-            'Add categories to organise your catalog',
+            'Add categories to organise your inventory',
             style: TextStyle(
               fontSize: context.responsive.value(kiosk: 14.0, tablet: 13.0, phone: 12.0),
               color: POSColors.textDisabled,
@@ -122,7 +122,7 @@ class _CategoriesGrid extends StatelessWidget {
     required this.isAdminOrSupervisor,
   });
 
-  final List<CatalogCategory> categories;
+  final List<InventoryCategory> categories;
   final bool isAdminOrSupervisor;
 
   @override
@@ -181,7 +181,7 @@ class _CategoryGridView extends StatelessWidget {
     required this.isAdminOrSupervisor,
   });
 
-  final List<CatalogCategory> categories;
+  final List<InventoryCategory> categories;
   final int crossAxisCount;
   final bool isAdminOrSupervisor;
 
@@ -209,7 +209,7 @@ class _CategoryCard extends StatelessWidget {
     required this.isAdminOrSupervisor,
   });
 
-  final CatalogCategory category;
+  final InventoryCategory category;
   final bool isAdminOrSupervisor;
 
   @override
@@ -326,7 +326,7 @@ class _CategoryCard extends StatelessWidget {
 class _ActionMenu extends ConsumerWidget {
   const _ActionMenu({required this.category});
 
-  final CatalogCategory category;
+  final InventoryCategory category;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -336,7 +336,7 @@ class _ActionMenu extends ConsumerWidget {
           case _CategoryAction.edit:
             await showSaveCategoryDialog(context, category: category);
           case _CategoryAction.toggleActive:
-            await ref.read(catalogCategoriesProvider.notifier).toggleActive(category);
+            await ref.read(inventoryCategoriesProvider.notifier).toggleActive(category);
         }
       },
       icon: Icon(

@@ -9,22 +9,22 @@ import '../../../theme/pos_design.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
-import '../state/catalog_categories_notifier.dart';
-import '../state/catalog_modifier_groups_notifier.dart';
-import '../state/catalog_products_notifier.dart';
-import 'catalog_grid_screen.dart';
+import '../state/inventory_categories_notifier.dart';
+import '../state/inventory_modifier_groups_notifier.dart';
+import '../state/inventory_products_notifier.dart';
+import 'inventory_grid_screen.dart';
 import 'categories_tab.dart';
 
-class CatalogScreen extends HookConsumerWidget {
-  const CatalogScreen({super.key});
+class InventoryScreen extends HookConsumerWidget {
+  const InventoryScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     useEffect(() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.invalidate(catalogProductsProvider);
-        ref.invalidate(catalogCategoriesProvider);
-        ref.invalidate(catalogModifierGroupsProvider);
+        ref.invalidate(inventoryProductsProvider);
+        ref.invalidate(inventoryCategoriesProvider);
+        ref.invalidate(inventoryModifierGroupsProvider);
       });
       return null;
     }, []);
@@ -32,16 +32,16 @@ class CatalogScreen extends HookConsumerWidget {
     final isAndroid = context.breakpoint.isAndroid;
 
     if (isAndroid) {
-      return _AndroidCatalogScreen();
+      return _AndroidInventoryScreen();
     }
 
-    return _WindowsCatalogScreen();
+    return _WindowsInventoryScreen();
   }
 }
 
 // ── Android: Material TabBar + TabBarView (swipe-enabled) ────────────────────
 
-class _AndroidCatalogScreen extends StatelessWidget {
+class _AndroidInventoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const tabs = ['Products', 'Categories']; // Modifier Groups hidden for now
@@ -58,7 +58,7 @@ class _AndroidCatalogScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const TopAppBar(title: 'Catalog Management'),
+              const TopAppBar(title: 'Inventory Management'),
               Material(
                 color: Colors.white,
                 child: TabBar(
@@ -82,7 +82,7 @@ class _AndroidCatalogScreen extends StatelessWidget {
         ),
         body: const TabBarView(
           children: [
-            CatalogGridScreen(),
+            InventoryGridScreen(),
             CategoriesTab(),
           ],
         ),
@@ -93,7 +93,7 @@ class _AndroidCatalogScreen extends StatelessWidget {
 
 // ── Windows: custom GestureDetector tab bar + IndexedStack ───────────────────
 
-class _WindowsCatalogScreen extends HookWidget {
+class _WindowsInventoryScreen extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final selectedTab = useState(0);
@@ -102,12 +102,12 @@ class _WindowsCatalogScreen extends HookWidget {
       backgroundColor: ColorSet.background,
       body: Column(
         children: [
-          const TopAppBar(title: 'Catalog Management'),
+          const TopAppBar(title: 'Inventory Management'),
           _WindowsTabBar(selectedTab: selectedTab),
           Expanded(
             child: IndexedStack(
               index: selectedTab.value,
-              children: const [CatalogGridScreen(), CategoriesTab()],
+              children: const [InventoryGridScreen(), CategoriesTab()],
             ),
           ),
         ],

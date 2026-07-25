@@ -19,12 +19,12 @@ import '../../../widgets/text_box_form_field.dart';
 import '../../auth/state/login_state_notifier.dart';
 import '../data/models/category.dart';
 import '../data/models/product.dart';
-import '../state/catalog_categories_notifier.dart';
-import '../state/catalog_products_notifier.dart';
+import '../state/inventory_categories_notifier.dart';
+import '../state/inventory_products_notifier.dart';
 import 'product_dialogs.dart';
 
-class CatalogGridScreen extends HookConsumerWidget {
-  const CatalogGridScreen({super.key});
+class InventoryGridScreen extends HookConsumerWidget {
+  const InventoryGridScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -36,7 +36,7 @@ class CatalogGridScreen extends HookConsumerWidget {
             .value
             ?.isAdminOrSupervisor ?? false;
 
-    ref.listen(catalogProductsProvider, (_, next) {
+    ref.listen(inventoryProductsProvider, (_, next) {
       if (next case AsyncError(:final error)) {
         showNetworkErrorDialog(context, error: error);
       }
@@ -51,7 +51,7 @@ class CatalogGridScreen extends HookConsumerWidget {
       }
       Future.microtask(() {
         ref
-            .read(catalogProductsProvider.notifier)
+            .read(inventoryProductsProvider.notifier)
             .getResults(
             categoryId: categoryId.value, search: searchQuery.value);
       });
@@ -164,7 +164,7 @@ class _CategoryChips extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final categoriesState = ref.watch(catalogCategoriesProvider);
+    final categoriesState = ref.watch(inventoryCategoriesProvider);
     final scrollController = useScrollController();
     final canScrollLeft = useState(false);
     final canScrollRight = useState(false);
@@ -419,7 +419,7 @@ class _ProductsGrid extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(
-        catalogProductsProvider.select((it) => it.whenData((d) => d.products)));
+        inventoryProductsProvider.select((it) => it.whenData((d) => d.products)));
 
     return state.when(
       loading:
@@ -522,7 +522,7 @@ class _Grid extends StatelessWidget {
     required this.isAdminOrSupervisor,
   });
 
-  final List<CatalogProduct> products;
+  final List<InventoryProduct> products;
   final int crossAxisCount;
   final double ratio;
   final bool isAdminOrSupervisor;
@@ -554,7 +554,7 @@ class _ProductCard extends ConsumerWidget {
   const _ProductCard(
       {required this.product, required this.isAdminOrSupervisor});
 
-  final CatalogProduct product;
+  final InventoryProduct product;
   final bool isAdminOrSupervisor;
 
   @override
@@ -667,7 +667,7 @@ class _ProductCard extends ConsumerWidget {
                             IconButton(
                               onPressed: () =>
                                   ref
-                                      .read(catalogProductsProvider.notifier)
+                                      .read(inventoryProductsProvider.notifier)
                                       .toggleAvailability(product),
                               icon: Icon(
                                 product.isAvailable

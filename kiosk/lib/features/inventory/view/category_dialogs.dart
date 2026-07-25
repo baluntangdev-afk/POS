@@ -13,13 +13,13 @@ import '../../../widgets/button.dart';
 import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../data/models/category.dart';
-import '../state/catalog_categories_notifier.dart';
+import '../state/inventory_categories_notifier.dart';
 
-Future<CatalogCategory?> showSaveCategoryDialog(
+Future<InventoryCategory?> showSaveCategoryDialog(
   BuildContext context, {
-  CatalogCategory? category,
+  InventoryCategory? category,
 }) {
-  return showDialog<CatalogCategory>(
+  return showDialog<InventoryCategory>(
     context: context,
     builder: (context) => SaveCategoryDialog(category: category),
     barrierDismissible: false,
@@ -29,7 +29,7 @@ Future<CatalogCategory?> showSaveCategoryDialog(
 class SaveCategoryDialog extends HookConsumerWidget {
   const SaveCategoryDialog({super.key, this.category});
 
-  final CatalogCategory? category;
+  final InventoryCategory? category;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,7 +38,7 @@ class SaveCategoryDialog extends HookConsumerWidget {
     final descriptionController = useTextEditingController(text: category?.description);
     final isActive = useState(category?.isActive ?? true);
 
-    final saveAction = CatalogCategoriesNotifier.saveAction;
+    final saveAction = InventoryCategoriesNotifier.saveAction;
     final saveStatus = ref.watch(saveAction);
 
     ref.listen(saveAction, (prev, next) async {
@@ -143,7 +143,7 @@ class SaveCategoryDialog extends HookConsumerWidget {
                       onPressed: saveStatus is! MutationPending
                           ? () {
                               if (!formKey.currentState!.validate()) return;
-                              final updated = (category ?? CatalogCategory.draft()).copyWith(
+                              final updated = (category ?? InventoryCategory.draft()).copyWith(
                                 name: nameController.text.trim(),
                                 description: descriptionController.text.trim().isEmpty
                                     ? null
@@ -151,7 +151,7 @@ class SaveCategoryDialog extends HookConsumerWidget {
                                 isActive: isActive.value,
                               );
                               saveAction.run(ref, (txn) async {
-                                return txn.get(catalogCategoriesProvider.notifier).save(updated);
+                                return txn.get(inventoryCategoriesProvider.notifier).save(updated);
                               }).ignore();
                             }
                           : null,

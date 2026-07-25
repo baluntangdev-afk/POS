@@ -145,7 +145,7 @@ class OrderingNotifier extends AsyncNotifier<OrderingData> {
   /// Unlike [selectGroup], this doesn't touch loading state or the in-progress
   /// sale — it's meant to be called silently (e.g. whenever the ordering
   /// screen becomes visible again) so products added/edited/deleted elsewhere
-  /// (Catalog Management) show up without discarding the current cart.
+  /// (Inventory Management) show up without discarding the current cart.
   Future<void> refreshProducts() async {
     final current = state.value;
     final group = current?.selectedGroup;
@@ -162,7 +162,7 @@ class OrderingNotifier extends AsyncNotifier<OrderingData> {
   /// Like [refreshProducts], this doesn't touch loading state or the
   /// in-progress sale — it's meant to be called silently (e.g. whenever the
   /// ordering screen becomes visible again) so categories added/edited
-  /// elsewhere (Catalog Management) show up without discarding the current
+  /// elsewhere (Inventory Management) show up without discarding the current
   /// cart.
   Future<void> refreshProductGroups() async {
     if (!state.hasValue) return;

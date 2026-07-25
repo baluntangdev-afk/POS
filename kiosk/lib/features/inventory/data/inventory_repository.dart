@@ -9,35 +9,35 @@ import 'models/category.dart';
 import 'models/modifier_group.dart';
 import 'models/product.dart';
 
-final catalogRepositoryProvider = Provider<CatalogRepository>((ref) {
+final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
   final openClient = ref.watch(openApiClientProvider);
   final secureClient = ref.watch(secureApiClientProvider);
-  return CatalogRepository(openClient, secureClient);
+  return InventoryRepository(openClient, secureClient);
 });
 
-class CatalogRepository {
-  const CatalogRepository(this._openClient, this._secureClient);
+class InventoryRepository {
+  const InventoryRepository(this._openClient, this._secureClient);
 
   final Dio _openClient;
   final Dio _secureClient;
 
-  Future<List<CatalogCategory>> fetchCategories() async {
+  Future<List<InventoryCategory>> fetchCategories() async {
     final response = await _openClient.get<dynamic>('/api/v1/catalog/categories');
     final data = (response.data as Map<String, dynamic>)['data'] as List<dynamic>;
     return data
-        .map((json) => CatalogCategory.fromJson(json as Map<String, dynamic>))
+        .map((json) => InventoryCategory.fromJson(json as Map<String, dynamic>))
         .toList();
   }
 
-  Future<List<CatalogCategory>> fetchAllCategoriesAdmin() async {
+  Future<List<InventoryCategory>> fetchAllCategoriesAdmin() async {
     final response = await _secureClient.get<dynamic>('/api/v1/catalog/admin/categories');
     final data = (response.data as Map<String, dynamic>)['data'] as List<dynamic>;
     return data
-        .map((json) => CatalogCategory.fromJson(json as Map<String, dynamic>))
+        .map((json) => InventoryCategory.fromJson(json as Map<String, dynamic>))
         .toList();
   }
 
-  Future<CatalogCategory> createCategory(
+  Future<InventoryCategory> createCategory(
     String name,
     String? description,
     bool isActive,
@@ -51,10 +51,10 @@ class CatalogRepository {
       },
     );
     final data = (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>;
-    return CatalogCategory.fromJson(data);
+    return InventoryCategory.fromJson(data);
   }
 
-  Future<CatalogCategory> updateCategory(
+  Future<InventoryCategory> updateCategory(
     String id,
     String name,
     String? description,
@@ -69,10 +69,10 @@ class CatalogRepository {
       },
     );
     final data = (response.data as Map<String, dynamic>)['data'] as Map<String, dynamic>;
-    return CatalogCategory.fromJson(data);
+    return InventoryCategory.fromJson(data);
   }
 
-  Future<List<CatalogProduct>> fetchProducts({String? categoryId, String? search}) async {
+  Future<List<InventoryProduct>> fetchProducts({String? categoryId, String? search}) async {
     final response = await _openClient.get<dynamic>(
       '/api/v1/catalog/products',
       queryParameters: {
@@ -82,11 +82,11 @@ class CatalogRepository {
     );
     final data = (response.data as Map<String, dynamic>)['data'] as List<dynamic>;
     return data
-        .map((json) => CatalogProduct.fromJson(json as Map<String, dynamic>))
+        .map((json) => InventoryProduct.fromJson(json as Map<String, dynamic>))
         .toList();
   }
 
-  Future<List<CatalogProduct>> fetchAllProductsAdmin({String? categoryId, String? search}) async {
+  Future<List<InventoryProduct>> fetchAllProductsAdmin({String? categoryId, String? search}) async {
     final response = await _secureClient.get<dynamic>(
       '/api/v1/catalog/admin/products',
       queryParameters: {
@@ -96,15 +96,15 @@ class CatalogRepository {
     );
     final data = (response.data as Map<String, dynamic>)['data'] as List<dynamic>;
     return data
-        .map((json) => CatalogProduct.fromJson(json as Map<String, dynamic>))
+        .map((json) => InventoryProduct.fromJson(json as Map<String, dynamic>))
         .toList();
   }
 
-  Future<List<CatalogModifierGroup>> fetchModifierGroups() async {
+  Future<List<InventoryModifierGroup>> fetchModifierGroups() async {
     final response = await _openClient.get<dynamic>('/api/v1/catalog/modifier-groups');
     final data = (response.data as Map<String, dynamic>)['data'] as List<dynamic>;
     return data
-        .map((json) => CatalogModifierGroup.fromJson(json as Map<String, dynamic>))
+        .map((json) => InventoryModifierGroup.fromJson(json as Map<String, dynamic>))
         .toList();
   }
 
@@ -154,16 +154,16 @@ class CatalogRepository {
     );
   }
 
-  Future<List<CatalogProductVariant>> fetchProductVariants(String productId) async {
+  Future<List<InventoryProductVariant>> fetchProductVariants(String productId) async {
     final response = await _secureClient.get<dynamic>('/api/v1/products/$productId');
     final data = response.data as Map<String, dynamic>;
     final variantsJson = data['variants'] as List<dynamic>? ?? [];
     return variantsJson
-        .map((v) => CatalogProductVariant.fromJson(v as Map<String, dynamic>))
+        .map((v) => InventoryProductVariant.fromJson(v as Map<String, dynamic>))
         .toList();
   }
 
-  Future<CatalogProductVariant> createVariant({
+  Future<InventoryProductVariant> createVariant({
     required String productId,
     required String name,
     required double price,
@@ -178,7 +178,7 @@ class CatalogRepository {
         'isDefault': isDefault,
       },
     );
-    return CatalogProductVariant.fromJson(response.data as Map<String, dynamic>);
+    return InventoryProductVariant.fromJson(response.data as Map<String, dynamic>);
   }
 
   Future<void> updateVariant({

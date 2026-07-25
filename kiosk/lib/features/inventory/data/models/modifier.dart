@@ -1,5 +1,5 @@
-class CatalogModifier {
-  const CatalogModifier({
+class InventoryModifier {
+  const InventoryModifier({
     required this.id,
     required this.name,
     required this.priceAdjustment,
@@ -13,8 +13,8 @@ class CatalogModifier {
   final bool isAvailable;
   final int sortOrder;
 
-  factory CatalogModifier.fromJson(Map<String, dynamic> json) {
-    return CatalogModifier(
+  factory InventoryModifier.fromJson(Map<String, dynamic> json) {
+    return InventoryModifier(
       id: json['id'] as String,
       name: json['name'] as String,
       priceAdjustment: double.parse(json['price_adjustment'].toString()),

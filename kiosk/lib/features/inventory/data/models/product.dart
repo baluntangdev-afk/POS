@@ -1,21 +1,21 @@
 import 'modifier_group.dart';
 
-class CatalogCategoryRef {
-  const CatalogCategoryRef({required this.id, required this.name});
+class InventoryCategoryRef {
+  const InventoryCategoryRef({required this.id, required this.name});
 
   final String id;
   final String name;
 
-  factory CatalogCategoryRef.fromJson(Map<String, dynamic> json) {
-    return CatalogCategoryRef(
+  factory InventoryCategoryRef.fromJson(Map<String, dynamic> json) {
+    return InventoryCategoryRef(
       id: json['id'] as String,
       name: json['name'] as String,
     );
   }
 }
 
-class CatalogProductVariant {
-  const CatalogProductVariant({
+class InventoryProductVariant {
+  const InventoryProductVariant({
     required this.id,
     required this.name,
     required this.price,
@@ -29,9 +29,9 @@ class CatalogProductVariant {
   final bool isDefault;
   final bool isActive;
 
-  factory CatalogProductVariant.fromJson(Map<String, dynamic> json) {
+  factory InventoryProductVariant.fromJson(Map<String, dynamic> json) {
     final rawPrice = json['price'] ?? json['displayPrice'];
-    return CatalogProductVariant(
+    return InventoryProductVariant(
       id: json['id'].toString(),
       name: json['name'] as String,
       price: double.parse(rawPrice.toString()),
@@ -40,14 +40,14 @@ class CatalogProductVariant {
     );
   }
 
-  CatalogProductVariant copyWith({
+  InventoryProductVariant copyWith({
     String? id,
     String? name,
     double? price,
     bool? isDefault,
     bool? isActive,
   }) {
-    return CatalogProductVariant(
+    return InventoryProductVariant(
       id: id ?? this.id,
       name: name ?? this.name,
       price: price ?? this.price,
@@ -57,8 +57,8 @@ class CatalogProductVariant {
   }
 }
 
-class CatalogProduct {
-  const CatalogProduct({
+class InventoryProduct {
+  const InventoryProduct({
     required this.id,
     required this.name,
     this.description,
@@ -78,13 +78,13 @@ class CatalogProduct {
   final String? imageUrl;
   final bool isAvailable;
   final int sortOrder;
-  final CatalogCategoryRef? category;
-  final List<CatalogModifierGroup> modifierGroups;
-  final List<CatalogProductVariant> variants;
+  final InventoryCategoryRef? category;
+  final List<InventoryModifierGroup> modifierGroups;
+  final List<InventoryProductVariant> variants;
 
-  factory CatalogProduct.fromJson(Map<String, dynamic> json) {
+  factory InventoryProduct.fromJson(Map<String, dynamic> json) {
     final categoryJson = json['category'];
-    return CatalogProduct(
+    return InventoryProduct(
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String?,
@@ -93,16 +93,16 @@ class CatalogProduct {
       isAvailable: json['is_available'] as bool,
       sortOrder: json['sort_order'] as int,
       category: categoryJson != null
-          ? CatalogCategoryRef.fromJson(categoryJson as Map<String, dynamic>)
+          ? InventoryCategoryRef.fromJson(categoryJson as Map<String, dynamic>)
           : null,
       modifierGroups: (json['modifier_groups'] as List<dynamic>)
-          .map((mg) => CatalogModifierGroup.fromJson(mg as Map<String, dynamic>))
+          .map((mg) => InventoryModifierGroup.fromJson(mg as Map<String, dynamic>))
           .toList(),
     );
   }
 
-  factory CatalogProduct.draft() {
-    return const CatalogProduct(
+  factory InventoryProduct.draft() {
+    return const InventoryProduct(
       id: '',
       name: '',
       description: null,
@@ -116,7 +116,7 @@ class CatalogProduct {
     );
   }
 
-  CatalogProduct copyWith({
+  InventoryProduct copyWith({
     String? id,
     String? name,
     String? description,
@@ -124,11 +124,11 @@ class CatalogProduct {
     String? imageUrl,
     bool? isAvailable,
     int? sortOrder,
-    CatalogCategoryRef? category,
-    List<CatalogModifierGroup>? modifierGroups,
-    List<CatalogProductVariant>? variants,
+    InventoryCategoryRef? category,
+    List<InventoryModifierGroup>? modifierGroups,
+    List<InventoryProductVariant>? variants,
   }) {
-    return CatalogProduct(
+    return InventoryProduct(
       id: id ?? this.id,
       name: name ?? this.name,
       description: description ?? this.description,

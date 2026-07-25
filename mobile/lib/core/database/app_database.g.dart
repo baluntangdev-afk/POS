@@ -70,8 +70,64 @@ class $UsersTableTable extends UsersTable
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _employeeIdMeta = const VerificationMeta(
+    'employeeId',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, name, role, pinHash, isActive];
+  late final GeneratedColumn<String> employeeId = GeneratedColumn<String>(
+    'employee_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _phoneMeta = const VerificationMeta('phone');
+  @override
+  late final GeneratedColumn<String> phone = GeneratedColumn<String>(
+    'phone',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _avatarUrlMeta = const VerificationMeta(
+    'avatarUrl',
+  );
+  @override
+  late final GeneratedColumn<String> avatarUrl = GeneratedColumn<String>(
+    'avatar_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isPinChangedMeta = const VerificationMeta(
+    'isPinChanged',
+  );
+  @override
+  late final GeneratedColumn<bool> isPinChanged = GeneratedColumn<bool>(
+    'is_pin_changed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_pin_changed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    role,
+    pinHash,
+    isActive,
+    employeeId,
+    phone,
+    avatarUrl,
+    isPinChanged,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -117,6 +173,33 @@ class $UsersTableTable extends UsersTable
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
       );
     }
+    if (data.containsKey('employee_id')) {
+      context.handle(
+        _employeeIdMeta,
+        employeeId.isAcceptableOrUnknown(data['employee_id']!, _employeeIdMeta),
+      );
+    }
+    if (data.containsKey('phone')) {
+      context.handle(
+        _phoneMeta,
+        phone.isAcceptableOrUnknown(data['phone']!, _phoneMeta),
+      );
+    }
+    if (data.containsKey('avatar_url')) {
+      context.handle(
+        _avatarUrlMeta,
+        avatarUrl.isAcceptableOrUnknown(data['avatar_url']!, _avatarUrlMeta),
+      );
+    }
+    if (data.containsKey('is_pin_changed')) {
+      context.handle(
+        _isPinChangedMeta,
+        isPinChanged.isAcceptableOrUnknown(
+          data['is_pin_changed']!,
+          _isPinChangedMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -151,6 +234,23 @@ class $UsersTableTable extends UsersTable
             DriftSqlType.bool,
             data['${effectivePrefix}is_active'],
           )!,
+      employeeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}employee_id'],
+      ),
+      phone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}phone'],
+      ),
+      avatarUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}avatar_url'],
+      ),
+      isPinChanged:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.bool,
+            data['${effectivePrefix}is_pin_changed'],
+          )!,
     );
   }
 
@@ -166,12 +266,20 @@ class UsersTableData extends DataClass implements Insertable<UsersTableData> {
   final String role;
   final String pinHash;
   final bool isActive;
+  final String? employeeId;
+  final String? phone;
+  final String? avatarUrl;
+  final bool isPinChanged;
   const UsersTableData({
     required this.id,
     required this.name,
     required this.role,
     required this.pinHash,
     required this.isActive,
+    this.employeeId,
+    this.phone,
+    this.avatarUrl,
+    required this.isPinChanged,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -181,6 +289,16 @@ class UsersTableData extends DataClass implements Insertable<UsersTableData> {
     map['role'] = Variable<String>(role);
     map['pin_hash'] = Variable<String>(pinHash);
     map['is_active'] = Variable<bool>(isActive);
+    if (!nullToAbsent || employeeId != null) {
+      map['employee_id'] = Variable<String>(employeeId);
+    }
+    if (!nullToAbsent || phone != null) {
+      map['phone'] = Variable<String>(phone);
+    }
+    if (!nullToAbsent || avatarUrl != null) {
+      map['avatar_url'] = Variable<String>(avatarUrl);
+    }
+    map['is_pin_changed'] = Variable<bool>(isPinChanged);
     return map;
   }
 
@@ -191,6 +309,17 @@ class UsersTableData extends DataClass implements Insertable<UsersTableData> {
       role: Value(role),
       pinHash: Value(pinHash),
       isActive: Value(isActive),
+      employeeId:
+          employeeId == null && nullToAbsent
+              ? const Value.absent()
+              : Value(employeeId),
+      phone:
+          phone == null && nullToAbsent ? const Value.absent() : Value(phone),
+      avatarUrl:
+          avatarUrl == null && nullToAbsent
+              ? const Value.absent()
+              : Value(avatarUrl),
+      isPinChanged: Value(isPinChanged),
     );
   }
 
@@ -205,6 +334,10 @@ class UsersTableData extends DataClass implements Insertable<UsersTableData> {
       role: serializer.fromJson<String>(json['role']),
       pinHash: serializer.fromJson<String>(json['pinHash']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      employeeId: serializer.fromJson<String?>(json['employeeId']),
+      phone: serializer.fromJson<String?>(json['phone']),
+      avatarUrl: serializer.fromJson<String?>(json['avatarUrl']),
+      isPinChanged: serializer.fromJson<bool>(json['isPinChanged']),
     );
   }
   @override
@@ -216,6 +349,10 @@ class UsersTableData extends DataClass implements Insertable<UsersTableData> {
       'role': serializer.toJson<String>(role),
       'pinHash': serializer.toJson<String>(pinHash),
       'isActive': serializer.toJson<bool>(isActive),
+      'employeeId': serializer.toJson<String?>(employeeId),
+      'phone': serializer.toJson<String?>(phone),
+      'avatarUrl': serializer.toJson<String?>(avatarUrl),
+      'isPinChanged': serializer.toJson<bool>(isPinChanged),
     };
   }
 
@@ -225,12 +362,20 @@ class UsersTableData extends DataClass implements Insertable<UsersTableData> {
     String? role,
     String? pinHash,
     bool? isActive,
+    Value<String?> employeeId = const Value.absent(),
+    Value<String?> phone = const Value.absent(),
+    Value<String?> avatarUrl = const Value.absent(),
+    bool? isPinChanged,
   }) => UsersTableData(
     id: id ?? this.id,
     name: name ?? this.name,
     role: role ?? this.role,
     pinHash: pinHash ?? this.pinHash,
     isActive: isActive ?? this.isActive,
+    employeeId: employeeId.present ? employeeId.value : this.employeeId,
+    phone: phone.present ? phone.value : this.phone,
+    avatarUrl: avatarUrl.present ? avatarUrl.value : this.avatarUrl,
+    isPinChanged: isPinChanged ?? this.isPinChanged,
   );
   UsersTableData copyWithCompanion(UsersTableCompanion data) {
     return UsersTableData(
@@ -239,6 +384,14 @@ class UsersTableData extends DataClass implements Insertable<UsersTableData> {
       role: data.role.present ? data.role.value : this.role,
       pinHash: data.pinHash.present ? data.pinHash.value : this.pinHash,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      employeeId:
+          data.employeeId.present ? data.employeeId.value : this.employeeId,
+      phone: data.phone.present ? data.phone.value : this.phone,
+      avatarUrl: data.avatarUrl.present ? data.avatarUrl.value : this.avatarUrl,
+      isPinChanged:
+          data.isPinChanged.present
+              ? data.isPinChanged.value
+              : this.isPinChanged,
     );
   }
 
@@ -249,13 +402,27 @@ class UsersTableData extends DataClass implements Insertable<UsersTableData> {
           ..write('name: $name, ')
           ..write('role: $role, ')
           ..write('pinHash: $pinHash, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('employeeId: $employeeId, ')
+          ..write('phone: $phone, ')
+          ..write('avatarUrl: $avatarUrl, ')
+          ..write('isPinChanged: $isPinChanged')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, role, pinHash, isActive);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    role,
+    pinHash,
+    isActive,
+    employeeId,
+    phone,
+    avatarUrl,
+    isPinChanged,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -264,7 +431,11 @@ class UsersTableData extends DataClass implements Insertable<UsersTableData> {
           other.name == this.name &&
           other.role == this.role &&
           other.pinHash == this.pinHash &&
-          other.isActive == this.isActive);
+          other.isActive == this.isActive &&
+          other.employeeId == this.employeeId &&
+          other.phone == this.phone &&
+          other.avatarUrl == this.avatarUrl &&
+          other.isPinChanged == this.isPinChanged);
 }
 
 class UsersTableCompanion extends UpdateCompanion<UsersTableData> {
@@ -273,12 +444,20 @@ class UsersTableCompanion extends UpdateCompanion<UsersTableData> {
   final Value<String> role;
   final Value<String> pinHash;
   final Value<bool> isActive;
+  final Value<String?> employeeId;
+  final Value<String?> phone;
+  final Value<String?> avatarUrl;
+  final Value<bool> isPinChanged;
   const UsersTableCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.role = const Value.absent(),
     this.pinHash = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.employeeId = const Value.absent(),
+    this.phone = const Value.absent(),
+    this.avatarUrl = const Value.absent(),
+    this.isPinChanged = const Value.absent(),
   });
   UsersTableCompanion.insert({
     this.id = const Value.absent(),
@@ -286,6 +465,10 @@ class UsersTableCompanion extends UpdateCompanion<UsersTableData> {
     required String role,
     required String pinHash,
     this.isActive = const Value.absent(),
+    this.employeeId = const Value.absent(),
+    this.phone = const Value.absent(),
+    this.avatarUrl = const Value.absent(),
+    this.isPinChanged = const Value.absent(),
   }) : name = Value(name),
        role = Value(role),
        pinHash = Value(pinHash);
@@ -295,6 +478,10 @@ class UsersTableCompanion extends UpdateCompanion<UsersTableData> {
     Expression<String>? role,
     Expression<String>? pinHash,
     Expression<bool>? isActive,
+    Expression<String>? employeeId,
+    Expression<String>? phone,
+    Expression<String>? avatarUrl,
+    Expression<bool>? isPinChanged,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -302,6 +489,10 @@ class UsersTableCompanion extends UpdateCompanion<UsersTableData> {
       if (role != null) 'role': role,
       if (pinHash != null) 'pin_hash': pinHash,
       if (isActive != null) 'is_active': isActive,
+      if (employeeId != null) 'employee_id': employeeId,
+      if (phone != null) 'phone': phone,
+      if (avatarUrl != null) 'avatar_url': avatarUrl,
+      if (isPinChanged != null) 'is_pin_changed': isPinChanged,
     });
   }
 
@@ -311,6 +502,10 @@ class UsersTableCompanion extends UpdateCompanion<UsersTableData> {
     Value<String>? role,
     Value<String>? pinHash,
     Value<bool>? isActive,
+    Value<String?>? employeeId,
+    Value<String?>? phone,
+    Value<String?>? avatarUrl,
+    Value<bool>? isPinChanged,
   }) {
     return UsersTableCompanion(
       id: id ?? this.id,
@@ -318,6 +513,10 @@ class UsersTableCompanion extends UpdateCompanion<UsersTableData> {
       role: role ?? this.role,
       pinHash: pinHash ?? this.pinHash,
       isActive: isActive ?? this.isActive,
+      employeeId: employeeId ?? this.employeeId,
+      phone: phone ?? this.phone,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      isPinChanged: isPinChanged ?? this.isPinChanged,
     );
   }
 
@@ -339,6 +538,18 @@ class UsersTableCompanion extends UpdateCompanion<UsersTableData> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (employeeId.present) {
+      map['employee_id'] = Variable<String>(employeeId.value);
+    }
+    if (phone.present) {
+      map['phone'] = Variable<String>(phone.value);
+    }
+    if (avatarUrl.present) {
+      map['avatar_url'] = Variable<String>(avatarUrl.value);
+    }
+    if (isPinChanged.present) {
+      map['is_pin_changed'] = Variable<bool>(isPinChanged.value);
+    }
     return map;
   }
 
@@ -349,7 +560,11 @@ class UsersTableCompanion extends UpdateCompanion<UsersTableData> {
           ..write('name: $name, ')
           ..write('role: $role, ')
           ..write('pinHash: $pinHash, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('employeeId: $employeeId, ')
+          ..write('phone: $phone, ')
+          ..write('avatarUrl: $avatarUrl, ')
+          ..write('isPinChanged: $isPinChanged')
           ..write(')'))
         .toString();
   }
@@ -8250,6 +8465,10 @@ typedef $$UsersTableTableCreateCompanionBuilder =
       required String role,
       required String pinHash,
       Value<bool> isActive,
+      Value<String?> employeeId,
+      Value<String?> phone,
+      Value<String?> avatarUrl,
+      Value<bool> isPinChanged,
     });
 typedef $$UsersTableTableUpdateCompanionBuilder =
     UsersTableCompanion Function({
@@ -8258,6 +8477,10 @@ typedef $$UsersTableTableUpdateCompanionBuilder =
       Value<String> role,
       Value<String> pinHash,
       Value<bool> isActive,
+      Value<String?> employeeId,
+      Value<String?> phone,
+      Value<String?> avatarUrl,
+      Value<bool> isPinChanged,
     });
 
 final class $$UsersTableTableReferences
@@ -8314,6 +8537,26 @@ class $$UsersTableTableFilterComposer
 
   ColumnFilters<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get employeeId => $composableBuilder(
+    column: $table.employeeId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get phone => $composableBuilder(
+    column: $table.phone,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get avatarUrl => $composableBuilder(
+    column: $table.avatarUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isPinChanged => $composableBuilder(
+    column: $table.isPinChanged,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8376,6 +8619,26 @@ class $$UsersTableTableOrderingComposer
     column: $table.isActive,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get employeeId => $composableBuilder(
+    column: $table.employeeId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get phone => $composableBuilder(
+    column: $table.phone,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get avatarUrl => $composableBuilder(
+    column: $table.avatarUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isPinChanged => $composableBuilder(
+    column: $table.isPinChanged,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$UsersTableTableAnnotationComposer
@@ -8401,6 +8664,22 @@ class $$UsersTableTableAnnotationComposer
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<String> get employeeId => $composableBuilder(
+    column: $table.employeeId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get phone =>
+      $composableBuilder(column: $table.phone, builder: (column) => column);
+
+  GeneratedColumn<String> get avatarUrl =>
+      $composableBuilder(column: $table.avatarUrl, builder: (column) => column);
+
+  GeneratedColumn<bool> get isPinChanged => $composableBuilder(
+    column: $table.isPinChanged,
+    builder: (column) => column,
+  );
 
   Expression<T> salesTableRefs<T extends Object>(
     Expression<T> Function($$SalesTableTableAnnotationComposer a) f,
@@ -8461,12 +8740,20 @@ class $$UsersTableTableTableManager
                 Value<String> role = const Value.absent(),
                 Value<String> pinHash = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<String?> employeeId = const Value.absent(),
+                Value<String?> phone = const Value.absent(),
+                Value<String?> avatarUrl = const Value.absent(),
+                Value<bool> isPinChanged = const Value.absent(),
               }) => UsersTableCompanion(
                 id: id,
                 name: name,
                 role: role,
                 pinHash: pinHash,
                 isActive: isActive,
+                employeeId: employeeId,
+                phone: phone,
+                avatarUrl: avatarUrl,
+                isPinChanged: isPinChanged,
               ),
           createCompanionCallback:
               ({
@@ -8475,12 +8762,20 @@ class $$UsersTableTableTableManager
                 required String role,
                 required String pinHash,
                 Value<bool> isActive = const Value.absent(),
+                Value<String?> employeeId = const Value.absent(),
+                Value<String?> phone = const Value.absent(),
+                Value<String?> avatarUrl = const Value.absent(),
+                Value<bool> isPinChanged = const Value.absent(),
               }) => UsersTableCompanion.insert(
                 id: id,
                 name: name,
                 role: role,
                 pinHash: pinHash,
                 isActive: isActive,
+                employeeId: employeeId,
+                phone: phone,
+                avatarUrl: avatarUrl,
+                isPinChanged: isPinChanged,
               ),
           withReferenceMapper:
               (p0) =>

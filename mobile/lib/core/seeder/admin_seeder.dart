@@ -6,8 +6,11 @@ import '../database/app_database.dart';
 
 const _seededKey = 'admin_seeded';
 
-/// The PIN seeded on the first-run default admin account. Public so the auth
-/// layer can detect "still using the seeded default" and force a PIN change.
+/// The default PIN assigned to every newly-created user (matching kiosk's
+/// `devicePin: '000000'` on create). Every such user is created with
+/// `isPinChanged: false`, forcing them through the setup-PIN gate on first
+/// login — this constant is public so `UsersNotifier.addUser`/`resetPin` can
+/// reuse it instead of duplicating the literal.
 const defaultSeededPin = '000000';
 
 class AdminSeeder {
@@ -28,6 +31,7 @@ class AdminSeeder {
           role: 'admin',
           pinHash: pinHash,
           isActive: const Value(true),
+          isPinChanged: const Value(false),
         ),
       );
     }

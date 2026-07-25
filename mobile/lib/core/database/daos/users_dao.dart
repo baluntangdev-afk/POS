@@ -11,6 +11,8 @@ class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
   Future<List<UsersTableData>> getAllActiveUsers() =>
       (select(usersTable)..where((t) => t.isActive.equals(true))).get();
 
+  Future<List<UsersTableData>> getAllUsers() => select(usersTable).get();
+
   Future<UsersTableData?> getUserById(int id) =>
       (select(usersTable)..where((t) => t.id.equals(id))).getSingleOrNull();
 
@@ -25,8 +27,9 @@ class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
   Future<int> insertUser(UsersTableCompanion companion) =>
       into(usersTable).insert(companion);
 
-  Future<bool> updateUser(UsersTableCompanion companion) =>
-      update(usersTable).replace(companion);
+  Future<int> updateUser(UsersTableCompanion companion) =>
+      (update(usersTable)..where((t) => t.id.equals(companion.id.value)))
+          .write(companion);
 
   Future<int> deactivateUser(int id) => (update(usersTable)
         ..where((t) => t.id.equals(id)))
@@ -35,4 +38,17 @@ class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
   Future<int> updatePinHash(int userId, String newPinHash) =>
       (update(usersTable)..where((t) => t.id.equals(userId)))
           .write(UsersTableCompanion(pinHash: Value(newPinHash)));
+
+  Future<int> deleteUser(int id) =>
+      (delete(usersTable)..where((t) => t.id.equals(id))).go();
+
+  Future<int> resetPin(int userId, String defaultPinHash) =>
+      (update(usersTable)..where((t) => t.id.equals(userId))).write(
+        UsersTableCompanion(pinHash: Value(defaultPinHash), isPinChanged: const Value(false)),
+      );
+
+  Future<int> completePinSetup(int userId, String newPinHash) =>
+      (update(usersTable)..where((t) => t.id.equals(userId))).write(
+        UsersTableCompanion(pinHash: Value(newPinHash), isPinChanged: const Value(true)),
+      );
 }

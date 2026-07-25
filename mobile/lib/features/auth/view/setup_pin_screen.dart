@@ -45,7 +45,7 @@ class SetupPinScreen extends HookConsumerWidget {
       errorText.value = null;
       loading.value = true;
       try {
-        await ref.read(usersProvider.notifier).changePin(userId: userId, newPin: pinCtrl.text);
+        await ref.read(usersProvider.notifier).completeOwnPinSetup(userId: userId, newPin: pinCtrl.text);
         ref.read(authNotifierProvider.notifier).completePinSetup();
       } finally {
         loading.value = false;

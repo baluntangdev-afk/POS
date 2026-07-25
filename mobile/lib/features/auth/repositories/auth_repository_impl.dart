@@ -6,6 +6,16 @@ import '../../../core/result/result.dart';
 import '../entities/user_entity.dart';
 import 'auth_repository.dart';
 
+UserEntity _toEntity(UsersTableData r) => UserEntity(
+      id: r.id,
+      name: r.name,
+      role: r.role,
+      isPinChanged: r.isPinChanged,
+      employeeId: r.employeeId,
+      phone: r.phone,
+      avatarUrl: r.avatarUrl,
+    );
+
 class AuthRepositoryImpl implements AuthRepository {
   final AppDatabase _db;
 
@@ -15,8 +25,7 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Result<List<UserEntity>, AppError>> getActiveUsers() async {
     try {
       final rows = await _db.usersDao.getAllActiveUsers();
-      final users = rows.map((r) => UserEntity(id: r.id, name: r.name, role: r.role)).toList();
-      return Success(users);
+      return Success(rows.map(_toEntity).toList());
     } catch (e) {
       return Failure(DatabaseError(e.toString()));
     }
@@ -31,7 +40,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final valid = BCrypt.checkpw(pin, row.pinHash);
       if (!valid) return const Failure(ValidationError('Incorrect PIN'));
 
-      return Success(UserEntity(id: row.id, name: row.name, role: row.role));
+      return Success(_toEntity(row));
     } catch (e) {
       return Failure(DatabaseError(e.toString()));
     }
@@ -41,9 +50,9 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Result<bool, AppError>> verifyAdminPin(String pin) async {
     try {
       final rows = await _db.usersDao.getAllActiveUsers();
-      final admins = rows.where((r) => r.role == 'admin');
-      for (final admin in admins) {
-        if (BCrypt.checkpw(pin, admin.pinHash)) return const Success(true);
+      final authorizers = rows.where((r) => r.role == 'admin' || r.role == 'supervisor');
+      for (final authorizer in authorizers) {
+        if (BCrypt.checkpw(pin, authorizer.pinHash)) return const Success(true);
       }
       return const Success(false);
     } catch (e) {

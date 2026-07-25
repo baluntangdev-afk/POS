@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/services/image_storage_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -18,7 +21,7 @@ class UsersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final usersAsync = ref.watch(usersProvider);
     final authState = ref.watch(authNotifierProvider);
-    final isAdmin = authState is AuthAuthenticated && authState.user.isAdmin;
+    final canManage = authState is AuthAuthenticated && authState.user.isAdminOrSupervisor;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -34,7 +37,7 @@ class UsersScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButton: isAdmin
+      floatingActionButton: canManage
           ? FloatingActionButton.extended(
               onPressed: () => _showAddUserDialog(context, ref),
               icon: const Icon(Icons.person_add_rounded),
@@ -87,16 +90,16 @@ class UsersScreen extends ConsumerWidget {
               AppSpacing.lg,
               AppSpacing.lg,
               AppSpacing.lg,
-              isAdmin ? AppSpacing.xxl + AppSpacing.lg : AppSpacing.lg,
+              canManage ? AppSpacing.xxl + AppSpacing.lg : AppSpacing.lg,
             ),
             itemCount: users.length,
             separatorBuilder: (_, _) => const Gap(AppSpacing.sm),
             itemBuilder: (context, index) => _UserCard(
               user: users[index],
-              isAdmin: isAdmin,
+              canManage: canManage,
               onEdit: () => _showEditUserDialog(context, ref, users[index]),
-              onChangePin: () => _showChangePinDialog(context, ref, users[index]),
-              onDeactivate: () => _confirmDeactivate(context, ref, users[index]),
+              onResetPin: () => _confirmResetPin(context, ref, users[index]),
+              onDelete: () => _confirmDelete(context, ref, users[index]),
             ),
           );
         },
@@ -107,13 +110,15 @@ class UsersScreen extends ConsumerWidget {
   void _showAddUserDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
-      builder: (ctx) => _AddUserDialog(
-        onAdd: (name, role, pin) async {
+      builder: (ctx) => _UserFormDialog(
+        onSubmit: (name, role, employeeId, phone, avatarUrl, {isActive = true}) async {
           await ref.read(usersProvider.notifier).addUser(
-            name: name,
-            role: role,
-            pin: pin,
-          );
+                name: name,
+                role: role,
+                employeeId: employeeId,
+                phone: phone,
+                avatarUrl: avatarUrl,
+              );
           if (ctx.mounted) Navigator.of(ctx).pop();
         },
       ),
@@ -123,43 +128,57 @@ class UsersScreen extends ConsumerWidget {
   void _showEditUserDialog(BuildContext context, WidgetRef ref, UsersTableData user) {
     showDialog(
       context: context,
-      builder: (ctx) => _EditUserDialog(
-        user: user,
-        onSave: (name, role) async {
+      builder: (ctx) => _UserFormDialog(
+        existing: user,
+        onSubmit: (name, role, employeeId, phone, avatarUrl, {isActive = true}) async {
           await ref.read(usersProvider.notifier).editUser(
-            id: user.id,
-            name: name,
-            role: role,
-          );
+                id: user.id,
+                name: name,
+                role: role,
+                isActive: isActive,
+                employeeId: employeeId,
+                phone: phone,
+                avatarUrl: avatarUrl,
+              );
           if (ctx.mounted) Navigator.of(ctx).pop();
         },
       ),
     );
   }
 
-  void _showChangePinDialog(BuildContext context, WidgetRef ref, UsersTableData user) {
-    showDialog(
-      context: context,
-      builder: (ctx) => _ChangePinDialog(
-        userName: user.name,
-        onChangePin: (newPin) async {
-          await ref.read(usersProvider.notifier).changePin(
-            userId: user.id,
-            newPin: newPin,
-          );
-          if (ctx.mounted) Navigator.of(ctx).pop();
-        },
-      ),
-    );
-  }
-
-  void _confirmDeactivate(BuildContext context, WidgetRef ref, UsersTableData user) {
+  void _confirmResetPin(BuildContext context, WidgetRef ref, UsersTableData user) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Deactivate User'),
-        content:
-            Text('Deactivate "${user.name}"? They will no longer be able to log in.'),
+        title: const Text('Reset PIN'),
+        content: Text(
+          'Reset "${user.name}"\'s PIN to the default? They\'ll be asked to set a new PIN on next login.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              await ref.read(usersProvider.notifier).resetPin(user.id);
+              if (ctx.mounted) Navigator.of(ctx).pop();
+            },
+            child: const Text('Reset PIN'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, WidgetRef ref, UsersTableData user) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete User'),
+        content: Text(
+          'Delete "${user.name}"? This permanently removes their account and cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -168,10 +187,10 @@ class UsersScreen extends ConsumerWidget {
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
-              await ref.read(usersProvider.notifier).deactivateUser(user.id);
+              await ref.read(usersProvider.notifier).deleteUser(user.id);
               if (ctx.mounted) Navigator.of(ctx).pop();
             },
-            child: const Text('Deactivate'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -183,98 +202,141 @@ class UsersScreen extends ConsumerWidget {
 
 class _UserCard extends StatelessWidget {
   final UsersTableData user;
-  final bool isAdmin;
+  final bool canManage;
   final VoidCallback onEdit;
-  final VoidCallback onChangePin;
-  final VoidCallback onDeactivate;
+  final VoidCallback onResetPin;
+  final VoidCallback onDelete;
 
   const _UserCard({
     required this.user,
-    required this.isAdmin,
+    required this.canManage,
     required this.onEdit,
-    required this.onChangePin,
-    required this.onDeactivate,
+    required this.onResetPin,
+    required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = user.role == 'admin';
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.sm,
+    final subtitleParts = [
+      if (user.employeeId != null && user.employeeId!.isNotEmpty) user.employeeId!,
+      if (user.phone != null && user.phone!.isNotEmpty) user.phone!,
+    ];
+
+    return Opacity(
+      opacity: user.isActive ? 1 : 0.5,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.shadow.withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
-        leading: CircleAvatar(
-          radius: 24,
-          backgroundColor: isAdmin
-              ? AppColors.primary.withValues(alpha: 0.15)
-              : AppColors.secondary.withValues(alpha: 0.15),
-          child: Text(
-            user.name.substring(0, 1).toUpperCase(),
-            style: AppTextStyles.headingSm.copyWith(
-              color: isAdmin ? AppColors.primary : AppColors.secondaryDark,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.sm,
+          ),
+          leading: _UserAvatar(user: user),
+          title: Text(user.name, style: AppTextStyles.headingSm),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Wrap(
+              spacing: AppSpacing.sm,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _RoleBadge(role: user.role),
+                if (!user.isActive)
+                  Text('Inactive',
+                      style: AppTextStyles.labelMd.copyWith(color: AppColors.error)),
+                if (subtitleParts.isNotEmpty)
+                  Text(subtitleParts.join(' • '),
+                      style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
+              ],
             ),
           ),
+          trailing: canManage
+              ? PopupMenuButton<String>(
+                  onSelected: (action) {
+                    switch (action) {
+                      case 'edit':
+                        onEdit();
+                      case 'reset_pin':
+                        onResetPin();
+                      case 'delete':
+                        onDelete();
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(children: [
+                        Icon(Icons.edit_outlined, size: 18),
+                        Gap(AppSpacing.sm),
+                        Text('Edit'),
+                      ]),
+                    ),
+                    const PopupMenuItem(
+                      value: 'reset_pin',
+                      child: Row(children: [
+                        Icon(Icons.pin_outlined, size: 18),
+                        Gap(AppSpacing.sm),
+                        Text('Reset PIN'),
+                      ]),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(children: [
+                        Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                        Gap(AppSpacing.sm),
+                        Text('Delete', style: TextStyle(color: AppColors.error)),
+                      ]),
+                    ),
+                  ],
+                )
+              : null,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          ),
         ),
-        title: Text(user.name, style: AppTextStyles.headingSm),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: _RoleBadge(role: user.role),
-        ),
-        trailing: isAdmin
-            ? PopupMenuButton<String>(
-                onSelected: (action) {
-                  switch (action) {
-                    case 'edit':
-                      onEdit();
-                    case 'pin':
-                      onChangePin();
-                    case 'deactivate':
-                      onDeactivate();
-                  }
-                },
-                itemBuilder: (ctx) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Row(children: [
-                      Icon(Icons.edit_outlined, size: 18),
-                      Gap(AppSpacing.sm),
-                      Text('Edit'),
-                    ]),
-                  ),
-                  const PopupMenuItem(
-                    value: 'pin',
-                    child: Row(children: [
-                      Icon(Icons.pin_outlined, size: 18),
-                      Gap(AppSpacing.sm),
-                      Text('Change PIN'),
-                    ]),
-                  ),
-                  const PopupMenuItem(
-                    value: 'deactivate',
-                    child: Row(children: [
-                      Icon(Icons.person_off_outlined, size: 18, color: AppColors.error),
-                      Gap(AppSpacing.sm),
-                      Text('Deactivate', style: TextStyle(color: AppColors.error)),
-                    ]),
-                  ),
-                ],
-              )
-            : null,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+      ),
+    );
+  }
+}
+
+class _UserAvatar extends StatelessWidget {
+  final UsersTableData user;
+  const _UserAvatar({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    final url = user.avatarUrl;
+    final isAdmin = user.role == 'admin';
+    final bg = isAdmin
+        ? AppColors.primary.withValues(alpha: 0.15)
+        : AppColors.secondary.withValues(alpha: 0.15);
+
+    if (url != null && url.isNotEmpty) {
+      return CircleAvatar(
+        radius: 24,
+        backgroundColor: bg,
+        backgroundImage: ImageStorageService.isNetworkUrl(url)
+            ? NetworkImage(url) as ImageProvider
+            : FileImage(File(url)),
+      );
+    }
+
+    return CircleAvatar(
+      radius: 24,
+      backgroundColor: bg,
+      child: Text(
+        user.name.substring(0, 1).toUpperCase(),
+        style: AppTextStyles.headingSm.copyWith(
+          color: isAdmin ? AppColors.primary : AppColors.secondaryDark,
         ),
       ),
     );
@@ -287,58 +349,72 @@ class _RoleBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = role == 'admin';
+    final (label, color) = switch (role) {
+      'admin' => ('Admin', AppColors.primary),
+      'supervisor' => ('Supervisor', AppColors.warning),
+      _ => ('Cashier', AppColors.textSecondary),
+    };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
       decoration: BoxDecoration(
-        color: isAdmin
-            ? AppColors.primary.withValues(alpha: 0.1)
-            : AppColors.surfaceVariant,
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
       ),
       child: Text(
-        isAdmin ? 'Admin' : 'Cashier',
-        style: AppTextStyles.labelMd.copyWith(
-          color: isAdmin ? AppColors.primary : AppColors.textSecondary,
-        ),
+        label,
+        style: AppTextStyles.labelMd.copyWith(color: color),
       ),
     );
   }
 }
 
-// ── Add User Dialog ──────────────────────────────────────────────────────────
+// ── User Form Dialog (Add / Edit) ────────────────────────────────────────────
 
-class _AddUserDialog extends HookWidget {
-  final Future<void> Function(String name, String role, String pin) onAdd;
-  const _AddUserDialog({required this.onAdd});
+typedef _UserFormSubmit = Future<void> Function(
+  String name,
+  String role,
+  String? employeeId,
+  String? phone,
+  String? avatarUrl, {
+  bool isActive,
+});
+
+class _UserFormDialog extends HookWidget {
+  final UsersTableData? existing;
+  final _UserFormSubmit onSubmit;
+  const _UserFormDialog({this.existing, required this.onSubmit});
+
+  bool get isEditing => existing != null;
 
   @override
   Widget build(BuildContext context) {
-    final nameCtrl = useTextEditingController();
-    final pinCtrl = useTextEditingController();
-    final confirmCtrl = useTextEditingController();
-    final role = useState('cashier');
+    final formKey = useMemoized(GlobalKey<FormState>.new);
+    final nameCtrl = useTextEditingController(text: existing?.name ?? '');
+    final employeeIdCtrl = useTextEditingController(text: existing?.employeeId ?? '');
+    final phoneCtrl = useTextEditingController(text: existing?.phone ?? '');
+    final role = useState(existing?.role ?? 'cashier');
+    final isActive = useState(existing?.isActive ?? true);
+    final avatarUrl = useState(existing?.avatarUrl);
     final loading = useState(false);
-    final nameError = useState<String?>(null);
-    final pinError = useState<String?>(null);
 
-    bool validate() {
-      nameError.value = nameCtrl.text.trim().isEmpty ? 'Name is required' : null;
-      if (pinCtrl.text.length != 6) {
-        pinError.value = 'PIN must be exactly 6 digits';
-      } else if (pinCtrl.text != confirmCtrl.text) {
-        pinError.value = 'PINs do not match';
-      } else {
-        pinError.value = null;
-      }
-      return nameError.value == null && pinError.value == null;
+    Future<void> pickAvatar() async {
+      final picked = await ImageStorageService.pickAndStore();
+      if (picked == null) return;
+      avatarUrl.value = picked;
     }
 
     Future<void> submit() async {
-      if (!validate()) return;
+      if (!(formKey.currentState?.validate() ?? false)) return;
       loading.value = true;
       try {
-        await onAdd(nameCtrl.text.trim(), role.value, pinCtrl.text);
+        await onSubmit(
+          nameCtrl.text.trim(),
+          role.value,
+          employeeIdCtrl.text.trim().isEmpty ? null : employeeIdCtrl.text.trim(),
+          phoneCtrl.text.trim().isEmpty ? null : phoneCtrl.text.trim(),
+          avatarUrl.value,
+          isActive: isActive.value,
+        );
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -351,52 +427,106 @@ class _AddUserDialog extends HookWidget {
     }
 
     return AlertDialog(
-      title: const Text('Add User'),
+      title: Text(isEditing ? 'Edit User' : 'Add User'),
       content: SizedBox(
-        width: 340,
+        width: 360,
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextFormField(
-                controller: nameCtrl,
-                decoration: InputDecoration(
-                  labelText: 'Full Name',
-                  errorText: nameError.value,
-                  border: const OutlineInputBorder(),
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _AvatarThumbnail(url: avatarUrl.value),
+                    const Gap(AppSpacing.md),
+                    Expanded(
+                      child: Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: pickAvatar,
+                            icon: const Icon(Icons.image_outlined, size: 18),
+                            label: Text(avatarUrl.value == null ? 'Choose Photo' : 'Change Photo'),
+                          ),
+                          if (avatarUrl.value != null)
+                            TextButton.icon(
+                              onPressed: () => avatarUrl.value = null,
+                              icon: const Icon(Icons.close, size: 18, color: AppColors.error),
+                              label: const Text('Remove', style: TextStyle(color: AppColors.error)),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                textCapitalization: TextCapitalization.words,
-              ),
-              const Gap(AppSpacing.md),
-              Text('Role',
-                  style: AppTextStyles.labelMd.copyWith(color: AppColors.textSecondary)),
-              const Gap(AppSpacing.xs),
-              _RoleToggle(selected: role.value, onChanged: (r) => role.value = r),
-              const Gap(AppSpacing.md),
-              TextFormField(
-                controller: pinCtrl,
-                decoration: InputDecoration(
-                  labelText: '6-Digit PIN',
-                  errorText: pinError.value,
-                  border: const OutlineInputBorder(),
+                const Gap(AppSpacing.md),
+                TextFormField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Full Name',
+                    border: OutlineInputBorder(),
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                  validator: (v) => (v?.trim().isEmpty ?? true) ? 'Name is required' : null,
                 ),
-                keyboardType: TextInputType.number,
-                obscureText: true,
-                maxLength: 6,
-              ),
-              const Gap(AppSpacing.sm),
-              TextField(
-                controller: confirmCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Confirm PIN',
-                  border: OutlineInputBorder(),
+                const Gap(AppSpacing.md),
+                TextFormField(
+                  controller: employeeIdCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Employee ID (optional)',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-                keyboardType: TextInputType.number,
-                obscureText: true,
-                maxLength: 6,
-              ),
-            ],
+                const Gap(AppSpacing.md),
+                TextFormField(
+                  controller: phoneCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone (optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.phone,
+                ),
+                const Gap(AppSpacing.md),
+                Text('Role',
+                    style: AppTextStyles.labelMd.copyWith(color: AppColors.textSecondary)),
+                const Gap(AppSpacing.xs),
+                _RoleToggle(selected: role.value, onChanged: (r) => role.value = r),
+                if (isEditing) ...[
+                  const Gap(AppSpacing.md),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Active'),
+                    value: isActive.value,
+                    onChanged: (v) => isActive.value = v,
+                  ),
+                ],
+                if (!isEditing) ...[
+                  const Gap(AppSpacing.md),
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline, size: 18, color: AppColors.textSecondary),
+                        const Gap(AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            'New users start with a default PIN and will set their own on first login.',
+                            style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),
@@ -413,178 +543,48 @@ class _AddUserDialog extends HookWidget {
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 )
-              : const Text('Add User'),
+              : Text(isEditing ? 'Save' : 'Add User'),
         ),
       ],
     );
   }
 }
 
-// ── Edit User Dialog ─────────────────────────────────────────────────────────
-
-class _EditUserDialog extends HookWidget {
-  final UsersTableData user;
-  final Future<void> Function(String name, String role) onSave;
-  const _EditUserDialog({required this.user, required this.onSave});
+class _AvatarThumbnail extends StatelessWidget {
+  final String? url;
+  const _AvatarThumbnail({this.url});
 
   @override
   Widget build(BuildContext context) {
-    final nameCtrl = useTextEditingController(text: user.name);
-    final role = useState(user.role);
-    final loading = useState(false);
-    final nameError = useState<String?>(null);
-
-    Future<void> submit() async {
-      if (nameCtrl.text.trim().isEmpty) {
-        nameError.value = 'Name is required';
-        return;
-      }
-      nameError.value = null;
-      loading.value = true;
-      try {
-        await onSave(nameCtrl.text.trim(), role.value);
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
-          );
-        }
-      } finally {
-        loading.value = false;
-      }
-    }
-
-    return AlertDialog(
-      title: const Text('Edit User'),
-      content: SizedBox(
-        width: 340,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextFormField(
-              controller: nameCtrl,
-              decoration: InputDecoration(
-                labelText: 'Full Name',
-                errorText: nameError.value,
-                border: const OutlineInputBorder(),
-              ),
-              textCapitalization: TextCapitalization.words,
-            ),
-            const Gap(AppSpacing.md),
-            Text('Role',
-                style: AppTextStyles.labelMd.copyWith(color: AppColors.textSecondary)),
-            const Gap(AppSpacing.xs),
-            _RoleToggle(selected: role.value, onChanged: (r) => role.value = r),
-          ],
-        ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      child: Container(
+        width: 56,
+        height: 56,
+        color: AppColors.surfaceVariant,
+        child: _buildImage(),
       ),
-      actions: [
-        TextButton(
-          onPressed: loading.value ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: loading.value ? null : submit,
-          child: loading.value
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                )
-              : const Text('Save'),
-        ),
-      ],
     );
   }
-}
 
-// ── Change PIN Dialog ────────────────────────────────────────────────────────
-
-class _ChangePinDialog extends HookWidget {
-  final String userName;
-  final Future<void> Function(String newPin) onChangePin;
-  const _ChangePinDialog({required this.userName, required this.onChangePin});
-
-  @override
-  Widget build(BuildContext context) {
-    final pinCtrl = useTextEditingController();
-    final confirmCtrl = useTextEditingController();
-    final loading = useState(false);
-    final pinError = useState<String?>(null);
-
-    Future<void> submit() async {
-      if (pinCtrl.text.length != 6) {
-        pinError.value = 'PIN must be exactly 6 digits';
-        return;
-      }
-      if (pinCtrl.text != confirmCtrl.text) {
-        pinError.value = 'PINs do not match';
-        return;
-      }
-      pinError.value = null;
-      loading.value = true;
-      try {
-        await onChangePin(pinCtrl.text);
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
-          );
-        }
-      } finally {
-        loading.value = false;
-      }
+  Widget _buildImage() {
+    final u = url;
+    if (u == null || u.isEmpty) {
+      return const Icon(Icons.person_outline, color: AppColors.textDisabled);
     }
-
-    return AlertDialog(
-      title: Text('Change PIN — $userName'),
-      content: SizedBox(
-        width: 340,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              controller: pinCtrl,
-              decoration: InputDecoration(
-                labelText: 'New 6-Digit PIN',
-                errorText: pinError.value,
-                border: const OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-              obscureText: true,
-              maxLength: 6,
-            ),
-            const Gap(AppSpacing.md),
-            TextField(
-              controller: confirmCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Confirm PIN',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-              obscureText: true,
-              maxLength: 6,
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: loading.value ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: loading.value ? null : submit,
-          child: loading.value
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                )
-              : const Text('Update PIN'),
-        ),
-      ],
+    if (ImageStorageService.isNetworkUrl(u)) {
+      return Image.network(
+        u,
+        fit: BoxFit.cover,
+        errorBuilder: (context, e, st) =>
+            const Icon(Icons.broken_image_outlined, color: AppColors.textDisabled),
+      );
+    }
+    return Image.file(
+      File(u),
+      fit: BoxFit.cover,
+      errorBuilder: (context, e, st) =>
+          const Icon(Icons.broken_image_outlined, color: AppColors.textDisabled),
     );
   }
 }
@@ -598,14 +598,20 @@ class _RoleToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
       children: [
         _RoleChip(
           label: 'Cashier',
           selected: selected == 'cashier',
           onTap: () => onChanged('cashier'),
         ),
-        const Gap(AppSpacing.sm),
+        _RoleChip(
+          label: 'Supervisor',
+          selected: selected == 'supervisor',
+          onTap: () => onChanged('supervisor'),
+        ),
         _RoleChip(
           label: 'Admin',
           selected: selected == 'admin',

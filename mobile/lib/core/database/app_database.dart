@@ -51,7 +51,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'mobile_pos'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -71,6 +71,12 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 4) {
             await m.addColumn(storeInfoTable, storeInfoTable.terminalName);
+          }
+          if (from < 5) {
+            await m.addColumn(usersTable, usersTable.employeeId);
+            await m.addColumn(usersTable, usersTable.phone);
+            await m.addColumn(usersTable, usersTable.avatarUrl);
+            await m.addColumn(usersTable, usersTable.isPinChanged);
           }
         },
       );

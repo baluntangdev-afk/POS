@@ -1,6 +1,5 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/seeder/admin_seeder.dart';
 import '../entities/user_entity.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/auth_repository_provider.dart';
@@ -28,7 +27,7 @@ class AuthNotifier extends Notifier<AuthState> {
     final result = await _repo.login(userId, pin);
     return result.fold(
       onSuccess: (user) {
-        state = AuthAuthenticated(user, mustChangePin: pin == defaultSeededPin);
+        state = AuthAuthenticated(user, mustChangePin: !user.isPinChanged);
         return true;
       },
       onFailure: (err) {

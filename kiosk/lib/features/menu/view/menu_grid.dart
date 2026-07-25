@@ -91,11 +91,7 @@ class MenuGrid extends StatelessWidget {
         type: MenuType.transactions,
       ),
       MenuItem(label: 'Promos', icon: Assets.images.svg.icPromo.svg(), type: MenuType.promos),
-      MenuItem(
-        label: 'Sales Reports',
-        icon: Assets.images.svg.icReports.svg(),
-        type: MenuType.salesReports,
-      ),
+      // Sales Reports hidden for now
       MenuItem(
         label: 'Settings',
         icon: Assets.images.svg.icSettings.svg(),

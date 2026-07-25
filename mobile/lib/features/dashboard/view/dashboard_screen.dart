@@ -28,7 +28,6 @@ class _Tile {
 const _kTileNew     = _Tile(label: 'New Order',     icon: Icons.shopping_cart_outlined,    accent: Color(0xFF1B7A8C), route: '/order');
 const _kTileTransactions = _Tile(label: 'Transactions', icon: Icons.receipt_long_outlined, accent: Color(0xFF16A085), route: '/transactions');
 const _kTileCatalog = _Tile(label: 'Inventory',     icon: Icons.storefront_outlined,       accent: Color(0xFFE67E22), route: '/catalog');
-const _kTileReports = _Tile(label: 'Sales Reports', icon: Icons.bar_chart_rounded,         accent: Color(0xFF27AE60), route: '/reports');
 const _kTileSettings= _Tile(label: 'Settings',      icon: Icons.settings_outlined,         accent: Color(0xFF6B7280), route: '/settings');
 const _kTileUsers   = _Tile(label: 'Users',         icon: Icons.manage_accounts_outlined,  accent: Color(0xFF7B68EE), route: '/users');
 const _kTileCashierAccounting = _Tile(label: 'Cashier Accounting', icon: Icons.point_of_sale_outlined, accent: Color(0xFF8E44AD), route: '/cashier-accounting');
@@ -42,7 +41,7 @@ class DashboardScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
     final user = authState is AuthAuthenticated ? authState.user : null;
-    final isAdmin = user?.isAdmin ?? false;
+    final isAdmin = user?.isAdminOrSupervisor ?? false;
 
     final now = useState(DateTime.now());
     useEffect(() {
@@ -56,7 +55,7 @@ class DashboardScreen extends HookConsumerWidget {
       _kTileNew,
       _kTileTransactions,
       _kTileCatalog,
-      _kTileReports,
+      // _kTileReports hidden for now
       _kTileCashierAccounting,
       _kTileSettings,
       if (isAdmin) _kTileUsers,
@@ -363,7 +362,11 @@ class _UserPill extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  role == 'admin' ? 'Admin' : 'Cashier',
+                  switch (role) {
+                    'admin' => 'Admin',
+                    'supervisor' => 'Supervisor',
+                    _ => 'Cashier',
+                  },
                   style: const TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 10,

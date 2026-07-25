@@ -26,7 +26,7 @@ class TransactionDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final receiptAsync = ref.watch(_historyReceiptProvider(saleId));
     final authState = ref.watch(authNotifierProvider);
-    final isAdmin = authState is AuthAuthenticated && authState.user.isAdmin;
+    final isAdmin = authState is AuthAuthenticated && authState.user.isAdminOrSupervisor;
 
     return Scaffold(
       backgroundColor: AppColors.background,

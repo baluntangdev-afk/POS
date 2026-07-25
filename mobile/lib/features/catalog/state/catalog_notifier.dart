@@ -1,5 +1,7 @@
+import 'package:drift/drift.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
 import '../entities/catalog_product.dart';
 
@@ -98,6 +100,74 @@ class CatalogNotifier extends AsyncNotifier<CatalogState> {
   Future<void> refresh() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(_load);
+  }
+
+  Future<void> createProduct({
+    required int groupId,
+    required String name,
+    required double price,
+    String? imageUrl,
+  }) async {
+    final db = ref.read(databaseProvider);
+    if (await db.productsDao.isProductNameTaken(groupId, name)) {
+      throw StateError('A product named "$name" already exists in this category');
+    }
+    await db.productsDao.insertProduct(ProductsTableCompanion.insert(
+      groupId: groupId,
+      name: name,
+      price: price,
+      imageUrl: Value(imageUrl),
+    ));
+    await refresh();
+  }
+
+  Future<void> updateProduct({
+    required int id,
+    required int groupId,
+    required String name,
+    required double price,
+    String? imageUrl,
+  }) async {
+    final db = ref.read(databaseProvider);
+    if (await db.productsDao.isProductNameTaken(groupId, name, excludeId: id)) {
+      throw StateError('A product named "$name" already exists in this category');
+    }
+    await db.productsDao.upsertProduct(ProductsTableCompanion(
+      id: Value(id),
+      groupId: Value(groupId),
+      name: Value(name),
+      price: Value(price),
+      imageUrl: Value(imageUrl),
+    ));
+    await refresh();
+  }
+
+  Future<void> deleteProduct(int id) async {
+    final db = ref.read(databaseProvider);
+    await db.productsDao.deleteProduct(id);
+    await refresh();
+  }
+
+  Future<void> createCategory({required String name}) async {
+    final db = ref.read(databaseProvider);
+    await db.productsDao.insertProductGroup(ProductGroupsTableCompanion.insert(name: name));
+    await refresh();
+  }
+
+  Future<void> updateCategory({
+    required int id,
+    required String name,
+    required bool isActive,
+  }) async {
+    final db = ref.read(databaseProvider);
+    await db.productsDao.updateProductGroup(id, name: name, isActive: isActive);
+    await refresh();
+  }
+
+  Future<void> deleteCategory(int id) async {
+    final db = ref.read(databaseProvider);
+    await db.productsDao.deleteProductGroup(id);
+    await refresh();
   }
 }
 

@@ -8,10 +8,43 @@ import '../tables/refunds_table.dart';
 import '../tables/refund_items_table.dart';
 import '../tables/users_table.dart';
 import '../tables/products_table.dart';
-import '../../features/transactions/entities/transaction_summary.dart';
-import '../../features/transactions/entities/history_receipt_data.dart';
+import '../tables/product_groups_table.dart';
+import '../../../features/transactions/entities/transaction_summary.dart';
+import '../../../features/transactions/entities/history_receipt_data.dart';
 
 part 'sales_dao.g.dart';
+
+class StatusCounts {
+  final int completed;
+  final int voided;
+  final int refunded;
+  const StatusCounts({required this.completed, required this.voided, required this.refunded});
+}
+
+class CashierSales {
+  final String cashierName;
+  final double total;
+  final int transactionCount;
+  const CashierSales({required this.cashierName, required this.total, required this.transactionCount});
+}
+
+class CashLedgerRow {
+  final DateTime date;
+  final double total;
+  const CashLedgerRow({required this.date, required this.total});
+}
+
+class ProductGroupSales {
+  final String groupName;
+  final double total;
+  const ProductGroupSales({required this.groupName, required this.total});
+}
+
+class TimeSeriesPoint {
+  final String bucketLabel;
+  final double total;
+  const TimeSeriesPoint({required this.bucketLabel, required this.total});
+}
 
 @DriftAccessor(tables: [
   SalesTable,
@@ -22,6 +55,7 @@ part 'sales_dao.g.dart';
   RefundItemsTable,
   UsersTable,
   ProductsTable,
+  ProductGroupsTable,
 ])
 class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   SalesDao(super.db);
@@ -43,6 +77,57 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
 
   Future<int> insertRefundItem(RefundItemsTableCompanion companion) =>
       into(refundItemsTable).insert(companion);
+
+  Future<void> recordRefund({
+    required int saleId,
+    required double total,
+    required List<({int saleItemId, int qty})> items,
+    String reason = 'Refund',
+  }) async {
+    await transaction(() async {
+      final refundable = await getRefundableItems(saleId);
+      final refundableQty = {
+        for (final r in refundable) r.saleItemId: r.qty,
+      };
+      for (final item in items) {
+        final available = refundableQty[item.saleItemId] ?? 0;
+        if (item.qty > available) {
+          throw ArgumentError(
+            'Cannot refund qty ${item.qty} for sale item ${item.saleItemId}: '
+            'only $available remaining',
+          );
+        }
+      }
+
+      final refundId = await insertRefund(
+        RefundsTableCompanion.insert(
+          saleId: saleId,
+          reason: reason,
+          total: total,
+          createdAt: DateTime.now(),
+        ),
+      );
+      for (final item in items) {
+        final saleItem = await (select(saleItemsTable)
+              ..where((t) => t.id.equals(item.saleItemId)))
+            .getSingle();
+        await insertRefundItem(
+          RefundItemsTableCompanion.insert(
+            refundId: refundId,
+            saleItemId: item.saleItemId,
+            qty: item.qty,
+            amount: saleItem.unitPrice * item.qty,
+          ),
+        );
+      }
+
+      final remaining = await getRefundableItems(saleId);
+      if (remaining.isEmpty) {
+        await (update(salesTable)..where((t) => t.id.equals(saleId)))
+            .write(const SalesTableCompanion(status: Value('refunded')));
+      }
+    });
+  }
 
   Future<int> voidSale(int saleId) =>
       (update(salesTable)..where((t) => t.id.equals(saleId)))
@@ -136,6 +221,329 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       'qty': r.read<int>('qty'),
       'amount': r.read<double>('amount'),
     }).toList();
+  }
+
+  Future<StatusCounts> getStatusCountsForDateRange(DateTime from, DateTime to) async {
+    final rows = await customSelect(
+      'SELECT status, COUNT(*) as cnt FROM sales WHERE created_at BETWEEN ? AND ? GROUP BY status',
+      variables: [Variable.withDateTime(from), Variable.withDateTime(to)],
+      readsFrom: {salesTable},
+    ).get();
+    var completed = 0, voided = 0, refunded = 0;
+    for (final row in rows) {
+      final status = row.read<String>('status');
+      final cnt = row.read<int>('cnt');
+      switch (status) {
+        case 'completed':
+          completed = cnt;
+        case 'voided':
+          voided = cnt;
+        case 'refunded':
+          refunded = cnt;
+      }
+    }
+    return StatusCounts(completed: completed, voided: voided, refunded: refunded);
+  }
+
+  Future<double> getTotalSalesForDateRangeAndCashier(DateTime from, DateTime to, int cashierId) async {
+    final result = await customSelect(
+      'SELECT COALESCE(SUM(total), 0) as sum FROM sales '
+      'WHERE created_at BETWEEN ? AND ? AND status = ? AND cashier_id = ?',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+        Variable.withInt(cashierId),
+      ],
+      readsFrom: {salesTable},
+    ).getSingle();
+    return result.read<double>('sum');
+  }
+
+  Future<int> getTransactionCountForDateRangeAndCashier(DateTime from, DateTime to, int cashierId) async {
+    final result = await customSelect(
+      'SELECT COUNT(*) as cnt FROM sales WHERE created_at BETWEEN ? AND ? AND status = ? AND cashier_id = ?',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+        Variable.withInt(cashierId),
+      ],
+      readsFrom: {salesTable},
+    ).getSingle();
+    return result.read<int>('cnt');
+  }
+
+  Future<StatusCounts> getStatusCountsForDateRangeAndCashier(DateTime from, DateTime to, int cashierId) async {
+    final rows = await customSelect(
+      'SELECT status, COUNT(*) as cnt FROM sales WHERE created_at BETWEEN ? AND ? AND cashier_id = ? GROUP BY status',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withInt(cashierId),
+      ],
+      readsFrom: {salesTable},
+    ).get();
+    var completed = 0, voided = 0, refunded = 0;
+    for (final row in rows) {
+      final status = row.read<String>('status');
+      final cnt = row.read<int>('cnt');
+      switch (status) {
+        case 'completed':
+          completed = cnt;
+        case 'voided':
+          voided = cnt;
+        case 'refunded':
+          refunded = cnt;
+      }
+    }
+    return StatusCounts(completed: completed, voided: voided, refunded: refunded);
+  }
+
+  Future<List<Map<String, Object?>>> getPaymentBreakdownForCashier(DateTime from, DateTime to, int cashierId) async {
+    final rows = await customSelect(
+      'SELECT p.method, COALESCE(SUM(p.amount), 0) as total '
+      'FROM payments p JOIN sales s ON s.id = p.sale_id '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ? '
+      'GROUP BY p.method',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+        Variable.withInt(cashierId),
+      ],
+      readsFrom: {salesTable, paymentsTable},
+    ).get();
+    return rows.map((r) => <String, Object?>{
+      'method': r.read<String>('method'),
+      'total': r.read<double>('total'),
+    }).toList();
+  }
+
+  Future<List<Map<String, Object?>>> getTopProductsForCashier(
+    DateTime from,
+    DateTime to,
+    int cashierId, {
+    int limit = 5,
+  }) async {
+    final rows = await customSelect(
+      'SELECT p.name, SUM(si.qty) as qty, SUM(si.qty * si.unit_price) as amount '
+      'FROM sale_items si '
+      'JOIN products p ON p.id = si.product_id '
+      'JOIN sales s ON s.id = si.sale_id '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ? '
+      'GROUP BY p.id, p.name ORDER BY amount DESC LIMIT ?',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+        Variable.withInt(cashierId),
+        Variable.withInt(limit),
+      ],
+    ).get();
+    return rows.map((r) => <String, Object?>{
+      'name': r.read<String>('name'),
+      'qty': r.read<int>('qty'),
+      'amount': r.read<double>('amount'),
+    }).toList();
+  }
+
+  Future<List<CashierSales>> getSalesByCashier(DateTime from, DateTime to) async {
+    final rows = await customSelect(
+      'SELECT u.name as cashier_name, COALESCE(SUM(s.total), 0) as total, COUNT(*) as cnt '
+      'FROM sales s JOIN users u ON u.id = s.cashier_id '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? '
+      'GROUP BY u.id, u.name',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+      ],
+      readsFrom: {salesTable, usersTable},
+    ).get();
+    return rows
+        .map((r) => CashierSales(
+              cashierName: r.read<String>('cashier_name'),
+              total: r.read<double>('total'),
+              transactionCount: r.read<int>('cnt'),
+            ))
+        .toList();
+  }
+
+  Future<List<ProductGroupSales>> getSalesByProductGroup(DateTime from, DateTime to) async {
+    final rows = await customSelect(
+      'SELECT pg.name as group_name, COALESCE(SUM(si.qty * si.unit_price), 0) as total '
+      'FROM sale_items si '
+      'JOIN products p ON p.id = si.product_id '
+      'JOIN product_groups pg ON pg.id = p.group_id '
+      'JOIN sales s ON s.id = si.sale_id '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? '
+      'GROUP BY pg.id, pg.name',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+      ],
+      readsFrom: {salesTable, saleItemsTable, productsTable, productGroupsTable},
+    ).get();
+    return rows
+        .map((r) => ProductGroupSales(
+              groupName: r.read<String>('group_name'),
+              total: r.read<double>('total'),
+            ))
+        .toList();
+  }
+
+  Future<List<TimeSeriesPoint>> getSalesTimeSeries(
+    DateTime from,
+    DateTime to, {
+    required String granularity,
+  }) async {
+    final format = switch (granularity) {
+      'hour' => '%Y-%m-%d %H',
+      'month' => '%Y-%m',
+      _ => '%Y-%m-%d',
+    };
+    // sqlite's 'localtime' modifier depends on OS timezone data that isn't
+    // guaranteed to be available in the bundled sqlite3 build, so the local
+    // offset is computed in Dart and applied as an explicit "+N minutes"
+    // modifier instead (mirrors the wall-clock bucketing intent without
+    // relying on 'localtime' support).
+    final offsetMinutes = DateTime.now().timeZoneOffset.inMinutes;
+    final offsetModifier = '${offsetMinutes >= 0 ? '+' : ''}$offsetMinutes minutes';
+    final rows = await customSelect(
+      "SELECT strftime('$format', s.created_at, 'unixepoch', '$offsetModifier') as bucket, COALESCE(SUM(s.total), 0) as total "
+      'FROM sales s '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? '
+      "GROUP BY strftime('$format', s.created_at, 'unixepoch', '$offsetModifier') ORDER BY bucket",
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+      ],
+      readsFrom: {salesTable},
+    ).get();
+    return rows
+        .map((r) => TimeSeriesPoint(
+              bucketLabel: r.read<String>('bucket'),
+              total: r.read<double>('total'),
+            ))
+        .toList();
+  }
+
+  Future<int> getTotalQtySoldForDateRangeAndCashier(DateTime from, DateTime to, int cashierId) async {
+    final result = await customSelect(
+      'SELECT COALESCE(SUM(si.qty), 0) as qty '
+      'FROM sale_items si '
+      'JOIN sales s ON s.id = si.sale_id '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ?',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+        Variable.withInt(cashierId),
+      ],
+      readsFrom: {salesTable, saleItemsTable},
+    ).getSingle();
+    return result.read<int>('qty');
+  }
+
+  Future<({double total, int count})> getCashSalesForDateRangeAndCashier(
+      DateTime from, DateTime to, int cashierId) async {
+    final result = await customSelect(
+      'SELECT COUNT(DISTINCT s.id) as cnt, COALESCE(SUM(p.amount), 0) as total '
+      'FROM sales s JOIN payments p ON p.sale_id = s.id AND p.method = ? '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ?',
+      variables: [
+        Variable.withString('cash'),
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+        Variable.withInt(cashierId),
+      ],
+      readsFrom: {salesTable, paymentsTable},
+    ).getSingle();
+    return (total: result.read<double>('total'), count: result.read<int>('cnt'));
+  }
+
+  Future<List<CashLedgerRow>> getCashLedgerForDateRangeAndCashier(
+      DateTime from, DateTime to, int cashierId) async {
+    final rows = await customSelect(
+      "SELECT date(s.created_at, 'unixepoch') as day, COALESCE(SUM(s.total), 0) as total "
+      'FROM sales s '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ? '
+      "GROUP BY date(s.created_at, 'unixepoch') ORDER BY day",
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+        Variable.withInt(cashierId),
+      ],
+      readsFrom: {salesTable},
+    ).get();
+    return rows
+        .map((r) => CashLedgerRow(
+              date: DateTime.parse(r.read<String>('day')),
+              total: r.read<double>('total'),
+            ))
+        .toList();
+  }
+
+  Future<double> getDiscountTotalForDateRange(DateTime from, DateTime to) async {
+    final result = await customSelect(
+      'SELECT COALESCE(SUM(discount), 0) as sum FROM sales '
+      'WHERE created_at BETWEEN ? AND ? AND status = ?',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+      ],
+      readsFrom: {salesTable},
+    ).getSingle();
+    return result.read<double>('sum');
+  }
+
+  Future<int> getTotalQtySoldForDateRange(DateTime from, DateTime to) async {
+    final result = await customSelect(
+      'SELECT COALESCE(SUM(si.qty), 0) as qty '
+      'FROM sale_items si '
+      'JOIN sales s ON s.id = si.sale_id '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+      ],
+      readsFrom: {salesTable, saleItemsTable},
+    ).getSingle();
+    return result.read<int>('qty');
+  }
+
+  Future<({double total, int count})> getCashSalesForDateRange(DateTime from, DateTime to) async {
+    final result = await customSelect(
+      'SELECT COUNT(DISTINCT s.id) as cnt, COALESCE(SUM(p.amount), 0) as total '
+      'FROM sales s JOIN payments p ON p.sale_id = s.id AND p.method = ? '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?',
+      variables: [
+        Variable.withString('cash'),
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+      ],
+      readsFrom: {salesTable, paymentsTable},
+    ).getSingle();
+    return (total: result.read<double>('total'), count: result.read<int>('cnt'));
+  }
+
+  Future<double> getRefundTotalForDateRange(DateTime from, DateTime to) async {
+    final result = await customSelect(
+      'SELECT COALESCE(SUM(r.total), 0) as sum FROM refunds r '
+      'JOIN sales s ON s.id = r.sale_id '
+      'WHERE r.created_at BETWEEN ? AND ?',
+      variables: [Variable.withDateTime(from), Variable.withDateTime(to)],
+      readsFrom: {refundsTable, salesTable},
+    ).getSingle();
+    return result.read<double>('sum');
   }
 
   Future<List<TransactionSummary>> getTransactions({

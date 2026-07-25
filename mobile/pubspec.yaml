@@ -31,6 +31,7 @@ dependencies:
   # CSV
   csv: ^6.0.0
   file_picker: ^8.1.2
+  path_provider: ^2.1.5
 
   # Printing
   esc_pos_utils_plus: ^2.0.4
@@ -52,6 +53,7 @@ dependencies:
   intl: any
   collection: ^1.19.1
   decimal: ^3.2.4
+  path: ^1.9.0
 
 dependency_overrides:
   path_provider_android: 2.2.22
@@ -63,6 +65,8 @@ dev_dependencies:
   drift_dev: ^2.24.0
   build_runner: ^2.4.12
   dart_mappable_builder: ^4.6.3
+  path_provider_platform_interface: ^2.1.2
+  plugin_platform_interface: ^2.1.8
 
 flutter:
   uses-material-design: true

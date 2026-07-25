@@ -1,5 +1,6 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/seeder/admin_seeder.dart';
 import '../entities/user_entity.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/auth_repository_provider.dart';
@@ -27,7 +28,7 @@ class AuthNotifier extends Notifier<AuthState> {
     final result = await _repo.login(userId, pin);
     return result.fold(
       onSuccess: (user) {
-        state = AuthAuthenticated(user);
+        state = AuthAuthenticated(user, mustChangePin: pin == defaultSeededPin);
         return true;
       },
       onFailure: (err) {
@@ -35,6 +36,20 @@ class AuthNotifier extends Notifier<AuthState> {
         return false;
       },
     );
+  }
+
+  /// Called once the user has set a new PIN — clears the forced-change flag
+  /// without logging them out.
+  void completePinSetup() {
+    final current = state;
+    if (current is AuthAuthenticated) {
+      state = AuthAuthenticated(current.user);
+    }
+  }
+
+  Future<bool> verifySupervisorPin(String pin) async {
+    final result = await _repo.verifyAdminPin(pin);
+    return result.fold(onSuccess: (ok) => ok, onFailure: (_) => false);
   }
 
   void logout() => state = const AuthInitial();

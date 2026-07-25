@@ -4198,6 +4198,28 @@ class $StoreInfoTableTable extends StoreInfoTable
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _tinMeta = const VerificationMeta('tin');
+  @override
+  late final GeneratedColumn<String> tin = GeneratedColumn<String>(
+    'tin',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _terminalNameMeta = const VerificationMeta(
+    'terminalName',
+  );
+  @override
+  late final GeneratedColumn<String> terminalName = GeneratedColumn<String>(
+    'terminal_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4206,6 +4228,8 @@ class $StoreInfoTableTable extends StoreInfoTable
     taxRate,
     currency,
     receiptFooter,
+    tin,
+    terminalName,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4255,6 +4279,21 @@ class $StoreInfoTableTable extends StoreInfoTable
         ),
       );
     }
+    if (data.containsKey('tin')) {
+      context.handle(
+        _tinMeta,
+        tin.isAcceptableOrUnknown(data['tin']!, _tinMeta),
+      );
+    }
+    if (data.containsKey('terminal_name')) {
+      context.handle(
+        _terminalNameMeta,
+        terminalName.isAcceptableOrUnknown(
+          data['terminal_name']!,
+          _terminalNameMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -4294,6 +4333,16 @@ class $StoreInfoTableTable extends StoreInfoTable
             DriftSqlType.string,
             data['${effectivePrefix}receipt_footer'],
           )!,
+      tin:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}tin'],
+          )!,
+      terminalName:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}terminal_name'],
+          )!,
     );
   }
 
@@ -4311,6 +4360,8 @@ class StoreInfoTableData extends DataClass
   final double taxRate;
   final String currency;
   final String receiptFooter;
+  final String tin;
+  final String terminalName;
   const StoreInfoTableData({
     required this.id,
     required this.storeName,
@@ -4318,6 +4369,8 @@ class StoreInfoTableData extends DataClass
     required this.taxRate,
     required this.currency,
     required this.receiptFooter,
+    required this.tin,
+    required this.terminalName,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4328,6 +4381,8 @@ class StoreInfoTableData extends DataClass
     map['tax_rate'] = Variable<double>(taxRate);
     map['currency'] = Variable<String>(currency);
     map['receipt_footer'] = Variable<String>(receiptFooter);
+    map['tin'] = Variable<String>(tin);
+    map['terminal_name'] = Variable<String>(terminalName);
     return map;
   }
 
@@ -4339,6 +4394,8 @@ class StoreInfoTableData extends DataClass
       taxRate: Value(taxRate),
       currency: Value(currency),
       receiptFooter: Value(receiptFooter),
+      tin: Value(tin),
+      terminalName: Value(terminalName),
     );
   }
 
@@ -4354,6 +4411,8 @@ class StoreInfoTableData extends DataClass
       taxRate: serializer.fromJson<double>(json['taxRate']),
       currency: serializer.fromJson<String>(json['currency']),
       receiptFooter: serializer.fromJson<String>(json['receiptFooter']),
+      tin: serializer.fromJson<String>(json['tin']),
+      terminalName: serializer.fromJson<String>(json['terminalName']),
     );
   }
   @override
@@ -4366,6 +4425,8 @@ class StoreInfoTableData extends DataClass
       'taxRate': serializer.toJson<double>(taxRate),
       'currency': serializer.toJson<String>(currency),
       'receiptFooter': serializer.toJson<String>(receiptFooter),
+      'tin': serializer.toJson<String>(tin),
+      'terminalName': serializer.toJson<String>(terminalName),
     };
   }
 
@@ -4376,6 +4437,8 @@ class StoreInfoTableData extends DataClass
     double? taxRate,
     String? currency,
     String? receiptFooter,
+    String? tin,
+    String? terminalName,
   }) => StoreInfoTableData(
     id: id ?? this.id,
     storeName: storeName ?? this.storeName,
@@ -4383,6 +4446,8 @@ class StoreInfoTableData extends DataClass
     taxRate: taxRate ?? this.taxRate,
     currency: currency ?? this.currency,
     receiptFooter: receiptFooter ?? this.receiptFooter,
+    tin: tin ?? this.tin,
+    terminalName: terminalName ?? this.terminalName,
   );
   StoreInfoTableData copyWithCompanion(StoreInfoTableCompanion data) {
     return StoreInfoTableData(
@@ -4395,6 +4460,11 @@ class StoreInfoTableData extends DataClass
           data.receiptFooter.present
               ? data.receiptFooter.value
               : this.receiptFooter,
+      tin: data.tin.present ? data.tin.value : this.tin,
+      terminalName:
+          data.terminalName.present
+              ? data.terminalName.value
+              : this.terminalName,
     );
   }
 
@@ -4406,14 +4476,24 @@ class StoreInfoTableData extends DataClass
           ..write('address: $address, ')
           ..write('taxRate: $taxRate, ')
           ..write('currency: $currency, ')
-          ..write('receiptFooter: $receiptFooter')
+          ..write('receiptFooter: $receiptFooter, ')
+          ..write('tin: $tin, ')
+          ..write('terminalName: $terminalName')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, storeName, address, taxRate, currency, receiptFooter);
+  int get hashCode => Object.hash(
+    id,
+    storeName,
+    address,
+    taxRate,
+    currency,
+    receiptFooter,
+    tin,
+    terminalName,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -4423,7 +4503,9 @@ class StoreInfoTableData extends DataClass
           other.address == this.address &&
           other.taxRate == this.taxRate &&
           other.currency == this.currency &&
-          other.receiptFooter == this.receiptFooter);
+          other.receiptFooter == this.receiptFooter &&
+          other.tin == this.tin &&
+          other.terminalName == this.terminalName);
 }
 
 class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
@@ -4433,6 +4515,8 @@ class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
   final Value<double> taxRate;
   final Value<String> currency;
   final Value<String> receiptFooter;
+  final Value<String> tin;
+  final Value<String> terminalName;
   const StoreInfoTableCompanion({
     this.id = const Value.absent(),
     this.storeName = const Value.absent(),
@@ -4440,6 +4524,8 @@ class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
     this.taxRate = const Value.absent(),
     this.currency = const Value.absent(),
     this.receiptFooter = const Value.absent(),
+    this.tin = const Value.absent(),
+    this.terminalName = const Value.absent(),
   });
   StoreInfoTableCompanion.insert({
     this.id = const Value.absent(),
@@ -4448,6 +4534,8 @@ class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
     this.taxRate = const Value.absent(),
     this.currency = const Value.absent(),
     this.receiptFooter = const Value.absent(),
+    this.tin = const Value.absent(),
+    this.terminalName = const Value.absent(),
   });
   static Insertable<StoreInfoTableData> custom({
     Expression<int>? id,
@@ -4456,6 +4544,8 @@ class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
     Expression<double>? taxRate,
     Expression<String>? currency,
     Expression<String>? receiptFooter,
+    Expression<String>? tin,
+    Expression<String>? terminalName,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -4464,6 +4554,8 @@ class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
       if (taxRate != null) 'tax_rate': taxRate,
       if (currency != null) 'currency': currency,
       if (receiptFooter != null) 'receipt_footer': receiptFooter,
+      if (tin != null) 'tin': tin,
+      if (terminalName != null) 'terminal_name': terminalName,
     });
   }
 
@@ -4474,6 +4566,8 @@ class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
     Value<double>? taxRate,
     Value<String>? currency,
     Value<String>? receiptFooter,
+    Value<String>? tin,
+    Value<String>? terminalName,
   }) {
     return StoreInfoTableCompanion(
       id: id ?? this.id,
@@ -4482,6 +4576,8 @@ class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
       taxRate: taxRate ?? this.taxRate,
       currency: currency ?? this.currency,
       receiptFooter: receiptFooter ?? this.receiptFooter,
+      tin: tin ?? this.tin,
+      terminalName: terminalName ?? this.terminalName,
     );
   }
 
@@ -4506,6 +4602,12 @@ class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
     if (receiptFooter.present) {
       map['receipt_footer'] = Variable<String>(receiptFooter.value);
     }
+    if (tin.present) {
+      map['tin'] = Variable<String>(tin.value);
+    }
+    if (terminalName.present) {
+      map['terminal_name'] = Variable<String>(terminalName.value);
+    }
     return map;
   }
 
@@ -4517,7 +4619,3567 @@ class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
           ..write('address: $address, ')
           ..write('taxRate: $taxRate, ')
           ..write('currency: $currency, ')
-          ..write('receiptFooter: $receiptFooter')
+          ..write('receiptFooter: $receiptFooter, ')
+          ..write('tin: $tin, ')
+          ..write('terminalName: $terminalName')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $XReadingsTableTable extends XReadingsTable
+    with TableInfo<$XReadingsTableTable, XReadingsTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $XReadingsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _cashierIdMeta = const VerificationMeta(
+    'cashierId',
+  );
+  @override
+  late final GeneratedColumn<int> cashierId = GeneratedColumn<int>(
+    'cashier_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cashierNameMeta = const VerificationMeta(
+    'cashierName',
+  );
+  @override
+  late final GeneratedColumn<String> cashierName = GeneratedColumn<String>(
+    'cashier_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _periodStartMeta = const VerificationMeta(
+    'periodStart',
+  );
+  @override
+  late final GeneratedColumn<DateTime> periodStart = GeneratedColumn<DateTime>(
+    'period_start',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _periodEndMeta = const VerificationMeta(
+    'periodEnd',
+  );
+  @override
+  late final GeneratedColumn<DateTime> periodEnd = GeneratedColumn<DateTime>(
+    'period_end',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _generatedAtMeta = const VerificationMeta(
+    'generatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> generatedAt = GeneratedColumn<DateTime>(
+    'generated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalSalesMeta = const VerificationMeta(
+    'totalSales',
+  );
+  @override
+  late final GeneratedColumn<double> totalSales = GeneratedColumn<double>(
+    'total_sales',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _transactionCountMeta = const VerificationMeta(
+    'transactionCount',
+  );
+  @override
+  late final GeneratedColumn<int> transactionCount = GeneratedColumn<int>(
+    'transaction_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _voidedCountMeta = const VerificationMeta(
+    'voidedCount',
+  );
+  @override
+  late final GeneratedColumn<int> voidedCount = GeneratedColumn<int>(
+    'voided_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _refundedCountMeta = const VerificationMeta(
+    'refundedCount',
+  );
+  @override
+  late final GeneratedColumn<int> refundedCount = GeneratedColumn<int>(
+    'refunded_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _paymentBreakdownJsonMeta =
+      const VerificationMeta('paymentBreakdownJson');
+  @override
+  late final GeneratedColumn<String> paymentBreakdownJson =
+      GeneratedColumn<String>(
+        'payment_breakdown_json',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _topProductsJsonMeta = const VerificationMeta(
+    'topProductsJson',
+  );
+  @override
+  late final GeneratedColumn<String> topProductsJson = GeneratedColumn<String>(
+    'top_products_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    cashierId,
+    cashierName,
+    periodStart,
+    periodEnd,
+    generatedAt,
+    totalSales,
+    transactionCount,
+    voidedCount,
+    refundedCount,
+    paymentBreakdownJson,
+    topProductsJson,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'x_readings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<XReadingsTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('cashier_id')) {
+      context.handle(
+        _cashierIdMeta,
+        cashierId.isAcceptableOrUnknown(data['cashier_id']!, _cashierIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cashierIdMeta);
+    }
+    if (data.containsKey('cashier_name')) {
+      context.handle(
+        _cashierNameMeta,
+        cashierName.isAcceptableOrUnknown(
+          data['cashier_name']!,
+          _cashierNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_cashierNameMeta);
+    }
+    if (data.containsKey('period_start')) {
+      context.handle(
+        _periodStartMeta,
+        periodStart.isAcceptableOrUnknown(
+          data['period_start']!,
+          _periodStartMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_periodStartMeta);
+    }
+    if (data.containsKey('period_end')) {
+      context.handle(
+        _periodEndMeta,
+        periodEnd.isAcceptableOrUnknown(data['period_end']!, _periodEndMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_periodEndMeta);
+    }
+    if (data.containsKey('generated_at')) {
+      context.handle(
+        _generatedAtMeta,
+        generatedAt.isAcceptableOrUnknown(
+          data['generated_at']!,
+          _generatedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_generatedAtMeta);
+    }
+    if (data.containsKey('total_sales')) {
+      context.handle(
+        _totalSalesMeta,
+        totalSales.isAcceptableOrUnknown(data['total_sales']!, _totalSalesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_totalSalesMeta);
+    }
+    if (data.containsKey('transaction_count')) {
+      context.handle(
+        _transactionCountMeta,
+        transactionCount.isAcceptableOrUnknown(
+          data['transaction_count']!,
+          _transactionCountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_transactionCountMeta);
+    }
+    if (data.containsKey('voided_count')) {
+      context.handle(
+        _voidedCountMeta,
+        voidedCount.isAcceptableOrUnknown(
+          data['voided_count']!,
+          _voidedCountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_voidedCountMeta);
+    }
+    if (data.containsKey('refunded_count')) {
+      context.handle(
+        _refundedCountMeta,
+        refundedCount.isAcceptableOrUnknown(
+          data['refunded_count']!,
+          _refundedCountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_refundedCountMeta);
+    }
+    if (data.containsKey('payment_breakdown_json')) {
+      context.handle(
+        _paymentBreakdownJsonMeta,
+        paymentBreakdownJson.isAcceptableOrUnknown(
+          data['payment_breakdown_json']!,
+          _paymentBreakdownJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_paymentBreakdownJsonMeta);
+    }
+    if (data.containsKey('top_products_json')) {
+      context.handle(
+        _topProductsJsonMeta,
+        topProductsJson.isAcceptableOrUnknown(
+          data['top_products_json']!,
+          _topProductsJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_topProductsJsonMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  XReadingsTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return XReadingsTableData(
+      id:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}id'],
+          )!,
+      cashierId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}cashier_id'],
+          )!,
+      cashierName:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}cashier_name'],
+          )!,
+      periodStart:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.dateTime,
+            data['${effectivePrefix}period_start'],
+          )!,
+      periodEnd:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.dateTime,
+            data['${effectivePrefix}period_end'],
+          )!,
+      generatedAt:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.dateTime,
+            data['${effectivePrefix}generated_at'],
+          )!,
+      totalSales:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}total_sales'],
+          )!,
+      transactionCount:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}transaction_count'],
+          )!,
+      voidedCount:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}voided_count'],
+          )!,
+      refundedCount:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}refunded_count'],
+          )!,
+      paymentBreakdownJson:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}payment_breakdown_json'],
+          )!,
+      topProductsJson:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}top_products_json'],
+          )!,
+    );
+  }
+
+  @override
+  $XReadingsTableTable createAlias(String alias) {
+    return $XReadingsTableTable(attachedDatabase, alias);
+  }
+}
+
+class XReadingsTableData extends DataClass
+    implements Insertable<XReadingsTableData> {
+  final int id;
+  final int cashierId;
+  final String cashierName;
+  final DateTime periodStart;
+  final DateTime periodEnd;
+  final DateTime generatedAt;
+  final double totalSales;
+  final int transactionCount;
+  final int voidedCount;
+  final int refundedCount;
+  final String paymentBreakdownJson;
+  final String topProductsJson;
+  const XReadingsTableData({
+    required this.id,
+    required this.cashierId,
+    required this.cashierName,
+    required this.periodStart,
+    required this.periodEnd,
+    required this.generatedAt,
+    required this.totalSales,
+    required this.transactionCount,
+    required this.voidedCount,
+    required this.refundedCount,
+    required this.paymentBreakdownJson,
+    required this.topProductsJson,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['cashier_id'] = Variable<int>(cashierId);
+    map['cashier_name'] = Variable<String>(cashierName);
+    map['period_start'] = Variable<DateTime>(periodStart);
+    map['period_end'] = Variable<DateTime>(periodEnd);
+    map['generated_at'] = Variable<DateTime>(generatedAt);
+    map['total_sales'] = Variable<double>(totalSales);
+    map['transaction_count'] = Variable<int>(transactionCount);
+    map['voided_count'] = Variable<int>(voidedCount);
+    map['refunded_count'] = Variable<int>(refundedCount);
+    map['payment_breakdown_json'] = Variable<String>(paymentBreakdownJson);
+    map['top_products_json'] = Variable<String>(topProductsJson);
+    return map;
+  }
+
+  XReadingsTableCompanion toCompanion(bool nullToAbsent) {
+    return XReadingsTableCompanion(
+      id: Value(id),
+      cashierId: Value(cashierId),
+      cashierName: Value(cashierName),
+      periodStart: Value(periodStart),
+      periodEnd: Value(periodEnd),
+      generatedAt: Value(generatedAt),
+      totalSales: Value(totalSales),
+      transactionCount: Value(transactionCount),
+      voidedCount: Value(voidedCount),
+      refundedCount: Value(refundedCount),
+      paymentBreakdownJson: Value(paymentBreakdownJson),
+      topProductsJson: Value(topProductsJson),
+    );
+  }
+
+  factory XReadingsTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return XReadingsTableData(
+      id: serializer.fromJson<int>(json['id']),
+      cashierId: serializer.fromJson<int>(json['cashierId']),
+      cashierName: serializer.fromJson<String>(json['cashierName']),
+      periodStart: serializer.fromJson<DateTime>(json['periodStart']),
+      periodEnd: serializer.fromJson<DateTime>(json['periodEnd']),
+      generatedAt: serializer.fromJson<DateTime>(json['generatedAt']),
+      totalSales: serializer.fromJson<double>(json['totalSales']),
+      transactionCount: serializer.fromJson<int>(json['transactionCount']),
+      voidedCount: serializer.fromJson<int>(json['voidedCount']),
+      refundedCount: serializer.fromJson<int>(json['refundedCount']),
+      paymentBreakdownJson: serializer.fromJson<String>(
+        json['paymentBreakdownJson'],
+      ),
+      topProductsJson: serializer.fromJson<String>(json['topProductsJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'cashierId': serializer.toJson<int>(cashierId),
+      'cashierName': serializer.toJson<String>(cashierName),
+      'periodStart': serializer.toJson<DateTime>(periodStart),
+      'periodEnd': serializer.toJson<DateTime>(periodEnd),
+      'generatedAt': serializer.toJson<DateTime>(generatedAt),
+      'totalSales': serializer.toJson<double>(totalSales),
+      'transactionCount': serializer.toJson<int>(transactionCount),
+      'voidedCount': serializer.toJson<int>(voidedCount),
+      'refundedCount': serializer.toJson<int>(refundedCount),
+      'paymentBreakdownJson': serializer.toJson<String>(paymentBreakdownJson),
+      'topProductsJson': serializer.toJson<String>(topProductsJson),
+    };
+  }
+
+  XReadingsTableData copyWith({
+    int? id,
+    int? cashierId,
+    String? cashierName,
+    DateTime? periodStart,
+    DateTime? periodEnd,
+    DateTime? generatedAt,
+    double? totalSales,
+    int? transactionCount,
+    int? voidedCount,
+    int? refundedCount,
+    String? paymentBreakdownJson,
+    String? topProductsJson,
+  }) => XReadingsTableData(
+    id: id ?? this.id,
+    cashierId: cashierId ?? this.cashierId,
+    cashierName: cashierName ?? this.cashierName,
+    periodStart: periodStart ?? this.periodStart,
+    periodEnd: periodEnd ?? this.periodEnd,
+    generatedAt: generatedAt ?? this.generatedAt,
+    totalSales: totalSales ?? this.totalSales,
+    transactionCount: transactionCount ?? this.transactionCount,
+    voidedCount: voidedCount ?? this.voidedCount,
+    refundedCount: refundedCount ?? this.refundedCount,
+    paymentBreakdownJson: paymentBreakdownJson ?? this.paymentBreakdownJson,
+    topProductsJson: topProductsJson ?? this.topProductsJson,
+  );
+  XReadingsTableData copyWithCompanion(XReadingsTableCompanion data) {
+    return XReadingsTableData(
+      id: data.id.present ? data.id.value : this.id,
+      cashierId: data.cashierId.present ? data.cashierId.value : this.cashierId,
+      cashierName:
+          data.cashierName.present ? data.cashierName.value : this.cashierName,
+      periodStart:
+          data.periodStart.present ? data.periodStart.value : this.periodStart,
+      periodEnd: data.periodEnd.present ? data.periodEnd.value : this.periodEnd,
+      generatedAt:
+          data.generatedAt.present ? data.generatedAt.value : this.generatedAt,
+      totalSales:
+          data.totalSales.present ? data.totalSales.value : this.totalSales,
+      transactionCount:
+          data.transactionCount.present
+              ? data.transactionCount.value
+              : this.transactionCount,
+      voidedCount:
+          data.voidedCount.present ? data.voidedCount.value : this.voidedCount,
+      refundedCount:
+          data.refundedCount.present
+              ? data.refundedCount.value
+              : this.refundedCount,
+      paymentBreakdownJson:
+          data.paymentBreakdownJson.present
+              ? data.paymentBreakdownJson.value
+              : this.paymentBreakdownJson,
+      topProductsJson:
+          data.topProductsJson.present
+              ? data.topProductsJson.value
+              : this.topProductsJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('XReadingsTableData(')
+          ..write('id: $id, ')
+          ..write('cashierId: $cashierId, ')
+          ..write('cashierName: $cashierName, ')
+          ..write('periodStart: $periodStart, ')
+          ..write('periodEnd: $periodEnd, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('totalSales: $totalSales, ')
+          ..write('transactionCount: $transactionCount, ')
+          ..write('voidedCount: $voidedCount, ')
+          ..write('refundedCount: $refundedCount, ')
+          ..write('paymentBreakdownJson: $paymentBreakdownJson, ')
+          ..write('topProductsJson: $topProductsJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    cashierId,
+    cashierName,
+    periodStart,
+    periodEnd,
+    generatedAt,
+    totalSales,
+    transactionCount,
+    voidedCount,
+    refundedCount,
+    paymentBreakdownJson,
+    topProductsJson,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is XReadingsTableData &&
+          other.id == this.id &&
+          other.cashierId == this.cashierId &&
+          other.cashierName == this.cashierName &&
+          other.periodStart == this.periodStart &&
+          other.periodEnd == this.periodEnd &&
+          other.generatedAt == this.generatedAt &&
+          other.totalSales == this.totalSales &&
+          other.transactionCount == this.transactionCount &&
+          other.voidedCount == this.voidedCount &&
+          other.refundedCount == this.refundedCount &&
+          other.paymentBreakdownJson == this.paymentBreakdownJson &&
+          other.topProductsJson == this.topProductsJson);
+}
+
+class XReadingsTableCompanion extends UpdateCompanion<XReadingsTableData> {
+  final Value<int> id;
+  final Value<int> cashierId;
+  final Value<String> cashierName;
+  final Value<DateTime> periodStart;
+  final Value<DateTime> periodEnd;
+  final Value<DateTime> generatedAt;
+  final Value<double> totalSales;
+  final Value<int> transactionCount;
+  final Value<int> voidedCount;
+  final Value<int> refundedCount;
+  final Value<String> paymentBreakdownJson;
+  final Value<String> topProductsJson;
+  const XReadingsTableCompanion({
+    this.id = const Value.absent(),
+    this.cashierId = const Value.absent(),
+    this.cashierName = const Value.absent(),
+    this.periodStart = const Value.absent(),
+    this.periodEnd = const Value.absent(),
+    this.generatedAt = const Value.absent(),
+    this.totalSales = const Value.absent(),
+    this.transactionCount = const Value.absent(),
+    this.voidedCount = const Value.absent(),
+    this.refundedCount = const Value.absent(),
+    this.paymentBreakdownJson = const Value.absent(),
+    this.topProductsJson = const Value.absent(),
+  });
+  XReadingsTableCompanion.insert({
+    this.id = const Value.absent(),
+    required int cashierId,
+    required String cashierName,
+    required DateTime periodStart,
+    required DateTime periodEnd,
+    required DateTime generatedAt,
+    required double totalSales,
+    required int transactionCount,
+    required int voidedCount,
+    required int refundedCount,
+    required String paymentBreakdownJson,
+    required String topProductsJson,
+  }) : cashierId = Value(cashierId),
+       cashierName = Value(cashierName),
+       periodStart = Value(periodStart),
+       periodEnd = Value(periodEnd),
+       generatedAt = Value(generatedAt),
+       totalSales = Value(totalSales),
+       transactionCount = Value(transactionCount),
+       voidedCount = Value(voidedCount),
+       refundedCount = Value(refundedCount),
+       paymentBreakdownJson = Value(paymentBreakdownJson),
+       topProductsJson = Value(topProductsJson);
+  static Insertable<XReadingsTableData> custom({
+    Expression<int>? id,
+    Expression<int>? cashierId,
+    Expression<String>? cashierName,
+    Expression<DateTime>? periodStart,
+    Expression<DateTime>? periodEnd,
+    Expression<DateTime>? generatedAt,
+    Expression<double>? totalSales,
+    Expression<int>? transactionCount,
+    Expression<int>? voidedCount,
+    Expression<int>? refundedCount,
+    Expression<String>? paymentBreakdownJson,
+    Expression<String>? topProductsJson,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (cashierId != null) 'cashier_id': cashierId,
+      if (cashierName != null) 'cashier_name': cashierName,
+      if (periodStart != null) 'period_start': periodStart,
+      if (periodEnd != null) 'period_end': periodEnd,
+      if (generatedAt != null) 'generated_at': generatedAt,
+      if (totalSales != null) 'total_sales': totalSales,
+      if (transactionCount != null) 'transaction_count': transactionCount,
+      if (voidedCount != null) 'voided_count': voidedCount,
+      if (refundedCount != null) 'refunded_count': refundedCount,
+      if (paymentBreakdownJson != null)
+        'payment_breakdown_json': paymentBreakdownJson,
+      if (topProductsJson != null) 'top_products_json': topProductsJson,
+    });
+  }
+
+  XReadingsTableCompanion copyWith({
+    Value<int>? id,
+    Value<int>? cashierId,
+    Value<String>? cashierName,
+    Value<DateTime>? periodStart,
+    Value<DateTime>? periodEnd,
+    Value<DateTime>? generatedAt,
+    Value<double>? totalSales,
+    Value<int>? transactionCount,
+    Value<int>? voidedCount,
+    Value<int>? refundedCount,
+    Value<String>? paymentBreakdownJson,
+    Value<String>? topProductsJson,
+  }) {
+    return XReadingsTableCompanion(
+      id: id ?? this.id,
+      cashierId: cashierId ?? this.cashierId,
+      cashierName: cashierName ?? this.cashierName,
+      periodStart: periodStart ?? this.periodStart,
+      periodEnd: periodEnd ?? this.periodEnd,
+      generatedAt: generatedAt ?? this.generatedAt,
+      totalSales: totalSales ?? this.totalSales,
+      transactionCount: transactionCount ?? this.transactionCount,
+      voidedCount: voidedCount ?? this.voidedCount,
+      refundedCount: refundedCount ?? this.refundedCount,
+      paymentBreakdownJson: paymentBreakdownJson ?? this.paymentBreakdownJson,
+      topProductsJson: topProductsJson ?? this.topProductsJson,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (cashierId.present) {
+      map['cashier_id'] = Variable<int>(cashierId.value);
+    }
+    if (cashierName.present) {
+      map['cashier_name'] = Variable<String>(cashierName.value);
+    }
+    if (periodStart.present) {
+      map['period_start'] = Variable<DateTime>(periodStart.value);
+    }
+    if (periodEnd.present) {
+      map['period_end'] = Variable<DateTime>(periodEnd.value);
+    }
+    if (generatedAt.present) {
+      map['generated_at'] = Variable<DateTime>(generatedAt.value);
+    }
+    if (totalSales.present) {
+      map['total_sales'] = Variable<double>(totalSales.value);
+    }
+    if (transactionCount.present) {
+      map['transaction_count'] = Variable<int>(transactionCount.value);
+    }
+    if (voidedCount.present) {
+      map['voided_count'] = Variable<int>(voidedCount.value);
+    }
+    if (refundedCount.present) {
+      map['refunded_count'] = Variable<int>(refundedCount.value);
+    }
+    if (paymentBreakdownJson.present) {
+      map['payment_breakdown_json'] = Variable<String>(
+        paymentBreakdownJson.value,
+      );
+    }
+    if (topProductsJson.present) {
+      map['top_products_json'] = Variable<String>(topProductsJson.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('XReadingsTableCompanion(')
+          ..write('id: $id, ')
+          ..write('cashierId: $cashierId, ')
+          ..write('cashierName: $cashierName, ')
+          ..write('periodStart: $periodStart, ')
+          ..write('periodEnd: $periodEnd, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('totalSales: $totalSales, ')
+          ..write('transactionCount: $transactionCount, ')
+          ..write('voidedCount: $voidedCount, ')
+          ..write('refundedCount: $refundedCount, ')
+          ..write('paymentBreakdownJson: $paymentBreakdownJson, ')
+          ..write('topProductsJson: $topProductsJson')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DailyReportsTableTable extends DailyReportsTable
+    with TableInfo<$DailyReportsTableTable, DailyReportsTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DailyReportsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _cashierIdMeta = const VerificationMeta(
+    'cashierId',
+  );
+  @override
+  late final GeneratedColumn<int> cashierId = GeneratedColumn<int>(
+    'cashier_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cashierNameMeta = const VerificationMeta(
+    'cashierName',
+  );
+  @override
+  late final GeneratedColumn<String> cashierName = GeneratedColumn<String>(
+    'cashier_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _periodStartMeta = const VerificationMeta(
+    'periodStart',
+  );
+  @override
+  late final GeneratedColumn<DateTime> periodStart = GeneratedColumn<DateTime>(
+    'period_start',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _periodEndMeta = const VerificationMeta(
+    'periodEnd',
+  );
+  @override
+  late final GeneratedColumn<DateTime> periodEnd = GeneratedColumn<DateTime>(
+    'period_end',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _generatedAtMeta = const VerificationMeta(
+    'generatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> generatedAt = GeneratedColumn<DateTime>(
+    'generated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _grossSalesMeta = const VerificationMeta(
+    'grossSales',
+  );
+  @override
+  late final GeneratedColumn<double> grossSales = GeneratedColumn<double>(
+    'gross_sales',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _vatableSalesMeta = const VerificationMeta(
+    'vatableSales',
+  );
+  @override
+  late final GeneratedColumn<double> vatableSales = GeneratedColumn<double>(
+    'vatable_sales',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _vatAmountMeta = const VerificationMeta(
+    'vatAmount',
+  );
+  @override
+  late final GeneratedColumn<double> vatAmount = GeneratedColumn<double>(
+    'vat_amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _vatExemptSalesMeta = const VerificationMeta(
+    'vatExemptSales',
+  );
+  @override
+  late final GeneratedColumn<double> vatExemptSales = GeneratedColumn<double>(
+    'vat_exempt_sales',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _netOfTaxMeta = const VerificationMeta(
+    'netOfTax',
+  );
+  @override
+  late final GeneratedColumn<double> netOfTax = GeneratedColumn<double>(
+    'net_of_tax',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _transactionCountMeta = const VerificationMeta(
+    'transactionCount',
+  );
+  @override
+  late final GeneratedColumn<int> transactionCount = GeneratedColumn<int>(
+    'transaction_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalQtySoldMeta = const VerificationMeta(
+    'totalQtySold',
+  );
+  @override
+  late final GeneratedColumn<int> totalQtySold = GeneratedColumn<int>(
+    'total_qty_sold',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cashSalesTotalMeta = const VerificationMeta(
+    'cashSalesTotal',
+  );
+  @override
+  late final GeneratedColumn<double> cashSalesTotal = GeneratedColumn<double>(
+    'cash_sales_total',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cashSalesCountMeta = const VerificationMeta(
+    'cashSalesCount',
+  );
+  @override
+  late final GeneratedColumn<int> cashSalesCount = GeneratedColumn<int>(
+    'cash_sales_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _salesByProductJsonMeta =
+      const VerificationMeta('salesByProductJson');
+  @override
+  late final GeneratedColumn<String> salesByProductJson =
+      GeneratedColumn<String>(
+        'sales_by_product_json',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _cashLedgerJsonMeta = const VerificationMeta(
+    'cashLedgerJson',
+  );
+  @override
+  late final GeneratedColumn<String> cashLedgerJson = GeneratedColumn<String>(
+    'cash_ledger_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    cashierId,
+    cashierName,
+    periodStart,
+    periodEnd,
+    generatedAt,
+    grossSales,
+    vatableSales,
+    vatAmount,
+    vatExemptSales,
+    netOfTax,
+    transactionCount,
+    totalQtySold,
+    cashSalesTotal,
+    cashSalesCount,
+    salesByProductJson,
+    cashLedgerJson,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'daily_reports';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DailyReportsTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('cashier_id')) {
+      context.handle(
+        _cashierIdMeta,
+        cashierId.isAcceptableOrUnknown(data['cashier_id']!, _cashierIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cashierIdMeta);
+    }
+    if (data.containsKey('cashier_name')) {
+      context.handle(
+        _cashierNameMeta,
+        cashierName.isAcceptableOrUnknown(
+          data['cashier_name']!,
+          _cashierNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_cashierNameMeta);
+    }
+    if (data.containsKey('period_start')) {
+      context.handle(
+        _periodStartMeta,
+        periodStart.isAcceptableOrUnknown(
+          data['period_start']!,
+          _periodStartMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_periodStartMeta);
+    }
+    if (data.containsKey('period_end')) {
+      context.handle(
+        _periodEndMeta,
+        periodEnd.isAcceptableOrUnknown(data['period_end']!, _periodEndMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_periodEndMeta);
+    }
+    if (data.containsKey('generated_at')) {
+      context.handle(
+        _generatedAtMeta,
+        generatedAt.isAcceptableOrUnknown(
+          data['generated_at']!,
+          _generatedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_generatedAtMeta);
+    }
+    if (data.containsKey('gross_sales')) {
+      context.handle(
+        _grossSalesMeta,
+        grossSales.isAcceptableOrUnknown(data['gross_sales']!, _grossSalesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_grossSalesMeta);
+    }
+    if (data.containsKey('vatable_sales')) {
+      context.handle(
+        _vatableSalesMeta,
+        vatableSales.isAcceptableOrUnknown(
+          data['vatable_sales']!,
+          _vatableSalesMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_vatableSalesMeta);
+    }
+    if (data.containsKey('vat_amount')) {
+      context.handle(
+        _vatAmountMeta,
+        vatAmount.isAcceptableOrUnknown(data['vat_amount']!, _vatAmountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_vatAmountMeta);
+    }
+    if (data.containsKey('vat_exempt_sales')) {
+      context.handle(
+        _vatExemptSalesMeta,
+        vatExemptSales.isAcceptableOrUnknown(
+          data['vat_exempt_sales']!,
+          _vatExemptSalesMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_vatExemptSalesMeta);
+    }
+    if (data.containsKey('net_of_tax')) {
+      context.handle(
+        _netOfTaxMeta,
+        netOfTax.isAcceptableOrUnknown(data['net_of_tax']!, _netOfTaxMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_netOfTaxMeta);
+    }
+    if (data.containsKey('transaction_count')) {
+      context.handle(
+        _transactionCountMeta,
+        transactionCount.isAcceptableOrUnknown(
+          data['transaction_count']!,
+          _transactionCountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_transactionCountMeta);
+    }
+    if (data.containsKey('total_qty_sold')) {
+      context.handle(
+        _totalQtySoldMeta,
+        totalQtySold.isAcceptableOrUnknown(
+          data['total_qty_sold']!,
+          _totalQtySoldMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_totalQtySoldMeta);
+    }
+    if (data.containsKey('cash_sales_total')) {
+      context.handle(
+        _cashSalesTotalMeta,
+        cashSalesTotal.isAcceptableOrUnknown(
+          data['cash_sales_total']!,
+          _cashSalesTotalMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_cashSalesTotalMeta);
+    }
+    if (data.containsKey('cash_sales_count')) {
+      context.handle(
+        _cashSalesCountMeta,
+        cashSalesCount.isAcceptableOrUnknown(
+          data['cash_sales_count']!,
+          _cashSalesCountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_cashSalesCountMeta);
+    }
+    if (data.containsKey('sales_by_product_json')) {
+      context.handle(
+        _salesByProductJsonMeta,
+        salesByProductJson.isAcceptableOrUnknown(
+          data['sales_by_product_json']!,
+          _salesByProductJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_salesByProductJsonMeta);
+    }
+    if (data.containsKey('cash_ledger_json')) {
+      context.handle(
+        _cashLedgerJsonMeta,
+        cashLedgerJson.isAcceptableOrUnknown(
+          data['cash_ledger_json']!,
+          _cashLedgerJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_cashLedgerJsonMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DailyReportsTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DailyReportsTableData(
+      id:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}id'],
+          )!,
+      cashierId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}cashier_id'],
+          )!,
+      cashierName:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}cashier_name'],
+          )!,
+      periodStart:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.dateTime,
+            data['${effectivePrefix}period_start'],
+          )!,
+      periodEnd:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.dateTime,
+            data['${effectivePrefix}period_end'],
+          )!,
+      generatedAt:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.dateTime,
+            data['${effectivePrefix}generated_at'],
+          )!,
+      grossSales:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}gross_sales'],
+          )!,
+      vatableSales:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}vatable_sales'],
+          )!,
+      vatAmount:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}vat_amount'],
+          )!,
+      vatExemptSales:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}vat_exempt_sales'],
+          )!,
+      netOfTax:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}net_of_tax'],
+          )!,
+      transactionCount:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}transaction_count'],
+          )!,
+      totalQtySold:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}total_qty_sold'],
+          )!,
+      cashSalesTotal:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}cash_sales_total'],
+          )!,
+      cashSalesCount:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}cash_sales_count'],
+          )!,
+      salesByProductJson:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}sales_by_product_json'],
+          )!,
+      cashLedgerJson:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}cash_ledger_json'],
+          )!,
+    );
+  }
+
+  @override
+  $DailyReportsTableTable createAlias(String alias) {
+    return $DailyReportsTableTable(attachedDatabase, alias);
+  }
+}
+
+class DailyReportsTableData extends DataClass
+    implements Insertable<DailyReportsTableData> {
+  final int id;
+  final int cashierId;
+  final String cashierName;
+  final DateTime periodStart;
+  final DateTime periodEnd;
+  final DateTime generatedAt;
+  final double grossSales;
+  final double vatableSales;
+  final double vatAmount;
+  final double vatExemptSales;
+  final double netOfTax;
+  final int transactionCount;
+  final int totalQtySold;
+  final double cashSalesTotal;
+  final int cashSalesCount;
+  final String salesByProductJson;
+  final String cashLedgerJson;
+  const DailyReportsTableData({
+    required this.id,
+    required this.cashierId,
+    required this.cashierName,
+    required this.periodStart,
+    required this.periodEnd,
+    required this.generatedAt,
+    required this.grossSales,
+    required this.vatableSales,
+    required this.vatAmount,
+    required this.vatExemptSales,
+    required this.netOfTax,
+    required this.transactionCount,
+    required this.totalQtySold,
+    required this.cashSalesTotal,
+    required this.cashSalesCount,
+    required this.salesByProductJson,
+    required this.cashLedgerJson,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['cashier_id'] = Variable<int>(cashierId);
+    map['cashier_name'] = Variable<String>(cashierName);
+    map['period_start'] = Variable<DateTime>(periodStart);
+    map['period_end'] = Variable<DateTime>(periodEnd);
+    map['generated_at'] = Variable<DateTime>(generatedAt);
+    map['gross_sales'] = Variable<double>(grossSales);
+    map['vatable_sales'] = Variable<double>(vatableSales);
+    map['vat_amount'] = Variable<double>(vatAmount);
+    map['vat_exempt_sales'] = Variable<double>(vatExemptSales);
+    map['net_of_tax'] = Variable<double>(netOfTax);
+    map['transaction_count'] = Variable<int>(transactionCount);
+    map['total_qty_sold'] = Variable<int>(totalQtySold);
+    map['cash_sales_total'] = Variable<double>(cashSalesTotal);
+    map['cash_sales_count'] = Variable<int>(cashSalesCount);
+    map['sales_by_product_json'] = Variable<String>(salesByProductJson);
+    map['cash_ledger_json'] = Variable<String>(cashLedgerJson);
+    return map;
+  }
+
+  DailyReportsTableCompanion toCompanion(bool nullToAbsent) {
+    return DailyReportsTableCompanion(
+      id: Value(id),
+      cashierId: Value(cashierId),
+      cashierName: Value(cashierName),
+      periodStart: Value(periodStart),
+      periodEnd: Value(periodEnd),
+      generatedAt: Value(generatedAt),
+      grossSales: Value(grossSales),
+      vatableSales: Value(vatableSales),
+      vatAmount: Value(vatAmount),
+      vatExemptSales: Value(vatExemptSales),
+      netOfTax: Value(netOfTax),
+      transactionCount: Value(transactionCount),
+      totalQtySold: Value(totalQtySold),
+      cashSalesTotal: Value(cashSalesTotal),
+      cashSalesCount: Value(cashSalesCount),
+      salesByProductJson: Value(salesByProductJson),
+      cashLedgerJson: Value(cashLedgerJson),
+    );
+  }
+
+  factory DailyReportsTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DailyReportsTableData(
+      id: serializer.fromJson<int>(json['id']),
+      cashierId: serializer.fromJson<int>(json['cashierId']),
+      cashierName: serializer.fromJson<String>(json['cashierName']),
+      periodStart: serializer.fromJson<DateTime>(json['periodStart']),
+      periodEnd: serializer.fromJson<DateTime>(json['periodEnd']),
+      generatedAt: serializer.fromJson<DateTime>(json['generatedAt']),
+      grossSales: serializer.fromJson<double>(json['grossSales']),
+      vatableSales: serializer.fromJson<double>(json['vatableSales']),
+      vatAmount: serializer.fromJson<double>(json['vatAmount']),
+      vatExemptSales: serializer.fromJson<double>(json['vatExemptSales']),
+      netOfTax: serializer.fromJson<double>(json['netOfTax']),
+      transactionCount: serializer.fromJson<int>(json['transactionCount']),
+      totalQtySold: serializer.fromJson<int>(json['totalQtySold']),
+      cashSalesTotal: serializer.fromJson<double>(json['cashSalesTotal']),
+      cashSalesCount: serializer.fromJson<int>(json['cashSalesCount']),
+      salesByProductJson: serializer.fromJson<String>(
+        json['salesByProductJson'],
+      ),
+      cashLedgerJson: serializer.fromJson<String>(json['cashLedgerJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'cashierId': serializer.toJson<int>(cashierId),
+      'cashierName': serializer.toJson<String>(cashierName),
+      'periodStart': serializer.toJson<DateTime>(periodStart),
+      'periodEnd': serializer.toJson<DateTime>(periodEnd),
+      'generatedAt': serializer.toJson<DateTime>(generatedAt),
+      'grossSales': serializer.toJson<double>(grossSales),
+      'vatableSales': serializer.toJson<double>(vatableSales),
+      'vatAmount': serializer.toJson<double>(vatAmount),
+      'vatExemptSales': serializer.toJson<double>(vatExemptSales),
+      'netOfTax': serializer.toJson<double>(netOfTax),
+      'transactionCount': serializer.toJson<int>(transactionCount),
+      'totalQtySold': serializer.toJson<int>(totalQtySold),
+      'cashSalesTotal': serializer.toJson<double>(cashSalesTotal),
+      'cashSalesCount': serializer.toJson<int>(cashSalesCount),
+      'salesByProductJson': serializer.toJson<String>(salesByProductJson),
+      'cashLedgerJson': serializer.toJson<String>(cashLedgerJson),
+    };
+  }
+
+  DailyReportsTableData copyWith({
+    int? id,
+    int? cashierId,
+    String? cashierName,
+    DateTime? periodStart,
+    DateTime? periodEnd,
+    DateTime? generatedAt,
+    double? grossSales,
+    double? vatableSales,
+    double? vatAmount,
+    double? vatExemptSales,
+    double? netOfTax,
+    int? transactionCount,
+    int? totalQtySold,
+    double? cashSalesTotal,
+    int? cashSalesCount,
+    String? salesByProductJson,
+    String? cashLedgerJson,
+  }) => DailyReportsTableData(
+    id: id ?? this.id,
+    cashierId: cashierId ?? this.cashierId,
+    cashierName: cashierName ?? this.cashierName,
+    periodStart: periodStart ?? this.periodStart,
+    periodEnd: periodEnd ?? this.periodEnd,
+    generatedAt: generatedAt ?? this.generatedAt,
+    grossSales: grossSales ?? this.grossSales,
+    vatableSales: vatableSales ?? this.vatableSales,
+    vatAmount: vatAmount ?? this.vatAmount,
+    vatExemptSales: vatExemptSales ?? this.vatExemptSales,
+    netOfTax: netOfTax ?? this.netOfTax,
+    transactionCount: transactionCount ?? this.transactionCount,
+    totalQtySold: totalQtySold ?? this.totalQtySold,
+    cashSalesTotal: cashSalesTotal ?? this.cashSalesTotal,
+    cashSalesCount: cashSalesCount ?? this.cashSalesCount,
+    salesByProductJson: salesByProductJson ?? this.salesByProductJson,
+    cashLedgerJson: cashLedgerJson ?? this.cashLedgerJson,
+  );
+  DailyReportsTableData copyWithCompanion(DailyReportsTableCompanion data) {
+    return DailyReportsTableData(
+      id: data.id.present ? data.id.value : this.id,
+      cashierId: data.cashierId.present ? data.cashierId.value : this.cashierId,
+      cashierName:
+          data.cashierName.present ? data.cashierName.value : this.cashierName,
+      periodStart:
+          data.periodStart.present ? data.periodStart.value : this.periodStart,
+      periodEnd: data.periodEnd.present ? data.periodEnd.value : this.periodEnd,
+      generatedAt:
+          data.generatedAt.present ? data.generatedAt.value : this.generatedAt,
+      grossSales:
+          data.grossSales.present ? data.grossSales.value : this.grossSales,
+      vatableSales:
+          data.vatableSales.present
+              ? data.vatableSales.value
+              : this.vatableSales,
+      vatAmount: data.vatAmount.present ? data.vatAmount.value : this.vatAmount,
+      vatExemptSales:
+          data.vatExemptSales.present
+              ? data.vatExemptSales.value
+              : this.vatExemptSales,
+      netOfTax: data.netOfTax.present ? data.netOfTax.value : this.netOfTax,
+      transactionCount:
+          data.transactionCount.present
+              ? data.transactionCount.value
+              : this.transactionCount,
+      totalQtySold:
+          data.totalQtySold.present
+              ? data.totalQtySold.value
+              : this.totalQtySold,
+      cashSalesTotal:
+          data.cashSalesTotal.present
+              ? data.cashSalesTotal.value
+              : this.cashSalesTotal,
+      cashSalesCount:
+          data.cashSalesCount.present
+              ? data.cashSalesCount.value
+              : this.cashSalesCount,
+      salesByProductJson:
+          data.salesByProductJson.present
+              ? data.salesByProductJson.value
+              : this.salesByProductJson,
+      cashLedgerJson:
+          data.cashLedgerJson.present
+              ? data.cashLedgerJson.value
+              : this.cashLedgerJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailyReportsTableData(')
+          ..write('id: $id, ')
+          ..write('cashierId: $cashierId, ')
+          ..write('cashierName: $cashierName, ')
+          ..write('periodStart: $periodStart, ')
+          ..write('periodEnd: $periodEnd, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('grossSales: $grossSales, ')
+          ..write('vatableSales: $vatableSales, ')
+          ..write('vatAmount: $vatAmount, ')
+          ..write('vatExemptSales: $vatExemptSales, ')
+          ..write('netOfTax: $netOfTax, ')
+          ..write('transactionCount: $transactionCount, ')
+          ..write('totalQtySold: $totalQtySold, ')
+          ..write('cashSalesTotal: $cashSalesTotal, ')
+          ..write('cashSalesCount: $cashSalesCount, ')
+          ..write('salesByProductJson: $salesByProductJson, ')
+          ..write('cashLedgerJson: $cashLedgerJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    cashierId,
+    cashierName,
+    periodStart,
+    periodEnd,
+    generatedAt,
+    grossSales,
+    vatableSales,
+    vatAmount,
+    vatExemptSales,
+    netOfTax,
+    transactionCount,
+    totalQtySold,
+    cashSalesTotal,
+    cashSalesCount,
+    salesByProductJson,
+    cashLedgerJson,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DailyReportsTableData &&
+          other.id == this.id &&
+          other.cashierId == this.cashierId &&
+          other.cashierName == this.cashierName &&
+          other.periodStart == this.periodStart &&
+          other.periodEnd == this.periodEnd &&
+          other.generatedAt == this.generatedAt &&
+          other.grossSales == this.grossSales &&
+          other.vatableSales == this.vatableSales &&
+          other.vatAmount == this.vatAmount &&
+          other.vatExemptSales == this.vatExemptSales &&
+          other.netOfTax == this.netOfTax &&
+          other.transactionCount == this.transactionCount &&
+          other.totalQtySold == this.totalQtySold &&
+          other.cashSalesTotal == this.cashSalesTotal &&
+          other.cashSalesCount == this.cashSalesCount &&
+          other.salesByProductJson == this.salesByProductJson &&
+          other.cashLedgerJson == this.cashLedgerJson);
+}
+
+class DailyReportsTableCompanion
+    extends UpdateCompanion<DailyReportsTableData> {
+  final Value<int> id;
+  final Value<int> cashierId;
+  final Value<String> cashierName;
+  final Value<DateTime> periodStart;
+  final Value<DateTime> periodEnd;
+  final Value<DateTime> generatedAt;
+  final Value<double> grossSales;
+  final Value<double> vatableSales;
+  final Value<double> vatAmount;
+  final Value<double> vatExemptSales;
+  final Value<double> netOfTax;
+  final Value<int> transactionCount;
+  final Value<int> totalQtySold;
+  final Value<double> cashSalesTotal;
+  final Value<int> cashSalesCount;
+  final Value<String> salesByProductJson;
+  final Value<String> cashLedgerJson;
+  const DailyReportsTableCompanion({
+    this.id = const Value.absent(),
+    this.cashierId = const Value.absent(),
+    this.cashierName = const Value.absent(),
+    this.periodStart = const Value.absent(),
+    this.periodEnd = const Value.absent(),
+    this.generatedAt = const Value.absent(),
+    this.grossSales = const Value.absent(),
+    this.vatableSales = const Value.absent(),
+    this.vatAmount = const Value.absent(),
+    this.vatExemptSales = const Value.absent(),
+    this.netOfTax = const Value.absent(),
+    this.transactionCount = const Value.absent(),
+    this.totalQtySold = const Value.absent(),
+    this.cashSalesTotal = const Value.absent(),
+    this.cashSalesCount = const Value.absent(),
+    this.salesByProductJson = const Value.absent(),
+    this.cashLedgerJson = const Value.absent(),
+  });
+  DailyReportsTableCompanion.insert({
+    this.id = const Value.absent(),
+    required int cashierId,
+    required String cashierName,
+    required DateTime periodStart,
+    required DateTime periodEnd,
+    required DateTime generatedAt,
+    required double grossSales,
+    required double vatableSales,
+    required double vatAmount,
+    required double vatExemptSales,
+    required double netOfTax,
+    required int transactionCount,
+    required int totalQtySold,
+    required double cashSalesTotal,
+    required int cashSalesCount,
+    required String salesByProductJson,
+    required String cashLedgerJson,
+  }) : cashierId = Value(cashierId),
+       cashierName = Value(cashierName),
+       periodStart = Value(periodStart),
+       periodEnd = Value(periodEnd),
+       generatedAt = Value(generatedAt),
+       grossSales = Value(grossSales),
+       vatableSales = Value(vatableSales),
+       vatAmount = Value(vatAmount),
+       vatExemptSales = Value(vatExemptSales),
+       netOfTax = Value(netOfTax),
+       transactionCount = Value(transactionCount),
+       totalQtySold = Value(totalQtySold),
+       cashSalesTotal = Value(cashSalesTotal),
+       cashSalesCount = Value(cashSalesCount),
+       salesByProductJson = Value(salesByProductJson),
+       cashLedgerJson = Value(cashLedgerJson);
+  static Insertable<DailyReportsTableData> custom({
+    Expression<int>? id,
+    Expression<int>? cashierId,
+    Expression<String>? cashierName,
+    Expression<DateTime>? periodStart,
+    Expression<DateTime>? periodEnd,
+    Expression<DateTime>? generatedAt,
+    Expression<double>? grossSales,
+    Expression<double>? vatableSales,
+    Expression<double>? vatAmount,
+    Expression<double>? vatExemptSales,
+    Expression<double>? netOfTax,
+    Expression<int>? transactionCount,
+    Expression<int>? totalQtySold,
+    Expression<double>? cashSalesTotal,
+    Expression<int>? cashSalesCount,
+    Expression<String>? salesByProductJson,
+    Expression<String>? cashLedgerJson,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (cashierId != null) 'cashier_id': cashierId,
+      if (cashierName != null) 'cashier_name': cashierName,
+      if (periodStart != null) 'period_start': periodStart,
+      if (periodEnd != null) 'period_end': periodEnd,
+      if (generatedAt != null) 'generated_at': generatedAt,
+      if (grossSales != null) 'gross_sales': grossSales,
+      if (vatableSales != null) 'vatable_sales': vatableSales,
+      if (vatAmount != null) 'vat_amount': vatAmount,
+      if (vatExemptSales != null) 'vat_exempt_sales': vatExemptSales,
+      if (netOfTax != null) 'net_of_tax': netOfTax,
+      if (transactionCount != null) 'transaction_count': transactionCount,
+      if (totalQtySold != null) 'total_qty_sold': totalQtySold,
+      if (cashSalesTotal != null) 'cash_sales_total': cashSalesTotal,
+      if (cashSalesCount != null) 'cash_sales_count': cashSalesCount,
+      if (salesByProductJson != null)
+        'sales_by_product_json': salesByProductJson,
+      if (cashLedgerJson != null) 'cash_ledger_json': cashLedgerJson,
+    });
+  }
+
+  DailyReportsTableCompanion copyWith({
+    Value<int>? id,
+    Value<int>? cashierId,
+    Value<String>? cashierName,
+    Value<DateTime>? periodStart,
+    Value<DateTime>? periodEnd,
+    Value<DateTime>? generatedAt,
+    Value<double>? grossSales,
+    Value<double>? vatableSales,
+    Value<double>? vatAmount,
+    Value<double>? vatExemptSales,
+    Value<double>? netOfTax,
+    Value<int>? transactionCount,
+    Value<int>? totalQtySold,
+    Value<double>? cashSalesTotal,
+    Value<int>? cashSalesCount,
+    Value<String>? salesByProductJson,
+    Value<String>? cashLedgerJson,
+  }) {
+    return DailyReportsTableCompanion(
+      id: id ?? this.id,
+      cashierId: cashierId ?? this.cashierId,
+      cashierName: cashierName ?? this.cashierName,
+      periodStart: periodStart ?? this.periodStart,
+      periodEnd: periodEnd ?? this.periodEnd,
+      generatedAt: generatedAt ?? this.generatedAt,
+      grossSales: grossSales ?? this.grossSales,
+      vatableSales: vatableSales ?? this.vatableSales,
+      vatAmount: vatAmount ?? this.vatAmount,
+      vatExemptSales: vatExemptSales ?? this.vatExemptSales,
+      netOfTax: netOfTax ?? this.netOfTax,
+      transactionCount: transactionCount ?? this.transactionCount,
+      totalQtySold: totalQtySold ?? this.totalQtySold,
+      cashSalesTotal: cashSalesTotal ?? this.cashSalesTotal,
+      cashSalesCount: cashSalesCount ?? this.cashSalesCount,
+      salesByProductJson: salesByProductJson ?? this.salesByProductJson,
+      cashLedgerJson: cashLedgerJson ?? this.cashLedgerJson,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (cashierId.present) {
+      map['cashier_id'] = Variable<int>(cashierId.value);
+    }
+    if (cashierName.present) {
+      map['cashier_name'] = Variable<String>(cashierName.value);
+    }
+    if (periodStart.present) {
+      map['period_start'] = Variable<DateTime>(periodStart.value);
+    }
+    if (periodEnd.present) {
+      map['period_end'] = Variable<DateTime>(periodEnd.value);
+    }
+    if (generatedAt.present) {
+      map['generated_at'] = Variable<DateTime>(generatedAt.value);
+    }
+    if (grossSales.present) {
+      map['gross_sales'] = Variable<double>(grossSales.value);
+    }
+    if (vatableSales.present) {
+      map['vatable_sales'] = Variable<double>(vatableSales.value);
+    }
+    if (vatAmount.present) {
+      map['vat_amount'] = Variable<double>(vatAmount.value);
+    }
+    if (vatExemptSales.present) {
+      map['vat_exempt_sales'] = Variable<double>(vatExemptSales.value);
+    }
+    if (netOfTax.present) {
+      map['net_of_tax'] = Variable<double>(netOfTax.value);
+    }
+    if (transactionCount.present) {
+      map['transaction_count'] = Variable<int>(transactionCount.value);
+    }
+    if (totalQtySold.present) {
+      map['total_qty_sold'] = Variable<int>(totalQtySold.value);
+    }
+    if (cashSalesTotal.present) {
+      map['cash_sales_total'] = Variable<double>(cashSalesTotal.value);
+    }
+    if (cashSalesCount.present) {
+      map['cash_sales_count'] = Variable<int>(cashSalesCount.value);
+    }
+    if (salesByProductJson.present) {
+      map['sales_by_product_json'] = Variable<String>(salesByProductJson.value);
+    }
+    if (cashLedgerJson.present) {
+      map['cash_ledger_json'] = Variable<String>(cashLedgerJson.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailyReportsTableCompanion(')
+          ..write('id: $id, ')
+          ..write('cashierId: $cashierId, ')
+          ..write('cashierName: $cashierName, ')
+          ..write('periodStart: $periodStart, ')
+          ..write('periodEnd: $periodEnd, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('grossSales: $grossSales, ')
+          ..write('vatableSales: $vatableSales, ')
+          ..write('vatAmount: $vatAmount, ')
+          ..write('vatExemptSales: $vatExemptSales, ')
+          ..write('netOfTax: $netOfTax, ')
+          ..write('transactionCount: $transactionCount, ')
+          ..write('totalQtySold: $totalQtySold, ')
+          ..write('cashSalesTotal: $cashSalesTotal, ')
+          ..write('cashSalesCount: $cashSalesCount, ')
+          ..write('salesByProductJson: $salesByProductJson, ')
+          ..write('cashLedgerJson: $cashLedgerJson')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ZReadingsTableTable extends ZReadingsTable
+    with TableInfo<$ZReadingsTableTable, ZReadingsTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ZReadingsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _zCounterMeta = const VerificationMeta(
+    'zCounter',
+  );
+  @override
+  late final GeneratedColumn<int> zCounter = GeneratedColumn<int>(
+    'z_counter',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _periodStartMeta = const VerificationMeta(
+    'periodStart',
+  );
+  @override
+  late final GeneratedColumn<DateTime> periodStart = GeneratedColumn<DateTime>(
+    'period_start',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _periodEndMeta = const VerificationMeta(
+    'periodEnd',
+  );
+  @override
+  late final GeneratedColumn<DateTime> periodEnd = GeneratedColumn<DateTime>(
+    'period_end',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _generatedAtMeta = const VerificationMeta(
+    'generatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> generatedAt = GeneratedColumn<DateTime>(
+    'generated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _closedByUserIdMeta = const VerificationMeta(
+    'closedByUserId',
+  );
+  @override
+  late final GeneratedColumn<int> closedByUserId = GeneratedColumn<int>(
+    'closed_by_user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _closedByNameMeta = const VerificationMeta(
+    'closedByName',
+  );
+  @override
+  late final GeneratedColumn<String> closedByName = GeneratedColumn<String>(
+    'closed_by_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _authorizedByUserIdMeta =
+      const VerificationMeta('authorizedByUserId');
+  @override
+  late final GeneratedColumn<int> authorizedByUserId = GeneratedColumn<int>(
+    'authorized_by_user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _authorizedByNameMeta = const VerificationMeta(
+    'authorizedByName',
+  );
+  @override
+  late final GeneratedColumn<String> authorizedByName = GeneratedColumn<String>(
+    'authorized_by_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _beginningBalanceMeta = const VerificationMeta(
+    'beginningBalance',
+  );
+  @override
+  late final GeneratedColumn<double> beginningBalance = GeneratedColumn<double>(
+    'beginning_balance',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endingBalanceMeta = const VerificationMeta(
+    'endingBalance',
+  );
+  @override
+  late final GeneratedColumn<double> endingBalance = GeneratedColumn<double>(
+    'ending_balance',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalSalesMeta = const VerificationMeta(
+    'totalSales',
+  );
+  @override
+  late final GeneratedColumn<double> totalSales = GeneratedColumn<double>(
+    'total_sales',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _vatableSalesMeta = const VerificationMeta(
+    'vatableSales',
+  );
+  @override
+  late final GeneratedColumn<double> vatableSales = GeneratedColumn<double>(
+    'vatable_sales',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _vatAmountMeta = const VerificationMeta(
+    'vatAmount',
+  );
+  @override
+  late final GeneratedColumn<double> vatAmount = GeneratedColumn<double>(
+    'vat_amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _vatExemptSalesMeta = const VerificationMeta(
+    'vatExemptSales',
+  );
+  @override
+  late final GeneratedColumn<double> vatExemptSales = GeneratedColumn<double>(
+    'vat_exempt_sales',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _transactionCountMeta = const VerificationMeta(
+    'transactionCount',
+  );
+  @override
+  late final GeneratedColumn<int> transactionCount = GeneratedColumn<int>(
+    'transaction_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _completedCountMeta = const VerificationMeta(
+    'completedCount',
+  );
+  @override
+  late final GeneratedColumn<int> completedCount = GeneratedColumn<int>(
+    'completed_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _voidedCountMeta = const VerificationMeta(
+    'voidedCount',
+  );
+  @override
+  late final GeneratedColumn<int> voidedCount = GeneratedColumn<int>(
+    'voided_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _refundedCountMeta = const VerificationMeta(
+    'refundedCount',
+  );
+  @override
+  late final GeneratedColumn<int> refundedCount = GeneratedColumn<int>(
+    'refunded_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _discountTotalMeta = const VerificationMeta(
+    'discountTotal',
+  );
+  @override
+  late final GeneratedColumn<double> discountTotal = GeneratedColumn<double>(
+    'discount_total',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cashCollectedMeta = const VerificationMeta(
+    'cashCollected',
+  );
+  @override
+  late final GeneratedColumn<double> cashCollected = GeneratedColumn<double>(
+    'cash_collected',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalQtySoldMeta = const VerificationMeta(
+    'totalQtySold',
+  );
+  @override
+  late final GeneratedColumn<int> totalQtySold = GeneratedColumn<int>(
+    'total_qty_sold',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _paymentBreakdownJsonMeta =
+      const VerificationMeta('paymentBreakdownJson');
+  @override
+  late final GeneratedColumn<String> paymentBreakdownJson =
+      GeneratedColumn<String>(
+        'payment_breakdown_json',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _salesByCashierJsonMeta =
+      const VerificationMeta('salesByCashierJson');
+  @override
+  late final GeneratedColumn<String> salesByCashierJson =
+      GeneratedColumn<String>(
+        'sales_by_cashier_json',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    zCounter,
+    periodStart,
+    periodEnd,
+    generatedAt,
+    closedByUserId,
+    closedByName,
+    authorizedByUserId,
+    authorizedByName,
+    beginningBalance,
+    endingBalance,
+    totalSales,
+    vatableSales,
+    vatAmount,
+    vatExemptSales,
+    transactionCount,
+    completedCount,
+    voidedCount,
+    refundedCount,
+    discountTotal,
+    cashCollected,
+    totalQtySold,
+    paymentBreakdownJson,
+    salesByCashierJson,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'z_readings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ZReadingsTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('z_counter')) {
+      context.handle(
+        _zCounterMeta,
+        zCounter.isAcceptableOrUnknown(data['z_counter']!, _zCounterMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_zCounterMeta);
+    }
+    if (data.containsKey('period_start')) {
+      context.handle(
+        _periodStartMeta,
+        periodStart.isAcceptableOrUnknown(
+          data['period_start']!,
+          _periodStartMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_periodStartMeta);
+    }
+    if (data.containsKey('period_end')) {
+      context.handle(
+        _periodEndMeta,
+        periodEnd.isAcceptableOrUnknown(data['period_end']!, _periodEndMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_periodEndMeta);
+    }
+    if (data.containsKey('generated_at')) {
+      context.handle(
+        _generatedAtMeta,
+        generatedAt.isAcceptableOrUnknown(
+          data['generated_at']!,
+          _generatedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_generatedAtMeta);
+    }
+    if (data.containsKey('closed_by_user_id')) {
+      context.handle(
+        _closedByUserIdMeta,
+        closedByUserId.isAcceptableOrUnknown(
+          data['closed_by_user_id']!,
+          _closedByUserIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_closedByUserIdMeta);
+    }
+    if (data.containsKey('closed_by_name')) {
+      context.handle(
+        _closedByNameMeta,
+        closedByName.isAcceptableOrUnknown(
+          data['closed_by_name']!,
+          _closedByNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_closedByNameMeta);
+    }
+    if (data.containsKey('authorized_by_user_id')) {
+      context.handle(
+        _authorizedByUserIdMeta,
+        authorizedByUserId.isAcceptableOrUnknown(
+          data['authorized_by_user_id']!,
+          _authorizedByUserIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_authorizedByUserIdMeta);
+    }
+    if (data.containsKey('authorized_by_name')) {
+      context.handle(
+        _authorizedByNameMeta,
+        authorizedByName.isAcceptableOrUnknown(
+          data['authorized_by_name']!,
+          _authorizedByNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_authorizedByNameMeta);
+    }
+    if (data.containsKey('beginning_balance')) {
+      context.handle(
+        _beginningBalanceMeta,
+        beginningBalance.isAcceptableOrUnknown(
+          data['beginning_balance']!,
+          _beginningBalanceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_beginningBalanceMeta);
+    }
+    if (data.containsKey('ending_balance')) {
+      context.handle(
+        _endingBalanceMeta,
+        endingBalance.isAcceptableOrUnknown(
+          data['ending_balance']!,
+          _endingBalanceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_endingBalanceMeta);
+    }
+    if (data.containsKey('total_sales')) {
+      context.handle(
+        _totalSalesMeta,
+        totalSales.isAcceptableOrUnknown(data['total_sales']!, _totalSalesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_totalSalesMeta);
+    }
+    if (data.containsKey('vatable_sales')) {
+      context.handle(
+        _vatableSalesMeta,
+        vatableSales.isAcceptableOrUnknown(
+          data['vatable_sales']!,
+          _vatableSalesMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_vatableSalesMeta);
+    }
+    if (data.containsKey('vat_amount')) {
+      context.handle(
+        _vatAmountMeta,
+        vatAmount.isAcceptableOrUnknown(data['vat_amount']!, _vatAmountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_vatAmountMeta);
+    }
+    if (data.containsKey('vat_exempt_sales')) {
+      context.handle(
+        _vatExemptSalesMeta,
+        vatExemptSales.isAcceptableOrUnknown(
+          data['vat_exempt_sales']!,
+          _vatExemptSalesMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_vatExemptSalesMeta);
+    }
+    if (data.containsKey('transaction_count')) {
+      context.handle(
+        _transactionCountMeta,
+        transactionCount.isAcceptableOrUnknown(
+          data['transaction_count']!,
+          _transactionCountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_transactionCountMeta);
+    }
+    if (data.containsKey('completed_count')) {
+      context.handle(
+        _completedCountMeta,
+        completedCount.isAcceptableOrUnknown(
+          data['completed_count']!,
+          _completedCountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_completedCountMeta);
+    }
+    if (data.containsKey('voided_count')) {
+      context.handle(
+        _voidedCountMeta,
+        voidedCount.isAcceptableOrUnknown(
+          data['voided_count']!,
+          _voidedCountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_voidedCountMeta);
+    }
+    if (data.containsKey('refunded_count')) {
+      context.handle(
+        _refundedCountMeta,
+        refundedCount.isAcceptableOrUnknown(
+          data['refunded_count']!,
+          _refundedCountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_refundedCountMeta);
+    }
+    if (data.containsKey('discount_total')) {
+      context.handle(
+        _discountTotalMeta,
+        discountTotal.isAcceptableOrUnknown(
+          data['discount_total']!,
+          _discountTotalMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_discountTotalMeta);
+    }
+    if (data.containsKey('cash_collected')) {
+      context.handle(
+        _cashCollectedMeta,
+        cashCollected.isAcceptableOrUnknown(
+          data['cash_collected']!,
+          _cashCollectedMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_cashCollectedMeta);
+    }
+    if (data.containsKey('total_qty_sold')) {
+      context.handle(
+        _totalQtySoldMeta,
+        totalQtySold.isAcceptableOrUnknown(
+          data['total_qty_sold']!,
+          _totalQtySoldMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_totalQtySoldMeta);
+    }
+    if (data.containsKey('payment_breakdown_json')) {
+      context.handle(
+        _paymentBreakdownJsonMeta,
+        paymentBreakdownJson.isAcceptableOrUnknown(
+          data['payment_breakdown_json']!,
+          _paymentBreakdownJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_paymentBreakdownJsonMeta);
+    }
+    if (data.containsKey('sales_by_cashier_json')) {
+      context.handle(
+        _salesByCashierJsonMeta,
+        salesByCashierJson.isAcceptableOrUnknown(
+          data['sales_by_cashier_json']!,
+          _salesByCashierJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_salesByCashierJsonMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ZReadingsTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ZReadingsTableData(
+      id:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}id'],
+          )!,
+      zCounter:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}z_counter'],
+          )!,
+      periodStart:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.dateTime,
+            data['${effectivePrefix}period_start'],
+          )!,
+      periodEnd:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.dateTime,
+            data['${effectivePrefix}period_end'],
+          )!,
+      generatedAt:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.dateTime,
+            data['${effectivePrefix}generated_at'],
+          )!,
+      closedByUserId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}closed_by_user_id'],
+          )!,
+      closedByName:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}closed_by_name'],
+          )!,
+      authorizedByUserId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}authorized_by_user_id'],
+          )!,
+      authorizedByName:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}authorized_by_name'],
+          )!,
+      beginningBalance:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}beginning_balance'],
+          )!,
+      endingBalance:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}ending_balance'],
+          )!,
+      totalSales:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}total_sales'],
+          )!,
+      vatableSales:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}vatable_sales'],
+          )!,
+      vatAmount:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}vat_amount'],
+          )!,
+      vatExemptSales:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}vat_exempt_sales'],
+          )!,
+      transactionCount:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}transaction_count'],
+          )!,
+      completedCount:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}completed_count'],
+          )!,
+      voidedCount:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}voided_count'],
+          )!,
+      refundedCount:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}refunded_count'],
+          )!,
+      discountTotal:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}discount_total'],
+          )!,
+      cashCollected:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}cash_collected'],
+          )!,
+      totalQtySold:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}total_qty_sold'],
+          )!,
+      paymentBreakdownJson:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}payment_breakdown_json'],
+          )!,
+      salesByCashierJson:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}sales_by_cashier_json'],
+          )!,
+    );
+  }
+
+  @override
+  $ZReadingsTableTable createAlias(String alias) {
+    return $ZReadingsTableTable(attachedDatabase, alias);
+  }
+}
+
+class ZReadingsTableData extends DataClass
+    implements Insertable<ZReadingsTableData> {
+  final int id;
+  final int zCounter;
+  final DateTime periodStart;
+  final DateTime periodEnd;
+  final DateTime generatedAt;
+  final int closedByUserId;
+  final String closedByName;
+  final int authorizedByUserId;
+  final String authorizedByName;
+  final double beginningBalance;
+  final double endingBalance;
+  final double totalSales;
+  final double vatableSales;
+  final double vatAmount;
+  final double vatExemptSales;
+  final int transactionCount;
+  final int completedCount;
+  final int voidedCount;
+  final int refundedCount;
+  final double discountTotal;
+  final double cashCollected;
+  final int totalQtySold;
+  final String paymentBreakdownJson;
+  final String salesByCashierJson;
+  const ZReadingsTableData({
+    required this.id,
+    required this.zCounter,
+    required this.periodStart,
+    required this.periodEnd,
+    required this.generatedAt,
+    required this.closedByUserId,
+    required this.closedByName,
+    required this.authorizedByUserId,
+    required this.authorizedByName,
+    required this.beginningBalance,
+    required this.endingBalance,
+    required this.totalSales,
+    required this.vatableSales,
+    required this.vatAmount,
+    required this.vatExemptSales,
+    required this.transactionCount,
+    required this.completedCount,
+    required this.voidedCount,
+    required this.refundedCount,
+    required this.discountTotal,
+    required this.cashCollected,
+    required this.totalQtySold,
+    required this.paymentBreakdownJson,
+    required this.salesByCashierJson,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['z_counter'] = Variable<int>(zCounter);
+    map['period_start'] = Variable<DateTime>(periodStart);
+    map['period_end'] = Variable<DateTime>(periodEnd);
+    map['generated_at'] = Variable<DateTime>(generatedAt);
+    map['closed_by_user_id'] = Variable<int>(closedByUserId);
+    map['closed_by_name'] = Variable<String>(closedByName);
+    map['authorized_by_user_id'] = Variable<int>(authorizedByUserId);
+    map['authorized_by_name'] = Variable<String>(authorizedByName);
+    map['beginning_balance'] = Variable<double>(beginningBalance);
+    map['ending_balance'] = Variable<double>(endingBalance);
+    map['total_sales'] = Variable<double>(totalSales);
+    map['vatable_sales'] = Variable<double>(vatableSales);
+    map['vat_amount'] = Variable<double>(vatAmount);
+    map['vat_exempt_sales'] = Variable<double>(vatExemptSales);
+    map['transaction_count'] = Variable<int>(transactionCount);
+    map['completed_count'] = Variable<int>(completedCount);
+    map['voided_count'] = Variable<int>(voidedCount);
+    map['refunded_count'] = Variable<int>(refundedCount);
+    map['discount_total'] = Variable<double>(discountTotal);
+    map['cash_collected'] = Variable<double>(cashCollected);
+    map['total_qty_sold'] = Variable<int>(totalQtySold);
+    map['payment_breakdown_json'] = Variable<String>(paymentBreakdownJson);
+    map['sales_by_cashier_json'] = Variable<String>(salesByCashierJson);
+    return map;
+  }
+
+  ZReadingsTableCompanion toCompanion(bool nullToAbsent) {
+    return ZReadingsTableCompanion(
+      id: Value(id),
+      zCounter: Value(zCounter),
+      periodStart: Value(periodStart),
+      periodEnd: Value(periodEnd),
+      generatedAt: Value(generatedAt),
+      closedByUserId: Value(closedByUserId),
+      closedByName: Value(closedByName),
+      authorizedByUserId: Value(authorizedByUserId),
+      authorizedByName: Value(authorizedByName),
+      beginningBalance: Value(beginningBalance),
+      endingBalance: Value(endingBalance),
+      totalSales: Value(totalSales),
+      vatableSales: Value(vatableSales),
+      vatAmount: Value(vatAmount),
+      vatExemptSales: Value(vatExemptSales),
+      transactionCount: Value(transactionCount),
+      completedCount: Value(completedCount),
+      voidedCount: Value(voidedCount),
+      refundedCount: Value(refundedCount),
+      discountTotal: Value(discountTotal),
+      cashCollected: Value(cashCollected),
+      totalQtySold: Value(totalQtySold),
+      paymentBreakdownJson: Value(paymentBreakdownJson),
+      salesByCashierJson: Value(salesByCashierJson),
+    );
+  }
+
+  factory ZReadingsTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ZReadingsTableData(
+      id: serializer.fromJson<int>(json['id']),
+      zCounter: serializer.fromJson<int>(json['zCounter']),
+      periodStart: serializer.fromJson<DateTime>(json['periodStart']),
+      periodEnd: serializer.fromJson<DateTime>(json['periodEnd']),
+      generatedAt: serializer.fromJson<DateTime>(json['generatedAt']),
+      closedByUserId: serializer.fromJson<int>(json['closedByUserId']),
+      closedByName: serializer.fromJson<String>(json['closedByName']),
+      authorizedByUserId: serializer.fromJson<int>(json['authorizedByUserId']),
+      authorizedByName: serializer.fromJson<String>(json['authorizedByName']),
+      beginningBalance: serializer.fromJson<double>(json['beginningBalance']),
+      endingBalance: serializer.fromJson<double>(json['endingBalance']),
+      totalSales: serializer.fromJson<double>(json['totalSales']),
+      vatableSales: serializer.fromJson<double>(json['vatableSales']),
+      vatAmount: serializer.fromJson<double>(json['vatAmount']),
+      vatExemptSales: serializer.fromJson<double>(json['vatExemptSales']),
+      transactionCount: serializer.fromJson<int>(json['transactionCount']),
+      completedCount: serializer.fromJson<int>(json['completedCount']),
+      voidedCount: serializer.fromJson<int>(json['voidedCount']),
+      refundedCount: serializer.fromJson<int>(json['refundedCount']),
+      discountTotal: serializer.fromJson<double>(json['discountTotal']),
+      cashCollected: serializer.fromJson<double>(json['cashCollected']),
+      totalQtySold: serializer.fromJson<int>(json['totalQtySold']),
+      paymentBreakdownJson: serializer.fromJson<String>(
+        json['paymentBreakdownJson'],
+      ),
+      salesByCashierJson: serializer.fromJson<String>(
+        json['salesByCashierJson'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'zCounter': serializer.toJson<int>(zCounter),
+      'periodStart': serializer.toJson<DateTime>(periodStart),
+      'periodEnd': serializer.toJson<DateTime>(periodEnd),
+      'generatedAt': serializer.toJson<DateTime>(generatedAt),
+      'closedByUserId': serializer.toJson<int>(closedByUserId),
+      'closedByName': serializer.toJson<String>(closedByName),
+      'authorizedByUserId': serializer.toJson<int>(authorizedByUserId),
+      'authorizedByName': serializer.toJson<String>(authorizedByName),
+      'beginningBalance': serializer.toJson<double>(beginningBalance),
+      'endingBalance': serializer.toJson<double>(endingBalance),
+      'totalSales': serializer.toJson<double>(totalSales),
+      'vatableSales': serializer.toJson<double>(vatableSales),
+      'vatAmount': serializer.toJson<double>(vatAmount),
+      'vatExemptSales': serializer.toJson<double>(vatExemptSales),
+      'transactionCount': serializer.toJson<int>(transactionCount),
+      'completedCount': serializer.toJson<int>(completedCount),
+      'voidedCount': serializer.toJson<int>(voidedCount),
+      'refundedCount': serializer.toJson<int>(refundedCount),
+      'discountTotal': serializer.toJson<double>(discountTotal),
+      'cashCollected': serializer.toJson<double>(cashCollected),
+      'totalQtySold': serializer.toJson<int>(totalQtySold),
+      'paymentBreakdownJson': serializer.toJson<String>(paymentBreakdownJson),
+      'salesByCashierJson': serializer.toJson<String>(salesByCashierJson),
+    };
+  }
+
+  ZReadingsTableData copyWith({
+    int? id,
+    int? zCounter,
+    DateTime? periodStart,
+    DateTime? periodEnd,
+    DateTime? generatedAt,
+    int? closedByUserId,
+    String? closedByName,
+    int? authorizedByUserId,
+    String? authorizedByName,
+    double? beginningBalance,
+    double? endingBalance,
+    double? totalSales,
+    double? vatableSales,
+    double? vatAmount,
+    double? vatExemptSales,
+    int? transactionCount,
+    int? completedCount,
+    int? voidedCount,
+    int? refundedCount,
+    double? discountTotal,
+    double? cashCollected,
+    int? totalQtySold,
+    String? paymentBreakdownJson,
+    String? salesByCashierJson,
+  }) => ZReadingsTableData(
+    id: id ?? this.id,
+    zCounter: zCounter ?? this.zCounter,
+    periodStart: periodStart ?? this.periodStart,
+    periodEnd: periodEnd ?? this.periodEnd,
+    generatedAt: generatedAt ?? this.generatedAt,
+    closedByUserId: closedByUserId ?? this.closedByUserId,
+    closedByName: closedByName ?? this.closedByName,
+    authorizedByUserId: authorizedByUserId ?? this.authorizedByUserId,
+    authorizedByName: authorizedByName ?? this.authorizedByName,
+    beginningBalance: beginningBalance ?? this.beginningBalance,
+    endingBalance: endingBalance ?? this.endingBalance,
+    totalSales: totalSales ?? this.totalSales,
+    vatableSales: vatableSales ?? this.vatableSales,
+    vatAmount: vatAmount ?? this.vatAmount,
+    vatExemptSales: vatExemptSales ?? this.vatExemptSales,
+    transactionCount: transactionCount ?? this.transactionCount,
+    completedCount: completedCount ?? this.completedCount,
+    voidedCount: voidedCount ?? this.voidedCount,
+    refundedCount: refundedCount ?? this.refundedCount,
+    discountTotal: discountTotal ?? this.discountTotal,
+    cashCollected: cashCollected ?? this.cashCollected,
+    totalQtySold: totalQtySold ?? this.totalQtySold,
+    paymentBreakdownJson: paymentBreakdownJson ?? this.paymentBreakdownJson,
+    salesByCashierJson: salesByCashierJson ?? this.salesByCashierJson,
+  );
+  ZReadingsTableData copyWithCompanion(ZReadingsTableCompanion data) {
+    return ZReadingsTableData(
+      id: data.id.present ? data.id.value : this.id,
+      zCounter: data.zCounter.present ? data.zCounter.value : this.zCounter,
+      periodStart:
+          data.periodStart.present ? data.periodStart.value : this.periodStart,
+      periodEnd: data.periodEnd.present ? data.periodEnd.value : this.periodEnd,
+      generatedAt:
+          data.generatedAt.present ? data.generatedAt.value : this.generatedAt,
+      closedByUserId:
+          data.closedByUserId.present
+              ? data.closedByUserId.value
+              : this.closedByUserId,
+      closedByName:
+          data.closedByName.present
+              ? data.closedByName.value
+              : this.closedByName,
+      authorizedByUserId:
+          data.authorizedByUserId.present
+              ? data.authorizedByUserId.value
+              : this.authorizedByUserId,
+      authorizedByName:
+          data.authorizedByName.present
+              ? data.authorizedByName.value
+              : this.authorizedByName,
+      beginningBalance:
+          data.beginningBalance.present
+              ? data.beginningBalance.value
+              : this.beginningBalance,
+      endingBalance:
+          data.endingBalance.present
+              ? data.endingBalance.value
+              : this.endingBalance,
+      totalSales:
+          data.totalSales.present ? data.totalSales.value : this.totalSales,
+      vatableSales:
+          data.vatableSales.present
+              ? data.vatableSales.value
+              : this.vatableSales,
+      vatAmount: data.vatAmount.present ? data.vatAmount.value : this.vatAmount,
+      vatExemptSales:
+          data.vatExemptSales.present
+              ? data.vatExemptSales.value
+              : this.vatExemptSales,
+      transactionCount:
+          data.transactionCount.present
+              ? data.transactionCount.value
+              : this.transactionCount,
+      completedCount:
+          data.completedCount.present
+              ? data.completedCount.value
+              : this.completedCount,
+      voidedCount:
+          data.voidedCount.present ? data.voidedCount.value : this.voidedCount,
+      refundedCount:
+          data.refundedCount.present
+              ? data.refundedCount.value
+              : this.refundedCount,
+      discountTotal:
+          data.discountTotal.present
+              ? data.discountTotal.value
+              : this.discountTotal,
+      cashCollected:
+          data.cashCollected.present
+              ? data.cashCollected.value
+              : this.cashCollected,
+      totalQtySold:
+          data.totalQtySold.present
+              ? data.totalQtySold.value
+              : this.totalQtySold,
+      paymentBreakdownJson:
+          data.paymentBreakdownJson.present
+              ? data.paymentBreakdownJson.value
+              : this.paymentBreakdownJson,
+      salesByCashierJson:
+          data.salesByCashierJson.present
+              ? data.salesByCashierJson.value
+              : this.salesByCashierJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ZReadingsTableData(')
+          ..write('id: $id, ')
+          ..write('zCounter: $zCounter, ')
+          ..write('periodStart: $periodStart, ')
+          ..write('periodEnd: $periodEnd, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('closedByUserId: $closedByUserId, ')
+          ..write('closedByName: $closedByName, ')
+          ..write('authorizedByUserId: $authorizedByUserId, ')
+          ..write('authorizedByName: $authorizedByName, ')
+          ..write('beginningBalance: $beginningBalance, ')
+          ..write('endingBalance: $endingBalance, ')
+          ..write('totalSales: $totalSales, ')
+          ..write('vatableSales: $vatableSales, ')
+          ..write('vatAmount: $vatAmount, ')
+          ..write('vatExemptSales: $vatExemptSales, ')
+          ..write('transactionCount: $transactionCount, ')
+          ..write('completedCount: $completedCount, ')
+          ..write('voidedCount: $voidedCount, ')
+          ..write('refundedCount: $refundedCount, ')
+          ..write('discountTotal: $discountTotal, ')
+          ..write('cashCollected: $cashCollected, ')
+          ..write('totalQtySold: $totalQtySold, ')
+          ..write('paymentBreakdownJson: $paymentBreakdownJson, ')
+          ..write('salesByCashierJson: $salesByCashierJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    zCounter,
+    periodStart,
+    periodEnd,
+    generatedAt,
+    closedByUserId,
+    closedByName,
+    authorizedByUserId,
+    authorizedByName,
+    beginningBalance,
+    endingBalance,
+    totalSales,
+    vatableSales,
+    vatAmount,
+    vatExemptSales,
+    transactionCount,
+    completedCount,
+    voidedCount,
+    refundedCount,
+    discountTotal,
+    cashCollected,
+    totalQtySold,
+    paymentBreakdownJson,
+    salesByCashierJson,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ZReadingsTableData &&
+          other.id == this.id &&
+          other.zCounter == this.zCounter &&
+          other.periodStart == this.periodStart &&
+          other.periodEnd == this.periodEnd &&
+          other.generatedAt == this.generatedAt &&
+          other.closedByUserId == this.closedByUserId &&
+          other.closedByName == this.closedByName &&
+          other.authorizedByUserId == this.authorizedByUserId &&
+          other.authorizedByName == this.authorizedByName &&
+          other.beginningBalance == this.beginningBalance &&
+          other.endingBalance == this.endingBalance &&
+          other.totalSales == this.totalSales &&
+          other.vatableSales == this.vatableSales &&
+          other.vatAmount == this.vatAmount &&
+          other.vatExemptSales == this.vatExemptSales &&
+          other.transactionCount == this.transactionCount &&
+          other.completedCount == this.completedCount &&
+          other.voidedCount == this.voidedCount &&
+          other.refundedCount == this.refundedCount &&
+          other.discountTotal == this.discountTotal &&
+          other.cashCollected == this.cashCollected &&
+          other.totalQtySold == this.totalQtySold &&
+          other.paymentBreakdownJson == this.paymentBreakdownJson &&
+          other.salesByCashierJson == this.salesByCashierJson);
+}
+
+class ZReadingsTableCompanion extends UpdateCompanion<ZReadingsTableData> {
+  final Value<int> id;
+  final Value<int> zCounter;
+  final Value<DateTime> periodStart;
+  final Value<DateTime> periodEnd;
+  final Value<DateTime> generatedAt;
+  final Value<int> closedByUserId;
+  final Value<String> closedByName;
+  final Value<int> authorizedByUserId;
+  final Value<String> authorizedByName;
+  final Value<double> beginningBalance;
+  final Value<double> endingBalance;
+  final Value<double> totalSales;
+  final Value<double> vatableSales;
+  final Value<double> vatAmount;
+  final Value<double> vatExemptSales;
+  final Value<int> transactionCount;
+  final Value<int> completedCount;
+  final Value<int> voidedCount;
+  final Value<int> refundedCount;
+  final Value<double> discountTotal;
+  final Value<double> cashCollected;
+  final Value<int> totalQtySold;
+  final Value<String> paymentBreakdownJson;
+  final Value<String> salesByCashierJson;
+  const ZReadingsTableCompanion({
+    this.id = const Value.absent(),
+    this.zCounter = const Value.absent(),
+    this.periodStart = const Value.absent(),
+    this.periodEnd = const Value.absent(),
+    this.generatedAt = const Value.absent(),
+    this.closedByUserId = const Value.absent(),
+    this.closedByName = const Value.absent(),
+    this.authorizedByUserId = const Value.absent(),
+    this.authorizedByName = const Value.absent(),
+    this.beginningBalance = const Value.absent(),
+    this.endingBalance = const Value.absent(),
+    this.totalSales = const Value.absent(),
+    this.vatableSales = const Value.absent(),
+    this.vatAmount = const Value.absent(),
+    this.vatExemptSales = const Value.absent(),
+    this.transactionCount = const Value.absent(),
+    this.completedCount = const Value.absent(),
+    this.voidedCount = const Value.absent(),
+    this.refundedCount = const Value.absent(),
+    this.discountTotal = const Value.absent(),
+    this.cashCollected = const Value.absent(),
+    this.totalQtySold = const Value.absent(),
+    this.paymentBreakdownJson = const Value.absent(),
+    this.salesByCashierJson = const Value.absent(),
+  });
+  ZReadingsTableCompanion.insert({
+    this.id = const Value.absent(),
+    required int zCounter,
+    required DateTime periodStart,
+    required DateTime periodEnd,
+    required DateTime generatedAt,
+    required int closedByUserId,
+    required String closedByName,
+    required int authorizedByUserId,
+    required String authorizedByName,
+    required double beginningBalance,
+    required double endingBalance,
+    required double totalSales,
+    required double vatableSales,
+    required double vatAmount,
+    required double vatExemptSales,
+    required int transactionCount,
+    required int completedCount,
+    required int voidedCount,
+    required int refundedCount,
+    required double discountTotal,
+    required double cashCollected,
+    required int totalQtySold,
+    required String paymentBreakdownJson,
+    required String salesByCashierJson,
+  }) : zCounter = Value(zCounter),
+       periodStart = Value(periodStart),
+       periodEnd = Value(periodEnd),
+       generatedAt = Value(generatedAt),
+       closedByUserId = Value(closedByUserId),
+       closedByName = Value(closedByName),
+       authorizedByUserId = Value(authorizedByUserId),
+       authorizedByName = Value(authorizedByName),
+       beginningBalance = Value(beginningBalance),
+       endingBalance = Value(endingBalance),
+       totalSales = Value(totalSales),
+       vatableSales = Value(vatableSales),
+       vatAmount = Value(vatAmount),
+       vatExemptSales = Value(vatExemptSales),
+       transactionCount = Value(transactionCount),
+       completedCount = Value(completedCount),
+       voidedCount = Value(voidedCount),
+       refundedCount = Value(refundedCount),
+       discountTotal = Value(discountTotal),
+       cashCollected = Value(cashCollected),
+       totalQtySold = Value(totalQtySold),
+       paymentBreakdownJson = Value(paymentBreakdownJson),
+       salesByCashierJson = Value(salesByCashierJson);
+  static Insertable<ZReadingsTableData> custom({
+    Expression<int>? id,
+    Expression<int>? zCounter,
+    Expression<DateTime>? periodStart,
+    Expression<DateTime>? periodEnd,
+    Expression<DateTime>? generatedAt,
+    Expression<int>? closedByUserId,
+    Expression<String>? closedByName,
+    Expression<int>? authorizedByUserId,
+    Expression<String>? authorizedByName,
+    Expression<double>? beginningBalance,
+    Expression<double>? endingBalance,
+    Expression<double>? totalSales,
+    Expression<double>? vatableSales,
+    Expression<double>? vatAmount,
+    Expression<double>? vatExemptSales,
+    Expression<int>? transactionCount,
+    Expression<int>? completedCount,
+    Expression<int>? voidedCount,
+    Expression<int>? refundedCount,
+    Expression<double>? discountTotal,
+    Expression<double>? cashCollected,
+    Expression<int>? totalQtySold,
+    Expression<String>? paymentBreakdownJson,
+    Expression<String>? salesByCashierJson,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (zCounter != null) 'z_counter': zCounter,
+      if (periodStart != null) 'period_start': periodStart,
+      if (periodEnd != null) 'period_end': periodEnd,
+      if (generatedAt != null) 'generated_at': generatedAt,
+      if (closedByUserId != null) 'closed_by_user_id': closedByUserId,
+      if (closedByName != null) 'closed_by_name': closedByName,
+      if (authorizedByUserId != null)
+        'authorized_by_user_id': authorizedByUserId,
+      if (authorizedByName != null) 'authorized_by_name': authorizedByName,
+      if (beginningBalance != null) 'beginning_balance': beginningBalance,
+      if (endingBalance != null) 'ending_balance': endingBalance,
+      if (totalSales != null) 'total_sales': totalSales,
+      if (vatableSales != null) 'vatable_sales': vatableSales,
+      if (vatAmount != null) 'vat_amount': vatAmount,
+      if (vatExemptSales != null) 'vat_exempt_sales': vatExemptSales,
+      if (transactionCount != null) 'transaction_count': transactionCount,
+      if (completedCount != null) 'completed_count': completedCount,
+      if (voidedCount != null) 'voided_count': voidedCount,
+      if (refundedCount != null) 'refunded_count': refundedCount,
+      if (discountTotal != null) 'discount_total': discountTotal,
+      if (cashCollected != null) 'cash_collected': cashCollected,
+      if (totalQtySold != null) 'total_qty_sold': totalQtySold,
+      if (paymentBreakdownJson != null)
+        'payment_breakdown_json': paymentBreakdownJson,
+      if (salesByCashierJson != null)
+        'sales_by_cashier_json': salesByCashierJson,
+    });
+  }
+
+  ZReadingsTableCompanion copyWith({
+    Value<int>? id,
+    Value<int>? zCounter,
+    Value<DateTime>? periodStart,
+    Value<DateTime>? periodEnd,
+    Value<DateTime>? generatedAt,
+    Value<int>? closedByUserId,
+    Value<String>? closedByName,
+    Value<int>? authorizedByUserId,
+    Value<String>? authorizedByName,
+    Value<double>? beginningBalance,
+    Value<double>? endingBalance,
+    Value<double>? totalSales,
+    Value<double>? vatableSales,
+    Value<double>? vatAmount,
+    Value<double>? vatExemptSales,
+    Value<int>? transactionCount,
+    Value<int>? completedCount,
+    Value<int>? voidedCount,
+    Value<int>? refundedCount,
+    Value<double>? discountTotal,
+    Value<double>? cashCollected,
+    Value<int>? totalQtySold,
+    Value<String>? paymentBreakdownJson,
+    Value<String>? salesByCashierJson,
+  }) {
+    return ZReadingsTableCompanion(
+      id: id ?? this.id,
+      zCounter: zCounter ?? this.zCounter,
+      periodStart: periodStart ?? this.periodStart,
+      periodEnd: periodEnd ?? this.periodEnd,
+      generatedAt: generatedAt ?? this.generatedAt,
+      closedByUserId: closedByUserId ?? this.closedByUserId,
+      closedByName: closedByName ?? this.closedByName,
+      authorizedByUserId: authorizedByUserId ?? this.authorizedByUserId,
+      authorizedByName: authorizedByName ?? this.authorizedByName,
+      beginningBalance: beginningBalance ?? this.beginningBalance,
+      endingBalance: endingBalance ?? this.endingBalance,
+      totalSales: totalSales ?? this.totalSales,
+      vatableSales: vatableSales ?? this.vatableSales,
+      vatAmount: vatAmount ?? this.vatAmount,
+      vatExemptSales: vatExemptSales ?? this.vatExemptSales,
+      transactionCount: transactionCount ?? this.transactionCount,
+      completedCount: completedCount ?? this.completedCount,
+      voidedCount: voidedCount ?? this.voidedCount,
+      refundedCount: refundedCount ?? this.refundedCount,
+      discountTotal: discountTotal ?? this.discountTotal,
+      cashCollected: cashCollected ?? this.cashCollected,
+      totalQtySold: totalQtySold ?? this.totalQtySold,
+      paymentBreakdownJson: paymentBreakdownJson ?? this.paymentBreakdownJson,
+      salesByCashierJson: salesByCashierJson ?? this.salesByCashierJson,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (zCounter.present) {
+      map['z_counter'] = Variable<int>(zCounter.value);
+    }
+    if (periodStart.present) {
+      map['period_start'] = Variable<DateTime>(periodStart.value);
+    }
+    if (periodEnd.present) {
+      map['period_end'] = Variable<DateTime>(periodEnd.value);
+    }
+    if (generatedAt.present) {
+      map['generated_at'] = Variable<DateTime>(generatedAt.value);
+    }
+    if (closedByUserId.present) {
+      map['closed_by_user_id'] = Variable<int>(closedByUserId.value);
+    }
+    if (closedByName.present) {
+      map['closed_by_name'] = Variable<String>(closedByName.value);
+    }
+    if (authorizedByUserId.present) {
+      map['authorized_by_user_id'] = Variable<int>(authorizedByUserId.value);
+    }
+    if (authorizedByName.present) {
+      map['authorized_by_name'] = Variable<String>(authorizedByName.value);
+    }
+    if (beginningBalance.present) {
+      map['beginning_balance'] = Variable<double>(beginningBalance.value);
+    }
+    if (endingBalance.present) {
+      map['ending_balance'] = Variable<double>(endingBalance.value);
+    }
+    if (totalSales.present) {
+      map['total_sales'] = Variable<double>(totalSales.value);
+    }
+    if (vatableSales.present) {
+      map['vatable_sales'] = Variable<double>(vatableSales.value);
+    }
+    if (vatAmount.present) {
+      map['vat_amount'] = Variable<double>(vatAmount.value);
+    }
+    if (vatExemptSales.present) {
+      map['vat_exempt_sales'] = Variable<double>(vatExemptSales.value);
+    }
+    if (transactionCount.present) {
+      map['transaction_count'] = Variable<int>(transactionCount.value);
+    }
+    if (completedCount.present) {
+      map['completed_count'] = Variable<int>(completedCount.value);
+    }
+    if (voidedCount.present) {
+      map['voided_count'] = Variable<int>(voidedCount.value);
+    }
+    if (refundedCount.present) {
+      map['refunded_count'] = Variable<int>(refundedCount.value);
+    }
+    if (discountTotal.present) {
+      map['discount_total'] = Variable<double>(discountTotal.value);
+    }
+    if (cashCollected.present) {
+      map['cash_collected'] = Variable<double>(cashCollected.value);
+    }
+    if (totalQtySold.present) {
+      map['total_qty_sold'] = Variable<int>(totalQtySold.value);
+    }
+    if (paymentBreakdownJson.present) {
+      map['payment_breakdown_json'] = Variable<String>(
+        paymentBreakdownJson.value,
+      );
+    }
+    if (salesByCashierJson.present) {
+      map['sales_by_cashier_json'] = Variable<String>(salesByCashierJson.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ZReadingsTableCompanion(')
+          ..write('id: $id, ')
+          ..write('zCounter: $zCounter, ')
+          ..write('periodStart: $periodStart, ')
+          ..write('periodEnd: $periodEnd, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('closedByUserId: $closedByUserId, ')
+          ..write('closedByName: $closedByName, ')
+          ..write('authorizedByUserId: $authorizedByUserId, ')
+          ..write('authorizedByName: $authorizedByName, ')
+          ..write('beginningBalance: $beginningBalance, ')
+          ..write('endingBalance: $endingBalance, ')
+          ..write('totalSales: $totalSales, ')
+          ..write('vatableSales: $vatableSales, ')
+          ..write('vatAmount: $vatAmount, ')
+          ..write('vatExemptSales: $vatExemptSales, ')
+          ..write('transactionCount: $transactionCount, ')
+          ..write('completedCount: $completedCount, ')
+          ..write('voidedCount: $voidedCount, ')
+          ..write('refundedCount: $refundedCount, ')
+          ..write('discountTotal: $discountTotal, ')
+          ..write('cashCollected: $cashCollected, ')
+          ..write('totalQtySold: $totalQtySold, ')
+          ..write('paymentBreakdownJson: $paymentBreakdownJson, ')
+          ..write('salesByCashierJson: $salesByCashierJson')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PaymentMethodsTableTable extends PaymentMethodsTable
+    with TableInfo<$PaymentMethodsTableTable, PaymentMethodsTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PaymentMethodsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 100,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _accountNameMeta = const VerificationMeta(
+    'accountName',
+  );
+  @override
+  late final GeneratedColumn<String> accountName = GeneratedColumn<String>(
+    'account_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _accountNumberMeta = const VerificationMeta(
+    'accountNumber',
+  );
+  @override
+  late final GeneratedColumn<String> accountNumber = GeneratedColumn<String>(
+    'account_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    label,
+    accountName,
+    accountNumber,
+    sortOrder,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'payment_methods';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PaymentMethodsTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_labelMeta);
+    }
+    if (data.containsKey('account_name')) {
+      context.handle(
+        _accountNameMeta,
+        accountName.isAcceptableOrUnknown(
+          data['account_name']!,
+          _accountNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('account_number')) {
+      context.handle(
+        _accountNumberMeta,
+        accountNumber.isAcceptableOrUnknown(
+          data['account_number']!,
+          _accountNumberMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PaymentMethodsTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PaymentMethodsTableData(
+      id:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}id'],
+          )!,
+      label:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}label'],
+          )!,
+      accountName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_name'],
+      ),
+      accountNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_number'],
+      ),
+      sortOrder:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}sort_order'],
+          )!,
+    );
+  }
+
+  @override
+  $PaymentMethodsTableTable createAlias(String alias) {
+    return $PaymentMethodsTableTable(attachedDatabase, alias);
+  }
+}
+
+class PaymentMethodsTableData extends DataClass
+    implements Insertable<PaymentMethodsTableData> {
+  final int id;
+  final String label;
+  final String? accountName;
+  final String? accountNumber;
+  final int sortOrder;
+  const PaymentMethodsTableData({
+    required this.id,
+    required this.label,
+    this.accountName,
+    this.accountNumber,
+    required this.sortOrder,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['label'] = Variable<String>(label);
+    if (!nullToAbsent || accountName != null) {
+      map['account_name'] = Variable<String>(accountName);
+    }
+    if (!nullToAbsent || accountNumber != null) {
+      map['account_number'] = Variable<String>(accountNumber);
+    }
+    map['sort_order'] = Variable<int>(sortOrder);
+    return map;
+  }
+
+  PaymentMethodsTableCompanion toCompanion(bool nullToAbsent) {
+    return PaymentMethodsTableCompanion(
+      id: Value(id),
+      label: Value(label),
+      accountName:
+          accountName == null && nullToAbsent
+              ? const Value.absent()
+              : Value(accountName),
+      accountNumber:
+          accountNumber == null && nullToAbsent
+              ? const Value.absent()
+              : Value(accountNumber),
+      sortOrder: Value(sortOrder),
+    );
+  }
+
+  factory PaymentMethodsTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PaymentMethodsTableData(
+      id: serializer.fromJson<int>(json['id']),
+      label: serializer.fromJson<String>(json['label']),
+      accountName: serializer.fromJson<String?>(json['accountName']),
+      accountNumber: serializer.fromJson<String?>(json['accountNumber']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'label': serializer.toJson<String>(label),
+      'accountName': serializer.toJson<String?>(accountName),
+      'accountNumber': serializer.toJson<String?>(accountNumber),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+    };
+  }
+
+  PaymentMethodsTableData copyWith({
+    int? id,
+    String? label,
+    Value<String?> accountName = const Value.absent(),
+    Value<String?> accountNumber = const Value.absent(),
+    int? sortOrder,
+  }) => PaymentMethodsTableData(
+    id: id ?? this.id,
+    label: label ?? this.label,
+    accountName: accountName.present ? accountName.value : this.accountName,
+    accountNumber:
+        accountNumber.present ? accountNumber.value : this.accountNumber,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
+  PaymentMethodsTableData copyWithCompanion(PaymentMethodsTableCompanion data) {
+    return PaymentMethodsTableData(
+      id: data.id.present ? data.id.value : this.id,
+      label: data.label.present ? data.label.value : this.label,
+      accountName:
+          data.accountName.present ? data.accountName.value : this.accountName,
+      accountNumber:
+          data.accountNumber.present
+              ? data.accountNumber.value
+              : this.accountNumber,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PaymentMethodsTableData(')
+          ..write('id: $id, ')
+          ..write('label: $label, ')
+          ..write('accountName: $accountName, ')
+          ..write('accountNumber: $accountNumber, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, label, accountName, accountNumber, sortOrder);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PaymentMethodsTableData &&
+          other.id == this.id &&
+          other.label == this.label &&
+          other.accountName == this.accountName &&
+          other.accountNumber == this.accountNumber &&
+          other.sortOrder == this.sortOrder);
+}
+
+class PaymentMethodsTableCompanion
+    extends UpdateCompanion<PaymentMethodsTableData> {
+  final Value<int> id;
+  final Value<String> label;
+  final Value<String?> accountName;
+  final Value<String?> accountNumber;
+  final Value<int> sortOrder;
+  const PaymentMethodsTableCompanion({
+    this.id = const Value.absent(),
+    this.label = const Value.absent(),
+    this.accountName = const Value.absent(),
+    this.accountNumber = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+  });
+  PaymentMethodsTableCompanion.insert({
+    this.id = const Value.absent(),
+    required String label,
+    this.accountName = const Value.absent(),
+    this.accountNumber = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+  }) : label = Value(label);
+  static Insertable<PaymentMethodsTableData> custom({
+    Expression<int>? id,
+    Expression<String>? label,
+    Expression<String>? accountName,
+    Expression<String>? accountNumber,
+    Expression<int>? sortOrder,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (label != null) 'label': label,
+      if (accountName != null) 'account_name': accountName,
+      if (accountNumber != null) 'account_number': accountNumber,
+      if (sortOrder != null) 'sort_order': sortOrder,
+    });
+  }
+
+  PaymentMethodsTableCompanion copyWith({
+    Value<int>? id,
+    Value<String>? label,
+    Value<String?>? accountName,
+    Value<String?>? accountNumber,
+    Value<int>? sortOrder,
+  }) {
+    return PaymentMethodsTableCompanion(
+      id: id ?? this.id,
+      label: label ?? this.label,
+      accountName: accountName ?? this.accountName,
+      accountNumber: accountNumber ?? this.accountNumber,
+      sortOrder: sortOrder ?? this.sortOrder,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (accountName.present) {
+      map['account_name'] = Variable<String>(accountName.value);
+    }
+    if (accountNumber.present) {
+      map['account_number'] = Variable<String>(accountNumber.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PaymentMethodsTableCompanion(')
+          ..write('id: $id, ')
+          ..write('label: $label, ')
+          ..write('accountName: $accountName, ')
+          ..write('accountNumber: $accountNumber, ')
+          ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
   }
@@ -4544,10 +8206,19 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $StoreInfoTableTable storeInfoTable = $StoreInfoTableTable(this);
+  late final $XReadingsTableTable xReadingsTable = $XReadingsTableTable(this);
+  late final $DailyReportsTableTable dailyReportsTable =
+      $DailyReportsTableTable(this);
+  late final $ZReadingsTableTable zReadingsTable = $ZReadingsTableTable(this);
+  late final $PaymentMethodsTableTable paymentMethodsTable =
+      $PaymentMethodsTableTable(this);
   late final UsersDao usersDao = UsersDao(this as AppDatabase);
   late final ProductsDao productsDao = ProductsDao(this as AppDatabase);
   late final SalesDao salesDao = SalesDao(this as AppDatabase);
   late final StoreInfoDao storeInfoDao = StoreInfoDao(this as AppDatabase);
+  late final CashierAccountingDao cashierAccountingDao = CashierAccountingDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4565,6 +8236,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     refundsTable,
     refundItemsTable,
     storeInfoTable,
+    xReadingsTable,
+    dailyReportsTable,
+    zReadingsTable,
+    paymentMethodsTable,
   ];
 }
 
@@ -9341,6 +13016,8 @@ typedef $$StoreInfoTableTableCreateCompanionBuilder =
       Value<double> taxRate,
       Value<String> currency,
       Value<String> receiptFooter,
+      Value<String> tin,
+      Value<String> terminalName,
     });
 typedef $$StoreInfoTableTableUpdateCompanionBuilder =
     StoreInfoTableCompanion Function({
@@ -9350,6 +13027,8 @@ typedef $$StoreInfoTableTableUpdateCompanionBuilder =
       Value<double> taxRate,
       Value<String> currency,
       Value<String> receiptFooter,
+      Value<String> tin,
+      Value<String> terminalName,
     });
 
 class $$StoreInfoTableTableFilterComposer
@@ -9388,6 +13067,16 @@ class $$StoreInfoTableTableFilterComposer
 
   ColumnFilters<String> get receiptFooter => $composableBuilder(
     column: $table.receiptFooter,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tin => $composableBuilder(
+    column: $table.tin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get terminalName => $composableBuilder(
+    column: $table.terminalName,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -9430,6 +13119,16 @@ class $$StoreInfoTableTableOrderingComposer
     column: $table.receiptFooter,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get tin => $composableBuilder(
+    column: $table.tin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get terminalName => $composableBuilder(
+    column: $table.terminalName,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$StoreInfoTableTableAnnotationComposer
@@ -9458,6 +13157,14 @@ class $$StoreInfoTableTableAnnotationComposer
 
   GeneratedColumn<String> get receiptFooter => $composableBuilder(
     column: $table.receiptFooter,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get tin =>
+      $composableBuilder(column: $table.tin, builder: (column) => column);
+
+  GeneratedColumn<String> get terminalName => $composableBuilder(
+    column: $table.terminalName,
     builder: (column) => column,
   );
 }
@@ -9509,6 +13216,8 @@ class $$StoreInfoTableTableTableManager
                 Value<double> taxRate = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 Value<String> receiptFooter = const Value.absent(),
+                Value<String> tin = const Value.absent(),
+                Value<String> terminalName = const Value.absent(),
               }) => StoreInfoTableCompanion(
                 id: id,
                 storeName: storeName,
@@ -9516,6 +13225,8 @@ class $$StoreInfoTableTableTableManager
                 taxRate: taxRate,
                 currency: currency,
                 receiptFooter: receiptFooter,
+                tin: tin,
+                terminalName: terminalName,
               ),
           createCompanionCallback:
               ({
@@ -9525,6 +13236,8 @@ class $$StoreInfoTableTableTableManager
                 Value<double> taxRate = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 Value<String> receiptFooter = const Value.absent(),
+                Value<String> tin = const Value.absent(),
+                Value<String> terminalName = const Value.absent(),
               }) => StoreInfoTableCompanion.insert(
                 id: id,
                 storeName: storeName,
@@ -9532,6 +13245,8 @@ class $$StoreInfoTableTableTableManager
                 taxRate: taxRate,
                 currency: currency,
                 receiptFooter: receiptFooter,
+                tin: tin,
+                terminalName: terminalName,
               ),
           withReferenceMapper:
               (p0) =>
@@ -9565,6 +13280,1676 @@ typedef $$StoreInfoTableTableProcessedTableManager =
       StoreInfoTableData,
       PrefetchHooks Function()
     >;
+typedef $$XReadingsTableTableCreateCompanionBuilder =
+    XReadingsTableCompanion Function({
+      Value<int> id,
+      required int cashierId,
+      required String cashierName,
+      required DateTime periodStart,
+      required DateTime periodEnd,
+      required DateTime generatedAt,
+      required double totalSales,
+      required int transactionCount,
+      required int voidedCount,
+      required int refundedCount,
+      required String paymentBreakdownJson,
+      required String topProductsJson,
+    });
+typedef $$XReadingsTableTableUpdateCompanionBuilder =
+    XReadingsTableCompanion Function({
+      Value<int> id,
+      Value<int> cashierId,
+      Value<String> cashierName,
+      Value<DateTime> periodStart,
+      Value<DateTime> periodEnd,
+      Value<DateTime> generatedAt,
+      Value<double> totalSales,
+      Value<int> transactionCount,
+      Value<int> voidedCount,
+      Value<int> refundedCount,
+      Value<String> paymentBreakdownJson,
+      Value<String> topProductsJson,
+    });
+
+class $$XReadingsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $XReadingsTableTable> {
+  $$XReadingsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cashierId => $composableBuilder(
+    column: $table.cashierId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cashierName => $composableBuilder(
+    column: $table.cashierName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get periodEnd => $composableBuilder(
+    column: $table.periodEnd,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get generatedAt => $composableBuilder(
+    column: $table.generatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get totalSales => $composableBuilder(
+    column: $table.totalSales,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get transactionCount => $composableBuilder(
+    column: $table.transactionCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get voidedCount => $composableBuilder(
+    column: $table.voidedCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get refundedCount => $composableBuilder(
+    column: $table.refundedCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get paymentBreakdownJson => $composableBuilder(
+    column: $table.paymentBreakdownJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get topProductsJson => $composableBuilder(
+    column: $table.topProductsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$XReadingsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $XReadingsTableTable> {
+  $$XReadingsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get cashierId => $composableBuilder(
+    column: $table.cashierId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cashierName => $composableBuilder(
+    column: $table.cashierName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get periodEnd => $composableBuilder(
+    column: $table.periodEnd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get generatedAt => $composableBuilder(
+    column: $table.generatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get totalSales => $composableBuilder(
+    column: $table.totalSales,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get transactionCount => $composableBuilder(
+    column: $table.transactionCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get voidedCount => $composableBuilder(
+    column: $table.voidedCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get refundedCount => $composableBuilder(
+    column: $table.refundedCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get paymentBreakdownJson => $composableBuilder(
+    column: $table.paymentBreakdownJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get topProductsJson => $composableBuilder(
+    column: $table.topProductsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$XReadingsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $XReadingsTableTable> {
+  $$XReadingsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get cashierId =>
+      $composableBuilder(column: $table.cashierId, builder: (column) => column);
+
+  GeneratedColumn<String> get cashierName => $composableBuilder(
+    column: $table.cashierName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get periodEnd =>
+      $composableBuilder(column: $table.periodEnd, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get generatedAt => $composableBuilder(
+    column: $table.generatedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get totalSales => $composableBuilder(
+    column: $table.totalSales,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get transactionCount => $composableBuilder(
+    column: $table.transactionCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get voidedCount => $composableBuilder(
+    column: $table.voidedCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get refundedCount => $composableBuilder(
+    column: $table.refundedCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get paymentBreakdownJson => $composableBuilder(
+    column: $table.paymentBreakdownJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get topProductsJson => $composableBuilder(
+    column: $table.topProductsJson,
+    builder: (column) => column,
+  );
+}
+
+class $$XReadingsTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $XReadingsTableTable,
+          XReadingsTableData,
+          $$XReadingsTableTableFilterComposer,
+          $$XReadingsTableTableOrderingComposer,
+          $$XReadingsTableTableAnnotationComposer,
+          $$XReadingsTableTableCreateCompanionBuilder,
+          $$XReadingsTableTableUpdateCompanionBuilder,
+          (
+            XReadingsTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $XReadingsTableTable,
+              XReadingsTableData
+            >,
+          ),
+          XReadingsTableData,
+          PrefetchHooks Function()
+        > {
+  $$XReadingsTableTableTableManager(
+    _$AppDatabase db,
+    $XReadingsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer:
+              () => $$XReadingsTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer:
+              () =>
+                  $$XReadingsTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer:
+              () => $$XReadingsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> cashierId = const Value.absent(),
+                Value<String> cashierName = const Value.absent(),
+                Value<DateTime> periodStart = const Value.absent(),
+                Value<DateTime> periodEnd = const Value.absent(),
+                Value<DateTime> generatedAt = const Value.absent(),
+                Value<double> totalSales = const Value.absent(),
+                Value<int> transactionCount = const Value.absent(),
+                Value<int> voidedCount = const Value.absent(),
+                Value<int> refundedCount = const Value.absent(),
+                Value<String> paymentBreakdownJson = const Value.absent(),
+                Value<String> topProductsJson = const Value.absent(),
+              }) => XReadingsTableCompanion(
+                id: id,
+                cashierId: cashierId,
+                cashierName: cashierName,
+                periodStart: periodStart,
+                periodEnd: periodEnd,
+                generatedAt: generatedAt,
+                totalSales: totalSales,
+                transactionCount: transactionCount,
+                voidedCount: voidedCount,
+                refundedCount: refundedCount,
+                paymentBreakdownJson: paymentBreakdownJson,
+                topProductsJson: topProductsJson,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int cashierId,
+                required String cashierName,
+                required DateTime periodStart,
+                required DateTime periodEnd,
+                required DateTime generatedAt,
+                required double totalSales,
+                required int transactionCount,
+                required int voidedCount,
+                required int refundedCount,
+                required String paymentBreakdownJson,
+                required String topProductsJson,
+              }) => XReadingsTableCompanion.insert(
+                id: id,
+                cashierId: cashierId,
+                cashierName: cashierName,
+                periodStart: periodStart,
+                periodEnd: periodEnd,
+                generatedAt: generatedAt,
+                totalSales: totalSales,
+                transactionCount: transactionCount,
+                voidedCount: voidedCount,
+                refundedCount: refundedCount,
+                paymentBreakdownJson: paymentBreakdownJson,
+                topProductsJson: topProductsJson,
+              ),
+          withReferenceMapper:
+              (p0) =>
+                  p0
+                      .map(
+                        (e) => (
+                          e.readTable(table),
+                          BaseReferences(db, table, e),
+                        ),
+                      )
+                      .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$XReadingsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $XReadingsTableTable,
+      XReadingsTableData,
+      $$XReadingsTableTableFilterComposer,
+      $$XReadingsTableTableOrderingComposer,
+      $$XReadingsTableTableAnnotationComposer,
+      $$XReadingsTableTableCreateCompanionBuilder,
+      $$XReadingsTableTableUpdateCompanionBuilder,
+      (
+        XReadingsTableData,
+        BaseReferences<_$AppDatabase, $XReadingsTableTable, XReadingsTableData>,
+      ),
+      XReadingsTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$DailyReportsTableTableCreateCompanionBuilder =
+    DailyReportsTableCompanion Function({
+      Value<int> id,
+      required int cashierId,
+      required String cashierName,
+      required DateTime periodStart,
+      required DateTime periodEnd,
+      required DateTime generatedAt,
+      required double grossSales,
+      required double vatableSales,
+      required double vatAmount,
+      required double vatExemptSales,
+      required double netOfTax,
+      required int transactionCount,
+      required int totalQtySold,
+      required double cashSalesTotal,
+      required int cashSalesCount,
+      required String salesByProductJson,
+      required String cashLedgerJson,
+    });
+typedef $$DailyReportsTableTableUpdateCompanionBuilder =
+    DailyReportsTableCompanion Function({
+      Value<int> id,
+      Value<int> cashierId,
+      Value<String> cashierName,
+      Value<DateTime> periodStart,
+      Value<DateTime> periodEnd,
+      Value<DateTime> generatedAt,
+      Value<double> grossSales,
+      Value<double> vatableSales,
+      Value<double> vatAmount,
+      Value<double> vatExemptSales,
+      Value<double> netOfTax,
+      Value<int> transactionCount,
+      Value<int> totalQtySold,
+      Value<double> cashSalesTotal,
+      Value<int> cashSalesCount,
+      Value<String> salesByProductJson,
+      Value<String> cashLedgerJson,
+    });
+
+class $$DailyReportsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $DailyReportsTableTable> {
+  $$DailyReportsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cashierId => $composableBuilder(
+    column: $table.cashierId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cashierName => $composableBuilder(
+    column: $table.cashierName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get periodEnd => $composableBuilder(
+    column: $table.periodEnd,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get generatedAt => $composableBuilder(
+    column: $table.generatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get grossSales => $composableBuilder(
+    column: $table.grossSales,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get vatableSales => $composableBuilder(
+    column: $table.vatableSales,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get vatAmount => $composableBuilder(
+    column: $table.vatAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get vatExemptSales => $composableBuilder(
+    column: $table.vatExemptSales,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get netOfTax => $composableBuilder(
+    column: $table.netOfTax,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get transactionCount => $composableBuilder(
+    column: $table.transactionCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalQtySold => $composableBuilder(
+    column: $table.totalQtySold,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get cashSalesTotal => $composableBuilder(
+    column: $table.cashSalesTotal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cashSalesCount => $composableBuilder(
+    column: $table.cashSalesCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get salesByProductJson => $composableBuilder(
+    column: $table.salesByProductJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cashLedgerJson => $composableBuilder(
+    column: $table.cashLedgerJson,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DailyReportsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $DailyReportsTableTable> {
+  $$DailyReportsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get cashierId => $composableBuilder(
+    column: $table.cashierId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cashierName => $composableBuilder(
+    column: $table.cashierName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get periodEnd => $composableBuilder(
+    column: $table.periodEnd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get generatedAt => $composableBuilder(
+    column: $table.generatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get grossSales => $composableBuilder(
+    column: $table.grossSales,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get vatableSales => $composableBuilder(
+    column: $table.vatableSales,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get vatAmount => $composableBuilder(
+    column: $table.vatAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get vatExemptSales => $composableBuilder(
+    column: $table.vatExemptSales,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get netOfTax => $composableBuilder(
+    column: $table.netOfTax,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get transactionCount => $composableBuilder(
+    column: $table.transactionCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get totalQtySold => $composableBuilder(
+    column: $table.totalQtySold,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get cashSalesTotal => $composableBuilder(
+    column: $table.cashSalesTotal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get cashSalesCount => $composableBuilder(
+    column: $table.cashSalesCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get salesByProductJson => $composableBuilder(
+    column: $table.salesByProductJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cashLedgerJson => $composableBuilder(
+    column: $table.cashLedgerJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DailyReportsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DailyReportsTableTable> {
+  $$DailyReportsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get cashierId =>
+      $composableBuilder(column: $table.cashierId, builder: (column) => column);
+
+  GeneratedColumn<String> get cashierName => $composableBuilder(
+    column: $table.cashierName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get periodEnd =>
+      $composableBuilder(column: $table.periodEnd, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get generatedAt => $composableBuilder(
+    column: $table.generatedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get grossSales => $composableBuilder(
+    column: $table.grossSales,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get vatableSales => $composableBuilder(
+    column: $table.vatableSales,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get vatAmount =>
+      $composableBuilder(column: $table.vatAmount, builder: (column) => column);
+
+  GeneratedColumn<double> get vatExemptSales => $composableBuilder(
+    column: $table.vatExemptSales,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get netOfTax =>
+      $composableBuilder(column: $table.netOfTax, builder: (column) => column);
+
+  GeneratedColumn<int> get transactionCount => $composableBuilder(
+    column: $table.transactionCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get totalQtySold => $composableBuilder(
+    column: $table.totalQtySold,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get cashSalesTotal => $composableBuilder(
+    column: $table.cashSalesTotal,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get cashSalesCount => $composableBuilder(
+    column: $table.cashSalesCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get salesByProductJson => $composableBuilder(
+    column: $table.salesByProductJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get cashLedgerJson => $composableBuilder(
+    column: $table.cashLedgerJson,
+    builder: (column) => column,
+  );
+}
+
+class $$DailyReportsTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DailyReportsTableTable,
+          DailyReportsTableData,
+          $$DailyReportsTableTableFilterComposer,
+          $$DailyReportsTableTableOrderingComposer,
+          $$DailyReportsTableTableAnnotationComposer,
+          $$DailyReportsTableTableCreateCompanionBuilder,
+          $$DailyReportsTableTableUpdateCompanionBuilder,
+          (
+            DailyReportsTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $DailyReportsTableTable,
+              DailyReportsTableData
+            >,
+          ),
+          DailyReportsTableData,
+          PrefetchHooks Function()
+        > {
+  $$DailyReportsTableTableTableManager(
+    _$AppDatabase db,
+    $DailyReportsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer:
+              () => $$DailyReportsTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer:
+              () => $$DailyReportsTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer:
+              () => $$DailyReportsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> cashierId = const Value.absent(),
+                Value<String> cashierName = const Value.absent(),
+                Value<DateTime> periodStart = const Value.absent(),
+                Value<DateTime> periodEnd = const Value.absent(),
+                Value<DateTime> generatedAt = const Value.absent(),
+                Value<double> grossSales = const Value.absent(),
+                Value<double> vatableSales = const Value.absent(),
+                Value<double> vatAmount = const Value.absent(),
+                Value<double> vatExemptSales = const Value.absent(),
+                Value<double> netOfTax = const Value.absent(),
+                Value<int> transactionCount = const Value.absent(),
+                Value<int> totalQtySold = const Value.absent(),
+                Value<double> cashSalesTotal = const Value.absent(),
+                Value<int> cashSalesCount = const Value.absent(),
+                Value<String> salesByProductJson = const Value.absent(),
+                Value<String> cashLedgerJson = const Value.absent(),
+              }) => DailyReportsTableCompanion(
+                id: id,
+                cashierId: cashierId,
+                cashierName: cashierName,
+                periodStart: periodStart,
+                periodEnd: periodEnd,
+                generatedAt: generatedAt,
+                grossSales: grossSales,
+                vatableSales: vatableSales,
+                vatAmount: vatAmount,
+                vatExemptSales: vatExemptSales,
+                netOfTax: netOfTax,
+                transactionCount: transactionCount,
+                totalQtySold: totalQtySold,
+                cashSalesTotal: cashSalesTotal,
+                cashSalesCount: cashSalesCount,
+                salesByProductJson: salesByProductJson,
+                cashLedgerJson: cashLedgerJson,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int cashierId,
+                required String cashierName,
+                required DateTime periodStart,
+                required DateTime periodEnd,
+                required DateTime generatedAt,
+                required double grossSales,
+                required double vatableSales,
+                required double vatAmount,
+                required double vatExemptSales,
+                required double netOfTax,
+                required int transactionCount,
+                required int totalQtySold,
+                required double cashSalesTotal,
+                required int cashSalesCount,
+                required String salesByProductJson,
+                required String cashLedgerJson,
+              }) => DailyReportsTableCompanion.insert(
+                id: id,
+                cashierId: cashierId,
+                cashierName: cashierName,
+                periodStart: periodStart,
+                periodEnd: periodEnd,
+                generatedAt: generatedAt,
+                grossSales: grossSales,
+                vatableSales: vatableSales,
+                vatAmount: vatAmount,
+                vatExemptSales: vatExemptSales,
+                netOfTax: netOfTax,
+                transactionCount: transactionCount,
+                totalQtySold: totalQtySold,
+                cashSalesTotal: cashSalesTotal,
+                cashSalesCount: cashSalesCount,
+                salesByProductJson: salesByProductJson,
+                cashLedgerJson: cashLedgerJson,
+              ),
+          withReferenceMapper:
+              (p0) =>
+                  p0
+                      .map(
+                        (e) => (
+                          e.readTable(table),
+                          BaseReferences(db, table, e),
+                        ),
+                      )
+                      .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DailyReportsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DailyReportsTableTable,
+      DailyReportsTableData,
+      $$DailyReportsTableTableFilterComposer,
+      $$DailyReportsTableTableOrderingComposer,
+      $$DailyReportsTableTableAnnotationComposer,
+      $$DailyReportsTableTableCreateCompanionBuilder,
+      $$DailyReportsTableTableUpdateCompanionBuilder,
+      (
+        DailyReportsTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $DailyReportsTableTable,
+          DailyReportsTableData
+        >,
+      ),
+      DailyReportsTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$ZReadingsTableTableCreateCompanionBuilder =
+    ZReadingsTableCompanion Function({
+      Value<int> id,
+      required int zCounter,
+      required DateTime periodStart,
+      required DateTime periodEnd,
+      required DateTime generatedAt,
+      required int closedByUserId,
+      required String closedByName,
+      required int authorizedByUserId,
+      required String authorizedByName,
+      required double beginningBalance,
+      required double endingBalance,
+      required double totalSales,
+      required double vatableSales,
+      required double vatAmount,
+      required double vatExemptSales,
+      required int transactionCount,
+      required int completedCount,
+      required int voidedCount,
+      required int refundedCount,
+      required double discountTotal,
+      required double cashCollected,
+      required int totalQtySold,
+      required String paymentBreakdownJson,
+      required String salesByCashierJson,
+    });
+typedef $$ZReadingsTableTableUpdateCompanionBuilder =
+    ZReadingsTableCompanion Function({
+      Value<int> id,
+      Value<int> zCounter,
+      Value<DateTime> periodStart,
+      Value<DateTime> periodEnd,
+      Value<DateTime> generatedAt,
+      Value<int> closedByUserId,
+      Value<String> closedByName,
+      Value<int> authorizedByUserId,
+      Value<String> authorizedByName,
+      Value<double> beginningBalance,
+      Value<double> endingBalance,
+      Value<double> totalSales,
+      Value<double> vatableSales,
+      Value<double> vatAmount,
+      Value<double> vatExemptSales,
+      Value<int> transactionCount,
+      Value<int> completedCount,
+      Value<int> voidedCount,
+      Value<int> refundedCount,
+      Value<double> discountTotal,
+      Value<double> cashCollected,
+      Value<int> totalQtySold,
+      Value<String> paymentBreakdownJson,
+      Value<String> salesByCashierJson,
+    });
+
+class $$ZReadingsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $ZReadingsTableTable> {
+  $$ZReadingsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get zCounter => $composableBuilder(
+    column: $table.zCounter,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get periodEnd => $composableBuilder(
+    column: $table.periodEnd,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get generatedAt => $composableBuilder(
+    column: $table.generatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get closedByUserId => $composableBuilder(
+    column: $table.closedByUserId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get closedByName => $composableBuilder(
+    column: $table.closedByName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get authorizedByUserId => $composableBuilder(
+    column: $table.authorizedByUserId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get authorizedByName => $composableBuilder(
+    column: $table.authorizedByName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get beginningBalance => $composableBuilder(
+    column: $table.beginningBalance,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get endingBalance => $composableBuilder(
+    column: $table.endingBalance,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get totalSales => $composableBuilder(
+    column: $table.totalSales,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get vatableSales => $composableBuilder(
+    column: $table.vatableSales,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get vatAmount => $composableBuilder(
+    column: $table.vatAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get vatExemptSales => $composableBuilder(
+    column: $table.vatExemptSales,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get transactionCount => $composableBuilder(
+    column: $table.transactionCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get completedCount => $composableBuilder(
+    column: $table.completedCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get voidedCount => $composableBuilder(
+    column: $table.voidedCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get refundedCount => $composableBuilder(
+    column: $table.refundedCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get discountTotal => $composableBuilder(
+    column: $table.discountTotal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get cashCollected => $composableBuilder(
+    column: $table.cashCollected,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalQtySold => $composableBuilder(
+    column: $table.totalQtySold,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get paymentBreakdownJson => $composableBuilder(
+    column: $table.paymentBreakdownJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get salesByCashierJson => $composableBuilder(
+    column: $table.salesByCashierJson,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ZReadingsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $ZReadingsTableTable> {
+  $$ZReadingsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get zCounter => $composableBuilder(
+    column: $table.zCounter,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get periodEnd => $composableBuilder(
+    column: $table.periodEnd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get generatedAt => $composableBuilder(
+    column: $table.generatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get closedByUserId => $composableBuilder(
+    column: $table.closedByUserId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get closedByName => $composableBuilder(
+    column: $table.closedByName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get authorizedByUserId => $composableBuilder(
+    column: $table.authorizedByUserId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get authorizedByName => $composableBuilder(
+    column: $table.authorizedByName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get beginningBalance => $composableBuilder(
+    column: $table.beginningBalance,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get endingBalance => $composableBuilder(
+    column: $table.endingBalance,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get totalSales => $composableBuilder(
+    column: $table.totalSales,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get vatableSales => $composableBuilder(
+    column: $table.vatableSales,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get vatAmount => $composableBuilder(
+    column: $table.vatAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get vatExemptSales => $composableBuilder(
+    column: $table.vatExemptSales,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get transactionCount => $composableBuilder(
+    column: $table.transactionCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get completedCount => $composableBuilder(
+    column: $table.completedCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get voidedCount => $composableBuilder(
+    column: $table.voidedCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get refundedCount => $composableBuilder(
+    column: $table.refundedCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get discountTotal => $composableBuilder(
+    column: $table.discountTotal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get cashCollected => $composableBuilder(
+    column: $table.cashCollected,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get totalQtySold => $composableBuilder(
+    column: $table.totalQtySold,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get paymentBreakdownJson => $composableBuilder(
+    column: $table.paymentBreakdownJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get salesByCashierJson => $composableBuilder(
+    column: $table.salesByCashierJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ZReadingsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ZReadingsTableTable> {
+  $$ZReadingsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get zCounter =>
+      $composableBuilder(column: $table.zCounter, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get periodEnd =>
+      $composableBuilder(column: $table.periodEnd, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get generatedAt => $composableBuilder(
+    column: $table.generatedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get closedByUserId => $composableBuilder(
+    column: $table.closedByUserId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get closedByName => $composableBuilder(
+    column: $table.closedByName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get authorizedByUserId => $composableBuilder(
+    column: $table.authorizedByUserId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get authorizedByName => $composableBuilder(
+    column: $table.authorizedByName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get beginningBalance => $composableBuilder(
+    column: $table.beginningBalance,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get endingBalance => $composableBuilder(
+    column: $table.endingBalance,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get totalSales => $composableBuilder(
+    column: $table.totalSales,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get vatableSales => $composableBuilder(
+    column: $table.vatableSales,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get vatAmount =>
+      $composableBuilder(column: $table.vatAmount, builder: (column) => column);
+
+  GeneratedColumn<double> get vatExemptSales => $composableBuilder(
+    column: $table.vatExemptSales,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get transactionCount => $composableBuilder(
+    column: $table.transactionCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get completedCount => $composableBuilder(
+    column: $table.completedCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get voidedCount => $composableBuilder(
+    column: $table.voidedCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get refundedCount => $composableBuilder(
+    column: $table.refundedCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get discountTotal => $composableBuilder(
+    column: $table.discountTotal,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get cashCollected => $composableBuilder(
+    column: $table.cashCollected,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get totalQtySold => $composableBuilder(
+    column: $table.totalQtySold,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get paymentBreakdownJson => $composableBuilder(
+    column: $table.paymentBreakdownJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get salesByCashierJson => $composableBuilder(
+    column: $table.salesByCashierJson,
+    builder: (column) => column,
+  );
+}
+
+class $$ZReadingsTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ZReadingsTableTable,
+          ZReadingsTableData,
+          $$ZReadingsTableTableFilterComposer,
+          $$ZReadingsTableTableOrderingComposer,
+          $$ZReadingsTableTableAnnotationComposer,
+          $$ZReadingsTableTableCreateCompanionBuilder,
+          $$ZReadingsTableTableUpdateCompanionBuilder,
+          (
+            ZReadingsTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $ZReadingsTableTable,
+              ZReadingsTableData
+            >,
+          ),
+          ZReadingsTableData,
+          PrefetchHooks Function()
+        > {
+  $$ZReadingsTableTableTableManager(
+    _$AppDatabase db,
+    $ZReadingsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer:
+              () => $$ZReadingsTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer:
+              () =>
+                  $$ZReadingsTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer:
+              () => $$ZReadingsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> zCounter = const Value.absent(),
+                Value<DateTime> periodStart = const Value.absent(),
+                Value<DateTime> periodEnd = const Value.absent(),
+                Value<DateTime> generatedAt = const Value.absent(),
+                Value<int> closedByUserId = const Value.absent(),
+                Value<String> closedByName = const Value.absent(),
+                Value<int> authorizedByUserId = const Value.absent(),
+                Value<String> authorizedByName = const Value.absent(),
+                Value<double> beginningBalance = const Value.absent(),
+                Value<double> endingBalance = const Value.absent(),
+                Value<double> totalSales = const Value.absent(),
+                Value<double> vatableSales = const Value.absent(),
+                Value<double> vatAmount = const Value.absent(),
+                Value<double> vatExemptSales = const Value.absent(),
+                Value<int> transactionCount = const Value.absent(),
+                Value<int> completedCount = const Value.absent(),
+                Value<int> voidedCount = const Value.absent(),
+                Value<int> refundedCount = const Value.absent(),
+                Value<double> discountTotal = const Value.absent(),
+                Value<double> cashCollected = const Value.absent(),
+                Value<int> totalQtySold = const Value.absent(),
+                Value<String> paymentBreakdownJson = const Value.absent(),
+                Value<String> salesByCashierJson = const Value.absent(),
+              }) => ZReadingsTableCompanion(
+                id: id,
+                zCounter: zCounter,
+                periodStart: periodStart,
+                periodEnd: periodEnd,
+                generatedAt: generatedAt,
+                closedByUserId: closedByUserId,
+                closedByName: closedByName,
+                authorizedByUserId: authorizedByUserId,
+                authorizedByName: authorizedByName,
+                beginningBalance: beginningBalance,
+                endingBalance: endingBalance,
+                totalSales: totalSales,
+                vatableSales: vatableSales,
+                vatAmount: vatAmount,
+                vatExemptSales: vatExemptSales,
+                transactionCount: transactionCount,
+                completedCount: completedCount,
+                voidedCount: voidedCount,
+                refundedCount: refundedCount,
+                discountTotal: discountTotal,
+                cashCollected: cashCollected,
+                totalQtySold: totalQtySold,
+                paymentBreakdownJson: paymentBreakdownJson,
+                salesByCashierJson: salesByCashierJson,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int zCounter,
+                required DateTime periodStart,
+                required DateTime periodEnd,
+                required DateTime generatedAt,
+                required int closedByUserId,
+                required String closedByName,
+                required int authorizedByUserId,
+                required String authorizedByName,
+                required double beginningBalance,
+                required double endingBalance,
+                required double totalSales,
+                required double vatableSales,
+                required double vatAmount,
+                required double vatExemptSales,
+                required int transactionCount,
+                required int completedCount,
+                required int voidedCount,
+                required int refundedCount,
+                required double discountTotal,
+                required double cashCollected,
+                required int totalQtySold,
+                required String paymentBreakdownJson,
+                required String salesByCashierJson,
+              }) => ZReadingsTableCompanion.insert(
+                id: id,
+                zCounter: zCounter,
+                periodStart: periodStart,
+                periodEnd: periodEnd,
+                generatedAt: generatedAt,
+                closedByUserId: closedByUserId,
+                closedByName: closedByName,
+                authorizedByUserId: authorizedByUserId,
+                authorizedByName: authorizedByName,
+                beginningBalance: beginningBalance,
+                endingBalance: endingBalance,
+                totalSales: totalSales,
+                vatableSales: vatableSales,
+                vatAmount: vatAmount,
+                vatExemptSales: vatExemptSales,
+                transactionCount: transactionCount,
+                completedCount: completedCount,
+                voidedCount: voidedCount,
+                refundedCount: refundedCount,
+                discountTotal: discountTotal,
+                cashCollected: cashCollected,
+                totalQtySold: totalQtySold,
+                paymentBreakdownJson: paymentBreakdownJson,
+                salesByCashierJson: salesByCashierJson,
+              ),
+          withReferenceMapper:
+              (p0) =>
+                  p0
+                      .map(
+                        (e) => (
+                          e.readTable(table),
+                          BaseReferences(db, table, e),
+                        ),
+                      )
+                      .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ZReadingsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ZReadingsTableTable,
+      ZReadingsTableData,
+      $$ZReadingsTableTableFilterComposer,
+      $$ZReadingsTableTableOrderingComposer,
+      $$ZReadingsTableTableAnnotationComposer,
+      $$ZReadingsTableTableCreateCompanionBuilder,
+      $$ZReadingsTableTableUpdateCompanionBuilder,
+      (
+        ZReadingsTableData,
+        BaseReferences<_$AppDatabase, $ZReadingsTableTable, ZReadingsTableData>,
+      ),
+      ZReadingsTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$PaymentMethodsTableTableCreateCompanionBuilder =
+    PaymentMethodsTableCompanion Function({
+      Value<int> id,
+      required String label,
+      Value<String?> accountName,
+      Value<String?> accountNumber,
+      Value<int> sortOrder,
+    });
+typedef $$PaymentMethodsTableTableUpdateCompanionBuilder =
+    PaymentMethodsTableCompanion Function({
+      Value<int> id,
+      Value<String> label,
+      Value<String?> accountName,
+      Value<String?> accountNumber,
+      Value<int> sortOrder,
+    });
+
+class $$PaymentMethodsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $PaymentMethodsTableTable> {
+  $$PaymentMethodsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accountName => $composableBuilder(
+    column: $table.accountName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accountNumber => $composableBuilder(
+    column: $table.accountNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PaymentMethodsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $PaymentMethodsTableTable> {
+  $$PaymentMethodsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accountName => $composableBuilder(
+    column: $table.accountName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accountNumber => $composableBuilder(
+    column: $table.accountNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PaymentMethodsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PaymentMethodsTableTable> {
+  $$PaymentMethodsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<String> get accountName => $composableBuilder(
+    column: $table.accountName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get accountNumber => $composableBuilder(
+    column: $table.accountNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+}
+
+class $$PaymentMethodsTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PaymentMethodsTableTable,
+          PaymentMethodsTableData,
+          $$PaymentMethodsTableTableFilterComposer,
+          $$PaymentMethodsTableTableOrderingComposer,
+          $$PaymentMethodsTableTableAnnotationComposer,
+          $$PaymentMethodsTableTableCreateCompanionBuilder,
+          $$PaymentMethodsTableTableUpdateCompanionBuilder,
+          (
+            PaymentMethodsTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $PaymentMethodsTableTable,
+              PaymentMethodsTableData
+            >,
+          ),
+          PaymentMethodsTableData,
+          PrefetchHooks Function()
+        > {
+  $$PaymentMethodsTableTableTableManager(
+    _$AppDatabase db,
+    $PaymentMethodsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer:
+              () => $$PaymentMethodsTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer:
+              () => $$PaymentMethodsTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer:
+              () => $$PaymentMethodsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> label = const Value.absent(),
+                Value<String?> accountName = const Value.absent(),
+                Value<String?> accountNumber = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+              }) => PaymentMethodsTableCompanion(
+                id: id,
+                label: label,
+                accountName: accountName,
+                accountNumber: accountNumber,
+                sortOrder: sortOrder,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String label,
+                Value<String?> accountName = const Value.absent(),
+                Value<String?> accountNumber = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+              }) => PaymentMethodsTableCompanion.insert(
+                id: id,
+                label: label,
+                accountName: accountName,
+                accountNumber: accountNumber,
+                sortOrder: sortOrder,
+              ),
+          withReferenceMapper:
+              (p0) =>
+                  p0
+                      .map(
+                        (e) => (
+                          e.readTable(table),
+                          BaseReferences(db, table, e),
+                        ),
+                      )
+                      .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PaymentMethodsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PaymentMethodsTableTable,
+      PaymentMethodsTableData,
+      $$PaymentMethodsTableTableFilterComposer,
+      $$PaymentMethodsTableTableOrderingComposer,
+      $$PaymentMethodsTableTableAnnotationComposer,
+      $$PaymentMethodsTableTableCreateCompanionBuilder,
+      $$PaymentMethodsTableTableUpdateCompanionBuilder,
+      (
+        PaymentMethodsTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $PaymentMethodsTableTable,
+          PaymentMethodsTableData
+        >,
+      ),
+      PaymentMethodsTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -9596,4 +14981,12 @@ class $AppDatabaseManager {
       $$RefundItemsTableTableTableManager(_db, _db.refundItemsTable);
   $$StoreInfoTableTableTableManager get storeInfoTable =>
       $$StoreInfoTableTableTableManager(_db, _db.storeInfoTable);
+  $$XReadingsTableTableTableManager get xReadingsTable =>
+      $$XReadingsTableTableTableManager(_db, _db.xReadingsTable);
+  $$DailyReportsTableTableTableManager get dailyReportsTable =>
+      $$DailyReportsTableTableTableManager(_db, _db.dailyReportsTable);
+  $$ZReadingsTableTableTableManager get zReadingsTable =>
+      $$ZReadingsTableTableTableManager(_db, _db.zReadingsTable);
+  $$PaymentMethodsTableTableTableManager get paymentMethodsTable =>
+      $$PaymentMethodsTableTableTableManager(_db, _db.paymentMethodsTable);
 }

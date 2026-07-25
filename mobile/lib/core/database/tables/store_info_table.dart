@@ -10,4 +10,6 @@ class StoreInfoTable extends Table {
   RealColumn get taxRate => real().withDefault(const Constant(0.0))();
   TextColumn get currency => text().withDefault(const Constant('PHP'))();
   TextColumn get receiptFooter => text().withDefault(const Constant(''))();
+  TextColumn get tin => text().withDefault(const Constant(''))();
+  TextColumn get terminalName => text().withDefault(const Constant(''))();
 }

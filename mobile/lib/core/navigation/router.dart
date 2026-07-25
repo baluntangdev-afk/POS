@@ -5,7 +5,16 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/state/auth_providers.dart';
 import '../../features/auth/state/auth_state.dart';
 import '../../features/auth/view/login_screen.dart';
+import '../../features/auth/view/setup_pin_screen.dart';
+import '../../features/cashier_accounting/daily_report/view/daily_report_history_screen.dart';
+import '../../features/cashier_accounting/daily_report/view/daily_report_screen.dart';
+import '../../features/cashier_accounting/view/cashier_accounting_hub_screen.dart';
+import '../../features/cashier_accounting/x_reading/view/x_reading_history_screen.dart';
+import '../../features/cashier_accounting/x_reading/view/x_reading_screen.dart';
+import '../../features/cashier_accounting/z_reading/view/z_reading_history_screen.dart';
+import '../../features/cashier_accounting/z_reading/view/z_reading_screen.dart';
 import '../../features/catalog/view/catalog_screen.dart';
+import '../../features/catalog/view/modifier_groups_screen.dart';
 import '../../features/dashboard/view/dashboard_screen.dart';
 import '../../features/ordering/view/ordering_screen.dart';
 import '../../features/ordering/view/payment_screen.dart';
@@ -15,6 +24,8 @@ import '../../features/settings/view/csv_import_screen.dart';
 import '../../features/settings/view/printer_setup_screen.dart';
 import '../../features/settings/view/settings_screen.dart';
 import '../../features/settings/view/store_info_screen.dart';
+import '../../features/transactions/view/transaction_detail_screen.dart';
+import '../../features/transactions/view/transactions_screen.dart';
 import '../../features/users/view/users_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -24,8 +35,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       final authState = ref.read(authNotifierProvider);
       final isAuthenticated = authState is AuthAuthenticated;
       final isOnLogin = state.matchedLocation == '/login';
+      final isOnSetupPin = state.matchedLocation == '/setup-pin';
+      final mustChangePin = authState is AuthAuthenticated && authState.mustChangePin;
 
       if (!isAuthenticated && !isOnLogin) return '/login';
+      if (isAuthenticated && mustChangePin && !isOnSetupPin) return '/setup-pin';
+      if (isAuthenticated && !mustChangePin && isOnSetupPin) return '/dashboard';
       if (isAuthenticated && isOnLogin) return '/dashboard';
       return null;
     },
@@ -34,6 +49,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/setup-pin',
+        builder: (context, state) => const SetupPinScreen(),
       ),
       GoRoute(
         path: '/dashboard',
@@ -58,8 +77,88 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ReportsScreen(),
       ),
       GoRoute(
+        path: '/transactions',
+        builder: (context, state) => const TransactionsScreen(),
+        routes: [
+          GoRoute(
+            path: ':id',
+            builder: (context, state) => TransactionDetailScreen(
+              saleId: int.parse(state.pathParameters['id']!),
+            ),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/cashier-accounting',
+        builder: (context, state) => const CashierAccountingHubScreen(),
+        routes: [
+          GoRoute(
+            path: 'x-reading',
+            builder: (context, state) => const XReadingScreen(),
+            routes: [
+              GoRoute(
+                path: 'history',
+                builder: (context, state) => const XReadingHistoryScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    builder: (context, state) => XReadingReprintScreen(
+                      historyId: int.parse(state.pathParameters['id']!),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          GoRoute(
+            path: 'daily-report',
+            builder: (context, state) => const DailyReportScreen(),
+            routes: [
+              GoRoute(
+                path: 'history',
+                builder: (context, state) => const DailyReportHistoryScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    builder: (context, state) => DailyReportReprintScreen(
+                      historyId: int.parse(state.pathParameters['id']!),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          GoRoute(
+            path: 'z-reading',
+            builder: (context, state) => const ZReadingScreen(),
+            routes: [
+              GoRoute(
+                path: 'history',
+                builder: (context, state) => const ZReadingHistoryScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    builder: (context, state) => ZReadingReprintScreen(
+                      historyId: int.parse(state.pathParameters['id']!),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+      GoRoute(
         path: '/catalog',
         builder: (context, state) => const CatalogScreen(),
+        routes: [
+          GoRoute(
+            path: 'products/:id/modifiers',
+            builder: (context, state) => ModifierGroupsScreen(
+              productId: int.parse(state.pathParameters['id']!),
+            ),
+          ),
+        ],
       ),
       GoRoute(
         path: '/users',

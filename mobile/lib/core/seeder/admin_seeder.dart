@@ -5,7 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../database/app_database.dart';
 
 const _seededKey = 'admin_seeded';
-const _defaultPin = '000000';
+
+/// The PIN seeded on the first-run default admin account. Public so the auth
+/// layer can detect "still using the seeded default" and force a PIN change.
+const defaultSeededPin = '000000';
 
 class AdminSeeder {
   final AppDatabase _db;
@@ -18,7 +21,7 @@ class AdminSeeder {
 
     final hasAdmin = await _db.usersDao.hasAdmin();
     if (!hasAdmin) {
-      final pinHash = BCrypt.hashpw(_defaultPin, BCrypt.gensalt());
+      final pinHash = BCrypt.hashpw(defaultSeededPin, BCrypt.gensalt());
       await _db.usersDao.insertUser(
         UsersTableCompanion.insert(
           name: 'Admin',

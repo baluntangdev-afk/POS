@@ -14,7 +14,8 @@ final class AuthLoading extends AuthState {
 
 final class AuthAuthenticated extends AuthState {
   final UserEntity user;
-  const AuthAuthenticated(this.user);
+  final bool mustChangePin;
+  const AuthAuthenticated(this.user, {this.mustChangePin = false});
 }
 
 final class AuthError extends AuthState {

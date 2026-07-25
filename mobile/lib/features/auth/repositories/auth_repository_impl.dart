@@ -36,4 +36,18 @@ class AuthRepositoryImpl implements AuthRepository {
       return Failure(DatabaseError(e.toString()));
     }
   }
+
+  @override
+  Future<Result<bool, AppError>> verifyAdminPin(String pin) async {
+    try {
+      final rows = await _db.usersDao.getAllActiveUsers();
+      final admins = rows.where((r) => r.role == 'admin');
+      for (final admin in admins) {
+        if (BCrypt.checkpw(pin, admin.pinHash)) return const Success(true);
+      }
+      return const Success(false);
+    } catch (e) {
+      return Failure(DatabaseError(e.toString()));
+    }
+  }
 }

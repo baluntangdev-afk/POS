@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../state/store_info_notifier.dart';
+import 'payment_method_form_dialog.dart';
 
 class StoreInfoScreen extends HookConsumerWidget {
   const StoreInfoScreen({super.key});
@@ -45,13 +46,17 @@ class StoreInfoScreen extends HookConsumerWidget {
         initialTaxRate: info?.taxRate ?? 0.0,
         initialCurrency: info?.currency ?? 'PHP',
         initialFooter: info?.receiptFooter ?? '',
-        onSave: (name, address, taxRate, currency, footer) async {
+        initialTin: info?.tin ?? '',
+        initialTerminalName: info?.terminalName ?? '',
+        onSave: (name, address, taxRate, currency, footer, tin, terminalName) async {
           await ref.read(storeInfoProvider.notifier).save(
                 storeName: name,
                 address: address,
                 taxRate: taxRate,
                 currency: currency,
                 receiptFooter: footer,
+                tin: tin,
+                terminalName: terminalName,
               );
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -64,13 +69,15 @@ class StoreInfoScreen extends HookConsumerWidget {
   }
 }
 
-class _StoreInfoForm extends HookWidget {
+class _StoreInfoForm extends HookConsumerWidget {
   final String initialName;
   final String initialAddress;
   final double initialTaxRate;
   final String initialCurrency;
   final String initialFooter;
-  final Future<void> Function(String, String, double, String, String) onSave;
+  final String initialTin;
+  final String initialTerminalName;
+  final Future<void> Function(String, String, double, String, String, String, String) onSave;
 
   const _StoreInfoForm({
     required this.initialName,
@@ -78,11 +85,13 @@ class _StoreInfoForm extends HookWidget {
     required this.initialTaxRate,
     required this.initialCurrency,
     required this.initialFooter,
+    required this.initialTin,
+    required this.initialTerminalName,
     required this.onSave,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final nameCtrl = useTextEditingController(text: initialName);
     final addressCtrl = useTextEditingController(text: initialAddress);
     final taxRateCtrl = useTextEditingController(
@@ -90,6 +99,8 @@ class _StoreInfoForm extends HookWidget {
     );
     final currencyCtrl = useTextEditingController(text: initialCurrency);
     final footerCtrl = useTextEditingController(text: initialFooter);
+    final tinCtrl = useTextEditingController(text: initialTin);
+    final terminalNameCtrl = useTextEditingController(text: initialTerminalName);
     final formKey = useMemoized(GlobalKey<FormState>.new);
     final saving = useState(false);
 
@@ -106,6 +117,8 @@ class _StoreInfoForm extends HookWidget {
           taxRate,
           currency,
           footerCtrl.text.trim(),
+          tinCtrl.text.trim(),
+          terminalNameCtrl.text.trim(),
         );
       } finally {
         saving.value = false;
@@ -146,8 +159,28 @@ class _StoreInfoForm extends HookWidget {
                   ),
                   maxLines: 2,
                 ),
+                const Gap(AppSpacing.md),
+                TextFormField(
+                  controller: tinCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'TIN',
+                    hintText: '000-000-000-000',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const Gap(AppSpacing.md),
+                TextFormField(
+                  controller: terminalNameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Terminal Name',
+                    hintText: 'e.g. Front Counter, Terminal 1',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
               ],
             ),
+            const Gap(AppSpacing.lg),
+            const _PaymentMethodsCard(),
             const Gap(AppSpacing.lg),
             _FormCard(
               title: 'Tax & Currency',
@@ -259,5 +292,123 @@ class _FormCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _PaymentMethodsCard extends ConsumerWidget {
+  const _PaymentMethodsCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final methodsAsync = ref.watch(paymentMethodsProvider);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'PAYMENT METHODS',
+                  style: AppTextStyles.labelMd.copyWith(
+                    color: AppColors.textSecondary,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => const PaymentMethodFormDialog(),
+                ),
+                icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
+                tooltip: 'Add Payment Method',
+              ),
+            ],
+          ),
+          methodsAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (e, _) => Text('$e', style: AppTextStyles.bodySm.copyWith(color: AppColors.error)),
+            data: (methods) {
+              if (methods.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                  child: Text(
+                    'No payment methods added yet.',
+                    style: AppTextStyles.bodySm.copyWith(color: AppColors.textDisabled),
+                  ),
+                );
+              }
+              return Column(
+                children: methods.map((m) {
+                  final subtitleParts = [
+                    if (m.accountName != null && m.accountName!.isNotEmpty) m.accountName!,
+                    if (m.accountNumber != null && m.accountNumber!.isNotEmpty) m.accountNumber!,
+                  ];
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(m.label),
+                    subtitle: subtitleParts.isEmpty ? null : Text(subtitleParts.join(' • ')),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, size: 20),
+                          onPressed: () => showDialog<void>(
+                            context: context,
+                            builder: (_) => PaymentMethodFormDialog(existing: m),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.error),
+                          onPressed: () => _confirmDelete(context, ref, m.id, m.label),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, int id, String label) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete payment method?'),
+        content: Text('Remove "$label"? This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await ref.read(paymentMethodsProvider.notifier).delete(id);
+    }
   }
 }

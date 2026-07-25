@@ -4,6 +4,7 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/providers/database_provider.dart';
 import '../../../core/services/print_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -276,7 +277,7 @@ class ReceiptScreen extends HookConsumerWidget {
           OutlinedButton.icon(
             onPressed: printing.value
                 ? null
-                : () => _printReceipt(context, receipt, printing),
+                : () => _printReceipt(context, ref, receipt, printing),
             icon: printing.value
                 ? const SizedBox(
                     width: 18,
@@ -301,12 +302,22 @@ class ReceiptScreen extends HookConsumerWidget {
 
   Future<void> _printReceipt(
     BuildContext context,
+    WidgetRef ref,
     SaleReceiptData receipt,
     ValueNotifier<bool> printing,
   ) async {
     printing.value = true;
     try {
-      final ok = await PrintService.printReceipt(receipt);
+      final storeInfo = await ref.read(databaseProvider).storeInfoDao.getStoreInfo();
+      final ok = await PrintService.printReceipt(
+        receipt,
+        currency: (storeInfo?.currency.isNotEmpty ?? false) ? storeInfo!.currency : 'PHP',
+        storeFooter: (storeInfo?.receiptFooter.isNotEmpty ?? false) ? storeInfo!.receiptFooter : 'Thank you!',
+        storeName: storeInfo?.storeName,
+        storeAddress: storeInfo?.address,
+        storeTin: storeInfo?.tin,
+        terminalName: storeInfo?.terminalName,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

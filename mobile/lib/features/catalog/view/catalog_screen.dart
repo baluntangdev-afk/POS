@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/database/app_database.dart';
+import '../../../core/providers/database_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -10,6 +13,8 @@ import '../../../core/widgets/empty_state_widget.dart';
 import '../../../core/widgets/error_state_widget.dart';
 import '../entities/catalog_product.dart';
 import '../state/catalog_notifier.dart';
+import 'category_form_dialog.dart';
+import 'product_form_dialog.dart';
 
 class CatalogScreen extends HookConsumerWidget {
   const CatalogScreen({super.key});
@@ -29,6 +34,11 @@ class CatalogScreen extends HookConsumerWidget {
         title: const Text('Catalog Management'),
         actions: [
           IconButton(
+            onPressed: () => _showManageCategoriesSheet(context, ref),
+            icon: const Icon(Icons.category_outlined),
+            tooltip: 'Manage Categories',
+          ),
+          IconButton(
             onPressed: () => ref.read(catalogNotifierProvider.notifier).refresh(),
             icon: const Icon(Icons.refresh_rounded),
           ),
@@ -41,6 +51,19 @@ class CatalogScreen extends HookConsumerWidget {
           onRetry: () => ref.read(catalogNotifierProvider.notifier).refresh(),
         ),
         data: (s) => _CatalogBody(state: s),
+      ),
+      floatingActionButton: state.maybeWhen(
+        data: (s) => FloatingActionButton.extended(
+          onPressed: () => showDialog(
+            context: context,
+            builder: (_) => ProductFormDialog(
+              groupId: s.selectedGroupId ?? (s.groups.isNotEmpty ? s.groups.first.id : null),
+            ),
+          ),
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('Add Product'),
+        ),
+        orElse: () => null,
       ),
     );
   }
@@ -341,6 +364,30 @@ class _ProductCard extends ConsumerWidget {
                               ),
                             ),
                           ),
+                          const Gap(4),
+                          _CardIconButton(
+                            icon: Icons.edit_outlined,
+                            color: AppColors.primary,
+                            onPressed: () => showDialog(
+                              context: context,
+                              builder: (_) => ProductFormDialog(
+                                existing: product,
+                                groupId: product.groupId,
+                              ),
+                            ),
+                          ),
+                          const Gap(4),
+                          _CardIconButton(
+                            icon: Icons.tune_rounded,
+                            color: AppColors.secondary,
+                            onPressed: () => context.push('/catalog/products/${product.id}/modifiers'),
+                          ),
+                          const Gap(4),
+                          _CardIconButton(
+                            icon: Icons.delete_outline_rounded,
+                            color: AppColors.error,
+                            onPressed: () => _confirmDeleteProduct(context, ref, product),
+                          ),
                         ],
                       ),
                     ],
@@ -348,6 +395,213 @@ class _ProductCard extends ConsumerWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _showManageCategoriesSheet(BuildContext context, WidgetRef ref) async {
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (_) => const _ManageCategoriesSheet(),
+  );
+}
+
+class _ManageCategoriesSheet extends ConsumerStatefulWidget {
+  const _ManageCategoriesSheet();
+
+  @override
+  ConsumerState<_ManageCategoriesSheet> createState() => _ManageCategoriesSheetState();
+}
+
+class _ManageCategoriesSheetState extends ConsumerState<_ManageCategoriesSheet> {
+  late Future<List<ProductGroupsTableData>> _groupsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGroups();
+  }
+
+  void _loadGroups() {
+    final db = ref.read(databaseProvider);
+    _groupsFuture = db.productsDao.getAllGroups();
+  }
+
+  Future<void> _refresh() async {
+    setState(_loadGroups);
+    await _groupsFuture;
+    await ref.read(catalogNotifierProvider.notifier).refresh();
+  }
+
+  Future<void> _openAddDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => const CategoryFormDialog(),
+    );
+    if (!mounted) return;
+    await _refresh();
+  }
+
+  Future<void> _openEditDialog(ProductGroupsTableData group) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => CategoryFormDialog(existing: group),
+    );
+    if (!mounted) return;
+    await _refresh();
+  }
+
+  Future<void> _confirmDelete(ProductGroupsTableData group) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete this category?'),
+        content: Text('"${group.name}" will be permanently removed. This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    if (!mounted) return;
+    try {
+      await ref.read(catalogNotifierProvider.notifier).deleteCategory(group.id);
+      if (!mounted) return;
+      setState(_loadGroups);
+    } on StateError catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message.toString())));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Manage Categories',
+                    style: AppTextStyles.labelLg.copyWith(fontWeight: FontWeight.w700)),
+                TextButton.icon(
+                  onPressed: _openAddDialog,
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Add Category'),
+                ),
+              ],
+            ),
+            const Gap(AppSpacing.sm),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
+              child: FutureBuilder<List<ProductGroupsTableData>>(
+                future: _groupsFuture,
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  final groups = snapshot.data!;
+                  if (groups.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                      child: Center(child: Text('No categories yet')),
+                    );
+                  }
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: groups.length,
+                    separatorBuilder: (context, index) => const Divider(height: 1),
+                    itemBuilder: (_, i) {
+                      final g = groups[i];
+                      return ListTile(
+                        title: Text(g.name),
+                        subtitle: g.isActive ? null : const Text('Inactive'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
+                              onPressed: () => _openEditDialog(g),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+                              onPressed: () => _confirmDelete(g),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _confirmDeleteProduct(
+  BuildContext context,
+  WidgetRef ref,
+  CatalogProduct product,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Delete this product?'),
+      content: Text('"${product.name}" will be permanently removed. This cannot be undone.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Delete'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true) return;
+  await ref.read(catalogNotifierProvider.notifier).deleteProduct(product.id);
+}
+
+class _CardIconButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onPressed;
+
+  const _CardIconButton({required this.icon, required this.color, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 36,
+      height: 36,
+      child: IconButton(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 16, color: color),
+        padding: EdgeInsets.zero,
+        style: IconButton.styleFrom(
+          backgroundColor: color.withValues(alpha: 0.12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           ),
         ),
       ),

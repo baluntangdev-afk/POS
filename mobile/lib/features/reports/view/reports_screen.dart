@@ -6,8 +6,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/services/report_export_service.dart';
 import '../entities/report_data.dart';
 import '../state/reports_notifier.dart';
+import 'sales_health_tab.dart';
 
 class ReportsScreen extends HookConsumerWidget {
   const ReportsScreen({super.key});
@@ -21,61 +23,92 @@ class ReportsScreen extends HookConsumerWidget {
 
     final reportState = ref.watch(reportsProvider);
     final notifier = ref.read(reportsProvider.notifier);
+    final isExporting = useState(false);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Reports'),
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        actions: [
-          IconButton(
-            onPressed: () => notifier.refresh(),
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Period selector
-          Container(
-            color: AppColors.surface,
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-            child: _PeriodSelector(
-              selected: notifier.period,
-              onChanged: (p) => notifier.setPeriod(p),
-              onCustomTap: () => _pickCustomRange(context, ref),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text('Reports'),
+          backgroundColor: AppColors.surface,
+          surfaceTintColor: Colors.transparent,
+          actions: [
+            IconButton(
+              onPressed: isExporting.value
+                  ? null
+                  : () => _export(context, reportState.value, isExporting),
+              icon: isExporting.value
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.ios_share_rounded),
+              tooltip: 'Export CSV',
             ),
+            IconButton(
+              onPressed: () => notifier.refresh(),
+              icon: const Icon(Icons.refresh_rounded),
+            ),
+          ],
+          bottom: const TabBar(
+            labelColor: AppColors.primary,
+            unselectedLabelColor: AppColors.textSecondary,
+            indicatorColor: AppColors.primary,
+            tabs: [
+              Tab(text: 'Overview'),
+              Tab(text: 'Sales Health'),
+            ],
           ),
-          const Divider(height: 1, color: AppColors.divider),
-          Expanded(
-            child: reportState.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline_rounded,
-                        size: 48, color: AppColors.error),
-                    const Gap(AppSpacing.md),
-                    Text('Failed to load reports',
-                        style: AppTextStyles.headingSm
-                            .copyWith(color: AppColors.textSecondary)),
-                    const Gap(AppSpacing.md),
-                    FilledButton.icon(
-                      onPressed: () => notifier.refresh(),
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: const Text('Retry'),
-                    ),
-                  ],
+        ),
+        body: TabBarView(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Period selector
+                Container(
+                  color: AppColors.surface,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                  child: _PeriodSelector(
+                    selected: notifier.period,
+                    onChanged: (p) => notifier.setPeriod(p),
+                    onCustomTap: () => _pickCustomRange(context, ref),
+                  ),
                 ),
-              ),
-              data: (data) => _ReportBody(data: data),
+                const Divider(height: 1, color: AppColors.divider),
+                Expanded(
+                  child: reportState.when(
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.error_outline_rounded,
+                              size: 48, color: AppColors.error),
+                          const Gap(AppSpacing.md),
+                          Text('Failed to load reports',
+                              style: AppTextStyles.headingSm
+                                  .copyWith(color: AppColors.textSecondary)),
+                          const Gap(AppSpacing.md),
+                          FilledButton.icon(
+                            onPressed: () => notifier.refresh(),
+                            icon: const Icon(Icons.refresh_rounded),
+                            label: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    data: (data) => _ReportBody(data: data),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SalesHealthTab(),
+          ],
+        ),
       ),
     );
   }
@@ -96,6 +129,27 @@ class ReportsScreen extends HookConsumerWidget {
       ref
           .read(reportsProvider.notifier)
           .setPeriod(ReportPeriod.custom, customRange: picked);
+    }
+  }
+
+  Future<void> _export(
+    BuildContext context,
+    ReportData? report,
+    ValueNotifier<bool> isExporting,
+  ) async {
+    if (report == null) return;
+    isExporting.value = true;
+    try {
+      final path = await ReportExportService.exportToCsv(report);
+      await ReportExportService.shareCsv(path);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
+      }
+    } finally {
+      isExporting.value = false;
     }
   }
 }

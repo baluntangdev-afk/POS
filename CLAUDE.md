@@ -118,25 +118,21 @@ products/
 ### Commands
 
 ```bash
-# One-time FVM setup
-dart pub global activate fvm
-fvm use stable
-
 # Install deps + generate code (run after any pubspec or annotated-class change)
-fvm flutter pub get
-fvm dart run build_runner build --delete-conflicting-outputs
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
 
 # Run on Windows
-fvm flutter run -d windows
+flutter run -d windows
 
 # Run on Android
-fvm flutter run -d android
+flutter run -d android
 
 # Build Windows release
-fvm flutter build windows
+flutter build windows
 
 # Analyze
-fvm dart analyze
+dart analyze
 ```
 
 The `.env` file (copy from `.env.sample`) must contain `BACKEND_API_BASE_URL` and `SECURE_STORAGE_KEY` before running. New variables must also be added as `@EnviedField()` properties on the `Env` class in `lib/config/environment/`.

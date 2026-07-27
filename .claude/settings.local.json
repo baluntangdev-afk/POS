@@ -402,7 +402,16 @@
       "Bash(grep -v \"IsolateSpawnException\\\\|plugin\\\\|^#\\\\|^$\\\\|analyzer plugin\\\\|analysis_server\\\\|<asynchronous\")",
       "Bash(/c/Users/Jufiel/fvm/versions/stable/bin/flutter test *)",
       "Bash(/c/Users/Jufiel/fvm/versions/stable/bin/dart run *)",
-      "Bash(/c/Users/Jufiel/fvm/versions/stable/bin/dart analyze *)"
+      "Bash(/c/Users/Jufiel/fvm/versions/stable/bin/dart analyze *)",
+      "Bash(sc stop *)",
+      "Bash(sc queryex *)",
+      "PowerShell(Start-Process powershell -Verb RunAs -ArgumentList \"-NoProfile -Command `\"Stop-Service POSBackendService -Force; Start-Sleep 2; Write-Host 'Service stopped'`\"\" -Wait 2>&1)",
+      "PowerShell(\\(Get-Service POSBackendService\\).Status)",
+      "Bash(Get-Service \"POSPostgres\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object Name, Status, StartType, DisplayName)",
+      "Bash(Format-List)",
+      "PowerShell(& \"C:\\\\nssm\\\\nssm.exe\" get POSPostgres Application 2>&1; & \"C:\\\\nssm\\\\nssm.exe\" get POSPostgres AppParameters 2>&1; & \"C:\\\\nssm\\\\nssm.exe\" get POSPostgres AppDirectory 2>&1)",
+      "PowerShell(git *)"
     ]
   }
 }

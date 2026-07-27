@@ -444,7 +444,9 @@ export class ProductsCsvSeeder {
       relations: { productVariant: true },
       select: { id: true, productVariant: { id: true } },
     });
-    const variantIdsWithRecipe = new Set(existingRecipes.map((r) => r.productVariant.id));
+    const variantIdsWithRecipe = new Set(
+      existingRecipes.filter((r) => r.productVariant != null).map((r) => r.productVariant.id),
+    );
 
     const recipesToInsert: Partial<Recipe>[] = relevantVariants
       .filter((v) => !variantIdsWithRecipe.has(v.id))

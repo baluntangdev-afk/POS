@@ -6,6 +6,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../data/inventory_repository.dart';
 import '../data/models/import_products_csv_result.dart';
 import '../data/models/product.dart';
+import 'inventory_categories_notifier.dart';
 
 final inventoryProductsProvider =
     AsyncNotifierProvider<InventoryProductsNotifier, InventoryProductsData>(
@@ -132,6 +133,7 @@ class InventoryProductsNotifier extends AsyncNotifier<InventoryProductsData> {
           fileName: fileName,
           mode: mode,
         );
+    ref.invalidate(inventoryCategoriesProvider);
     final current = state.value;
     await getResults(categoryId: current?.categoryId, search: current?.search);
     return result;

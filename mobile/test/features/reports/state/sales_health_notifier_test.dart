@@ -25,7 +25,7 @@ void main() {
   Future<int> _seedGroup(String name) =>
       db.productsDao.insertProductGroup(ProductGroupsTableCompanion.insert(name: name));
   Future<int> _seedProduct(int groupId, String name, double price) =>
-      db.productsDao.insertProduct(ProductsTableCompanion.insert(groupId: groupId, name: name, price: price));
+      db.productsDao.insertProduct(ProductsTableCompanion.insert(groupId: groupId, name: name));
 
   test('salesHealthProvider returns correctly-shaped and summed breakdowns for payment, cashier, and category', () async {
     final anaId = await _seedCashier('Ana');

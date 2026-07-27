@@ -1,19 +1,20 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/database/app_database.dart';
-import '../../../core/providers/database_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/empty_state_widget.dart';
 import '../../../core/widgets/error_state_widget.dart';
+import '../../auth/state/auth_providers.dart';
+import '../../auth/state/auth_state.dart';
 import '../entities/inventory_product.dart';
 import '../state/inventory_notifier.dart';
-import 'category_form_dialog.dart';
+import 'categories_tab.dart';
+import 'modifier_groups_management_screen.dart';
 import 'product_form_dialog.dart';
 
 class InventoryScreen extends HookConsumerWidget {
@@ -26,45 +27,87 @@ class InventoryScreen extends HookConsumerWidget {
       return null;
     }, const []);
 
-    final state = ref.watch(inventoryNotifierProvider);
+    final tabController = useTabController(initialLength: 3);
+    final currentTab = useState(0);
+    useEffect(() {
+      void listener() => currentTab.value = tabController.index;
+      tabController.addListener(listener);
+      return () => tabController.removeListener(listener);
+    }, [tabController]);
+
+    final authState = ref.watch(authNotifierProvider);
+    final isAdmin =
+        authState is AuthAuthenticated && authState.user.isAdminOrSupervisor;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Inventory Management'),
+        bottom: TabBar(
+          controller: tabController,
+          tabs: const [
+            Tab(text: 'Products'),
+            Tab(text: 'Categories'),
+            Tab(text: 'Modifier Groups'),
+          ],
+        ),
         actions: [
-          IconButton(
-            onPressed: () => _showManageCategoriesSheet(context, ref),
-            icon: const Icon(Icons.category_outlined),
-            tooltip: 'Manage Categories',
-          ),
           IconButton(
             onPressed: () => ref.read(inventoryNotifierProvider.notifier).refresh(),
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
-      body: state.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => ErrorStateWidget(
-          message: e.toString(),
-          onRetry: () => ref.read(inventoryNotifierProvider.notifier).refresh(),
-        ),
-        data: (s) => _InventoryBody(state: s),
+      body: TabBarView(
+        controller: tabController,
+        children: const [
+          _ProductsTab(),
+          CategoriesTab(),
+          ModifierGroupsManagementScreen(),
+        ],
       ),
-      floatingActionButton: state.maybeWhen(
-        data: (s) => FloatingActionButton.extended(
-          onPressed: () => showDialog(
-            context: context,
-            builder: (_) => ProductFormDialog(
-              groupId: s.selectedGroupId ?? (s.groups.isNotEmpty ? s.groups.first.id : null),
-            ),
+      floatingActionButton: currentTab.value == 0 && isAdmin
+          ? const _ProductsTabFab()
+          : null,
+    );
+  }
+}
+
+class _ProductsTabFab extends ConsumerWidget {
+  const _ProductsTabFab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(inventoryNotifierProvider);
+    return state.maybeWhen(
+      data: (s) => FloatingActionButton.extended(
+        onPressed: () => showDialog(
+          context: context,
+          builder: (_) => ProductFormDialog(
+            groupId: s.selectedGroupId ?? (s.groups.isNotEmpty ? s.groups.first.id : null),
           ),
-          icon: const Icon(Icons.add_rounded),
-          label: const Text('Add Product'),
         ),
-        orElse: () => null,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Add Product'),
       ),
+      orElse: () => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _ProductsTab extends HookConsumerWidget {
+  const _ProductsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(inventoryNotifierProvider);
+    return state.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => ErrorStateWidget(
+        message: e.toString(),
+        onRetry: () => ref.read(inventoryNotifierProvider.notifier).refresh(),
+      ),
+      data: (s) => _InventoryBody(state: s),
     );
   }
 }
@@ -88,7 +131,6 @@ class _InventoryBody extends HookConsumerWidget {
 
     return Column(
       children: [
-        // â”€â”€ Search + filter bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Padding(
           padding: const EdgeInsets.fromLTRB(
               AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0),
@@ -124,7 +166,6 @@ class _InventoryBody extends HookConsumerWidget {
             ),
           ),
         ),
-        // â”€â”€ Category chips â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if (state.groups.isNotEmpty) ...[
           const Gap(AppSpacing.sm),
           _CategoryChips(
@@ -134,7 +175,6 @@ class _InventoryBody extends HookConsumerWidget {
           ),
         ],
         const Gap(AppSpacing.md),
-        // â”€â”€ Products grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Expanded(
           child: filtered.isEmpty
               ? EmptyStateWidget(
@@ -149,7 +189,7 @@ class _InventoryBody extends HookConsumerWidget {
   }
 }
 
-// â”€â”€ Category chips â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Category chips ──────────────────────────────────────────────────────
 
 class _CategoryChips extends StatelessWidget {
   final List<InventoryGroup> groups;
@@ -230,7 +270,7 @@ class _Chip extends StatelessWidget {
   }
 }
 
-// â”€â”€ Products grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Products grid ────────────────────────────────────────────────────────
 
 class _ProductsGrid extends StatelessWidget {
   final List<InventoryProduct> products;
@@ -264,6 +304,10 @@ class _ProductCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authNotifierProvider);
+    final isAdmin =
+        authState is AuthAuthenticated && authState.user.isAdminOrSupervisor;
+
     return Opacity(
       opacity: product.isAvailable ? 1.0 : 0.55,
       child: Container(
@@ -283,7 +327,7 @@ class _ProductCard extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // â”€â”€ Image â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── Image ──────────────────────────────────────────────
               Expanded(
                 flex: 5,
                 child: Stack(
@@ -305,7 +349,7 @@ class _ProductCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              // â”€â”€ Info â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── Info ───────────────────────────────────────────────
               Expanded(
                 flex: 4,
                 child: Padding(
@@ -328,65 +372,64 @@ class _ProductCard extends ConsumerWidget {
                       const Spacer(),
                       Row(
                         children: [
-                          Expanded(
-                            child: FilledButton(
-                              onPressed: () => ref
-                                  .read(inventoryNotifierProvider.notifier)
-                                  .toggleAvailability(product),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: product.isAvailable
-                                    ? AppColors.error.withValues(alpha: 0.12)
-                                    : AppColors.success.withValues(alpha: 0.12),
-                                foregroundColor:
-                                    product.isAvailable ? AppColors.error : AppColors.success,
-                                minimumSize: const Size(0, 36),
-                                padding: EdgeInsets.zero,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                          if (isAdmin)
+                            Expanded(
+                              child: FilledButton(
+                                onPressed: () => ref
+                                    .read(inventoryNotifierProvider.notifier)
+                                    .toggleAvailability(product),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: product.isAvailable
+                                      ? AppColors.error.withValues(alpha: 0.12)
+                                      : AppColors.success.withValues(alpha: 0.12),
+                                  foregroundColor:
+                                      product.isAvailable ? AppColors.error : AppColors.success,
+                                  minimumSize: const Size(0, 36),
+                                  padding: EdgeInsets.zero,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      product.isAvailable
+                                          ? Icons.visibility_off_rounded
+                                          : Icons.visibility_rounded,
+                                      size: 14,
+                                    ),
+                                    const Gap(4),
+                                    Text(
+                                      product.isAvailable ? 'Disable' : 'Enable',
+                                      style: AppTextStyles.labelMd,
+                                    ),
+                                  ],
                                 ),
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    product.isAvailable
-                                        ? Icons.visibility_off_rounded
-                                        : Icons.visibility_rounded,
-                                    size: 14,
-                                  ),
-                                  const Gap(4),
-                                  Text(
-                                    product.isAvailable ? 'Disable' : 'Enable',
-                                    style: AppTextStyles.labelMd,
-                                  ),
-                                ],
+                            )
+                          else
+                            const Spacer(),
+                          if (isAdmin) ...[
+                            const Gap(4),
+                            _CardIconButton(
+                              icon: Icons.edit_outlined,
+                              color: AppColors.primary,
+                              onPressed: () => showDialog(
+                                context: context,
+                                builder: (_) => ProductFormDialog(
+                                  existing: product,
+                                  groupId: product.groupId,
+                                ),
                               ),
                             ),
-                          ),
-                          const Gap(4),
-                          _CardIconButton(
-                            icon: Icons.edit_outlined,
-                            color: AppColors.primary,
-                            onPressed: () => showDialog(
-                              context: context,
-                              builder: (_) => ProductFormDialog(
-                                existing: product,
-                                groupId: product.groupId,
-                              ),
-                            ),
-                          ),
+                          ],
                           const Gap(4),
                           _CardIconButton(
                             icon: Icons.tune_rounded,
                             color: AppColors.secondary,
                             onPressed: () => context.push('/inventory/products/${product.id}/modifiers'),
-                          ),
-                          const Gap(4),
-                          _CardIconButton(
-                            icon: Icons.delete_outline_rounded,
-                            color: AppColors.error,
-                            onPressed: () => _confirmDeleteProduct(context, ref, product),
                           ),
                         ],
                       ),
@@ -400,186 +443,6 @@ class _ProductCard extends ConsumerWidget {
       ),
     );
   }
-}
-
-Future<void> _showManageCategoriesSheet(BuildContext context, WidgetRef ref) async {
-  await showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    builder: (_) => const _ManageCategoriesSheet(),
-  );
-}
-
-class _ManageCategoriesSheet extends ConsumerStatefulWidget {
-  const _ManageCategoriesSheet();
-
-  @override
-  ConsumerState<_ManageCategoriesSheet> createState() => _ManageCategoriesSheetState();
-}
-
-class _ManageCategoriesSheetState extends ConsumerState<_ManageCategoriesSheet> {
-  late Future<List<ProductGroupsTableData>> _groupsFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadGroups();
-  }
-
-  void _loadGroups() {
-    final db = ref.read(databaseProvider);
-    _groupsFuture = db.productsDao.getAllGroups();
-  }
-
-  Future<void> _refresh() async {
-    setState(_loadGroups);
-    await _groupsFuture;
-    await ref.read(inventoryNotifierProvider.notifier).refresh();
-  }
-
-  Future<void> _openAddDialog() async {
-    await showDialog<void>(
-      context: context,
-      builder: (_) => const CategoryFormDialog(),
-    );
-    if (!mounted) return;
-    await _refresh();
-  }
-
-  Future<void> _openEditDialog(ProductGroupsTableData group) async {
-    await showDialog<void>(
-      context: context,
-      builder: (_) => CategoryFormDialog(existing: group),
-    );
-    if (!mounted) return;
-    await _refresh();
-  }
-
-  Future<void> _confirmDelete(ProductGroupsTableData group) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete this category?'),
-        content: Text('"${group.name}" will be permanently removed. This cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    if (!mounted) return;
-    try {
-      await ref.read(inventoryNotifierProvider.notifier).deleteCategory(group.id);
-      if (!mounted) return;
-      setState(_loadGroups);
-    } on StateError catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message.toString())));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.lg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Manage Categories',
-                    style: AppTextStyles.labelLg.copyWith(fontWeight: FontWeight.w700)),
-                TextButton.icon(
-                  onPressed: _openAddDialog,
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add Category'),
-                ),
-              ],
-            ),
-            const Gap(AppSpacing.sm),
-            ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
-              child: FutureBuilder<List<ProductGroupsTableData>>(
-                future: _groupsFuture,
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  final groups = snapshot.data!;
-                  if (groups.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
-                      child: Center(child: Text('No categories yet')),
-                    );
-                  }
-                  return ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: groups.length,
-                    separatorBuilder: (context, index) => const Divider(height: 1),
-                    itemBuilder: (_, i) {
-                      final g = groups[i];
-                      return ListTile(
-                        title: Text(g.name),
-                        subtitle: g.isActive ? null : const Text('Inactive'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
-                              onPressed: () => _openEditDialog(g),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
-                              onPressed: () => _confirmDelete(g),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-Future<void> _confirmDeleteProduct(
-  BuildContext context,
-  WidgetRef ref,
-  InventoryProduct product,
-) async {
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text('Delete this product?'),
-      content: Text('"${product.name}" will be permanently removed. This cannot be undone.'),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-        FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-          onPressed: () => Navigator.pop(ctx, true),
-          child: const Text('Delete'),
-        ),
-      ],
-    ),
-  );
-  if (confirmed != true) return;
-  await ref.read(inventoryNotifierProvider.notifier).deleteProduct(product.id);
 }
 
 class _CardIconButton extends StatelessWidget {

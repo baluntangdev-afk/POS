@@ -6,6 +6,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../data/backend_api/api_clients.dart';
 import '../../../utils/file_sniffer.dart';
 import 'models/category.dart';
+import 'models/import_products_csv_result.dart';
 import 'models/modifier_group.dart';
 import 'models/product.dart';
 
@@ -197,5 +198,21 @@ class InventoryRepository {
   Future<List<String>> fetchVariantNames() async {
     final response = await _secureClient.get<dynamic>('/api/v1/product-variants/names');
     return (response.data as List<dynamic>).map((e) => e.toString()).toList();
+  }
+
+  Future<ImportProductsCsvResult> importProductsCsv({
+    required Uint8List fileBytes,
+    required String fileName,
+    required String mode,
+  }) async {
+    final formData = FormData.fromMap({
+      'file': MultipartFile.fromBytes(fileBytes, filename: fileName),
+      'mode': mode,
+    });
+    final response = await _secureClient.post<dynamic>(
+      '/api/v1/products/import-csv',
+      data: formData,
+    );
+    return ImportProductsCsvResult.fromJson(response.data as Map<String, dynamic>);
   }
 }

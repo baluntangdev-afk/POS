@@ -1,10 +1,11 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/database/app_database.dart';
 import '../../../core/services/image_storage_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -12,13 +13,46 @@ import '../../../core/theme/app_text_styles.dart';
 import '../entities/inventory_product.dart';
 import '../state/inventory_notifier.dart';
 
-/// Create/edit dialog for a inventory product.
+class _VariantRow {
+  int? id;
+  final TextEditingController nameCtrl;
+  final TextEditingController priceCtrl;
+  bool isDefault;
+  bool isActive;
+
+  _VariantRow({
+    this.id,
+    required String name,
+    required String price,
+    required this.isDefault,
+    required this.isActive,
+  })  : nameCtrl = TextEditingController(text: name),
+        priceCtrl = TextEditingController(text: price);
+
+  factory _VariantRow.blank({bool isDefault = false}) =>
+      _VariantRow(name: '', price: '', isDefault: isDefault, isActive: true);
+
+  factory _VariantRow.fromData(ProductVariantsTableData row) => _VariantRow(
+        id: row.id,
+        name: row.name,
+        price: _formatPrice(row.price),
+        isDefault: row.isDefault,
+        isActive: row.isActive,
+      );
+
+  static String _formatPrice(double price) =>
+      price == price.roundToDouble() ? price.toStringAsFixed(0) : price.toString();
+
+  void dispose() {
+    nameCtrl.dispose();
+    priceCtrl.dispose();
+  }
+}
+
+/// Create/edit dialog for an inventory product, including its variants.
 ///
 /// [existing] is `null` for create-mode; passing a [InventoryProduct] switches
-/// to edit-mode. We take the lighter [InventoryProduct] entity (rather than the
-/// raw `ProductsTableData` row) because it already carries every field this
-/// form needs (id/groupId/name/price/imageUrl) â€” fetching the raw row from
-/// the DAO would be an unnecessary extra round-trip.
+/// to edit-mode, seeding the variants editor from [productVariantsProvider].
 class ProductFormDialog extends ConsumerStatefulWidget {
   final InventoryProduct? existing;
   final int? groupId;
@@ -32,11 +66,13 @@ class ProductFormDialog extends ConsumerStatefulWidget {
 class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  late final TextEditingController _priceController;
   int? _selectedGroupId;
   String? _imageUrl;
   String? _nameError;
+  String? _variantsError;
   bool _isSaving = false;
+  bool _variantsLoaded = false;
+  List<_VariantRow> _variants = [];
 
   bool get _isEditing => widget.existing != null;
 
@@ -45,31 +81,39 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
     super.initState();
     final existing = widget.existing;
     _nameController = TextEditingController(text: existing?.name ?? '');
-    _priceController =
-        TextEditingController(text: existing != null ? _formatPrice(existing.price) : '');
     final candidateGroupId = existing?.groupId ?? widget.groupId;
-    // `InventoryNotifier.groups` only lists ACTIVE categories, but a product's own
-    // `groupId` may belong to a category that has since been deactivated. If we set
-    // `_selectedGroupId` to a value that isn't among the dropdown's items,
-    // DropdownButtonFormField asserts/crashes (its value must be null or match an
-    // item exactly). Fall back to null in that case and require the user to pick an
-    // active category explicitly â€” the existing "category required" validator
-    // already enforces this before save.
     final loadedGroups = ref.read(inventoryNotifierProvider).value?.groups ?? const [];
     _selectedGroupId =
         (candidateGroupId != null && loadedGroups.any((g) => g.id == candidateGroupId))
             ? candidateGroupId
             : null;
     _imageUrl = existing?.imageUrl;
+
+    if (_isEditing) {
+      _loadVariants();
+    } else {
+      _variants = [_VariantRow.blank(isDefault: true)];
+      _variantsLoaded = true;
+    }
   }
 
-  String _formatPrice(double price) =>
-      price == price.roundToDouble() ? price.toStringAsFixed(0) : price.toString();
+  Future<void> _loadVariants() async {
+    final rows = await ref.read(productVariantsProvider(widget.existing!.id).future);
+    if (!mounted) return;
+    setState(() {
+      _variants = rows.isEmpty
+          ? [_VariantRow.blank(isDefault: true)]
+          : rows.map((r) => _VariantRow.fromData(r)).toList();
+      _variantsLoaded = true;
+    });
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _priceController.dispose();
+    for (final v in _variants) {
+      v.dispose();
+    }
     super.dispose();
   }
 
@@ -80,38 +124,122 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
     setState(() => _imageUrl = picked);
   }
 
-  void _removeImage() {
-    setState(() => _imageUrl = null);
+  void _removeImage() => setState(() => _imageUrl = null);
+
+  void _addVariant() {
+    setState(() => _variants.add(_VariantRow.blank()));
+  }
+
+  void _removeVariant(int index) {
+    final v = _variants[index];
+    if (v.id == null) {
+      setState(() {
+        v.dispose();
+        _variants.removeAt(index);
+      });
+    } else {
+      setState(() => v.isActive = false);
+    }
+    _reassignDefaultIfNeeded();
+  }
+
+  void _setActive(int index, bool value) {
+    setState(() => _variants[index].isActive = value);
+    _reassignDefaultIfNeeded();
+  }
+
+  void _setDefault(int index) {
+    setState(() {
+      for (var i = 0; i < _variants.length; i++) {
+        _variants[i].isDefault = i == index;
+      }
+    });
+  }
+
+  void _reassignDefaultIfNeeded() {
+    final active = _variants.where((v) => v.isActive).toList();
+    if (active.isEmpty) return;
+    final hasActiveDefault = active.any((v) => v.isDefault);
+    if (!hasActiveDefault) {
+      setState(() {
+        for (final v in _variants) {
+          v.isDefault = false;
+        }
+        active.first.isDefault = true;
+      });
+    }
   }
 
   Future<void> _submit() async {
-    setState(() => _nameError = null);
+    setState(() {
+      _nameError = null;
+      _variantsError = null;
+    });
     if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_selectedGroupId == null) return;
 
+    final active = _variants.where((v) => v.isActive).toList();
+    if (active.isEmpty) {
+      setState(() => _variantsError = 'At least one active variant is required');
+      return;
+    }
+    final names = active.map((v) => v.nameCtrl.text.trim().toLowerCase()).toList();
+    if (names.any((n) => n.isEmpty)) {
+      setState(() => _variantsError = 'Every active variant needs a name');
+      return;
+    }
+    if (names.toSet().length != names.length) {
+      setState(() => _variantsError = 'Variant names must be unique');
+      return;
+    }
+    for (final v in active) {
+      final price = double.tryParse(v.priceCtrl.text.trim());
+      if (price == null || price < 0.01) {
+        setState(() => _variantsError = 'Each active variant needs a price of at least 0.01');
+        return;
+      }
+    }
+    if (!active.any((v) => v.isDefault)) {
+      setState(() => _variantsError = 'Exactly one active variant must be marked default');
+      return;
+    }
+
     final name = _nameController.text.trim();
-    final price = double.parse(_priceController.text.trim());
     final groupId = _selectedGroupId!;
 
     setState(() => _isSaving = true);
     try {
       final notifier = ref.read(inventoryNotifierProvider.notifier);
+      final int productId;
       if (_isEditing) {
+        productId = widget.existing!.id;
         await notifier.updateProduct(
-          id: widget.existing!.id,
+          id: productId,
           groupId: groupId,
           name: name,
-          price: price,
           imageUrl: _imageUrl,
         );
       } else {
-        await notifier.createProduct(
+        productId = await notifier.createProduct(
           groupId: groupId,
           name: name,
-          price: price,
           imageUrl: _imageUrl,
         );
       }
+
+      await notifier.saveVariants(
+        productId,
+        _variants
+            .map((v) => VariantInput(
+                  id: v.id,
+                  name: v.nameCtrl.text.trim(),
+                  price: double.tryParse(v.priceCtrl.text.trim()) ?? 0,
+                  isDefault: v.isDefault,
+                  isActive: v.isActive,
+                ))
+            .toList(),
+      );
+
       if (mounted) Navigator.pop(context);
     } on StateError catch (e) {
       setState(() => _nameError = e.message);
@@ -128,7 +256,7 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
     return AlertDialog(
       title: Text(_isEditing ? 'Edit Product' : 'Add Product'),
       content: SizedBox(
-        width: 420,
+        width: 460,
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -138,10 +266,7 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
               children: [
                 TextFormField(
                   controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Name',
-                    errorText: _nameError,
-                  ),
+                  decoration: InputDecoration(labelText: 'Name', errorText: _nameError),
                   textInputAction: TextInputAction.next,
                   validator: (v) =>
                       (v == null || v.trim().isEmpty) ? 'Name is required' : null,
@@ -158,21 +283,6 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
                       .toList(),
                   onChanged: (v) => setState(() => _selectedGroupId = v),
                   validator: (v) => v == null ? 'Category is required' : null,
-                ),
-                const Gap(AppSpacing.md),
-                TextFormField(
-                  controller: _priceController,
-                  decoration: const InputDecoration(labelText: 'Price', prefixText: 'PHP '),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-                  ],
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Price is required';
-                    final parsed = double.tryParse(v.trim());
-                    if (parsed == null || parsed <= 0) return 'Enter a valid price greater than 0';
-                    return null;
-                  },
                 ),
                 const Gap(AppSpacing.lg),
                 Text('Image', style: AppTextStyles.labelLg.copyWith(color: AppColors.textSecondary)),
@@ -202,6 +312,37 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
                     ),
                   ],
                 ),
+                const Gap(AppSpacing.lg),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Variants', style: AppTextStyles.labelLg.copyWith(color: AppColors.textSecondary)),
+                    TextButton.icon(
+                      onPressed: _addVariant,
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      label: const Text('Add Variant'),
+                    ),
+                  ],
+                ),
+                if (_variantsError != null) ...[
+                  const Gap(4),
+                  Text(_variantsError!, style: AppTextStyles.bodySm.copyWith(color: AppColors.error)),
+                ],
+                const Gap(AppSpacing.sm),
+                if (!_variantsLoaded)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else
+                  for (var i = 0; i < _variants.length; i++)
+                    _VariantRowWidget(
+                      key: ValueKey(_variants[i]),
+                      row: _variants[i],
+                      onRemove: () => _removeVariant(i),
+                      onToggleActive: (v) => _setActive(i, v),
+                      onSetDefault: () => _setDefault(i),
+                    ),
               ],
             ),
           ),
@@ -223,6 +364,71 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
               : Text(_isEditing ? 'Save' : 'Add'),
         ),
       ],
+    );
+  }
+}
+
+class _VariantRowWidget extends StatelessWidget {
+  final _VariantRow row;
+  final VoidCallback onRemove;
+  final ValueChanged<bool> onToggleActive;
+  final VoidCallback onSetDefault;
+
+  const _VariantRowWidget({
+    super.key,
+    required this.row,
+    required this.onRemove,
+    required this.onToggleActive,
+    required this.onSetDefault,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isNew = row.id == null;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            flex: 3,
+            child: TextFormField(
+              controller: row.nameCtrl,
+              decoration: const InputDecoration(labelText: 'Variant name', isDense: true),
+            ),
+          ),
+          const Gap(AppSpacing.sm),
+          Expanded(
+            flex: 2,
+            child: TextFormField(
+              controller: row.priceCtrl,
+              decoration: const InputDecoration(labelText: 'Price', prefixText: 'PHP ', isDense: true),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+            ),
+          ),
+          const Gap(AppSpacing.sm),
+          IconButton(
+            tooltip: row.isDefault ? 'Default variant' : 'Make default',
+            icon: Icon(
+              row.isDefault ? Icons.star_rounded : Icons.star_border_rounded,
+              color: row.isDefault ? AppColors.secondary : AppColors.textDisabled,
+            ),
+            onPressed: row.isActive ? onSetDefault : null,
+          ),
+          if (isNew)
+            IconButton(
+              tooltip: 'Remove',
+              icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+              onPressed: onRemove,
+            )
+          else
+            Switch(
+              value: row.isActive,
+              onChanged: onToggleActive,
+            ),
+        ],
+      ),
     );
   }
 }

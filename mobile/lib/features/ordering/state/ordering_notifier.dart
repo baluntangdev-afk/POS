@@ -16,17 +16,17 @@ class OrderingNotifier extends AsyncNotifier<CartState> {
   Future<CartState> _load() async {
     final db = ref.watch(databaseProvider);
     final groupRows = await db.productsDao.getAllActiveGroups();
-    final productRows = await db.productsDao.getAllProducts();
+    final productRows = await db.productsDao.getAllProductsWithPrice();
 
     final groups = groupRows.map((g) => OrderGroup(id: g.id, name: g.name)).toList();
     final products = productRows
         .map((p) => OrderProduct(
-              id: p.id,
-              groupId: p.groupId,
-              name: p.name,
+              id: p.product.id,
+              groupId: p.product.groupId,
+              name: p.product.name,
               price: p.price,
-              isAvailable: p.isAvailable,
-              imageUrl: p.imageUrl,
+              isAvailable: p.product.isAvailable,
+              imageUrl: p.product.imageUrl,
             ))
         .toList();
 

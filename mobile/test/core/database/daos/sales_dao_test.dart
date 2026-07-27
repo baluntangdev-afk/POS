@@ -22,7 +22,7 @@ void main() {
           ProductGroupsTableCompanion.insert(name: 'Drinks'),
         );
     final productId = await db.into(db.productsTable).insert(
-          ProductsTableCompanion.insert(groupId: groupId, name: 'Latte', price: unitPrice),
+          ProductsTableCompanion.insert(groupId: groupId, name: 'Latte'),
         );
     final cashierId = await db.into(db.usersTable).insert(
           UsersTableCompanion.insert(name: 'Cashier', role: 'cashier', pinHash: 'hash'),

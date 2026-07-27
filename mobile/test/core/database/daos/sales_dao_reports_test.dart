@@ -15,7 +15,7 @@ void main() {
   Future<int> _seedGroup(String name) =>
       db.productsDao.insertProductGroup(ProductGroupsTableCompanion.insert(name: name));
   Future<int> _seedProduct(int groupId, String name, double price) =>
-      db.productsDao.insertProduct(ProductsTableCompanion.insert(groupId: groupId, name: name, price: price));
+      db.productsDao.insertProduct(ProductsTableCompanion.insert(groupId: groupId, name: name));
   Future<int> _seedCashier() => db.into(db.usersTable).insert(
         UsersTableCompanion.insert(name: 'Cashier', role: 'cashier', pinHash: 'hash'),
       );

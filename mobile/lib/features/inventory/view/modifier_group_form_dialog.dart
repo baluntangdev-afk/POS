@@ -7,15 +7,14 @@ import '../../../core/database/app_database.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../state/modifier_groups_notifier.dart';
 
-/// Create/edit dialog for a single product's modifier group.
+/// Create/edit dialog for a global modifier group.
 ///
 /// [existing] is `null` for create-mode; passing a [ModifierGroupsTableData]
 /// switches to edit-mode.
 class ModifierGroupFormDialog extends ConsumerStatefulWidget {
-  final int productId;
   final ModifierGroupsTableData? existing;
 
-  const ModifierGroupFormDialog({super.key, required this.productId, this.existing});
+  const ModifierGroupFormDialog({super.key, this.existing});
 
   @override
   ConsumerState<ModifierGroupFormDialog> createState() => _ModifierGroupFormDialogState();
@@ -57,7 +56,7 @@ class _ModifierGroupFormDialogState extends ConsumerState<ModifierGroupFormDialo
 
     setState(() => _isSaving = true);
     try {
-      final actions = ref.read(modifierGroupsActionsProvider(widget.productId));
+      final actions = ref.read(modifierGroupsManagementActionsProvider);
       if (_isEditing) {
         await actions.updateGroup(
           groupId: widget.existing!.id,
@@ -66,11 +65,7 @@ class _ModifierGroupFormDialogState extends ConsumerState<ModifierGroupFormDialo
           maxSelections: maxSelections,
         );
       } else {
-        await actions.createGroup(
-          name: name,
-          isRequired: _isRequired,
-          maxSelections: maxSelections,
-        );
+        await actions.createGroup(name: name, isRequired: _isRequired, maxSelections: maxSelections);
       }
       if (!mounted) return;
       Navigator.pop(context);
@@ -96,13 +91,9 @@ class _ModifierGroupFormDialogState extends ConsumerState<ModifierGroupFormDialo
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: 'Name',
-                  errorText: _errorText,
-                ),
+                decoration: InputDecoration(labelText: 'Name', errorText: _errorText),
                 textInputAction: TextInputAction.next,
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Name is required' : null,
                 onChanged: (_) {
                   if (_errorText != null) setState(() => _errorText = null);
                 },
@@ -139,11 +130,7 @@ class _ModifierGroupFormDialogState extends ConsumerState<ModifierGroupFormDialo
         FilledButton(
           onPressed: _isSaving ? null : _submit,
           child: _isSaving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                )
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
               : Text(_isEditing ? 'Save' : 'Add'),
         ),
       ],

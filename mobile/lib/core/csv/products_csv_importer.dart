@@ -50,16 +50,34 @@ class ProductsCsvImporter implements CsvImporter {
         final imageUrl = (row['image_url'] ?? '').toString().trim();
         final sortOrder = int.tryParse((row['sort_order'] ?? '0').toString()) ?? 0;
 
-        await _db.productsDao.upsertProduct(
+        final productId = await _db.productsDao.upsertProduct(
           ProductsTableCompanion(
             groupId: Value(groupId),
             name: Value(productName),
-            price: Value(price),
             isAvailable: Value(isAvailable),
             imageUrl: imageUrl.isEmpty ? const Value.absent() : Value(imageUrl),
             sortOrder: Value(sortOrder),
           ),
         );
+
+        await _db.productsDao.clearDefaultVariant(productId);
+        final existingVariants = await _db.productsDao.getVariantsForProduct(productId);
+        if (existingVariants.isEmpty) {
+          await _db.productsDao.insertVariant(ProductVariantsTableCompanion.insert(
+            productId: productId,
+            name: 'Regular',
+            price: price,
+            isDefault: const Value(true),
+          ));
+        } else {
+          await _db.productsDao.updateVariant(
+            existingVariants.first.id,
+            name: existingVariants.first.name,
+            price: price,
+            isDefault: true,
+            isActive: true,
+          );
+        }
         success++;
       } catch (e) {
         errors.add(CsvRowError(rowNum, e.toString()));

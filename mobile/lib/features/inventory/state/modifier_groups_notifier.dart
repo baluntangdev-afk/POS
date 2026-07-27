@@ -4,9 +4,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
 
-/// Pairs a modifier group row with its options — a per-product read model,
-/// since mobile's modifier groups are 1:1-owned by a single product (unlike
-/// kiosk's reusable-across-products model; see Phase 3 Design Decision #2).
+/// Pairs a global modifier group row with its options — used by the
+/// Modifier Groups management tab.
 class ModifierGroupWithOptions {
   final ModifierGroupsTableData group;
   final List<ModifierOptionsTableData> options;
@@ -14,18 +13,11 @@ class ModifierGroupWithOptions {
   const ModifierGroupWithOptions({required this.group, required this.options});
 }
 
-/// Reads all modifier groups (with their options) for a single product.
-///
-/// A mutable family-scoped `AsyncNotifier` isn't cleanly available for
-/// Riverpod 3.3.2 in this codebase (no precedent for it — the existing
-/// family-scoped providers, `_historyReceiptProvider`/`_refundableItemsProvider`
-/// in `features/transactions/`, are plain `FutureProvider.family` paired with
-/// `ref.invalidate(...)` after mutations). This follows that same precedent
-/// rather than fighting the framework.
-final modifierGroupsProvider =
-    FutureProvider.family<List<ModifierGroupWithOptions>, int>((ref, productId) async {
+/// All global modifier groups (active or not) with their options — the
+/// management tab's read model.
+final allModifierGroupsProvider = FutureProvider<List<ModifierGroupWithOptions>>((ref) async {
   final db = ref.watch(databaseProvider);
-  final groups = await db.productsDao.getModifierGroupsForProduct(productId);
+  final groups = await db.productsDao.getAllModifierGroups();
   final result = <ModifierGroupWithOptions>[];
   for (final group in groups) {
     final options = await db.productsDao.getOptionsForGroup(group.id);
@@ -34,16 +26,21 @@ final modifierGroupsProvider =
   return result;
 });
 
-/// Mutation methods for a single product's modifier groups/options. Each
-/// mutation invalidates [modifierGroupsProvider] for the same [productId] so
-/// any watchers refresh automatically.
-class ModifierGroupsActions {
+/// The modifier groups currently attached to one product — the per-product
+/// attach/detach screen's read model.
+final attachedModifierGroupsProvider =
+    FutureProvider.family<List<ModifierGroupsTableData>, int>((ref, productId) {
+  final db = ref.watch(databaseProvider);
+  return db.productsDao.getModifierGroupsForProduct(productId);
+});
+
+/// Mutations for the global groups/options themselves (create, edit,
+/// soft-disable). Not scoped to any product.
+class ModifierGroupsManagementActions {
   final Ref ref;
-  final int productId;
+  const ModifierGroupsManagementActions(this.ref);
 
-  const ModifierGroupsActions(this.ref, this.productId);
-
-  void _refresh() => ref.invalidate(modifierGroupsProvider(productId));
+  void _refresh() => ref.invalidate(allModifierGroupsProvider);
 
   Future<void> createGroup({
     required String name,
@@ -51,8 +48,7 @@ class ModifierGroupsActions {
     required int maxSelections,
   }) async {
     final db = ref.read(databaseProvider);
-    await db.productsDao.insertModifierGroup(ModifierGroupsTableCompanion.insert(
-      productId: productId,
+    await db.productsDao.createModifierGroup(ModifierGroupsTableCompanion.insert(
       name: name,
       isRequired: Value(isRequired),
       maxSelections: Value(maxSelections),
@@ -67,18 +63,13 @@ class ModifierGroupsActions {
     required int maxSelections,
   }) async {
     final db = ref.read(databaseProvider);
-    await db.productsDao.updateModifierGroup(
-      groupId,
-      name: name,
-      isRequired: isRequired,
-      maxSelections: maxSelections,
-    );
+    await db.productsDao.updateModifierGroup(groupId, name: name, isRequired: isRequired, maxSelections: maxSelections);
     _refresh();
   }
 
-  Future<void> deleteGroup(int groupId) async {
+  Future<void> toggleGroupActive(int groupId, {required bool isActive}) async {
     final db = ref.read(databaseProvider);
-    await db.productsDao.deleteModifierGroup(groupId);
+    await db.productsDao.toggleModifierGroupActive(groupId, isActive: isActive);
     _refresh();
   }
 
@@ -102,22 +93,39 @@ class ModifierGroupsActions {
     required double additionalPrice,
   }) async {
     final db = ref.read(databaseProvider);
-    await db.productsDao.updateModifierOption(
-      optionId,
-      name: name,
-      additionalPrice: additionalPrice,
-    );
+    await db.productsDao.updateModifierOption(optionId, name: name, additionalPrice: additionalPrice);
     _refresh();
   }
 
-  Future<void> deleteOption(int optionId) async {
+  Future<void> toggleOptionActive(int optionId, {required bool isActive}) async {
     final db = ref.read(databaseProvider);
-    await db.productsDao.deleteModifierOption(optionId);
+    await db.productsDao.toggleModifierOptionActive(optionId, isActive: isActive);
     _refresh();
   }
 }
 
-final modifierGroupsActionsProvider =
-    Provider.family<ModifierGroupsActions, int>((ref, productId) {
-  return ModifierGroupsActions(ref, productId);
-});
+final modifierGroupsManagementActionsProvider =
+    Provider<ModifierGroupsManagementActions>((ref) => ModifierGroupsManagementActions(ref));
+
+/// Attach/detach actions for one specific product's modifier-group set.
+class ProductModifierGroupActions {
+  final Ref ref;
+  final int productId;
+  const ProductModifierGroupActions(this.ref, this.productId);
+
+  Future<void> attach(int modifierGroupId) async {
+    final db = ref.read(databaseProvider);
+    await db.productsDao.attachModifierGroupToProduct(productId, modifierGroupId);
+    ref.invalidate(attachedModifierGroupsProvider(productId));
+  }
+
+  Future<void> detach(int modifierGroupId) async {
+    final db = ref.read(databaseProvider);
+    await db.productsDao.detachModifierGroupFromProduct(productId, modifierGroupId);
+    ref.invalidate(attachedModifierGroupsProvider(productId));
+  }
+}
+
+final productModifierGroupActionsProvider =
+    Provider.family<ProductModifierGroupActions, int>(
+        (ref, productId) => ProductModifierGroupActions(ref, productId));

@@ -10,6 +10,7 @@ import {
   UploadedFile,
   UseGuards,
   Req,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -34,6 +35,8 @@ import { File } from 'multer';
 import type { Request } from 'express';
 import { AdminOrSupervisorGuard } from '../auth/guards/admin-or-supervisor.guard';
 import { getBaseUrl } from '../utils/image-storage.helper';
+import { ImportProductsCsvDto } from './dto/import-products-csv.dto';
+import { ImportProductsCsvResultDto } from './dto/import-products-csv-result.dto';
 
 @ApiTags('Products')
 @Controller('products')
@@ -69,6 +72,35 @@ export class ProductsController {
     @Req() req: Request,
   ) {
     return this.productsService.create(createProductDto, image, causer, getBaseUrl(req));
+  }
+
+  @Post('import-csv')
+  @UseGuards(AdminOrSupervisorGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Import categories/products/variants from a CSV file' })
+  @ApiBody({
+    description:
+      'CSV file (Category,Category Description,Product Name,Product Description,' +
+      'Product Base Price,Variant Name,Variant Price[,Product Image URL]) plus an import mode',
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        mode: { type: 'string', enum: ['upsert', 'replace'], example: 'upsert' },
+      },
+      required: ['file'],
+    },
+  })
+  @ApiOkResponse({
+    description: 'Summary of rows inserted/updated/soft-deleted.',
+    type: ImportProductsCsvResultDto,
+  })
+  importCsv(@UploadedFile() file: File, @Body() body: ImportProductsCsvDto) {
+    if (!file) {
+      throw new BadRequestException('A CSV file is required.');
+    }
+    return this.productsService.importCsv(file.buffer.toString('utf-8'), body.mode ?? 'upsert');
   }
 
   @Get()

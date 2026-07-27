@@ -48,21 +48,21 @@ class ModifiersCsvImporter implements CsvImporter {
           continue;
         }
 
-        final cacheKey = '$productId:$groupName';
-        if (!groupCache.containsKey(cacheKey)) {
-          final groups = await _db.productsDao.getModifierGroupsForProduct(productId);
+        // Modifier groups are global (shared across products), keyed by name alone.
+        if (!groupCache.containsKey(groupName)) {
+          final groups = await _db.productsDao.getAllModifierGroups();
           final existing = groups.where((g) => g.name == groupName).firstOrNull;
-          final gId = existing?.id ?? await _db.productsDao.insertModifierGroup(
+          final gId = existing?.id ?? await _db.productsDao.createModifierGroup(
             ModifierGroupsTableCompanion(
-              productId: Value(productId),
               name: Value(groupName),
               isRequired: Value((row['is_required'] ?? 'false').toString().toLowerCase() == 'true'),
               maxSelections: Value(int.tryParse((row['max_selections'] ?? '1').toString()) ?? 1),
             ),
           );
-          groupCache[cacheKey] = gId;
+          groupCache[groupName] = gId;
         }
-        final modGroupId = groupCache[cacheKey]!;
+        final modGroupId = groupCache[groupName]!;
+        await _db.productsDao.attachModifierGroupToProduct(productId, modGroupId);
 
         final additionalPrice = double.tryParse((row['additional_price'] ?? '0').toString()) ?? 0.0;
         await _db.productsDao.insertModifierOption(

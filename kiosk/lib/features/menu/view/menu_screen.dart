@@ -15,6 +15,7 @@ import '../../../widgets/android_bottom_sheet.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/message_dialog.dart';
 import '../../../widgets/windows_scaffold.dart';
+import '../../inventory/data/inventory_repository.dart';
 import '../../users/repositories/user_repository.dart';
 import '../entities/access.dart';
 import '../enums/role.dart';
@@ -32,6 +33,7 @@ class MenuScreen extends HookConsumerWidget {
     final isAndroid = context.breakpoint.isAndroid;
     final hasShownPosDialog = useRef(false);
     final hasShownUsersDialog = useRef(false);
+    final hasShownEmptyCatalogDialog = useRef(false);
 
     void checkAndShowPosDialog() {
       if (hasShownPosDialog.value) return;
@@ -124,13 +126,74 @@ class MenuScreen extends HookConsumerWidget {
       }
     }
 
+    Future<void> checkAndShowEmptyCatalogDialog() async {
+      if (hasShownEmptyCatalogDialog.value) return;
+
+      final posState = ref.read(posTerminalProvider);
+      final accessState = ref.read(accessProvider);
+
+      // Only run once a POS terminal is confirmed assigned — without one the
+      // user can't operate the register anyway, and that dialog takes priority.
+      if (posState.isLoading || posState.hasError) return;
+      if (accessState.isLoading || accessState.hasError) return;
+
+      hasShownEmptyCatalogDialog.value = true;
+
+      try {
+        final products = await ref.read(inventoryRepositoryProvider).fetchProducts();
+        if (!context.mounted) return;
+        if (products.isNotEmpty) return;
+
+        final role = accessState.value?.role;
+        final isAdminOrSupervisor = role == Role.admin || role == Role.supervisor;
+
+        if (isAdminOrSupervisor) {
+          unawaited(showMessageDialog(
+            context,
+            title: 'No Products Found',
+            message: 'Import your product catalog to get started.',
+            type: DialogType.warning,
+            primaryButtonText: 'Import Products',
+            secondaryButtonText: 'Sign Out',
+            barrierDismissible: false,
+            onPrimaryPressed: () {
+              Navigator.of(context, rootNavigator: true).pop();
+              const ProductsRoute().push<void>(context);
+            },
+            onSecondaryPressed: () {
+              Navigator.of(context, rootNavigator: true).pop();
+              const LoginRoute().go(context);
+            },
+          ));
+        } else {
+          unawaited(showMessageDialog(
+            context,
+            title: 'No Products Found',
+            message:
+                'Please contact your supervisor or admin to import the product catalog.',
+            type: DialogType.warning,
+            primaryButtonText: 'Sign Out',
+            barrierDismissible: false,
+            onPrimaryPressed: () {
+              Navigator.of(context, rootNavigator: true).pop();
+              const LoginRoute().go(context);
+            },
+          ));
+        }
+      } catch (_) {
+        // Silent fail — don't block the menu if the catalog check fails
+      }
+    }
+
     ref.listen(posTerminalProvider, (prev, next) {
       checkAndShowPosDialog();
       unawaited(checkAndShowUsersDialog());
+      unawaited(checkAndShowEmptyCatalogDialog());
     });
     ref.listen(accessProvider, (prev, next) {
       checkAndShowPosDialog();
       unawaited(checkAndShowUsersDialog());
+      unawaited(checkAndShowEmptyCatalogDialog());
     });
 
     if (isAndroid) {

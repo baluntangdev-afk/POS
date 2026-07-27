@@ -1,4 +1,4 @@
-﻿class InventoryGroup {
+class InventoryGroup {
   final int id;
   final String name;
   final int productCount;
@@ -36,4 +36,22 @@ class InventoryProduct {
         sortOrder: sortOrder,
         group: group,
       );
+}
+
+/// One editable row in the product form's variants editor. [id] is null for
+/// a not-yet-persisted row.
+class VariantInput {
+  final int? id;
+  final String name;
+  final double price;
+  final bool isDefault;
+  final bool isActive;
+
+  const VariantInput({
+    this.id,
+    required this.name,
+    required this.price,
+    required this.isDefault,
+    required this.isActive,
+  });
 }

@@ -35,9 +35,8 @@ function parseLine(line: string): string[] {
   return fields;
 }
 
-export function parseCsvFile(filePath: string): ParsedCsv {
-  let content = fs.readFileSync(filePath, 'utf-8');
-
+/** Parses CSV text already in memory (e.g. an uploaded file's buffer contents). */
+export function parseCsvContent(content: string): ParsedCsv {
   // Strip UTF-8 BOM — common when stores export from Windows Excel.
   if (content.charCodeAt(0) === 0xfeff) {
     content = content.slice(1);
@@ -53,4 +52,8 @@ export function parseCsvFile(filePath: string): ParsedCsv {
   const rows = lines.slice(1).map((l) => parseLine(l));
 
   return { headers, rows };
+}
+
+export function parseCsvFile(filePath: string): ParsedCsv {
+  return parseCsvContent(fs.readFileSync(filePath, 'utf-8'));
 }

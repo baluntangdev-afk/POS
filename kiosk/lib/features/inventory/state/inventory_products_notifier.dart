@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/experimental/mutation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../data/inventory_repository.dart';
+import '../data/models/import_products_csv_result.dart';
 import '../data/models/product.dart';
 
 final inventoryProductsProvider =
@@ -31,6 +32,7 @@ class InventoryProductsData {
 class InventoryProductsNotifier extends AsyncNotifier<InventoryProductsData> {
   static final saveAction = Mutation<InventoryProduct>();
   static final toggleAvailabilityAction = Mutation<void>();
+  static final importCsvAction = Mutation<ImportProductsCsvResult>();
 
   @override
   Future<InventoryProductsData> build() async {
@@ -118,6 +120,21 @@ class InventoryProductsNotifier extends AsyncNotifier<InventoryProductsData> {
     await getResults(categoryId: current?.categoryId, search: current?.search);
 
     return draft.copyWith(id: productId);
+  }
+
+  Future<ImportProductsCsvResult> importCsv({
+    required Uint8List fileBytes,
+    required String fileName,
+    required String mode,
+  }) async {
+    final result = await ref.read(inventoryRepositoryProvider).importProductsCsv(
+          fileBytes: fileBytes,
+          fileName: fileName,
+          mode: mode,
+        );
+    final current = state.value;
+    await getResults(categoryId: current?.categoryId, search: current?.search);
+    return result;
   }
 
   Future<void> toggleAvailability(InventoryProduct product) async {

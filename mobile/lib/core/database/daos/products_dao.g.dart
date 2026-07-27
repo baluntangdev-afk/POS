@@ -7,10 +7,14 @@ mixin _$ProductsDaoMixin on DatabaseAccessor<AppDatabase> {
   $ProductGroupsTableTable get productGroupsTable =>
       attachedDatabase.productGroupsTable;
   $ProductsTableTable get productsTable => attachedDatabase.productsTable;
+  $ProductVariantsTableTable get productVariantsTable =>
+      attachedDatabase.productVariantsTable;
   $ModifierGroupsTableTable get modifierGroupsTable =>
       attachedDatabase.modifierGroupsTable;
   $ModifierOptionsTableTable get modifierOptionsTable =>
       attachedDatabase.modifierOptionsTable;
+  $ProductModifierGroupsTableTable get productModifierGroupsTable =>
+      attachedDatabase.productModifierGroupsTable;
   ProductsDaoManager get managers => ProductsDaoManager(this);
 }
 
@@ -24,6 +28,11 @@ class ProductsDaoManager {
       );
   $$ProductsTableTableTableManager get productsTable =>
       $$ProductsTableTableTableManager(_db.attachedDatabase, _db.productsTable);
+  $$ProductVariantsTableTableTableManager get productVariantsTable =>
+      $$ProductVariantsTableTableTableManager(
+        _db.attachedDatabase,
+        _db.productVariantsTable,
+      );
   $$ModifierGroupsTableTableTableManager get modifierGroupsTable =>
       $$ModifierGroupsTableTableTableManager(
         _db.attachedDatabase,
@@ -33,5 +42,11 @@ class ProductsDaoManager {
       $$ModifierOptionsTableTableTableManager(
         _db.attachedDatabase,
         _db.modifierOptionsTable,
+      );
+  $$ProductModifierGroupsTableTableTableManager
+  get productModifierGroupsTable =>
+      $$ProductModifierGroupsTableTableTableManager(
+        _db.attachedDatabase,
+        _db.productModifierGroupsTable,
       );
 }

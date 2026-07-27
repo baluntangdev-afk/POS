@@ -7,208 +7,104 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/empty_state_widget.dart';
 import '../../../core/widgets/error_state_widget.dart';
+import '../../auth/state/auth_providers.dart';
+import '../../auth/state/auth_state.dart';
 import '../state/modifier_groups_notifier.dart';
-import 'modifier_group_form_dialog.dart';
-import 'modifier_option_form_dialog.dart';
 
-/// Lists a single product's modifier groups (each expandable to show its
-/// options), with create/edit/delete affordances for both groups and options.
-///
-/// Scoped to one [productId] since mobile's modifier groups are 1:1-owned by
-/// a single product (Phase 3 Design Decision #2) — unlike kiosk's
-/// reusable-across-products model.
+/// Per-product modifier-group attachment: a checklist of every *active*
+/// global group, with a switch to attach/detach it to/from this product.
+/// Creating a brand-new group is not done here — it deep-links back to the
+/// Inventory screen's Modifier Groups tab instead.
 class ModifierGroupsScreen extends ConsumerWidget {
   final int productId;
   const ModifierGroupsScreen({super.key, required this.productId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final groupsAsync = ref.watch(modifierGroupsProvider(productId));
+    final allGroupsAsync = ref.watch(allModifierGroupsProvider);
+    final attachedAsync = ref.watch(attachedModifierGroupsProvider(productId));
+    final authState = ref.watch(authNotifierProvider);
+    final isAdmin =
+        authState is AuthAuthenticated && authState.user.isAdminOrSupervisor;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Modifier Groups')),
-      body: groupsAsync.when(
+      appBar: AppBar(
+        title: const Text('Modifier Groups'),
+        actions: [
+          if (isAdmin)
+            TextButton.icon(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+              label: const Text('Manage Groups', style: TextStyle(color: Colors.white)),
+            ),
+        ],
+      ),
+      body: allGroupsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => ErrorStateWidget(
-          message: e.toString(),
-          onRetry: () => ref.invalidate(modifierGroupsProvider(productId)),
-        ),
-        data: (groups) {
-          if (groups.isEmpty) {
+        error: (e, _) => ErrorStateWidget(message: e.toString()),
+        data: (allGroups) {
+          final activeGroups = allGroups.where((g) => g.group.isActive).toList();
+          if (activeGroups.isEmpty) {
             return EmptyStateWidget(
               title: 'No modifier groups yet',
-              subtitle: 'Add a group to let customers customize this product.',
+              subtitle: 'Create one from the Modifier Groups tab, then attach it here.',
               icon: Icons.tune_rounded,
             );
           }
-          return ListView.separated(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            itemCount: groups.length,
-            separatorBuilder: (context, index) => const Gap(AppSpacing.md),
-            itemBuilder: (context, i) => _ModifierGroupCard(
-              productId: productId,
-              entry: groups[i],
-            ),
+          return attachedAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => ErrorStateWidget(message: e.toString()),
+            data: (attached) {
+              final attachedIds = attached.map((g) => g.id).toSet();
+              return ListView.separated(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                itemCount: activeGroups.length,
+                separatorBuilder: (context, index) => const Gap(AppSpacing.sm),
+                itemBuilder: (context, i) {
+                  final entry = activeGroups[i];
+                  final isAttached = attachedIds.contains(entry.group.id);
+                  return Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(entry.group.name, style: AppTextStyles.labelLg.copyWith(fontWeight: FontWeight.w700)),
+                              Text(
+                                '${entry.group.isRequired ? 'Required' : 'Optional'} · Max ${entry.group.maxSelections} · ${entry.options.length} option(s)',
+                                style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: isAttached,
+                          onChanged: isAdmin
+                              ? (v) {
+                                  final actions = ref.read(productModifierGroupActionsProvider(productId));
+                                  if (v) {
+                                    actions.attach(entry.group.id);
+                                  } else {
+                                    actions.detach(entry.group.id);
+                                  }
+                                }
+                              : null,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => showDialog<void>(
-          context: context,
-          builder: (_) => ModifierGroupFormDialog(productId: productId),
-        ),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add Group'),
-      ),
-    );
-  }
-}
-
-class _ModifierGroupCard extends ConsumerWidget {
-  final int productId;
-  final ModifierGroupWithOptions entry;
-
-  const _ModifierGroupCard({required this.productId, required this.entry});
-
-  Future<void> _confirmDeleteGroup(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete this modifier group?'),
-        content: Text(
-            '"${entry.group.name}" and all of its options will be permanently removed. This cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    await ref.read(modifierGroupsActionsProvider(productId)).deleteGroup(entry.group.id);
-  }
-
-  Future<void> _confirmDeleteOption(
-    BuildContext context,
-    WidgetRef ref,
-    int optionId,
-    String optionName,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete this option?'),
-        content: Text('"$optionName" will be permanently removed. This cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    await ref.read(modifierGroupsActionsProvider(productId)).deleteOption(optionId);
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final group = entry.group;
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: ExpansionTile(
-        title: Text(
-          group.name,
-          style: AppTextStyles.labelLg.copyWith(fontWeight: FontWeight.w700),
-        ),
-        subtitle: Text(
-          '${group.isRequired ? 'Required' : 'Optional'} · Max ${group.maxSelections}',
-          style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
-              tooltip: 'Edit group',
-              onPressed: () => showDialog<void>(
-                context: context,
-                builder: (_) => ModifierGroupFormDialog(productId: productId, existing: group),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
-              tooltip: 'Delete group',
-              onPressed: () => _confirmDeleteGroup(context, ref),
-            ),
-          ],
-        ),
-        children: [
-          if (entry.options.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(bottom: AppSpacing.md),
-              child: Text('No options yet'),
-            )
-          else
-            for (final option in entry.options)
-              ListTile(
-                title: Text(option.name),
-                subtitle: Text('+ PHP ${option.additionalPrice.toStringAsFixed(2)}'),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined, color: AppColors.primary, size: 20),
-                      tooltip: 'Edit option',
-                      onPressed: () => showDialog<void>(
-                        context: context,
-                        builder: (_) => ModifierOptionFormDialog(
-                          productId: productId,
-                          groupId: group.id,
-                          existing: option,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
-                      tooltip: 'Delete option',
-                      onPressed: () => _confirmDeleteOption(context, ref, option.id, option.name),
-                    ),
-                  ],
-                ),
-              ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: () => showDialog<void>(
-                  context: context,
-                  builder: (_) => ModifierOptionFormDialog(productId: productId, groupId: group.id),
-                ),
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Add Option'),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

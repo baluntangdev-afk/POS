@@ -21,6 +21,7 @@ import '../data/models/category.dart';
 import '../data/models/product.dart';
 import '../state/inventory_categories_notifier.dart';
 import '../state/inventory_products_notifier.dart';
+import 'import_products_csv_dialog.dart';
 import 'product_dialogs.dart';
 
 class InventoryGridScreen extends HookConsumerWidget {
@@ -134,7 +135,15 @@ class _FilterBar extends StatelessWidget {
             ),
           ),
           if (isAdminOrSupervisor)
-            if (isPhone)
+            if (isPhone) ...[
+              OutlinedButton(
+                onPressed: () => showImportProductsCsvDialog(context),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                  padding: EdgeInsets.zero,
+                ),
+                child: const Icon(Icons.upload_file_rounded, size: 20),
+              ),
               FilledButton(
                 onPressed: () => showSaveProductDialog(context),
                 style: FilledButton.styleFrom(
@@ -142,13 +151,19 @@ class _FilterBar extends StatelessWidget {
                   padding: EdgeInsets.zero,
                 ),
                 child: const Icon(Icons.add, size: 20),
-              )
-            else
+              ),
+            ] else ...[
+              Button.outlined(
+                label: const Text('Import CSV'),
+                leading: const Icon(Icons.upload_file_rounded),
+                onPressed: () => showImportProductsCsvDialog(context),
+              ),
               Button(
                 label: const Text('Add Product'),
                 leading: const Icon(Icons.add),
                 onPressed: () => showSaveProductDialog(context),
               ),
+            ],
         ],
       ),
     );

@@ -1,4 +1,4 @@
-﻿import 'package:drift/drift.dart';
+import 'package:drift/drift.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
@@ -51,11 +51,11 @@ class InventoryNotifier extends AsyncNotifier<InventoryState> {
   Future<InventoryState> _load() async {
     final db = ref.watch(databaseProvider);
     final groupRows = await db.productsDao.getAllActiveGroups();
-    final productRows = await db.productsDao.getAllProducts();
+    final productRows = await db.productsDao.getAllProductsWithPrice();
 
     final groupCounts = <int, int>{};
     for (final p in productRows) {
-      groupCounts[p.groupId] = (groupCounts[p.groupId] ?? 0) + 1;
+      groupCounts[p.product.groupId] = (groupCounts[p.product.groupId] ?? 0) + 1;
     }
 
     final groups = groupRows
@@ -66,14 +66,14 @@ class InventoryNotifier extends AsyncNotifier<InventoryState> {
 
     final products = productRows
         .map((p) => InventoryProduct(
-              id: p.id,
-              groupId: p.groupId,
-              name: p.name,
+              id: p.product.id,
+              groupId: p.product.groupId,
+              name: p.product.name,
               price: p.price,
-              isAvailable: p.isAvailable,
-              imageUrl: p.imageUrl,
-              sortOrder: p.sortOrder,
-              group: groupById[p.groupId],
+              isAvailable: p.product.isAvailable,
+              imageUrl: p.product.imageUrl,
+              sortOrder: p.product.sortOrder,
+              group: groupById[p.product.groupId],
             ))
         .toList();
 
@@ -91,10 +91,7 @@ class InventoryNotifier extends AsyncNotifier<InventoryState> {
   Future<void> toggleAvailability(InventoryProduct product) async {
     final db = ref.read(databaseProvider);
     await db.productsDao.toggleProductAvailability(product.id, isAvailable: !product.isAvailable);
-    state = state.whenData((s) {
-      final updated = s.products.map((p) => p.id == product.id ? p.copyWith(isAvailable: !product.isAvailable) : p).toList();
-      return s.copyWith(products: updated);
-    });
+    await refresh();
   }
 
   Future<void> refresh() async {
@@ -102,30 +99,31 @@ class InventoryNotifier extends AsyncNotifier<InventoryState> {
     state = await AsyncValue.guard(_load);
   }
 
-  Future<void> createProduct({
+  /// Creates the product row only (no variants) and returns its new id — the
+  /// caller (`ProductFormDialog`) follows up with [saveVariants] once the user
+  /// has entered at least one variant.
+  Future<int> createProduct({
     required int groupId,
     required String name,
-    required double price,
     String? imageUrl,
   }) async {
     final db = ref.read(databaseProvider);
     if (await db.productsDao.isProductNameTaken(groupId, name)) {
       throw StateError('A product named "$name" already exists in this category');
     }
-    await db.productsDao.insertProduct(ProductsTableCompanion.insert(
+    final id = await db.productsDao.insertProduct(ProductsTableCompanion.insert(
       groupId: groupId,
       name: name,
-      price: price,
       imageUrl: Value(imageUrl),
     ));
     await refresh();
+    return id;
   }
 
   Future<void> updateProduct({
     required int id,
     required int groupId,
     required String name,
-    required double price,
     String? imageUrl,
   }) async {
     final db = ref.read(databaseProvider);
@@ -136,15 +134,52 @@ class InventoryNotifier extends AsyncNotifier<InventoryState> {
       id: Value(id),
       groupId: Value(groupId),
       name: Value(name),
-      price: Value(price),
       imageUrl: Value(imageUrl),
     ));
     await refresh();
   }
 
-  Future<void> deleteProduct(int id) async {
+  /// Validates and persists a product's full variant list (kiosk's business
+  /// rules: at least one active variant, unique case-insensitive names among
+  /// active variants, price >= 0.01, exactly one active default).
+  Future<void> saveVariants(int productId, List<VariantInput> variants) async {
+    final active = variants.where((v) => v.isActive).toList();
+    if (active.isEmpty) {
+      throw StateError('At least one active variant is required');
+    }
+    final names = active.map((v) => v.name.trim().toLowerCase()).toList();
+    if (names.toSet().length != names.length) {
+      throw StateError('Variant names must be unique');
+    }
+    if (active.any((v) => v.price < 0.01)) {
+      throw StateError('Each active variant needs a price of at least 0.01');
+    }
+    final defaultCount = active.where((v) => v.isDefault).length;
+    if (defaultCount != 1) {
+      throw StateError('Exactly one active variant must be marked default');
+    }
+
     final db = ref.read(databaseProvider);
-    await db.productsDao.deleteProduct(id);
+    await db.productsDao.clearDefaultVariant(productId);
+    for (final v in variants) {
+      if (v.id == null) {
+        await db.productsDao.insertVariant(ProductVariantsTableCompanion.insert(
+          productId: productId,
+          name: v.name.trim(),
+          price: v.price,
+          isDefault: Value(v.isDefault),
+          isActive: Value(v.isActive),
+        ));
+      } else {
+        await db.productsDao.updateVariant(
+          v.id!,
+          name: v.name.trim(),
+          price: v.price,
+          isDefault: v.isDefault,
+          isActive: v.isActive,
+        );
+      }
+    }
     await refresh();
   }
 
@@ -163,13 +198,15 @@ class InventoryNotifier extends AsyncNotifier<InventoryState> {
     await db.productsDao.updateProductGroup(id, name: name, isActive: isActive);
     await refresh();
   }
-
-  Future<void> deleteCategory(int id) async {
-    final db = ref.read(databaseProvider);
-    await db.productsDao.deleteProductGroup(id);
-    await refresh();
-  }
 }
 
 final inventoryNotifierProvider =
     AsyncNotifierProvider<InventoryNotifier, InventoryState>(InventoryNotifier.new);
+
+/// Loads a single product's variants — used by [ProductFormDialog] to seed
+/// its editable rows in edit mode.
+final productVariantsProvider =
+    FutureProvider.family<List<ProductVariantsTableData>, int>((ref, productId) {
+  final db = ref.watch(databaseProvider);
+  return db.productsDao.getVariantsForProduct(productId);
+});

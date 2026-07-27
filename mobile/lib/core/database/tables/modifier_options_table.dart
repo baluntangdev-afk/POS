@@ -9,4 +9,5 @@ class ModifierOptionsTable extends Table {
   IntColumn get groupId => integer().references(ModifierGroupsTable, #id)();
   TextColumn get name => text().withLength(min: 1, max: 100)();
   RealColumn get additionalPrice => real().withDefault(const Constant(0.0))();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
 }

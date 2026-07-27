@@ -26,7 +26,7 @@ void main() {
           ProductGroupsTableCompanion.insert(name: 'Drinks'),
         );
     final productId = await db.into(db.productsTable).insert(
-          ProductsTableCompanion.insert(groupId: groupId, name: 'Latte', price: unitPrice),
+          ProductsTableCompanion.insert(groupId: groupId, name: 'Latte'),
         );
     final saleId = await db.salesDao.insertSale(
       SalesTableCompanion.insert(

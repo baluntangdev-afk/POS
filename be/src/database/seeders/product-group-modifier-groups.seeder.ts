@@ -113,5 +113,35 @@ export class ProductGroupModifierGroupsSeeder implements Seeder {
     }
 
     console.log(`Product-group–modifier-group links: ${upserted} upserted`);
+
+    // ── 5. Reconcile the whole pivot table to the fixture ─────────────────────
+    // This seeder owns product_group_modifier_groups entirely, so any row whose
+    // pair isn't declared in the fixture is stale (including product groups that
+    // were removed from the fixture altogether) and gets deleted.
+    const desiredPairs = PRODUCT_GROUP_MODIFIER_GROUPS_FIXTURE.map((link) => [
+      productGroupByName.get(link.productGroupName),
+      modifierGroupByName.get(link.modifierGroupName),
+    ]).filter((pair): pair is [number, number] => pair[0] !== undefined && pair[1] !== undefined);
+
+    const existingLinks: { product_group_id: number; modifier_group_id: number }[] =
+      await dataSource.query(`SELECT product_group_id, modifier_group_id FROM product_group_modifier_groups`);
+
+    const staleLinks = existingLinks.filter(
+      (row) =>
+        !desiredPairs.some(
+          ([pgId, mgId]) => pgId === row.product_group_id && mgId === row.modifier_group_id,
+        ),
+    );
+
+    for (const stale of staleLinks) {
+      await dataSource.query(
+        `DELETE FROM product_group_modifier_groups WHERE product_group_id = $1 AND modifier_group_id = $2`,
+        [stale.product_group_id, stale.modifier_group_id],
+      );
+    }
+
+    if (staleLinks.length > 0) {
+      console.log(`Product-group–modifier-group links: ${staleLinks.length} stale link(s) removed`);
+    }
   }
 }

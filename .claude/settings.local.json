@@ -416,7 +416,9 @@
       "Bash(grep -v \"packages\\\\\\\\\\\\\\\\excel\\\\|test\\\\\\\\\\\\\\\\features\\\\\\\\\\\\\\\\catalog\")",
       "Bash(grep -v \"packages\\\\\\\\\\\\\\\\excel\\\\|test\\\\\\\\\\\\\\\\features\\\\\\\\\\\\\\\\catalog\\\\|IsolateSpawnException\\\\|Unrecorded error\")",
       "Bash(flutter clean *)",
-      "Bash(flutter precache *)"
+      "Bash(flutter precache *)",
+      "Bash(tee /tmp/seedrun2.txt)",
+      "Bash(grep -n 'class\\\\|updateProduct\\\\|import' 'C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\lib\\\\data\\\\backend_api\\\\sources\" -r 2>/dev/null *)"
     ]
   }
 }

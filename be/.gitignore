@@ -72,6 +72,7 @@ $RECYCLE.BIN/
 # Assets
 /assets
 /src/assets
+/public/products
 
 # Cursors
 *.cursor

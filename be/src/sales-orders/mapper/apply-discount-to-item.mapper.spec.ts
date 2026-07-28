@@ -10,7 +10,7 @@ describe('ApplyDiscountToItemMapper.applyDiscountAmountsToItem', () => {
     totalAmount: '80.000000',
     vatAmount: '0.000000',
   };
-  const causer = { id: 'user-1' } as User;
+  const causer = { id: 'user-1' } as unknown as User;
 
   it('persists beneficiary id number and name when provided', () => {
     const item = new SalesOrderItem();

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -14,7 +13,6 @@ import '../../auth/state/auth_state.dart';
 import '../entities/inventory_product.dart';
 import '../state/inventory_notifier.dart';
 import 'categories_tab.dart';
-import 'modifier_groups_management_screen.dart';
 import 'product_form_dialog.dart';
 
 class InventoryScreen extends HookConsumerWidget {
@@ -27,7 +25,7 @@ class InventoryScreen extends HookConsumerWidget {
       return null;
     }, const []);
 
-    final tabController = useTabController(initialLength: 3);
+    final tabController = useTabController(initialLength: 2);
     final currentTab = useState(0);
     useEffect(() {
       void listener() => currentTab.value = tabController.index;
@@ -48,7 +46,6 @@ class InventoryScreen extends HookConsumerWidget {
           tabs: const [
             Tab(text: 'Products'),
             Tab(text: 'Categories'),
-            Tab(text: 'Modifier Groups'),
           ],
         ),
         actions: [
@@ -63,7 +60,6 @@ class InventoryScreen extends HookConsumerWidget {
         children: const [
           _ProductsTab(),
           CategoriesTab(),
-          ModifierGroupsManagementScreen(),
         ],
       ),
       floatingActionButton: currentTab.value == 0 && isAdmin
@@ -286,7 +282,7 @@ class _ProductsGrid extends StatelessWidget {
               AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: cols,
-            childAspectRatio: 0.72,
+            childAspectRatio: 0.62,
             crossAxisSpacing: AppSpacing.md,
             mainAxisSpacing: AppSpacing.md,
           ),
@@ -329,7 +325,7 @@ class _ProductCard extends ConsumerWidget {
             children: [
               // ── Image ──────────────────────────────────────────────
               Expanded(
-                flex: 5,
+                flex: 4,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -351,9 +347,10 @@ class _ProductCard extends ConsumerWidget {
               ),
               // ── Info ───────────────────────────────────────────────
               Expanded(
-                flex: 4,
+                flex: 5,
                 child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -384,7 +381,7 @@ class _ProductCard extends ConsumerWidget {
                                       : AppColors.success.withValues(alpha: 0.12),
                                   foregroundColor:
                                       product.isAvailable ? AppColors.error : AppColors.success,
-                                  minimumSize: const Size(0, 36),
+                                  minimumSize: const Size(0, 32),
                                   padding: EdgeInsets.zero,
                                   elevation: 0,
                                   shape: RoundedRectangleBorder(
@@ -425,12 +422,15 @@ class _ProductCard extends ConsumerWidget {
                               ),
                             ),
                           ],
-                          const Gap(4),
-                          _CardIconButton(
-                            icon: Icons.tune_rounded,
-                            color: AppColors.secondary,
-                            onPressed: () => context.push('/inventory/products/${product.id}/modifiers'),
-                          ),
+                          // Modifier group management is being reworked; disable
+                          // navigation to the per-product modifiers screen for now.
+                          // const Gap(4),
+                          // _CardIconButton(
+                          //   icon: Icons.tune_rounded,
+                          //   color: AppColors.secondary,
+                          //   onPressed: () =>
+                          //       context.push('/inventory/products/${product.id}/modifiers'),
+                          // ),
                         ],
                       ),
                     ],
@@ -455,8 +455,8 @@ class _CardIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 36,
-      height: 36,
+      width: 32,
+      height: 32,
       child: IconButton(
         onPressed: onPressed,
         icon: Icon(icon, size: 16, color: color),

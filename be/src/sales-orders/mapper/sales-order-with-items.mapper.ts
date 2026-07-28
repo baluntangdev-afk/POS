@@ -52,6 +52,9 @@ export class SalesOrderWithItemsMapper {
       saleType: item.saleType ?? null,
       note: item.note ?? null,
       category: item.productVariant?.product?.productGroup?.name ?? null,
+      discountName: item.salesOrderDiscount?.discount?.name ?? null,
+      discountBeneficiaryIdNumber: item.discountBeneficiaryIdNumber ?? null,
+      discountBeneficiaryName: item.discountBeneficiaryName ?? null,
     };
   }
 }

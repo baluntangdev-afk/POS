@@ -74,6 +74,27 @@ export class SalesOrderItemResponseDto {
     nullable: true,
   })
   category: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Discount name applied to this line (e.g. Senior Citizen / PWD)',
+    example: 'Senior Citizen / PWD',
+    nullable: true,
+  })
+  discountName: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Discount beneficiary ID number (Senior Citizen/PWD discounts only)',
+    example: 'SC-2024-00001',
+    nullable: true,
+  })
+  discountBeneficiaryIdNumber: string | null;
+
+  @ApiPropertyOptional({
+    description: "Discount beneficiary's name (Senior Citizen/PWD discounts only)",
+    example: 'Juan Dela Cruz',
+    nullable: true,
+  })
+  discountBeneficiaryName: string | null;
 }
 
 /**

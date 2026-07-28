@@ -622,6 +622,19 @@ class _ItemsView extends StatelessWidget {
                 ],
               ),
             ),
+          if (item.isMain && item.discountBeneficiaryName != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Text(
+                'LESS: ${item.discountCode.isNotEmpty ? item.discountCode : 'Senior Citizen / PWD'} '
+                '— ${item.discountBeneficiaryName} (${item.discountBeneficiaryIdNumber})',
+                style: TextStyle(
+                  fontSize: r.value<double>(kiosk: 11, tablet: 11, phone: 10),
+                  color: ColorSet.danger,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           if (isPartiallyRefunded)
             Text(
               '  (Refunded: $refundedQty of ${item.quantity})',

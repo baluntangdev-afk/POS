@@ -299,7 +299,7 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
       grossAmount: Decimal.parse(
         ((double.tryParse(dto.qty) ?? 1).round() * dto.unitPrice).toString(),
       ),
-      discountCode: '',
+      discountCode: dto.discountName ?? '',
       discountRate: Decimal.parse(dto.itemDiscountRate.toString()),
       discountAmount: Decimal.parse(dto.itemDiscountedPrice.toString()),
       vatExclusiveAmount: Decimal.parse(dto.vatExclusiveAmount.toString()),
@@ -309,6 +309,8 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
       saleType: _saleTypeFromString(dto.saleType),
       note: dto.note,
       category: dto.category,
+      discountBeneficiaryIdNumber: dto.discountBeneficiaryIdNumber,
+      discountBeneficiaryName: dto.discountBeneficiaryName,
     );
   }
 

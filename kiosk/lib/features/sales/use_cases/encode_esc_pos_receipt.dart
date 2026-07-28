@@ -156,6 +156,17 @@ class EncodeEscPosReceipt {
             bytes += generator.text(sanitizeForPrinter('  $tag${item.note ?? ''}'.trimRight()));
           }
 
+          if (item.isMain && item.discountBeneficiaryName != null) {
+            final discountLabel = item.discountCode.isNotEmpty
+                ? item.discountCode
+                : 'Senior Citizen / PWD';
+            bytes += generator.text(
+              sanitizeForPrinter(
+                '  LESS: $discountLabel - ${item.discountBeneficiaryName} (${item.discountBeneficiaryIdNumber})',
+              ),
+            );
+          }
+
           if (isPartiallyRefunded) {
             bytes += generator.text('  (Refunded: $refundedQty of ${item.quantity})');
           }

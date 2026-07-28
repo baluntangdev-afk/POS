@@ -411,7 +411,12 @@
       "Bash(Select-Object Name, Status, StartType, DisplayName)",
       "Bash(Format-List)",
       "PowerShell(& \"C:\\\\nssm\\\\nssm.exe\" get POSPostgres Application 2>&1; & \"C:\\\\nssm\\\\nssm.exe\" get POSPostgres AppParameters 2>&1; & \"C:\\\\nssm\\\\nssm.exe\" get POSPostgres AppDirectory 2>&1)",
-      "PowerShell(git *)"
+      "PowerShell(git *)",
+      "Bash(powershell -c \"Get-Content -Path 'C:/Users/Jufiel/Documents/POS/be/src/sales-orders/services/sales-order-item-build.service.spec.ts' -TotalCount 60\")",
+      "Bash(grep -v \"packages\\\\\\\\\\\\\\\\excel\\\\|test\\\\\\\\\\\\\\\\features\\\\\\\\\\\\\\\\catalog\")",
+      "Bash(grep -v \"packages\\\\\\\\\\\\\\\\excel\\\\|test\\\\\\\\\\\\\\\\features\\\\\\\\\\\\\\\\catalog\\\\|IsolateSpawnException\\\\|Unrecorded error\")",
+      "Bash(flutter clean *)",
+      "Bash(flutter precache *)"
     ]
   }
 }

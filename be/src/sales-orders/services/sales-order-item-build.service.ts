@@ -99,6 +99,7 @@ export class SalesOrderItemBuildService {
           parseFloat(discount.value),
           amounts,
           causer,
+          { idNumber: product.discount.idNumber, beneficiaryName: product.discount.beneficiaryName },
         );
 
         itemDiscount = SalesOrderDiscountMapper.toEntityWithAppliedAmount(
@@ -127,6 +128,7 @@ export class SalesOrderItemBuildService {
             parseFloat(discount.value),
             amounts,
             causer,
+            { idNumber: product.discount.idNumber, beneficiaryName: product.discount.beneficiaryName },
           );
 
           const appliedAmount = ApplyDiscountToItemMapper.computeAppliedAmount(
@@ -256,6 +258,7 @@ export class SalesOrderItemBuildService {
         ctx.discountValue,
         ctx.amounts,
         causer,
+        { idNumber: itemDto.discounts.idNumber, beneficiaryName: itemDto.discounts.beneficiaryName },
       );
       childItem.qty = Number(itemDto.qty).toFixed(DECIMAL_PLACES);
       childItem.createdBy = causer;
@@ -276,6 +279,7 @@ export class SalesOrderItemBuildService {
       ctx.discountValue,
       ctx.amounts,
       causer,
+      { idNumber: itemDto.discounts.idNumber, beneficiaryName: itemDto.discounts.beneficiaryName },
     );
     ctx.existingItem.updatedBy = causer;
     return [ctx.existingItem];

@@ -84,11 +84,14 @@ class SaleRepositoryImpl implements SaleRepository {
 
   ApplyDiscountItemDiscountDto? _applyDiscountItemDiscountDtoFromDiscount(Discount? discount) {
     return switch (discount) {
-      SeniorPwdDiscount(:final code, :final rate) => ApplyDiscountItemDiscountDto(
-        id: 1,
-        name: code,
-        value: rate.toDouble(),
-      ),
+      SeniorPwdDiscount(:final code, :final rate, :final beneficiaryId, :final beneficiaryName) =>
+        ApplyDiscountItemDiscountDto(
+          id: 1,
+          name: code,
+          value: rate.toDouble(),
+          idNumber: beneficiaryId,
+          beneficiaryName: beneficiaryName,
+        ),
       _ => null,
     };
   }

@@ -12,4 +12,9 @@ class SaleItemsTable extends Table {
   TextColumn get variantName => text()();
   IntColumn get qty => integer()();
   RealColumn get unitPrice => real()();
+  TextColumn get discountType => text().nullable()();
+  TextColumn get discountBeneficiaryId => text().nullable()();
+  TextColumn get discountBeneficiaryName => text().nullable()();
+  RealColumn get discountAmount => real().nullable()();
+  RealColumn get vatExemptAmount => real().nullable()();
 }

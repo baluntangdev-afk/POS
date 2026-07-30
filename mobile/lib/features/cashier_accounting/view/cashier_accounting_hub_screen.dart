@@ -57,18 +57,30 @@ class CashierAccountingHubScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Cashier Accounting'),
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-      ),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        itemCount: _kTiles.length,
-        separatorBuilder: (_, _) => const Gap(AppSpacing.md),
-        itemBuilder: (context, i) => _HubCard(tile: _kTiles[i]),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/dashboard');
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text('Cashier Accounting'),
+          backgroundColor: AppColors.surface,
+          surfaceTintColor: Colors.transparent,
+          leading: IconButton(
+            onPressed: () {
+              context.go('/dashboard');
+            },
+            icon: Icon(Icons.arrow_back),
+          ),
+        ),
+        body: ListView.separated(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          itemCount: _kTiles.length,
+          separatorBuilder: (_, _) => const Gap(AppSpacing.md),
+          itemBuilder: (context, i) => _HubCard(tile: _kTiles[i]),
+        ),
       ),
     );
   }

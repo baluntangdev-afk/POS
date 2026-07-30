@@ -9,8 +9,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/breakpoints.dart';
-import '../entities/cart_item.dart';
-import '../entities/cart_state.dart';
+import '../entities/line_item.dart';
+import '../entities/sale.dart';
 import '../state/ordering_notifier.dart';
 import 'modifier_dialog.dart';
 
@@ -24,20 +24,32 @@ class OrderingScreen extends HookConsumerWidget {
       return null;
     }, const []);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('New Order'),
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          if (Breakpoints.isTablet(constraints.maxWidth)) {
-            return const _TabletLayout();
-          }
-          return const _PhoneLayout();
-        },
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/dashboard');
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text('New Order'),
+          backgroundColor: AppColors.surface,
+          surfaceTintColor: Colors.transparent,
+          leading: IconButton(
+            onPressed: () {
+              context.go('/dashboard');
+            },
+            icon: Icon(Icons.arrow_back),
+          ),
+        ),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            if (Breakpoints.isTablet(constraints.maxWidth)) {
+              return const _TabletLayout();
+            }
+            return const _PhoneLayout();
+          },
+        ),
       ),
     );
   }
@@ -54,10 +66,7 @@ class _TabletLayout extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(child: _ProductSection()),
-        SizedBox(
-          width: 320,
-          child: _CartPanel(),
-        ),
+        SizedBox(width: 320, child: _CartPanel()),
       ],
     );
   }
@@ -71,10 +80,10 @@ class _PhoneLayout extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cartCount = ref.watch(
-      orderingProvider.select((s) => s.value?.totalQuantity ?? 0),
+      orderingProvider.select((s) => s.value?.sale.totalQuantity ?? 0),
     );
     final cartTotal = ref.watch(
-      orderingProvider.select((s) => s.value?.total ?? 0),
+      orderingProvider.select((s) => s.value?.sale.total ?? 0),
     );
 
     return Stack(
@@ -105,13 +114,15 @@ class _PhoneLayout extends HookConsumerWidget {
           top: Radius.circular(AppSpacing.radiusXl),
         ),
       ),
-      builder: (ctx) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.75,
-        minChildSize: 0.4,
-        maxChildSize: 0.95,
-        builder: (_, controller) => const _CartPanel(scrollController: null),
-      ),
+      builder:
+          (ctx) => DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.75,
+            minChildSize: 0.4,
+            maxChildSize: 0.95,
+            builder:
+                (_, controller) => const _CartPanel(scrollController: null),
+          ),
     );
   }
 }
@@ -125,10 +136,7 @@ class _ProductSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _CategoryChipRow(),
-        Expanded(child: _ProductGrid()),
-      ],
+      children: [_CategoryChipRow(), Expanded(child: _ProductGrid())],
     );
   }
 }
@@ -155,7 +163,9 @@ class _CategoryChipRow extends ConsumerWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.sm,
+        ),
         itemCount: groups.length + 1,
         separatorBuilder: (ctx, i2) => const Gap(AppSpacing.sm),
         itemBuilder: (_, i) {
@@ -163,7 +173,8 @@ class _CategoryChipRow extends ConsumerWidget {
             return _Chip(
               label: 'All',
               isSelected: selectedId == null,
-              onTap: () => ref.read(orderingProvider.notifier).selectGroup(null),
+              onTap:
+                  () => ref.read(orderingProvider.notifier).selectGroup(null),
             );
           }
           final g = groups[i - 1];
@@ -183,7 +194,11 @@ class _Chip extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _Chip({required this.label, required this.isSelected, required this.onTap});
+  const _Chip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -224,25 +239,32 @@ class _ProductGrid extends ConsumerWidget {
 
     return state.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline_rounded,
-                size: 48, color: AppColors.error),
-            const Gap(AppSpacing.md),
-            Text('Failed to load products',
-                style: AppTextStyles.headingSm
-                    .copyWith(color: AppColors.textSecondary)),
-            const Gap(AppSpacing.sm),
-            FilledButton.icon(
-              onPressed: () => ref.invalidate(orderingProvider),
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Retry'),
+      error:
+          (e, _) => Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.error_outline_rounded,
+                  size: 48,
+                  color: AppColors.error,
+                ),
+                const Gap(AppSpacing.md),
+                Text(
+                  'Failed to load products',
+                  style: AppTextStyles.headingSm.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const Gap(AppSpacing.sm),
+                FilledButton.icon(
+                  onPressed: () => ref.invalidate(orderingProvider),
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Retry'),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
       data: (cartState) {
         final products = cartState.filteredProducts;
         if (products.isEmpty) {
@@ -250,13 +272,18 @@ class _ProductGrid extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.restaurant_menu_rounded,
-                    size: 48,
-                    color: AppColors.textDisabled),
+                Icon(
+                  Icons.restaurant_menu_rounded,
+                  size: 48,
+                  color: AppColors.textDisabled,
+                ),
                 const Gap(AppSpacing.md),
-                Text('No products available',
-                    style: AppTextStyles.headingSm
-                        .copyWith(color: AppColors.textSecondary)),
+                Text(
+                  'No products available',
+                  style: AppTextStyles.headingSm.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ],
             ),
           );
@@ -269,7 +296,11 @@ class _ProductGrid extends ConsumerWidget {
             final cols = constraints.maxWidth >= 600 ? 3 : 2;
             return GridView.builder(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.md, AppSpacing.md, AppSpacing.md, 100),
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                100,
+              ),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: cols,
                 childAspectRatio: 0.72,
@@ -277,12 +308,13 @@ class _ProductGrid extends ConsumerWidget {
                 mainAxisSpacing: AppSpacing.sm,
               ),
               itemCount: products.length,
-              itemBuilder: (_, i) => RepaintBoundary(
-                child: _ProductCard(
-                  product: products[i],
-                  groupName: groupById[products[i].groupId] ?? '',
-                ),
-              ),
+              itemBuilder:
+                  (_, i) => RepaintBoundary(
+                    child: _ProductCard(
+                      product: products[i],
+                      groupName: groupById[products[i].groupId] ?? '',
+                    ),
+                  ),
             );
           },
         );
@@ -323,7 +355,8 @@ class _ProductCard extends ConsumerWidget {
               flex: 5,
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(AppSpacing.radiusXl)),
+                  top: Radius.circular(AppSpacing.radiusXl),
+                ),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -345,8 +378,11 @@ class _ProductCard extends ConsumerWidget {
                             ),
                           ],
                         ),
-                        child: const Icon(Icons.add_rounded,
-                            color: Colors.white, size: 18),
+                        child: const Icon(
+                          Icons.add_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                       ),
                     ),
                   ],
@@ -363,8 +399,9 @@ class _ProductCard extends ConsumerWidget {
                     Text(
                       product.name,
                       style: AppTextStyles.labelLg.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary),
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -372,8 +409,9 @@ class _ProductCard extends ConsumerWidget {
                     Text(
                       'PHP ${product.price.toStringAsFixed(2)}',
                       style: AppTextStyles.bodyMd.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700),
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
@@ -388,6 +426,7 @@ class _ProductCard extends ConsumerWidget {
 
 class _ProductImage extends StatelessWidget {
   final String? imageUrl;
+
   const _ProductImage({this.imageUrl});
 
   @override
@@ -409,8 +448,11 @@ class _Placeholder extends StatelessWidget {
     return ColoredBox(
       color: AppColors.primary.withValues(alpha: 0.08),
       child: Center(
-        child: Icon(Icons.fastfood_rounded,
-            size: 36, color: AppColors.primary.withValues(alpha: 0.35)),
+        child: Icon(
+          Icons.fastfood_rounded,
+          size: 36,
+          color: AppColors.primary.withValues(alpha: 0.35),
+        ),
       ),
     );
   }
@@ -435,7 +477,9 @@ class _CartBar extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
+        ),
         decoration: BoxDecoration(
           color: AppColors.primary,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
@@ -450,26 +494,27 @@ class _CartBar extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.25),
-                borderRadius:
-                    BorderRadius.circular(AppSpacing.radiusFull),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
               ),
               child: Text(
                 '$itemCount',
                 style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13),
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
               ),
             ),
             const Gap(AppSpacing.sm),
             Text(
               'View Cart',
               style: AppTextStyles.bodyMd.copyWith(
-                  color: Colors.white, fontWeight: FontWeight.w600),
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const Spacer(),
             Text(
@@ -477,8 +522,11 @@ class _CartBar extends StatelessWidget {
               style: AppTextStyles.headingSm.copyWith(color: Colors.white),
             ),
             const Gap(AppSpacing.sm),
-            const Icon(Icons.arrow_forward_ios_rounded,
-                size: 14, color: Colors.white),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: Colors.white,
+            ),
           ],
         ),
       ),
@@ -490,15 +538,14 @@ class _CartBar extends StatelessWidget {
 
 class _CartPanel extends HookConsumerWidget {
   final ScrollController? scrollController;
+
   const _CartPanel({this.scrollController});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(
-      orderingProvider.select((s) => s.value),
-    );
+    final state = ref.watch(orderingProvider.select((s) => s.value));
 
-    final items = state?.items ?? const [];
+    final items = state?.sale.items ?? const [];
 
     return Container(
       color: AppColors.surface,
@@ -508,33 +555,43 @@ class _CartPanel extends HookConsumerWidget {
           // Panel header
           Container(
             padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg, AppSpacing.md, AppSpacing.md, AppSpacing.md),
+              AppSpacing.lg,
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+            ),
             decoration: const BoxDecoration(
-              border:
-                  Border(bottom: BorderSide(color: AppColors.divider)),
+              border: Border(bottom: BorderSide(color: AppColors.divider)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.receipt_long_rounded,
-                    size: 20, color: AppColors.primary),
+                const Icon(
+                  Icons.receipt_long_rounded,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
                 const Gap(AppSpacing.sm),
                 Text('Order', style: AppTextStyles.headingSm),
                 const Spacer(),
                 if (items.isNotEmpty)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 2),
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
-                      borderRadius:
-                          BorderRadius.circular(AppSpacing.radiusFull),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusFull,
+                      ),
                     ),
                     child: Text(
-                      '${state!.totalQuantity}',
+                      '${state!.sale.totalQuantity}',
                       style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700),
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 if (items.isNotEmpty) ...[
@@ -544,9 +601,9 @@ class _CartPanel extends HookConsumerWidget {
                       ref.read(orderingProvider.notifier).clearCart();
                     },
                     style: TextButton.styleFrom(
-                        foregroundColor: AppColors.error,
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 8)),
+                      foregroundColor: AppColors.error,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
                     child: const Text('Clear'),
                   ),
                 ],
@@ -556,23 +613,24 @@ class _CartPanel extends HookConsumerWidget {
 
           // Items
           Expanded(
-            child: items.isEmpty
-                ? const _EmptyCartState()
-                : ListView.separated(
-                    controller: scrollController,
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    itemCount: items.length,
-                    separatorBuilder: (ctx, i2) =>
-                        const Gap(AppSpacing.sm),
-                    itemBuilder: (_, i) => _CartItemRow(
-                      key: ValueKey(items[i].cartId),
-                      item: items[i],
+            child:
+                items.isEmpty
+                    ? const _EmptyCartState()
+                    : ListView.separated(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      itemCount: items.length,
+                      separatorBuilder: (ctx, i2) => const Gap(AppSpacing.sm),
+                      itemBuilder:
+                          (_, i) => _CartItemRow(
+                            key: ValueKey(items[i].id),
+                            item: items[i],
+                          ),
                     ),
-                  ),
           ),
 
           // Footer
-          if (items.isNotEmpty) _CartFooter(state: state!),
+          if (items.isNotEmpty) _CartFooter(sale: state!.sale),
         ],
       ),
     );
@@ -595,17 +653,24 @@ class _EmptyCartState extends StatelessWidget {
               color: AppColors.surfaceVariant,
               borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
             ),
-            child: const Icon(Icons.shopping_cart_outlined,
-                size: 28, color: AppColors.textDisabled),
+            child: const Icon(
+              Icons.shopping_cart_outlined,
+              size: 28,
+              color: AppColors.textDisabled,
+            ),
           ),
           const Gap(AppSpacing.md),
-          Text('Cart is empty',
-              style: AppTextStyles.headingSm
-                  .copyWith(color: AppColors.textSecondary)),
+          Text(
+            'Cart is empty',
+            style: AppTextStyles.headingSm.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
           const Gap(4),
-          Text('Tap a product to add',
-              style: AppTextStyles.bodySm
-                  .copyWith(color: AppColors.textDisabled)),
+          Text(
+            'Tap a product to add',
+            style: AppTextStyles.bodySm.copyWith(color: AppColors.textDisabled),
+          ),
         ],
       ),
     );
@@ -615,7 +680,7 @@ class _EmptyCartState extends StatelessWidget {
 // ── Cart item row (expandable) ────────────────────────────────────────────────
 
 class _CartItemRow extends HookConsumerWidget {
-  final CartItem item;
+  final LineItem item;
 
   const _CartItemRow({super.key, required this.item});
 
@@ -623,14 +688,13 @@ class _CartItemRow extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final expanded = useState(false);
     final notifier = ref.read(orderingProvider.notifier);
-    final notesController =
-        useTextEditingController(text: item.notes ?? '');
+    final notesController = useTextEditingController(text: item.notes ?? '');
     final notesFocus = useFocusNode();
 
     useEffect(() {
       void onFocusLost() {
         if (!notesFocus.hasFocus) {
-          notifier.updateNotes(item.cartId, notesController.text);
+          notifier.updateNotes(item.id, notesController.text);
         }
       }
 
@@ -645,9 +709,10 @@ class _CartItemRow extends HookConsumerWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 160),
       decoration: BoxDecoration(
-        color: expanded.value
-            ? AppColors.primary.withValues(alpha: 0.05)
-            : AppColors.surfaceVariant,
+        color:
+            expanded.value
+                ? AppColors.primary.withValues(alpha: 0.05)
+                : AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
         border: Border.all(
           color: expanded.value ? AppColors.primary : Colors.transparent,
@@ -674,9 +739,10 @@ class _CartItemRow extends HookConsumerWidget {
                           item.productName,
                           style: AppTextStyles.labelLg.copyWith(
                             fontWeight: FontWeight.w700,
-                            color: expanded.value
-                                ? AppColors.primary
-                                : AppColors.textPrimary,
+                            color:
+                                expanded.value
+                                    ? AppColors.primary
+                                    : AppColors.textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -685,18 +751,20 @@ class _CartItemRow extends HookConsumerWidget {
                         Wrap(
                           spacing: 4,
                           children: [
-                            Text('x${item.quantity}',
-                                style: AppTextStyles.bodySm.copyWith(
-                                    color: AppColors.textSecondary)),
-                            if (modSummary.isNotEmpty)
-                              Text(modSummary,
-                                  style: AppTextStyles.bodySm.copyWith(
-                                      color: AppColors.textDisabled)),
-                            if (item.discountAmount != null)
-                              _DiscountBadge(
-                                onClear: () =>
-                                    notifier.clearItemDiscount(item.cartId),
+                            Text(
+                              'x${item.quantity}',
+                              style: AppTextStyles.bodySm.copyWith(
+                                color: AppColors.textSecondary,
                               ),
+                            ),
+                            if (modSummary.isNotEmpty)
+                              Text(
+                                modSummary,
+                                style: AppTextStyles.bodySm.copyWith(
+                                  color: AppColors.textDisabled,
+                                ),
+                              ),
+                            if (item.discount != null) const _DiscountBadge(),
                           ],
                         ),
                       ],
@@ -706,7 +774,7 @@ class _CartItemRow extends HookConsumerWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      if (item.discountAmount != null) ...[
+                      if (item.discount != null) ...[
                         Text(
                           'PHP ${item.lineSubtotal.toStringAsFixed(2)}',
                           style: AppTextStyles.bodySm.copyWith(
@@ -718,8 +786,9 @@ class _CartItemRow extends HookConsumerWidget {
                       Text(
                         'PHP ${item.lineTotal.toStringAsFixed(2)}',
                         style: AppTextStyles.labelLg.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700),
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
@@ -733,105 +802,113 @@ class _CartItemRow extends HookConsumerWidget {
             const Divider(height: 1, color: AppColors.divider),
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.sm + 2, AppSpacing.sm, AppSpacing.sm + 2, AppSpacing.sm + 2),
+                AppSpacing.sm + 2,
+                AppSpacing.sm,
+                AppSpacing.sm + 2,
+                AppSpacing.sm + 2,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Text('Qty',
-                          style: AppTextStyles.labelMd
-                              .copyWith(color: AppColors.textSecondary)),
+                      Text(
+                        'Qty',
+                        style: AppTextStyles.labelMd.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                       const Gap(AppSpacing.sm),
                       _MiniStepper(
                         quantity: item.quantity,
-                        onDecrease: () =>
-                            notifier.updateQuantity(item.cartId, item.quantity - 1),
-                        onIncrease: () =>
-                            notifier.updateQuantity(item.cartId, item.quantity + 1),
-                        locked: item.discountAmount != null,
+                        onDecrease:
+                            () => notifier.updateQuantity(
+                              item.id,
+                              item.quantity - 1,
+                            ),
+                        onIncrease:
+                            () => notifier.updateQuantity(
+                              item.id,
+                              item.quantity + 1,
+                            ),
+                        locked: item.discount != null,
                       ),
                       const Spacer(),
                       GestureDetector(
-                        onTap: () =>
-                            notifier.removeItem(item.cartId),
+                        onTap: () => notifier.removeItem(item.id),
                         child: Container(
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
                             color: AppColors.errorLight,
-                            borderRadius:
-                                BorderRadius.circular(AppSpacing.radiusFull),
+                            borderRadius: BorderRadius.circular(
+                              AppSpacing.radiusFull,
+                            ),
                           ),
-                          child: const Icon(Icons.delete_outline_rounded,
-                              size: 16, color: AppColors.error),
+                          child: const Icon(
+                            Icons.delete_outline_rounded,
+                            size: 16,
+                            color: AppColors.error,
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const Gap(AppSpacing.sm),
-                  Text('NOTES',
-                      style: AppTextStyles.labelMd.copyWith(
-                          color: AppColors.textDisabled,
-                          letterSpacing: 0.8,
-                          fontSize: 10)),
+                  Text(
+                    'NOTES',
+                    style: AppTextStyles.labelMd.copyWith(
+                      color: AppColors.textDisabled,
+                      letterSpacing: 0.8,
+                      fontSize: 10,
+                    ),
+                  ),
                   const Gap(4),
                   TextField(
                     controller: notesController,
                     focusNode: notesFocus,
-                    onSubmitted: (v) => notifier.updateNotes(item.cartId, v),
+                    onSubmitted: (v) => notifier.updateNotes(item.id, v),
                     style: AppTextStyles.bodySm,
                     decoration: InputDecoration(
                       hintText: 'e.g. no onions…',
-                      hintStyle:
-                          AppTextStyles.bodySm.copyWith(color: AppColors.textDisabled),
+                      hintStyle: AppTextStyles.bodySm.copyWith(
+                        color: AppColors.textDisabled,
+                      ),
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm, vertical: AppSpacing.xs + 2),
+                        horizontal: AppSpacing.sm,
+                        vertical: AppSpacing.xs + 2,
+                      ),
                       border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(AppSpacing.radiusSm)),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusSm,
+                        ),
+                      ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                        borderSide:
-                            const BorderSide(color: AppColors.border),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusSm,
+                        ),
+                        borderSide: const BorderSide(color: AppColors.border),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusSm,
+                        ),
                         borderSide: const BorderSide(
-                            color: AppColors.primary, width: 1.5),
+                          color: AppColors.primary,
+                          width: 1.5,
+                        ),
                       ),
                     ),
                   ),
-                  const Gap(AppSpacing.sm),
-                  // Item discount
-                  GestureDetector(
-                    onTap: () => _showItemDiscountDialog(context, item.cartId, ref),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md, vertical: AppSpacing.xs + 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceVariant,
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.local_offer_outlined,
-                              size: 14, color: AppColors.primary),
-                          const Gap(4),
-                          Text(
-                            item.discountAmount != null
-                                ? 'Discount: PHP ${item.discountAmount!.toStringAsFixed(2)}'
-                                : 'Add Item Discount',
-                            style: AppTextStyles.labelMd
-                                .copyWith(color: AppColors.primary),
-                          ),
-                        ],
+                  if (item.discount != null) ...[
+                    Text(
+                      'Discount: PHP ${item.discountAmount.toStringAsFixed(2)}',
+                      style: AppTextStyles.labelMd.copyWith(
+                        color: AppColors.warning,
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -840,72 +917,37 @@ class _CartItemRow extends HookConsumerWidget {
       ),
     );
   }
-
-  Future<void> _showItemDiscountDialog(
-      BuildContext context, String cartId, WidgetRef ref) async {
-    final controller = TextEditingController();
-    final result = await showDialog<double>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Item Discount'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Discount amount (PHP)',
-            prefixText: 'PHP ',
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () {
-              final v = double.tryParse(controller.text);
-              if (v != null && v > 0) Navigator.pop(ctx, v);
-            },
-            child: const Text('Apply'),
-          ),
-        ],
-      ),
-    );
-    if (result != null) {
-      ref.read(orderingProvider.notifier).applyItemDiscount(cartId, result);
-    }
-  }
 }
 
 class _DiscountBadge extends StatelessWidget {
-  final VoidCallback onClear;
-  const _DiscountBadge({required this.onClear});
+  const _DiscountBadge();
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onClear,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-        decoration: BoxDecoration(
-          color: AppColors.warningLight,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusSm - 4),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.local_offer_rounded,
-                size: 9, color: AppColors.warning),
-            const Gap(2),
-            Text('Disc.',
-                style: AppTextStyles.bodySm.copyWith(
-                    color: AppColors.warning,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600)),
-            const Gap(2),
-            const Icon(Icons.close_rounded, size: 9, color: AppColors.warning),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: AppColors.warningLight,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm - 4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.local_offer_rounded,
+            size: 9,
+            color: AppColors.warning,
+          ),
+          const Gap(2),
+          Text(
+            'Disc.',
+            style: AppTextStyles.bodySm.copyWith(
+              color: AppColors.warning,
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -939,17 +981,23 @@ class _MiniStepper extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               _MiniBtn(
-                  icon: Icons.remove_rounded,
-                  onTap: quantity > 1 ? onDecrease : null),
+                icon: Icons.remove_rounded,
+                onTap: quantity > 1 ? onDecrease : null,
+              ),
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                child: Text('$quantity',
-                    style: AppTextStyles.labelLg
-                        .copyWith(fontWeight: FontWeight.w700)),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                child: Text(
+                  '$quantity',
+                  style: AppTextStyles.labelLg.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
               _MiniBtn(
-                  icon: Icons.add_rounded, filled: true, onTap: onIncrease),
+                icon: Icons.add_rounded,
+                filled: true,
+                onTap: onIncrease,
+              ),
             ],
           ),
         ),
@@ -973,18 +1021,22 @@ class _MiniBtn extends StatelessWidget {
         width: 28,
         height: 28,
         decoration: BoxDecoration(
-          color: filled
-              ? AppColors.primary
-              : AppColors.primary.withValues(alpha: 0.1),
+          color:
+              filled
+                  ? AppColors.primary
+                  : AppColors.primary.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon,
-            size: 14,
-            color: filled
-                ? Colors.white
-                : (onTap != null
-                    ? AppColors.primary
-                    : AppColors.textDisabled)),
+        child: Icon(
+          icon,
+          size: 14,
+          color:
+              filled
+                  ? Colors.white
+                  : (onTap != null
+                      ? AppColors.primary
+                      : AppColors.textDisabled),
+        ),
       ),
     );
   }
@@ -993,8 +1045,9 @@ class _MiniBtn extends StatelessWidget {
 // ── Cart footer ───────────────────────────────────────────────────────────────
 
 class _CartFooter extends ConsumerWidget {
-  final CartState state;
-  const _CartFooter({required this.state});
+  final Sale sale;
+
+  const _CartFooter({required this.sale});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1007,24 +1060,40 @@ class _CartFooter extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Order type
+          Text(
+            'ORDER TYPE',
+            style: AppTextStyles.labelMd.copyWith(
+              color: AppColors.textSecondary,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const Gap(AppSpacing.sm),
+          _SaleTypeSelector(
+            selected: sale.type,
+            onChanged:
+                (t) => ref.read(orderingProvider.notifier).setSaleType(t),
+          ),
+          const Gap(AppSpacing.md),
           // Totals
-          _TotalRow('Subtotal', state.subtotal, secondary: true),
-          if (state.totalDiscount > 0)
-            _TotalRow('Discount', -state.totalDiscount, secondary: true),
+          _TotalRow('Subtotal', sale.subtotal, secondary: true),
+          if (sale.totalDiscount > 0)
+            _TotalRow('Discount', -sale.totalDiscount, secondary: true),
           const Gap(AppSpacing.xs),
-          _TotalRow('Total', state.total, large: true),
+          _TotalRow('Total', sale.total, large: true),
           const Gap(AppSpacing.sm),
           // Order discount
           OutlinedButton.icon(
-            onPressed: () => _showOrderDiscountDialog(context, ref),
+            onPressed: () => context.push('/order/discount'),
             icon: const Icon(Icons.local_offer_outlined, size: 16),
-            label: Text(state.orderDiscount > 0
-                ? 'Order Discount: PHP ${state.orderDiscount.toStringAsFixed(2)}'
-                : 'Apply Order Discount'),
+            label: Text(
+              sale.totalDiscount > 0
+                  ? 'Discount: PHP ${sale.totalDiscount.toStringAsFixed(2)}'
+                  : 'Apply Order Discount',
+            ),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primary,
-              side: BorderSide(
-                  color: AppColors.primary.withValues(alpha: 0.5)),
+              side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
               minimumSize: const Size(0, 40),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -1047,12 +1116,16 @@ class _CartFooter extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('Proceed to Payment',
-                    style: AppTextStyles.headingSm
-                        .copyWith(color: Colors.white)),
+                Text(
+                  'Proceed to Payment',
+                  style: AppTextStyles.headingSm.copyWith(color: Colors.white),
+                ),
                 const Gap(AppSpacing.sm),
-                const Icon(Icons.arrow_forward_rounded,
-                    size: 18, color: Colors.white),
+                const Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 18,
+                  color: Colors.white,
+                ),
               ],
             ),
           ),
@@ -1060,70 +1133,67 @@ class _CartFooter extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Future<void> _showOrderDiscountDialog(
-      BuildContext context, WidgetRef ref) async {
-    final notifier = ref.read(orderingProvider.notifier);
-    final controller = TextEditingController(
-      text: state.orderDiscount > 0
-          ? state.orderDiscount.toStringAsFixed(2)
-          : '',
+// ── Sale type selector ─────────────────────────────────────────────────────────
+
+class _SaleTypeSelector extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onChanged;
+
+  const _SaleTypeSelector({required this.selected, required this.onChanged});
+
+  static const _types = [
+    ('dine_in', 'Dine In', Icons.restaurant_rounded),
+    ('take_out', 'Take Out', Icons.takeout_dining_rounded),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children:
+          _types.map((t) {
+            final (key, label, icon) = t;
+            final isSel = selected == key;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => onChanged(key),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  margin: const EdgeInsets.only(right: AppSpacing.sm),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: isSel ? AppColors.primary : AppColors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    border: Border.all(
+                      color: isSel ? AppColors.primary : AppColors.border,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        icon,
+                        size: 18,
+                        color: isSel ? Colors.white : AppColors.textSecondary,
+                      ),
+                      const Gap(2),
+                      Text(
+                        label,
+                        style: AppTextStyles.labelMd.copyWith(
+                          fontSize: 11,
+                          color: isSel ? Colors.white : AppColors.textSecondary,
+                          fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
     );
-    final result = await showDialog<_DiscountAction>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Order Discount'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-              labelText: 'Discount amount (PHP)', prefixText: 'PHP '),
-        ),
-        actions: [
-          if (state.orderDiscount > 0)
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, _DiscountAction.clear),
-              child: const Text('Clear',
-                  style: TextStyle(color: AppColors.error)),
-            ),
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () {
-              final v = double.tryParse(controller.text);
-              if (v != null && v >= 0) {
-                Navigator.pop(ctx, _DiscountAction.apply(v));
-              }
-            },
-            child: const Text('Apply'),
-          ),
-        ],
-      ),
-    );
-    if (result == _DiscountAction.clear) {
-      notifier.clearOrderDiscount();
-    } else if (result is _DiscountApply) {
-      notifier.applyOrderDiscount(result.amount);
-    }
   }
-}
-
-sealed class _DiscountAction {
-  const _DiscountAction();
-  static const clear = _DiscountClear();
-  static _DiscountApply apply(double amount) => _DiscountApply(amount);
-}
-
-final class _DiscountClear extends _DiscountAction {
-  const _DiscountClear();
-}
-
-final class _DiscountApply extends _DiscountAction {
-  final double amount;
-  const _DiscountApply(this.amount);
 }
 
 class _TotalRow extends StatelessWidget {
@@ -1132,8 +1202,12 @@ class _TotalRow extends StatelessWidget {
   final bool secondary;
   final bool large;
 
-  const _TotalRow(this.label, this.amount,
-      {this.secondary = false, this.large = false});
+  const _TotalRow(
+    this.label,
+    this.amount, {
+    this.secondary = false,
+    this.large = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1144,22 +1218,27 @@ class _TotalRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: large
-                ? AppTextStyles.headingSm
-                : AppTextStyles.bodyMd.copyWith(
-                    color: AppColors.textSecondary),
+            style:
+                large
+                    ? AppTextStyles.headingSm
+                    : AppTextStyles.bodyMd.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
           ),
           Text(
             amount < 0
                 ? '-PHP ${(-amount).toStringAsFixed(2)}'
                 : 'PHP ${amount.toStringAsFixed(2)}',
-            style: large
-                ? AppTextStyles.priceMd.copyWith(color: AppColors.primary)
-                : AppTextStyles.bodyMd.copyWith(
-                    color: secondary
-                        ? AppColors.textSecondary
-                        : AppColors.textPrimary,
-                    fontWeight: FontWeight.w500),
+            style:
+                large
+                    ? AppTextStyles.priceMd.copyWith(color: AppColors.primary)
+                    : AppTextStyles.bodyMd.copyWith(
+                      color:
+                          secondary
+                              ? AppColors.textSecondary
+                              : AppColors.textPrimary,
+                      fontWeight: FontWeight.w500,
+                    ),
           ),
         ],
       ),

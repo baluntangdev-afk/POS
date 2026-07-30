@@ -10,36 +10,52 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        children: [
-          _SectionHeader('Data'),
-          _SettingsTile(
-            icon: Icons.upload_file_rounded,
-            title: 'Import CSV',
-            subtitle: 'Import products, modifiers, users, or store info from CSV files',
-            onTap: () => context.push('/settings/csv-import'),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/dashboard');
+      },
+
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text('Settings'),
+          leading: IconButton(
+            onPressed: () {
+              context.go('/dashboard');
+            },
+            icon: Icon(Icons.arrow_back),
           ),
-          const SizedBox(height: AppSpacing.lg),
-          _SectionHeader('Store'),
-          _SettingsTile(
-            icon: Icons.store_outlined,
-            title: 'Store Information',
-            subtitle: 'Name, address, tax rate, currency',
-            onTap: () => context.push('/settings/store-info'),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          _SectionHeader('Printer'),
-          _SettingsTile(
-            icon: Icons.print_outlined,
-            title: 'Printer Setup',
-            subtitle: 'Configure Bluetooth or built-in thermal printer',
-            onTap: () => context.push('/settings/printer'),
-          ),
-        ],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          children: [
+            _SectionHeader('Data'),
+            _SettingsTile(
+              icon: Icons.upload_file_rounded,
+              title: 'Import CSV',
+              subtitle:
+                  'Import products, modifiers, users, or store info from CSV files',
+              onTap: () => context.push('/settings/csv-import'),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            _SectionHeader('Store'),
+            _SettingsTile(
+              icon: Icons.store_outlined,
+              title: 'Store Information',
+              subtitle: 'Name, address, tax rate, currency',
+              onTap: () => context.push('/settings/store-info'),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            _SectionHeader('Printer'),
+            _SettingsTile(
+              icon: Icons.print_outlined,
+              title: 'Printer Setup',
+              subtitle: 'Configure Bluetooth or built-in thermal printer',
+              onTap: () => context.push('/settings/printer'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -47,6 +63,7 @@ class SettingsScreen extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
+
   const _SectionHeader(this.title);
 
   @override
@@ -92,26 +109,39 @@ class _SettingsTile extends StatelessWidget {
           ),
         ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.sm,
           ),
-          child: Icon(icon, color: AppColors.primary, size: 22),
+          leading: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 22),
+          ),
+          title: Text(title, style: AppTextStyles.headingSm),
+          subtitle: Text(
+            subtitle,
+            style: AppTextStyles.bodySm.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          trailing: const Icon(
+            Icons.chevron_right_rounded,
+            color: AppColors.textDisabled,
+          ),
+          onTap: onTap,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          ),
         ),
-        title: Text(title, style: AppTextStyles.headingSm),
-        subtitle: Text(
-          subtitle,
-          style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
-        ),
-        trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textDisabled),
-        onTap: onTap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusLg)),
       ),
     );
   }

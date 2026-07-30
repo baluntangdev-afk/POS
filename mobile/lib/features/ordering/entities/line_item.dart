@@ -1,3 +1,5 @@
+import 'discount.dart';
+
 class SelectedModifierOption {
   final int optionId;
   final String name;
@@ -22,8 +24,8 @@ class SelectedModifierGroup {
   });
 }
 
-class CartItem {
-  final String cartId;
+class LineItem {
+  final String id;
   final int productId;
   final String productName;
   final String groupName;
@@ -32,10 +34,10 @@ class CartItem {
   final int quantity;
   final List<SelectedModifierGroup> modifiers;
   final String? notes;
-  final double? discountAmount;
+  final Discount? discount;
 
-  const CartItem({
-    required this.cartId,
+  const LineItem({
+    required this.id,
     required this.productId,
     required this.productName,
     required this.groupName,
@@ -44,7 +46,7 @@ class CartItem {
     required this.quantity,
     required this.modifiers,
     this.notes,
-    this.discountAmount,
+    this.discount,
   });
 
   double get modifierTotal =>
@@ -52,15 +54,22 @@ class CartItem {
 
   double get unitPrice => basePrice + modifierTotal;
   double get lineSubtotal => unitPrice * quantity;
-  double get lineTotal => lineSubtotal - (discountAmount ?? 0);
+  double get discountAmount => discount?.calculateAmount(lineSubtotal) ?? 0;
 
-  CartItem copyWith({
+  bool get isVatExempt => discount?.isVatExempt ?? false;
+  double get vatExclusiveAmount => lineSubtotal.vatExclusiveAmount;
+  double get vatAmount => isVatExempt ? 0 : lineSubtotal.vatAmount;
+
+  double get lineTotal => vatExclusiveAmount + vatAmount - discountAmount;
+
+  LineItem copyWith({
+    String? id,
     int? quantity,
     String? notes,
-    double? Function()? discountAmount,
+    Discount? Function()? discount,
   }) =>
-      CartItem(
-        cartId: cartId,
+      LineItem(
+        id: id ?? this.id,
         productId: productId,
         productName: productName,
         groupName: groupName,
@@ -69,6 +78,6 @@ class CartItem {
         quantity: quantity ?? this.quantity,
         modifiers: modifiers,
         notes: notes ?? this.notes,
-        discountAmount: discountAmount != null ? discountAmount() : this.discountAmount,
+        discount: discount != null ? discount() : this.discount,
       );
 }

@@ -418,7 +418,10 @@
       "Bash(flutter clean *)",
       "Bash(flutter precache *)",
       "Bash(tee /tmp/seedrun2.txt)",
-      "Bash(grep -n 'class\\\\|updateProduct\\\\|import' 'C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\lib\\\\data\\\\backend_api\\\\sources\" -r 2>/dev/null *)"
+      "Bash(grep -n 'class\\\\|updateProduct\\\\|import' 'C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\lib\\\\data\\\\backend_api\\\\sources\" -r 2>/dev/null *)",
+      "Bash(jq --version)",
+      "Bash(dart format *)",
+      "Bash(xargs grep -l \"addItem\\\\|vat\\\\|VAT\" -i)"
     ]
   }
 }

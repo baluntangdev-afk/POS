@@ -7,16 +7,16 @@ import '../../../core/database/app_database.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../entities/cart_item.dart';
-import '../entities/cart_state.dart';
+import '../entities/line_item.dart';
+import '../state/ordering_notifier.dart';
 
-Future<CartItem?> showModifierDialog(
+Future<LineItem?> showModifierDialog(
   BuildContext context, {
   required OrderProduct product,
   required String groupName,
   required AppDatabase db,
 }) {
-  return showModalBottomSheet<CartItem>(
+  return showModalBottomSheet<LineItem>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
@@ -113,8 +113,8 @@ class _ModifierSheet extends HookConsumerWidget {
         ));
       }
 
-      final cartItem = CartItem(
-        cartId: '${product.id}_${DateTime.now().microsecondsSinceEpoch}',
+      final lineItem = LineItem(
+        id: '${product.id}_${DateTime.now().microsecondsSinceEpoch}',
         productId: product.id,
         productName: product.name,
         groupName: groupName,
@@ -125,7 +125,7 @@ class _ModifierSheet extends HookConsumerWidget {
         notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
       );
 
-      Navigator.of(context).pop(cartItem);
+      Navigator.of(context).pop(lineItem);
     }
 
     final totalPrice = product.price +

@@ -41,13 +41,19 @@ class _CategoriesTabState extends ConsumerState<CategoriesTab> {
   }
 
   Future<void> _openAddDialog() async {
-    await showDialog<void>(context: context, builder: (_) => const CategoryFormDialog());
+    await showDialog<void>(
+      context: context,
+      builder: (_) => const CategoryFormDialog(),
+    );
     if (!mounted) return;
     await _refresh();
   }
 
   Future<void> _openEditDialog(ProductGroupsTableData group) async {
-    await showDialog<void>(context: context, builder: (_) => CategoryFormDialog(existing: group));
+    await showDialog<void>(
+      context: context,
+      builder: (_) => CategoryFormDialog(existing: group),
+    );
     if (!mounted) return;
     await _refresh();
   }
@@ -70,7 +76,10 @@ class _CategoriesTabState extends ConsumerState<CategoriesTab> {
           if (groups.isEmpty) {
             return EmptyStateWidget(
               title: 'No categories yet',
-              subtitle: isAdmin ? 'Tap the + button to add one.' : 'Ask an admin to add one.',
+              subtitle:
+                  isAdmin
+                      ? 'Tap the + button to add one.'
+                      : 'Ask an admin to add one.',
               icon: Icons.category_outlined,
             );
           }
@@ -87,32 +96,44 @@ class _CategoriesTabState extends ConsumerState<CategoriesTab> {
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                   ),
-                  child: ListTile(
-                    title: Text(g.name, style: AppTextStyles.labelLg),
-                    subtitle: g.isActive ? null : const Text('Inactive'),
-                    trailing: isAdmin
-                        ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
-                                onPressed: () => _openEditDialog(g),
-                              ),
-                              Switch(
-                                value: g.isActive,
-                                onChanged: (v) async {
-                                  await ref.read(inventoryNotifierProvider.notifier).updateCategory(
-                                        id: g.id,
-                                        name: g.name,
-                                        isActive: v,
-                                      );
-                                  if (!mounted) return;
-                                  await _refresh();
-                                },
-                              ),
-                            ],
-                          )
-                        : null,
+                  clipBehavior: Clip.antiAlias,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      title: Text(g.name, style: AppTextStyles.labelLg),
+                      subtitle: g.isActive ? null : const Text('Inactive'),
+                      trailing:
+                          isAdmin
+                              ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.edit_outlined,
+                                      color: AppColors.primary,
+                                    ),
+                                    onPressed: () => _openEditDialog(g),
+                                  ),
+                                  Switch(
+                                    value: g.isActive,
+                                    onChanged: (v) async {
+                                      await ref
+                                          .read(
+                                            inventoryNotifierProvider.notifier,
+                                          )
+                                          .updateCategory(
+                                            id: g.id,
+                                            name: g.name,
+                                            isActive: v,
+                                          );
+                                      if (!mounted) return;
+                                      await _refresh();
+                                    },
+                                  ),
+                                ],
+                              )
+                              : null,
+                    ),
                   ),
                 ),
               );
@@ -120,13 +141,14 @@ class _CategoriesTabState extends ConsumerState<CategoriesTab> {
           );
         },
       ),
-      floatingActionButton: isAdmin
-          ? FloatingActionButton.extended(
-              onPressed: _openAddDialog,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Add Category'),
-            )
-          : null,
+      floatingActionButton:
+          isAdmin
+              ? FloatingActionButton.extended(
+                onPressed: _openAddDialog,
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Add Category'),
+              )
+              : null,
     );
   }
 }

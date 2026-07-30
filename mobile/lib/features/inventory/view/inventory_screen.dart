@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -37,34 +38,46 @@ class InventoryScreen extends HookConsumerWidget {
     final isAdmin =
         authState is AuthAuthenticated && authState.user.isAdminOrSupervisor;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Inventory Management'),
-        bottom: TabBar(
-          controller: tabController,
-          tabs: const [
-            Tab(text: 'Products'),
-            Tab(text: 'Categories'),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/dashboard');
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text('Inventory Management'),
+          bottom: TabBar(
+            controller: tabController,
+            tabs: const [
+              Tab(text: 'Products'),
+              Tab(text: 'Categories'),
+            ],
+          ),
+          leading: IconButton(
+            onPressed: () {
+              context.go('/dashboard');
+            },
+            icon: Icon(Icons.arrow_back),
+          ),
+          actions: [
+            IconButton(
+              onPressed: () => ref.read(inventoryNotifierProvider.notifier).refresh(),
+              icon: const Icon(Icons.refresh_rounded),
+            ),
           ],
         ),
-        actions: [
-          IconButton(
-            onPressed: () => ref.read(inventoryNotifierProvider.notifier).refresh(),
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
+        body: TabBarView(
+          controller: tabController,
+          children: const [
+            _ProductsTab(),
+            CategoriesTab(),
+          ],
+        ),
+        floatingActionButton: currentTab.value == 0 && isAdmin
+            ? const _ProductsTabFab()
+            : null,
       ),
-      body: TabBarView(
-        controller: tabController,
-        children: const [
-          _ProductsTab(),
-          CategoriesTab(),
-        ],
-      ),
-      floatingActionButton: currentTab.value == 0 && isAdmin
-          ? const _ProductsTabFab()
-          : null,
     );
   }
 }

@@ -46,8 +46,9 @@ class PrinterSetupScreen extends HookWidget {
     Future<void> connect(BluetoothInfo device) async {
       connectingMac.value = device.macAdress;
       try {
-        final ok =
-            await PrintBluetoothThermal.connect(macPrinterAddress: device.macAdress);
+        final ok = await PrintBluetoothThermal.connect(
+          macPrinterAddress: device.macAdress,
+        );
         if (ok) {
           await PrintService.savePrinter(device.macAdress, device.name);
           savedMac.value = device.macAdress;
@@ -101,47 +102,59 @@ class PrinterSetupScreen extends HookWidget {
           // ── Current printer ────────────────────────────────────────────
           _SectionCard(
             title: 'Current Printer',
-            child: savedMac.value == null
-                ? Row(
-                    children: [
-                      const Icon(Icons.print_disabled_outlined,
-                          size: 32, color: AppColors.textDisabled),
-                      const Gap(AppSpacing.md),
-                      Text(
-                        'No printer configured',
-                        style: AppTextStyles.bodyMd
-                            .copyWith(color: AppColors.textSecondary),
-                      ),
-                    ],
-                  )
-                : Row(
-                    children: [
-                      const Icon(Icons.print_rounded,
-                          size: 32, color: AppColors.success),
-                      const Gap(AppSpacing.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(savedName.value ?? 'Unknown',
-                                style: AppTextStyles.headingSm),
-                            Text(
-                              savedMac.value!,
-                              style: AppTextStyles.bodySm
-                                  .copyWith(color: AppColors.textSecondary),
-                            ),
-                          ],
+            child:
+                savedMac.value == null
+                    ? Row(
+                      children: [
+                        const Icon(
+                          Icons.print_disabled_outlined,
+                          size: 32,
+                          color: AppColors.textDisabled,
                         ),
-                      ),
-                      TextButton.icon(
-                        onPressed: removePrinter,
-                        icon: const Icon(Icons.link_off_rounded, size: 18),
-                        label: const Text('Remove'),
-                        style:
-                            TextButton.styleFrom(foregroundColor: AppColors.error),
-                      ),
-                    ],
-                  ),
+                        const Gap(AppSpacing.md),
+                        Text(
+                          'No printer configured',
+                          style: AppTextStyles.bodyMd.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    )
+                    : Row(
+                      children: [
+                        const Icon(
+                          Icons.print_rounded,
+                          size: 32,
+                          color: AppColors.success,
+                        ),
+                        const Gap(AppSpacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                savedName.value ?? 'Unknown',
+                                style: AppTextStyles.headingSm,
+                              ),
+                              Text(
+                                savedMac.value!,
+                                style: AppTextStyles.bodySm.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: removePrinter,
+                          icon: const Icon(Icons.link_off_rounded, size: 18),
+                          label: const Text('Remove'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.error,
+                          ),
+                        ),
+                      ],
+                    ),
           ),
           const Gap(AppSpacing.lg),
 
@@ -149,25 +162,29 @@ class PrinterSetupScreen extends HookWidget {
           FilledButton.tonal(
             onPressed: scanning.value ? null : scan,
             style: FilledButton.styleFrom(
-              minimumSize: const Size(double.infinity, AppSpacing.touchPreferred),
+              minimumSize: const Size(
+                double.infinity,
+                AppSpacing.touchPreferred,
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
               ),
             ),
-            child: scanning.value
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.bluetooth_searching_rounded),
-                      Gap(AppSpacing.sm),
-                      Text('Scan Paired Devices'),
-                    ],
-                  ),
+            child:
+                scanning.value
+                    ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                    : const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.bluetooth_searching_rounded),
+                        Gap(AppSpacing.sm),
+                        Text('Scan Paired Devices'),
+                      ],
+                    ),
           ),
 
           // ── Device list ────────────────────────────────────────────────
@@ -188,7 +205,8 @@ class PrinterSetupScreen extends HookWidget {
                 device: device,
                 isCurrent: isCurrent,
                 isConnecting: isConnecting,
-                onTap: (isConnecting || isCurrent) ? null : () => connect(device),
+                onTap:
+                    (isConnecting || isCurrent) ? null : () => connect(device),
               );
             }),
           ],
@@ -199,7 +217,9 @@ class PrinterSetupScreen extends HookWidget {
               child: Text(
                 'Tap "Scan Paired Devices" to see available printers.\n'
                 'Make sure Bluetooth is on and the printer is paired in system settings.',
-                style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.bodySm.copyWith(
+                  color: AppColors.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -266,14 +286,16 @@ class _DeviceTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       decoration: BoxDecoration(
-        color: isCurrent
-            ? AppColors.primary.withValues(alpha: 0.05)
-            : AppColors.surface,
+        color:
+            isCurrent
+                ? AppColors.primary.withValues(alpha: 0.05)
+                : AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         border: Border.all(
-          color: isCurrent
-              ? AppColors.primary.withValues(alpha: 0.3)
-              : AppColors.border,
+          color:
+              isCurrent
+                  ? AppColors.primary.withValues(alpha: 0.3)
+                  : AppColors.border,
         ),
         boxShadow: [
           BoxShadow(
@@ -282,32 +304,45 @@ class _DeviceTile extends StatelessWidget {
           ),
         ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.xs,
-        ),
-        leading: Icon(
-          Icons.print_rounded,
-          color: isCurrent ? AppColors.primary : AppColors.textSecondary,
-        ),
-        title: Text(device.name, style: AppTextStyles.headingSm),
-        subtitle: Text(
-          device.macAdress,
-          style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
-        ),
-        trailing: isConnecting
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : isCurrent
-                ? const Icon(Icons.check_circle_rounded, color: AppColors.success)
-                : const Icon(Icons.chevron_right_rounded, color: AppColors.textDisabled),
-        onTap: onTap,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.xs,
+          ),
+          leading: Icon(
+            Icons.print_rounded,
+            color: isCurrent ? AppColors.primary : AppColors.textSecondary,
+          ),
+          title: Text(device.name, style: AppTextStyles.headingSm),
+          subtitle: Text(
+            device.macAdress,
+            style: AppTextStyles.bodySm.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          trailing:
+              isConnecting
+                  ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                  : isCurrent
+                  ? const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.success,
+                  )
+                  : const Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.textDisabled,
+                  ),
+          onTap: onTap,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          ),
         ),
       ),
     );

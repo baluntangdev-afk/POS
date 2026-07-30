@@ -10,7 +10,13 @@ import '../tables/users_table.dart';
 import '../tables/products_table.dart';
 import '../tables/product_groups_table.dart';
 import '../../../features/transactions/entities/transaction_summary.dart';
-import '../../../features/transactions/entities/history_receipt_data.dart';
+import '../../../features/ordering/entities/discount.dart';
+import '../../../features/ordering/entities/receipt.dart';
+import '../../../features/ordering/entities/receipt_item.dart';
+import '../../../features/ordering/entities/refund.dart';
+import '../../../features/ordering/entities/refund_item.dart';
+import '../../../features/ordering/entities/sale.dart';
+import '../../../features/ordering/entities/sale_payment.dart';
 
 part 'sales_dao.g.dart';
 
@@ -60,6 +66,9 @@ class TimeSeriesPoint {
 class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   SalesDao(super.db);
 
+  // TODO: replace with a per-terminal/store code once multi-terminal support lands.
+  static const _terminalCode = '001';
+
   Future<int> insertSale(SalesTableCompanion companion) =>
       into(salesTable).insert(companion);
 
@@ -77,6 +86,261 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
 
   Future<int> insertRefundItem(RefundItemsTableCompanion companion) =>
       into(refundItemsTable).insert(companion);
+
+  Future<int> insertPendingSale({required int cashierId, required Sale sale}) {
+    return transaction(() async {
+      final saleId = await insertSale(SalesTableCompanion.insert(
+        cashierId: cashierId,
+        total: sale.total,
+        discount: Value(sale.totalDiscount),
+        status: 'pending',
+        type: sale.type,
+        createdAt: sale.createdAt,
+      ));
+
+      for (final item in sale.items) {
+        final discount = item.discount;
+        final itemId = await insertSaleItem(SaleItemsTableCompanion.insert(
+          saleId: saleId,
+          productId: item.productId,
+          variantName: '',
+          qty: item.quantity,
+          unitPrice: item.unitPrice,
+          discountType: Value(discount?.code),
+          discountBeneficiaryId: Value(
+            discount is SeniorPwdDiscount ? discount.beneficiaryId : null,
+          ),
+          discountBeneficiaryName: Value(
+            discount is SeniorPwdDiscount ? discount.beneficiaryName : null,
+          ),
+          discountAmount: Value(discount != null ? item.discountAmount : null),
+          vatExemptAmount: Value(
+            discount != null && discount.isVatExempt ? item.lineSubtotal.vatAmount : null,
+          ),
+        ));
+        for (final group in item.modifiers) {
+          for (final opt in group.selected) {
+            await insertSaleItemModifier(SaleItemModifiersTableCompanion.insert(
+              itemId: itemId,
+              modifierName: '${group.groupName}: ${opt.name}',
+              additionalPrice: Value(opt.additionalPrice),
+            ));
+          }
+        }
+      }
+
+      if (sale.payment != null) {
+        await insertPayment(PaymentsTableCompanion.insert(
+          saleId: saleId,
+          method: sale.payment!.method,
+          amount: sale.payment!.amountPaid,
+          reference: Value(sale.payment!.reference),
+          createdAt: sale.createdAt,
+        ));
+      }
+
+      final soNumber = await _generateSoNumber(sale.createdAt);
+      await (update(salesTable)..where((t) => t.id.equals(saleId)))
+          .write(SalesTableCompanion(soNumber: Value(soNumber)));
+
+      return saleId;
+    });
+  }
+
+  /// Builds a SO-{terminalCode}-{year}-{sequence} number, where sequence is
+  /// the count of sales already created in that year (yearly reset).
+  /// Must be called after the sale row has been inserted, within the same
+  /// transaction, so the count includes it.
+  Future<String> _generateSoNumber(DateTime createdAt) async {
+    final year = createdAt.year;
+    final yearStart = DateTime(year);
+    final yearEnd = DateTime(year + 1);
+    final result = await customSelect(
+      'SELECT COUNT(*) as cnt FROM sales WHERE created_at >= ? AND created_at < ?',
+      variables: [
+        Variable.withDateTime(yearStart),
+        Variable.withDateTime(yearEnd),
+      ],
+      readsFrom: {salesTable},
+    ).getSingle();
+    final sequence = result.read<int>('cnt');
+    return 'SO-$_terminalCode-$year-${sequence.toString().padLeft(4, '0')}';
+  }
+
+  Future<void> completeSale(int saleId) =>
+      (update(salesTable)..where((t) => t.id.equals(saleId)))
+          .write(const SalesTableCompanion(status: Value('completed')));
+
+  Future<int> insertRefundRecord({
+    required int saleId,
+    required String reason,
+    required String method,
+    required double total,
+    required List<({int saleItemId, int qty, double amount})> items,
+  }) {
+    return transaction(() async {
+      final refundId = await insertRefund(RefundsTableCompanion.insert(
+        saleId: saleId,
+        reason: reason,
+        total: total,
+        createdAt: DateTime.now(),
+        method: Value(method),
+      ));
+      for (final item in items) {
+        await insertRefundItem(RefundItemsTableCompanion.insert(
+          refundId: refundId,
+          saleItemId: item.saleItemId,
+          qty: item.qty,
+          amount: item.amount,
+        ));
+      }
+
+      final refundNumber = 'RF-${refundId.toString().padLeft(6, '0')}';
+      await (update(refundsTable)..where((t) => t.id.equals(refundId)))
+          .write(RefundsTableCompanion(refundNumber: Value(refundNumber)));
+
+      final remaining = await getRefundableItems(saleId);
+      if (remaining.isEmpty) {
+        await (update(salesTable)..where((t) => t.id.equals(saleId)))
+            .write(const SalesTableCompanion(status: Value('refunded')));
+      }
+
+      return refundId;
+    });
+  }
+
+  Future<Receipt?> getReceiptById(int saleId) async {
+    final saleQ = select(salesTable).join([
+      leftOuterJoin(usersTable, usersTable.id.equalsExp(salesTable.cashierId)),
+    ]);
+    saleQ.where(salesTable.id.equals(saleId));
+    final saleRow = await saleQ.getSingleOrNull();
+    if (saleRow == null) return null;
+
+    final sale = saleRow.readTable(salesTable);
+    final user = saleRow.readTableOrNull(usersTable);
+
+    final itemQ = select(saleItemsTable).join([
+      leftOuterJoin(productsTable, productsTable.id.equalsExp(saleItemsTable.productId)),
+    ]);
+    itemQ.where(saleItemsTable.saleId.equals(saleId));
+    final itemRows = await itemQ.get();
+
+    final receiptItems = <ReceiptItem>[];
+    var sequence = 1;
+    for (final ir in itemRows) {
+      final item = ir.readTable(saleItemsTable);
+      final product = ir.readTableOrNull(productsTable);
+      final grossAmount = item.qty * item.unitPrice;
+      final itemDiscountAmount = item.discountAmount ?? 0;
+      final itemVatExemptAmount = item.vatExemptAmount ?? 0;
+      final itemTotal = itemVatExemptAmount > 0
+          ? grossAmount.vatExclusiveAmount - itemDiscountAmount
+          : grossAmount - itemDiscountAmount;
+      receiptItems.add(ReceiptItem(
+        id: item.id,
+        sequence: sequence,
+        description: product?.name ?? 'Unknown Product',
+        quantity: item.qty,
+        unitPrice: item.unitPrice,
+        grossAmount: grossAmount,
+        discountAmount: itemDiscountAmount,
+        totalAmount: itemTotal,
+        isMain: true,
+        discountType: item.discountType,
+        discountBeneficiaryId: item.discountBeneficiaryId,
+        discountBeneficiaryName: item.discountBeneficiaryName,
+        vatExemptAmount: item.vatExemptAmount ?? 0,
+      ));
+
+      final mods = await (select(saleItemModifiersTable)
+            ..where((t) => t.itemId.equals(item.id)))
+          .get();
+      for (final mod in mods) {
+        final modGross = mod.additionalPrice * item.qty;
+        final modTotal =
+            itemVatExemptAmount > 0 ? modGross.vatExclusiveAmount : modGross;
+        receiptItems.add(ReceiptItem(
+          id: -mod.id,
+          sequence: sequence,
+          description: mod.modifierName,
+          quantity: item.qty,
+          unitPrice: mod.additionalPrice,
+          grossAmount: modGross,
+          discountAmount: 0,
+          totalAmount: modTotal,
+          isMain: false,
+          vatExemptAmount: itemVatExemptAmount > 0 ? modGross.vatAmount : 0,
+        ));
+      }
+      sequence++;
+    }
+
+    final payments = await (select(paymentsTable)..where((t) => t.saleId.equals(saleId))).get();
+    final paymentRow = payments.isEmpty ? null : payments.first;
+    final payment = SalePayment(
+      method: paymentRow?.method ?? 'cash',
+      amountPaid: paymentRow?.amount ?? sale.total,
+      cashReceived: paymentRow?.amount ?? sale.total,
+      reference: paymentRow?.reference,
+    );
+
+    final refundRows = await (select(refundsTable)..where((t) => t.saleId.equals(saleId))).get();
+    final refunds = <Refund>[];
+    for (final r in refundRows) {
+      final riRows =
+          await (select(refundItemsTable)..where((t) => t.refundId.equals(r.id))).get();
+      final refundItems = <RefundItem>[];
+      for (final ri in riRows) {
+        final match = receiptItems.firstWhere(
+          (rItem) => rItem.isMain && rItem.id == ri.saleItemId,
+          orElse: () => ReceiptItem(
+            id: ri.saleItemId,
+            sequence: 0,
+            description: 'Unknown Item',
+            quantity: ri.qty,
+            unitPrice: 0,
+            grossAmount: 0,
+            discountAmount: 0,
+            totalAmount: 0,
+            isMain: true,
+          ),
+        );
+        refundItems.add(RefundItem(
+          id: ri.id,
+          receiptItemId: ri.saleItemId,
+          sequence: match.sequence,
+          description: match.description,
+          quantity: ri.qty,
+          refundAmount: ri.amount,
+          isMain: true,
+        ));
+      }
+      refunds.add(Refund(
+        id: r.id,
+        docNumber: r.refundNumber ?? 'RF-${r.id.toString().padLeft(6, '0')}',
+        docDate: r.createdAt,
+        receiptId: saleId,
+        reason: r.reason,
+        method: r.method,
+        items: refundItems,
+      ));
+    }
+
+    return Receipt(
+      id: sale.id,
+      storeName: '',
+      cashierName: user?.name ?? 'Unknown',
+      docNumber: sale.soNumber ?? 'SO-${sale.id.toString().padLeft(6, '0')}',
+      docDate: sale.createdAt,
+      type: sale.type,
+      payment: payment,
+      items: receiptItems,
+      refunds: refunds,
+      isVoided: sale.status == 'voided',
+      voidReason: sale.voidReason,
+    );
+  }
 
   Future<void> recordRefund({
     required int saleId,
@@ -129,9 +393,14 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     });
   }
 
-  Future<int> voidSale(int saleId) =>
-      (update(salesTable)..where((t) => t.id.equals(saleId)))
-          .write(const SalesTableCompanion(status: Value('voided')));
+  Future<int> voidSale(int saleId, {String reason = 'Voided by cashier'}) =>
+      (update(salesTable)..where((t) => t.id.equals(saleId))).write(
+        SalesTableCompanion(
+          status: const Value('voided'),
+          voidReason: Value(reason),
+          voidedAt: Value(DateTime.now()),
+        ),
+      );
 
   Future<List<SalesTableData>> getSalesByDateRange(DateTime from, DateTime to) =>
       (select(salesTable)
@@ -577,6 +846,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       final user = row.readTableOrNull(usersTable);
       return TransactionSummary(
         id: sale.id,
+        soNumber: sale.soNumber,
         cashierName: user?.name ?? 'Unknown',
         createdAt: sale.createdAt,
         total: sale.total,
@@ -616,76 +886,9 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     return row.read(salesTable.id.count()) ?? 0;
   }
 
-  Future<HistoryReceiptData?> getHistoryReceipt(int saleId) async {
-    // Sale + cashier name
-    final saleQ = select(salesTable).join([
-      leftOuterJoin(usersTable, usersTable.id.equalsExp(salesTable.cashierId)),
-    ]);
-    saleQ.where(salesTable.id.equals(saleId));
-    final saleRow = await saleQ.getSingleOrNull();
-    if (saleRow == null) return null;
-
-    final sale = saleRow.readTable(salesTable);
-    final user = saleRow.readTableOrNull(usersTable);
-
-    // Items + product names
-    final itemQ = select(saleItemsTable).join([
-      leftOuterJoin(productsTable, productsTable.id.equalsExp(saleItemsTable.productId)),
-    ]);
-    itemQ.where(saleItemsTable.saleId.equals(saleId));
-    final itemRows = await itemQ.get();
-
-    final items = <HistoryReceiptItem>[];
-    for (final ir in itemRows) {
-      final item = ir.readTable(saleItemsTable);
-      final product = ir.readTableOrNull(productsTable);
-      final mods = await (select(saleItemModifiersTable)
-            ..where((t) => t.itemId.equals(item.id)))
-          .get();
-      items.add(HistoryReceiptItem(
-        saleItemId: item.id,
-        productName: product?.name ?? 'Unknown Product',
-        qty: item.qty,
-        unitPrice: item.unitPrice,
-        modifiers: mods.map((m) => m.modifierName).toList(),
-      ));
-    }
-
-    // Payment
-    final payments = await (select(paymentsTable)
-          ..where((t) => t.saleId.equals(saleId)))
-        .get();
-    final payment = payments.isEmpty ? null : payments.first;
-
-    final subtotal = items.fold(0.0, (s, i) => s + i.lineTotal);
-    final total = sale.total - sale.discount;
-    final amountPaid = payment?.amount ?? 0;
-    final change = payment?.method == 'cash'
-        ? (amountPaid - total).clamp(0.0, double.infinity)
-        : 0.0;
-
-    return HistoryReceiptData(
-      saleId: sale.id,
-      createdAt: sale.createdAt,
-      saleType: sale.type,
-      cashierName: user?.name ?? 'Unknown',
-      items: items,
-      subtotal: subtotal,
-      discount: sale.discount,
-      total: total,
-      paymentMethod: payment?.method ?? 'cash',
-      amountPaid: amountPaid,
-      change: change,
-      reference: payment?.reference,
-    );
-  }
-
-  Future<List<HistoryReceiptItem>> getRefundableItems(int saleId) async {
-    final itemQ = select(saleItemsTable).join([
-      leftOuterJoin(productsTable, productsTable.id.equalsExp(saleItemsTable.productId)),
-    ]);
-    itemQ.where(saleItemsTable.saleId.equals(saleId));
-    final itemRows = await itemQ.get();
+  Future<List<({int saleItemId, int qty})>> getRefundableItems(int saleId) async {
+    final itemRows =
+        await (select(saleItemsTable)..where((t) => t.saleId.equals(saleId))).get();
 
     // Get already-refunded qty per sale item
     final refunds = await (select(refundsTable)
@@ -701,20 +904,12 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       }
     }
 
-    final result = <HistoryReceiptItem>[];
-    for (final ir in itemRows) {
-      final item = ir.readTable(saleItemsTable);
-      final product = ir.readTableOrNull(productsTable);
+    final result = <({int saleItemId, int qty})>[];
+    for (final item in itemRows) {
       final alreadyRefunded = refundedQty[item.id] ?? 0;
       final available = item.qty - alreadyRefunded;
       if (available <= 0) continue;
-      result.add(HistoryReceiptItem(
-        saleItemId: item.id,
-        productName: product?.name ?? 'Unknown Product',
-        qty: available,
-        unitPrice: item.unitPrice,
-        modifiers: const [],
-      ));
+      result.add((saleItemId: item.id, qty: available));
     }
     return result;
   }

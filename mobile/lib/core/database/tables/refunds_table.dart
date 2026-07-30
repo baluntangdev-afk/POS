@@ -10,4 +10,6 @@ class RefundsTable extends Table {
   TextColumn get reason => text()();
   RealColumn get total => real()();
   DateTimeColumn get createdAt => dateTime()();
+  TextColumn get refundNumber => text().nullable()();
+  TextColumn get method => text().withDefault(const Constant('Cash Refund'))();
 }

@@ -16,6 +16,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../inventory/state/inventory_notifier.dart';
+import 'import_products_csv_dialog.dart';
 
 class CsvImportScreen extends HookConsumerWidget {
   const CsvImportScreen({super.key});
@@ -28,7 +29,9 @@ class CsvImportScreen extends HookConsumerWidget {
       () => [
         _ImporterConfig(
           title: 'Products',
-          subtitle: 'Columns: category_name, name, price, is_available, image_url, sort_order',
+          subtitle: 'Columns: Category, Category Description, Product Name, Product '
+              'Description, Product Base Price, Variant Name, Variant Price, and '
+              'optionally Product Image URL. Same format as the kiosk app.',
           icon: Icons.inventory_2_outlined,
           importer: ProductsCsvImporter(db),
         ),
@@ -94,6 +97,14 @@ class _ImportCard extends HookConsumerWidget {
     final showErrors = useState(false);
 
     Future<void> pickAndImport() async {
+      // Products follows the kiosk app's full import flow (header hint,
+      // upsert/replace mode, confirmation, results dialog) in its own dialog
+      // rather than the generic pick-a-file-and-go flow below.
+      if (config.title == 'Products') {
+        await showImportProductsCsvDialog(context);
+        return;
+      }
+
       final picked = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['csv'],
@@ -145,7 +156,6 @@ class _ImportCard extends HookConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Row(
@@ -177,7 +187,6 @@ class _ImportCard extends HookConsumerWidget {
             ),
           ),
 
-          // â”€â”€ Result banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           if (hasResult) ...[
             const Divider(height: 1, color: AppColors.divider),
             _ResultBanner(result: r, fileName: fileName.value),
@@ -234,7 +243,6 @@ class _ImportCard extends HookConsumerWidget {
             ],
           ],
 
-          // â”€â”€ Action button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Padding(
             padding: const EdgeInsets.fromLTRB(
                 AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
@@ -250,7 +258,7 @@ class _ImportCard extends HookConsumerWidget {
                             strokeWidth: 2, color: Colors.white),
                       )
                     : const Icon(Icons.upload_file_rounded),
-                label: Text(isLoading.value ? 'Importingâ€¦' : 'Choose CSV file'),
+                label: Text(isLoading.value ? 'Importing' : 'Choose CSV file'),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size(0, AppSpacing.touchPreferred),
                 ),

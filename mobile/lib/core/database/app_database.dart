@@ -55,7 +55,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'mobile_pos'));
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -153,6 +153,59 @@ class AppDatabase extends _$AppDatabase {
             await customStatement('DROP TABLE modifier_groups');
             await customStatement('ALTER TABLE modifier_groups_new RENAME TO modifier_groups');
           }
+          if (from < 7) {
+            await m.addColumn(salesTable, salesTable.soNumber);
+            await m.addColumn(salesTable, salesTable.voidReason);
+            await m.addColumn(salesTable, salesTable.voidedAt);
+            await m.addColumn(refundsTable, refundsTable.refundNumber);
+            await m.addColumn(refundsTable, refundsTable.method);
+
+            final existingSales = await customSelect('SELECT id FROM sales').get();
+            for (final row in existingSales) {
+              final id = row.read<int>('id');
+              await customStatement(
+                'UPDATE sales SET so_number = ? WHERE id = ?',
+                ['SO-${id.toString().padLeft(6, '0')}', id],
+              );
+            }
+
+            final existingRefunds = await customSelect('SELECT id FROM refunds').get();
+            for (final row in existingRefunds) {
+              final id = row.read<int>('id');
+              await customStatement(
+                'UPDATE refunds SET refund_number = ?, method = ? WHERE id = ?',
+                ['RF-${id.toString().padLeft(6, '0')}', 'Cash Refund', id],
+              );
+            }
+          }
+          if (from < 8) {
+            // Guarded with a column-existence check: if a prior run of this
+            // migration was interrupted after adding some but not all of
+            // these columns (e.g. a killed dev session), `user_version`
+            // stays below 8 and this block re-runs from scratch on next
+            // launch — a plain `addColumn` would then throw "duplicate
+            // column name" on whatever already made it in.
+            if (!await _hasColumn('sale_items', 'discount_type')) {
+              await m.addColumn(saleItemsTable, saleItemsTable.discountType);
+            }
+            if (!await _hasColumn('sale_items', 'discount_beneficiary_id')) {
+              await m.addColumn(saleItemsTable, saleItemsTable.discountBeneficiaryId);
+            }
+            if (!await _hasColumn('sale_items', 'discount_beneficiary_name')) {
+              await m.addColumn(saleItemsTable, saleItemsTable.discountBeneficiaryName);
+            }
+            if (!await _hasColumn('sale_items', 'discount_amount')) {
+              await m.addColumn(saleItemsTable, saleItemsTable.discountAmount);
+            }
+            if (!await _hasColumn('sale_items', 'vat_exempt_amount')) {
+              await m.addColumn(saleItemsTable, saleItemsTable.vatExemptAmount);
+            }
+          }
         },
       );
+
+  Future<bool> _hasColumn(String table, String column) async {
+    final rows = await customSelect('PRAGMA table_info($table)').get();
+    return rows.any((r) => r.read<String>('name') == column);
+  }
 }

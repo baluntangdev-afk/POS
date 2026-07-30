@@ -39,10 +39,14 @@ class ZReadingHistoryScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(AppSpacing.md),
             itemCount: rows.length,
             separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-            itemBuilder: (context, i) => _HistoryTile(
-              row: rows[i],
-              onTap: () => context.push('/cashier-accounting/z-reading/history/${rows[i].id}'),
-            ),
+            itemBuilder:
+                (context, i) => _HistoryTile(
+                  row: rows[i],
+                  onTap:
+                      () => context.push(
+                        '/cashier-accounting/z-reading/history/${rows[i].id}',
+                      ),
+                ),
           );
         },
       ),
@@ -62,17 +66,33 @@ class _HistoryTile extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         boxShadow: [
-          BoxShadow(color: AppColors.shadow.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 1)),
+          BoxShadow(
+            color: AppColors.shadow.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
         ],
       ),
-      child: ListTile(
-        onTap: onTap,
-        title: Text('Z-Reading #${row.zCounter}', style: AppTextStyles.headingSm),
-        subtitle: Text(
-          '${row.closedByName} • ${DateFormat('MMM d, y h:mm a').format(row.generatedAt)}',
-          style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          onTap: onTap,
+          title: Text(
+            'Z-Reading #${row.zCounter}',
+            style: AppTextStyles.headingSm,
+          ),
+          subtitle: Text(
+            '${row.closedByName} • ${DateFormat('MMM d, y h:mm a').format(row.generatedAt)}',
+            style: AppTextStyles.bodySm.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          trailing: Text(
+            'PHP ${row.totalSales.toStringAsFixed(2)}',
+            style: AppTextStyles.headingSm,
+          ),
         ),
-        trailing: Text('PHP ${row.totalSales.toStringAsFixed(2)}', style: AppTextStyles.headingSm),
       ),
     );
   }
@@ -108,20 +128,26 @@ class ZReadingReprintScreen extends ConsumerWidget {
   }
 
   ZReadingData _toZReadingData(ZReadingsTableData row) {
-    final paymentBreakdown = (jsonDecode(row.paymentBreakdownJson) as List)
-        .map((e) => PaymentBreakdown(
-              method: e['method'] as String,
-              total: (e['total'] as num).toDouble(),
-              percentage: (e['percentage'] as num).toDouble(),
-            ))
-        .toList();
-    final salesByCashier = (jsonDecode(row.salesByCashierJson) as List)
-        .map((e) => CashierSalesBreakdown(
-              cashierName: e['cashierName'] as String,
-              total: (e['total'] as num).toDouble(),
-              transactionCount: e['transactionCount'] as int,
-            ))
-        .toList();
+    final paymentBreakdown =
+        (jsonDecode(row.paymentBreakdownJson) as List)
+            .map(
+              (e) => PaymentBreakdown(
+                method: e['method'] as String,
+                total: (e['total'] as num).toDouble(),
+                percentage: (e['percentage'] as num).toDouble(),
+              ),
+            )
+            .toList();
+    final salesByCashier =
+        (jsonDecode(row.salesByCashierJson) as List)
+            .map(
+              (e) => CashierSalesBreakdown(
+                cashierName: e['cashierName'] as String,
+                total: (e['total'] as num).toDouble(),
+                transactionCount: e['transactionCount'] as int,
+              ),
+            )
+            .toList();
 
     return ZReadingData(
       id: row.id,

@@ -9,8 +9,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../auth/state/auth_providers.dart';
 import '../../auth/state/auth_state.dart';
 
-// â”€â”€â”€ Tile definition â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _Tile {
   final String label;
   final IconData icon;
@@ -25,14 +23,42 @@ class _Tile {
   });
 }
 
-const _kTileNew     = _Tile(label: 'New Order',     icon: Icons.shopping_cart_outlined,    accent: Color(0xFF1B7A8C), route: '/order');
-const _kTileTransactions = _Tile(label: 'Transactions', icon: Icons.receipt_long_outlined, accent: Color(0xFF16A085), route: '/transactions');
-const _kTileInventory = _Tile(label: 'Inventory',     icon: Icons.storefront_outlined,       accent: Color(0xFFE67E22), route: '/inventory');
-const _kTileSettings= _Tile(label: 'Settings',      icon: Icons.settings_outlined,         accent: Color(0xFF6B7280), route: '/settings');
-const _kTileUsers   = _Tile(label: 'Users',         icon: Icons.manage_accounts_outlined,  accent: Color(0xFF7B68EE), route: '/users');
-const _kTileCashierAccounting = _Tile(label: 'Cashier Accounting', icon: Icons.point_of_sale_outlined, accent: Color(0xFF8E44AD), route: '/cashier-accounting');
-
-// â”€â”€â”€ Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const _kTileNew = _Tile(
+  label: 'New Order',
+  icon: Icons.shopping_cart_outlined,
+  accent: Color(0xFF1B7A8C),
+  route: '/order',
+);
+const _kTileTransactions = _Tile(
+  label: 'Transactions',
+  icon: Icons.receipt_long_outlined,
+  accent: Color(0xFF16A085),
+  route: '/transactions',
+);
+const _kTileInventory = _Tile(
+  label: 'Inventory',
+  icon: Icons.storefront_outlined,
+  accent: Color(0xFFE67E22),
+  route: '/inventory',
+);
+const _kTileSettings = _Tile(
+  label: 'Settings',
+  icon: Icons.settings_outlined,
+  accent: Color(0xFF6B7280),
+  route: '/settings',
+);
+const _kTileUsers = _Tile(
+  label: 'Users',
+  icon: Icons.manage_accounts_outlined,
+  accent: Color(0xFF7B68EE),
+  route: '/users',
+);
+const _kTileCashierAccounting = _Tile(
+  label: 'Cashier Accounting',
+  icon: Icons.point_of_sale_outlined,
+  accent: Color(0xFF8E44AD),
+  route: '/cashier-accounting',
+);
 
 class DashboardScreen extends HookConsumerWidget {
   const DashboardScreen({super.key});
@@ -76,8 +102,18 @@ class DashboardScreen extends HookConsumerWidget {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final w = constraints.maxWidth;
-                  final cols = w > 900 ? 4 : w > 600 ? 3 : 2;
-                  final pad = w > 900 ? 32.0 : w > 600 ? 24.0 : 16.0;
+                  final cols =
+                      w > 900
+                          ? 4
+                          : w > 600
+                          ? 3
+                          : 2;
+                  final pad =
+                      w > 900
+                          ? 32.0
+                          : w > 600
+                          ? 24.0
+                          : 16.0;
                   final gap = w > 900 ? 20.0 : 16.0;
                   return SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
@@ -93,8 +129,6 @@ class DashboardScreen extends HookConsumerWidget {
     );
   }
 }
-
-// â”€â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _Header extends StatelessWidget {
   final DateTime now;
@@ -121,9 +155,7 @@ class _Header extends StatelessWidget {
           height: 64,
           decoration: const BoxDecoration(
             color: Colors.white,
-            border: Border(
-              bottom: BorderSide(color: Color(0xFFE8E6E1)),
-            ),
+            border: Border(bottom: BorderSide(color: Color(0xFFE8E6E1))),
             boxShadow: [
               BoxShadow(
                 color: Color(0x0A000000),
@@ -156,40 +188,40 @@ class _Header extends StatelessWidget {
               // Sign out
               iconOnlySignOut
                   ? IconButton(
+                    onPressed: onSignOut,
+                    icon: const Icon(Icons.logout_rounded),
+                    color: AppColors.error,
+                    tooltip: 'Sign Out',
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.error.withValues(alpha: 0.08),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  )
+                  : SizedBox(
+                    height: 40,
+                    child: OutlinedButton.icon(
                       onPressed: onSignOut,
-                      icon: const Icon(Icons.logout_rounded),
-                      color: AppColors.error,
-                      tooltip: 'Sign Out',
-                      style: IconButton.styleFrom(
-                        backgroundColor: AppColors.error.withValues(alpha: 0.08),
+                      icon: const Icon(Icons.logout_rounded, size: 15),
+                      label: const Text('Sign Out'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        side: BorderSide(
+                          color: AppColors.error.withValues(alpha: 0.5),
+                          width: 1.5,
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
-                      ),
-                    )
-                  : SizedBox(
-                      height: 40,
-                      child: OutlinedButton.icon(
-                        onPressed: onSignOut,
-                        icon: const Icon(Icons.logout_rounded, size: 15),
-                        label: const Text('Sign Out'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.error,
-                          side: BorderSide(
-                            color: AppColors.error.withValues(alpha: 0.5),
-                            width: 1.5,
-                          ),
-                          textStyle: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
                       ),
                     ),
+                  ),
             ],
           ),
         );
@@ -217,7 +249,11 @@ class _Brand extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: const Icon(Icons.shopping_cart_rounded, color: Colors.white, size: 18),
+          child: const Icon(
+            Icons.shopping_cart_rounded,
+            color: Colors.white,
+            size: 18,
+          ),
         ),
         const SizedBox(width: 9),
         RichText(
@@ -253,6 +289,7 @@ class _Brand extends StatelessWidget {
 
 class _Clock extends StatelessWidget {
   final DateTime now;
+
   const _Clock({required this.now});
 
   @override
@@ -262,7 +299,20 @@ class _Clock extends StatelessWidget {
     final period = now.hour < 12 ? 'AM' : 'PM';
 
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final dayStr = days[now.weekday - 1];
     final monStr = months[now.month - 1];
 
@@ -298,6 +348,7 @@ class _Clock extends StatelessWidget {
 class _UserPill extends StatelessWidget {
   final String name;
   final String role;
+
   const _UserPill({required this.name, required this.role});
 
   String get _initials {
@@ -385,8 +436,6 @@ class _UserPill extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€ Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _TileGrid extends StatelessWidget {
   final List<_Tile> tiles;
   final int cols;
@@ -422,10 +471,9 @@ class _TileGrid extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€ Tile Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 class _TileCard extends HookWidget {
   final _Tile tile;
+
   const _TileCard({required this.tile});
 
   @override
@@ -437,7 +485,7 @@ class _TileCard extends HookWidget {
       onTapDown: (_) => isPressed.value = true,
       onTapUp: (_) {
         isPressed.value = false;
-        context.push(tile.route);
+        context.go(tile.route);
       },
       onTapCancel: () => isPressed.value = false,
       child: AnimatedContainer(
@@ -448,26 +496,28 @@ class _TileCard extends HookWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isPressed.value
-                ? accent.withValues(alpha: 0.5)
-                : const Color(0xFFE8E6E1),
+            color:
+                isPressed.value
+                    ? accent.withValues(alpha: 0.5)
+                    : const Color(0xFFE8E6E1),
             width: 1.5,
           ),
-          boxShadow: isPressed.value
-              ? [
-                  BoxShadow(
-                    color: accent.withValues(alpha: 0.18),
-                    blurRadius: 20,
-                    offset: const Offset(0, 6),
-                  ),
-                ]
-              : [
-                  const BoxShadow(
-                    color: Color(0x0D000000),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
-                  ),
-                ],
+          boxShadow:
+              isPressed.value
+                  ? [
+                    BoxShadow(
+                      color: accent.withValues(alpha: 0.18),
+                      blurRadius: 20,
+                      offset: const Offset(0, 6),
+                    ),
+                  ]
+                  : [
+                    const BoxShadow(
+                      color: Color(0x0D000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),

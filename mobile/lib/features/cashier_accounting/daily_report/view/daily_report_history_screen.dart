@@ -39,10 +39,14 @@ class DailyReportHistoryScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(AppSpacing.md),
             itemCount: rows.length,
             separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-            itemBuilder: (context, i) => _HistoryTile(
-              row: rows[i],
-              onTap: () => context.push('/cashier-accounting/daily-report/history/${rows[i].id}'),
-            ),
+            itemBuilder:
+                (context, i) => _HistoryTile(
+                  row: rows[i],
+                  onTap:
+                      () => context.push(
+                        '/cashier-accounting/daily-report/history/${rows[i].id}',
+                      ),
+                ),
           );
         },
       ),
@@ -62,17 +66,33 @@ class _HistoryTile extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         boxShadow: [
-          BoxShadow(color: AppColors.shadow.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 1)),
+          BoxShadow(
+            color: AppColors.shadow.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
         ],
       ),
-      child: ListTile(
-        onTap: onTap,
-        title: Text('Daily Report #${row.id}', style: AppTextStyles.headingSm),
-        subtitle: Text(
-          '${row.cashierName} • ${DateFormat('MMM d, y h:mm a').format(row.generatedAt)}',
-          style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          onTap: onTap,
+          title: Text(
+            'Daily Report #${row.id}',
+            style: AppTextStyles.headingSm,
+          ),
+          subtitle: Text(
+            '${row.cashierName} • ${DateFormat('MMM d, y h:mm a').format(row.generatedAt)}',
+            style: AppTextStyles.bodySm.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          trailing: Text(
+            'PHP ${row.grossSales.toStringAsFixed(2)}',
+            style: AppTextStyles.headingSm,
+          ),
         ),
-        trailing: Text('PHP ${row.grossSales.toStringAsFixed(2)}', style: AppTextStyles.headingSm),
       ),
     );
   }
@@ -108,19 +128,25 @@ class DailyReportReprintScreen extends ConsumerWidget {
   }
 
   DailyReportData _toDailyReportData(DailyReportsTableData row) {
-    final salesByProduct = (jsonDecode(row.salesByProductJson) as List)
-        .map((e) => TopProductData(
-              name: e['name'] as String,
-              quantity: e['quantity'] as int,
-              total: (e['total'] as num).toDouble(),
-            ))
-        .toList();
-    final cashLedger = (jsonDecode(row.cashLedgerJson) as List)
-        .map((e) => CashLedgerEntry(
-              date: DateTime.parse(e['date'] as String),
-              total: (e['total'] as num).toDouble(),
-            ))
-        .toList();
+    final salesByProduct =
+        (jsonDecode(row.salesByProductJson) as List)
+            .map(
+              (e) => TopProductData(
+                name: e['name'] as String,
+                quantity: e['quantity'] as int,
+                total: (e['total'] as num).toDouble(),
+              ),
+            )
+            .toList();
+    final cashLedger =
+        (jsonDecode(row.cashLedgerJson) as List)
+            .map(
+              (e) => CashLedgerEntry(
+                date: DateTime.parse(e['date'] as String),
+                total: (e['total'] as num).toDouble(),
+              ),
+            )
+            .toList();
 
     return DailyReportData(
       id: row.id,

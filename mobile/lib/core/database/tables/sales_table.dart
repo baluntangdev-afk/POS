@@ -12,4 +12,7 @@ class SalesTable extends Table {
   TextColumn get status => text()();
   TextColumn get type => text()();
   DateTimeColumn get createdAt => dateTime()();
+  TextColumn get soNumber => text().nullable()();
+  TextColumn get voidReason => text().nullable()();
+  DateTimeColumn get voidedAt => dateTime().nullable()();
 }

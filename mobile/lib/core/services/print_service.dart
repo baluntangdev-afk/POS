@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/cashier_accounting/daily_report/entities/daily_report_data.dart';
 import '../../features/cashier_accounting/x_reading/entities/x_reading_data.dart';
 import '../../features/cashier_accounting/z_reading/entities/z_reading_data.dart';
-import '../../features/ordering/entities/sale_receipt_data.dart';
+import '../../features/ordering/entities/receipt.dart';
 
 const _prefMacKey = 'printer_mac';
 const _prefNameKey = 'printer_name';
@@ -34,7 +34,7 @@ abstract final class PrintService {
   }
 
   static Future<bool> printReceipt(
-    SaleReceiptData receipt, {
+    Receipt receipt, {
     String currency = 'PHP',
     String storeFooter = 'Thank you!',
     String? storeName,
@@ -84,13 +84,13 @@ abstract final class PrintService {
       );
       bytes += generator.feed(1);
       bytes += generator.text(
-        'Sale #${receipt.saleId.toString().padLeft(6, '0')}',
+        receipt.docNumber,
         styles: const PosStyles(align: PosAlign.center),
       );
       bytes += generator.hr();
       bytes += generator.text('Cashier: ${receipt.cashierName}');
-      bytes += generator.text('Date:    ${_fmtDate(receipt.createdAt)}');
-      bytes += generator.text('Type:    ${_fmtSaleType(receipt.saleType)}');
+      bytes += generator.text('Date:    ${_fmtDate(receipt.docDate)}');
+      bytes += generator.text('Type:    ${_fmtSaleType(receipt.type)}');
       if (terminalName != null && terminalName.isNotEmpty) {
         bytes += generator.text('Terminal: $terminalName');
       }
@@ -99,39 +99,31 @@ abstract final class PrintService {
       for (final item in receipt.items) {
         bytes += generator.row([
           PosColumn(
-            text: 'x${item.quantity}  ${item.productName}',
+            text: '${item.isMain ? '' : '  '}x${item.quantity}  ${item.description}',
             width: 8,
           ),
           PosColumn(
-            text: '$currency ${item.lineTotal.toStringAsFixed(2)}',
+            text: '$currency ${item.totalAmount.toStringAsFixed(2)}',
             width: 4,
             styles: const PosStyles(align: PosAlign.right),
           ),
         ]);
-        final mods = item.modifiers
-            .expand((g) => g.selected.map((o) => o.name))
-            .join(', ');
-        if (mods.isNotEmpty) {
-          bytes += generator.text(
-            '   $mods',
-            styles: const PosStyles(fontType: PosFontType.fontB),
-          );
-        }
-        if (item.notes != null && item.notes!.isNotEmpty) {
-          bytes += generator.text(
-            '   Note: ${item.notes}',
-            styles: const PosStyles(fontType: PosFontType.fontB),
-          );
-        }
-        if (item.discountAmount != null && item.discountAmount! > 0) {
+        if (item.discountAmount > 0) {
           bytes += generator.row([
             PosColumn(text: '   Discount', width: 8),
             PosColumn(
-              text: '-$currency ${item.discountAmount!.toStringAsFixed(2)}',
+              text: '-$currency ${item.discountAmount.toStringAsFixed(2)}',
               width: 4,
               styles: const PosStyles(align: PosAlign.right),
             ),
           ]);
+          if (item.discountBeneficiaryName != null && item.discountBeneficiaryName!.isNotEmpty) {
+            bytes += generator.text(
+              '   ${item.discountType}: ${item.discountBeneficiaryName} '
+              '(${item.discountBeneficiaryId})',
+              styles: const PosStyles(align: PosAlign.left),
+            );
+          }
         }
       }
 
@@ -139,16 +131,42 @@ abstract final class PrintService {
       bytes += generator.row([
         PosColumn(text: 'Subtotal', width: 8),
         PosColumn(
-          text: '$currency ${receipt.subtotal.toStringAsFixed(2)}',
+          text: '$currency ${receipt.grossAmount.toStringAsFixed(2)}',
           width: 4,
           styles: const PosStyles(align: PosAlign.right),
         ),
       ]);
-      if (receipt.totalDiscount > 0) {
+      bytes += generator.row([
+        PosColumn(text: 'VATable Sales', width: 8),
+        PosColumn(
+          text: '$currency ${receipt.vatableAmount.toStringAsFixed(2)}',
+          width: 4,
+          styles: const PosStyles(align: PosAlign.right),
+        ),
+      ]);
+      if (receipt.vatExemptSales > 0) {
+        bytes += generator.row([
+          PosColumn(text: 'VAT-Exempt Sales', width: 8),
+          PosColumn(
+            text: '$currency ${receipt.vatExemptSales.toStringAsFixed(2)}',
+            width: 4,
+            styles: const PosStyles(align: PosAlign.right),
+          ),
+        ]);
+      }
+      bytes += generator.row([
+        PosColumn(text: 'VAT', width: 8),
+        PosColumn(
+          text: '$currency ${receipt.vatAmount.toStringAsFixed(2)}',
+          width: 4,
+          styles: const PosStyles(align: PosAlign.right),
+        ),
+      ]);
+      if (receipt.discountAmount > 0) {
         bytes += generator.row([
           PosColumn(text: 'Discount', width: 8),
           PosColumn(
-            text: '-$currency ${receipt.totalDiscount.toStringAsFixed(2)}',
+            text: '-$currency ${receipt.discountAmount.toStringAsFixed(2)}',
             width: 4,
             styles: const PosStyles(align: PosAlign.right),
           ),
@@ -158,7 +176,7 @@ abstract final class PrintService {
       bytes += generator.row([
         PosColumn(text: 'TOTAL', width: 8, styles: const PosStyles(bold: true)),
         PosColumn(
-          text: '$currency ${receipt.total.toStringAsFixed(2)}',
+          text: '$currency ${receipt.totalAmount.toStringAsFixed(2)}',
           width: 4,
           styles: const PosStyles(align: PosAlign.right, bold: true),
         ),
@@ -167,16 +185,16 @@ abstract final class PrintService {
       bytes += generator.row([
         PosColumn(text: 'Payment', width: 8),
         PosColumn(
-          text: _fmtMethod(receipt.paymentMethod),
+          text: _fmtMethod(receipt.payment.method),
           width: 4,
           styles: const PosStyles(align: PosAlign.right),
         ),
       ]);
-      if (receipt.paymentMethod == 'cash') {
+      if (receipt.payment.method == 'cash') {
         bytes += generator.row([
           PosColumn(text: 'Tendered', width: 8),
           PosColumn(
-            text: '$currency ${receipt.amountPaid.toStringAsFixed(2)}',
+            text: '$currency ${receipt.payment.amountPaid.toStringAsFixed(2)}',
             width: 4,
             styles: const PosStyles(align: PosAlign.right),
           ),
@@ -184,16 +202,16 @@ abstract final class PrintService {
         bytes += generator.row([
           PosColumn(text: 'Change', width: 8),
           PosColumn(
-            text: '$currency ${receipt.change.toStringAsFixed(2)}',
+            text: '$currency ${receipt.payment.change.toStringAsFixed(2)}',
             width: 4,
             styles: const PosStyles(align: PosAlign.right),
           ),
         ]);
-      } else if (receipt.reference != null && receipt.reference!.isNotEmpty) {
+      } else if (receipt.payment.reference != null && receipt.payment.reference!.isNotEmpty) {
         bytes += generator.row([
           PosColumn(text: 'Reference', width: 8),
           PosColumn(
-            text: receipt.reference!,
+            text: receipt.payment.reference!,
             width: 4,
             styles: const PosStyles(align: PosAlign.right),
           ),

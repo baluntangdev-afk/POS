@@ -20,75 +20,97 @@ class TransactionsScreen extends HookConsumerWidget {
     final pageAsync = ref.watch(transactionsProvider);
     final searchCtrl = useTextEditingController();
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Transactions'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.calendar_today_outlined),
-            tooltip: 'Filter by date',
-            onPressed: () async {
-              final picked = await showDatePicker(
-                context: context,
-                firstDate: DateTime(2020),
-                lastDate: DateTime.now(),
-                initialDate: ref.read(transactionsProvider.notifier).date ?? DateTime.now(),
-              );
-              if (picked != null) {
-                await ref.read(transactionsProvider.notifier).setDate(picked);
-              }
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/dashboard');
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text('Transactions'),
+          leading: IconButton(
+            onPressed: () {
+              context.go('/dashboard');
             },
+            icon: Icon(Icons.arrow_back),
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: TextField(
-              controller: searchCtrl,
-              decoration: const InputDecoration(
-                hintText: 'Search by invoice # (e.g. #000123)',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              onSubmitted: (v) => ref.read(transactionsProvider.notifier).setSearch(v),
-            ),
-          ),
-          Expanded(
-            child: pageAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('$e')),
-              data: (page) {
-                if (page.items.isEmpty) {
-                  return const Center(child: Text('No transactions found'));
-                }
-                return RefreshIndicator(
-                  onRefresh: () => ref.read(transactionsProvider.notifier).refresh(),
-                  child: NotificationListener<ScrollEndNotification>(
-                    onNotification: (n) {
-                      if (n.metrics.pixels >= n.metrics.maxScrollExtent - _kLoadMoreThreshold) {
-                        ref.read(transactionsProvider.notifier).loadMore();
-                      }
-                      return false;
-                    },
-                    child: ListView.separated(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      itemCount: page.items.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-                      itemBuilder: (context, i) => _TransactionTile(
-                        tx: page.items[i],
-                        onTap: () => context.push('/transactions/${page.items[i].id}'),
-                      ),
-                    ),
-                  ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.calendar_today_outlined),
+              tooltip: 'Filter by date',
+              onPressed: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime.now(),
+                  initialDate:
+                      ref.read(transactionsProvider.notifier).date ??
+                      DateTime.now(),
                 );
+                if (picked != null) {
+                  await ref.read(transactionsProvider.notifier).setDate(picked);
+                }
               },
             ),
-          ),
-        ],
+          ],
+        ),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: TextField(
+                controller: searchCtrl,
+                decoration: const InputDecoration(
+                  hintText: 'Search by invoice # (e.g. #000123)',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onSubmitted:
+                    (v) => ref.read(transactionsProvider.notifier).setSearch(v),
+              ),
+            ),
+            Expanded(
+              child: pageAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text('$e')),
+                data: (page) {
+                  if (page.items.isEmpty) {
+                    return const Center(child: Text('No transactions found'));
+                  }
+                  return RefreshIndicator(
+                    onRefresh:
+                        () => ref.read(transactionsProvider.notifier).refresh(),
+                    child: NotificationListener<ScrollEndNotification>(
+                      onNotification: (n) {
+                        if (n.metrics.pixels >=
+                            n.metrics.maxScrollExtent - _kLoadMoreThreshold) {
+                          ref.read(transactionsProvider.notifier).loadMore();
+                        }
+                        return false;
+                      },
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        itemCount: page.items.length,
+                        separatorBuilder:
+                            (_, __) => const SizedBox(height: AppSpacing.sm),
+                        itemBuilder:
+                            (context, i) => _TransactionTile(
+                              tx: page.items[i],
+                              onTap:
+                                  () => context.push(
+                                    '/transactions/${page.items[i].id}',
+                                  ),
+                            ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -101,39 +123,59 @@ class _TransactionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = tx.isVoided
-        ? AppColors.error
-        : tx.hasRefunds
+    final statusColor =
+        tx.isVoided
+            ? AppColors.error
+            : tx.hasRefunds
             ? AppColors.warning
             : AppColors.success;
-    final statusLabel = tx.isVoided
-        ? 'Voided'
-        : tx.isFullyRefunded
+    final statusLabel =
+        tx.isVoided
+            ? 'Voided'
+            : tx.isFullyRefunded
             ? 'Refunded'
             : tx.hasRefunds
-                ? 'Partially Refunded'
-                : 'Completed';
+            ? 'Partially Refunded'
+            : 'Completed';
 
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        boxShadow: [BoxShadow(color: AppColors.shadow.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 1))],
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
-      child: ListTile(
-        onTap: onTap,
-        title: Text(tx.invoiceNumber, style: AppTextStyles.headingSm),
-        subtitle: Text(
-          '${tx.displayType} • ${tx.cashierName} • ${DateFormat('MMM d, h:mm a').format(tx.createdAt)}',
-          style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text('₱${tx.netTotal.toStringAsFixed(2)}', style: AppTextStyles.headingSm),
-            Text(statusLabel, style: AppTextStyles.bodySm.copyWith(color: statusColor)),
-          ],
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          onTap: onTap,
+          title: Text(tx.invoiceNumber, style: AppTextStyles.headingSm),
+          subtitle: Text(
+            '${tx.displayType} • ${tx.cashierName} • ${DateFormat('MMM d, h:mm a').format(tx.createdAt)}',
+            style: AppTextStyles.bodySm.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          trailing: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '₱${tx.netTotal.toStringAsFixed(2)}',
+                style: AppTextStyles.headingSm,
+              ),
+              Text(
+                statusLabel,
+                style: AppTextStyles.bodySm.copyWith(color: statusColor),
+              ),
+            ],
+          ),
         ),
       ),
     );

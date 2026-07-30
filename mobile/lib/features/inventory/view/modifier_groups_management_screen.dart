@@ -28,35 +28,43 @@ class ModifierGroupsManagementScreen extends ConsumerWidget {
 
     return groupsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => ErrorStateWidget(
-        message: e.toString(),
-        onRetry: () => ref.invalidate(allModifierGroupsProvider),
-      ),
+      error:
+          (e, _) => ErrorStateWidget(
+            message: e.toString(),
+            onRetry: () => ref.invalidate(allModifierGroupsProvider),
+          ),
       data: (groups) {
         return Scaffold(
           backgroundColor: AppColors.background,
-          body: groups.isEmpty
-              ? EmptyStateWidget(
-                  title: 'No modifier groups yet',
-                  subtitle: 'Add a group so it can be attached to any product.',
-                  icon: Icons.tune_rounded,
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  itemCount: groups.length,
-                  separatorBuilder: (context, index) => const Gap(AppSpacing.md),
-                  itemBuilder: (context, i) => _GroupCard(entry: groups[i], isAdmin: isAdmin),
-                ),
-          floatingActionButton: isAdmin
-              ? FloatingActionButton.extended(
-                  onPressed: () => showDialog<void>(
-                    context: context,
-                    builder: (_) => const ModifierGroupFormDialog(),
+          body:
+              groups.isEmpty
+                  ? EmptyStateWidget(
+                    title: 'No modifier groups yet',
+                    subtitle:
+                        'Add a group so it can be attached to any product.',
+                    icon: Icons.tune_rounded,
+                  )
+                  : ListView.separated(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    itemCount: groups.length,
+                    separatorBuilder:
+                        (context, index) => const Gap(AppSpacing.md),
+                    itemBuilder:
+                        (context, i) =>
+                            _GroupCard(entry: groups[i], isAdmin: isAdmin),
                   ),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('Add Group'),
-                )
-              : null,
+          floatingActionButton:
+              isAdmin
+                  ? FloatingActionButton.extended(
+                    onPressed:
+                        () => showDialog<void>(
+                          context: context,
+                          builder: (_) => const ModifierGroupFormDialog(),
+                        ),
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Add Group'),
+                  )
+                  : null,
         );
       },
     );
@@ -77,85 +85,139 @@ class _GroupCard extends ConsumerWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-          boxShadow: [BoxShadow(color: AppColors.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 2))],
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.shadow.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         clipBehavior: Clip.antiAlias,
-        child: ExpansionTile(
-          title: Text(group.name, style: AppTextStyles.labelLg.copyWith(fontWeight: FontWeight.w700)),
-          subtitle: Text(
-            '${group.isRequired ? 'Required' : 'Optional'} · Max ${group.maxSelections}${group.isActive ? '' : ' · Inactive'}',
-            style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
-          ),
-          trailing: isAdmin
-              ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
-                      tooltip: 'Edit group',
-                      onPressed: () => showDialog<void>(
-                        context: context,
-                        builder: (_) => ModifierGroupFormDialog(existing: group),
-                      ),
-                    ),
-                    Switch(
-                      value: group.isActive,
-                      onChanged: (v) => ref
-                          .read(modifierGroupsManagementActionsProvider)
-                          .toggleGroupActive(group.id, isActive: v),
-                    ),
-                  ],
-                )
-              : null,
-          children: [
-            if (entry.options.isEmpty)
-              const Padding(padding: EdgeInsets.only(bottom: AppSpacing.md), child: Text('No options yet'))
-            else
-              for (final option in entry.options)
-                Opacity(
-                  opacity: option.isActive ? 1.0 : 0.55,
-                  child: ListTile(
-                    title: Text(option.name),
-                    subtitle: Text('+ PHP ${option.additionalPrice.toStringAsFixed(2)}${option.isActive ? '' : ' · Inactive'}'),
-                    trailing: isAdmin
-                        ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit_outlined, color: AppColors.primary, size: 20),
-                                tooltip: 'Edit option',
-                                onPressed: () => showDialog<void>(
-                                  context: context,
-                                  builder: (_) => ModifierOptionFormDialog(groupId: group.id, existing: option),
-                                ),
-                              ),
-                              Switch(
-                                value: option.isActive,
-                                onChanged: (v) => ref
-                                    .read(modifierGroupsManagementActionsProvider)
-                                    .toggleOptionActive(option.id, isActive: v),
-                              ),
-                            ],
-                          )
-                        : null,
-                  ),
-                ),
-            if (isAdmin)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () => showDialog<void>(
-                      context: context,
-                      builder: (_) => ModifierOptionFormDialog(groupId: group.id),
-                    ),
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Add Option'),
-                  ),
-                ),
+        child: Material(
+          color: Colors.transparent,
+          child: ExpansionTile(
+            title: Text(
+              group.name,
+              style: AppTextStyles.labelLg.copyWith(
+                fontWeight: FontWeight.w700,
               ),
-          ],
+            ),
+            subtitle: Text(
+              '${group.isRequired ? 'Required' : 'Optional'} · Max ${group.maxSelections}${group.isActive ? '' : ' · Inactive'}',
+              style: AppTextStyles.bodySm.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            trailing:
+                isAdmin
+                    ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.edit_outlined,
+                            color: AppColors.primary,
+                          ),
+                          tooltip: 'Edit group',
+                          onPressed:
+                              () => showDialog<void>(
+                                context: context,
+                                builder:
+                                    (_) => ModifierGroupFormDialog(
+                                      existing: group,
+                                    ),
+                              ),
+                        ),
+                        Switch(
+                          value: group.isActive,
+                          onChanged:
+                              (v) => ref
+                                  .read(modifierGroupsManagementActionsProvider)
+                                  .toggleGroupActive(group.id, isActive: v),
+                        ),
+                      ],
+                    )
+                    : null,
+            children: [
+              if (entry.options.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: AppSpacing.md),
+                  child: Text('No options yet'),
+                )
+              else
+                for (final option in entry.options)
+                  Opacity(
+                    opacity: option.isActive ? 1.0 : 0.55,
+                    child: ListTile(
+                      title: Text(option.name),
+                      subtitle: Text(
+                        '+ PHP ${option.additionalPrice.toStringAsFixed(2)}${option.isActive ? '' : ' · Inactive'}',
+                      ),
+                      trailing:
+                          isAdmin
+                              ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.edit_outlined,
+                                      color: AppColors.primary,
+                                      size: 20,
+                                    ),
+                                    tooltip: 'Edit option',
+                                    onPressed:
+                                        () => showDialog<void>(
+                                          context: context,
+                                          builder:
+                                              (_) => ModifierOptionFormDialog(
+                                                groupId: group.id,
+                                                existing: option,
+                                              ),
+                                        ),
+                                  ),
+                                  Switch(
+                                    value: option.isActive,
+                                    onChanged:
+                                        (v) => ref
+                                            .read(
+                                              modifierGroupsManagementActionsProvider,
+                                            )
+                                            .toggleOptionActive(
+                                              option.id,
+                                              isActive: v,
+                                            ),
+                                  ),
+                                ],
+                              )
+                              : null,
+                    ),
+                  ),
+              if (isAdmin)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    0,
+                    AppSpacing.md,
+                    AppSpacing.md,
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed:
+                          () => showDialog<void>(
+                            context: context,
+                            builder:
+                                (_) =>
+                                    ModifierOptionFormDialog(groupId: group.id),
+                          ),
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      label: const Text('Add Option'),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

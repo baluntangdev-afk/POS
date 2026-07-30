@@ -6,6 +6,7 @@ import '../tables/product_variants_table.dart';
 import '../tables/modifier_groups_table.dart';
 import '../tables/modifier_options_table.dart';
 import '../tables/product_modifier_groups_table.dart';
+import '../tables/sale_items_table.dart';
 
 part 'products_dao.g.dart';
 
@@ -22,6 +23,7 @@ class ProductWithPrice {
   ModifierGroupsTable,
   ModifierOptionsTable,
   ProductModifierGroupsTable,
+  SaleItemsTable,
 ])
 class ProductsDao extends DatabaseAccessor<AppDatabase> with _$ProductsDaoMixin {
   ProductsDao(super.db);
@@ -58,6 +60,11 @@ class ProductsDao extends DatabaseAccessor<AppDatabase> with _$ProductsDaoMixin 
           sortOrder: sortOrder != null ? Value(sortOrder) : const Value.absent(),
         ),
       );
+
+  /// Hard-deletes a category. Only safe to call once every product under it
+  /// has been removed — `products.group_id` is a non-null reference.
+  Future<void> deleteProductGroup(int id) =>
+      (delete(productGroupsTable)..where((t) => t.id.equals(id))).go();
 
   // ── Products ──────────────────────────────────────────────────────────
 
@@ -106,6 +113,20 @@ class ProductsDao extends DatabaseAccessor<AppDatabase> with _$ProductsDaoMixin 
       (update(productsTable)..where((t) => t.id.equals(productId)))
           .write(ProductsTableCompanion(isAvailable: Value(isAvailable)));
 
+  /// True when `productId` appears in any sale — deleting it would corrupt
+  /// transaction history, so callers must keep the row (deactivated) instead.
+  Future<bool> productHasSaleHistory(int productId) async {
+    final row = await (select(saleItemsTable)
+          ..where((t) => t.productId.equals(productId))
+          ..limit(1))
+        .getSingleOrNull();
+    return row != null;
+  }
+
+  /// Hard-deletes a product. Only call after [productHasSaleHistory] is false
+  /// and its variants / modifier-group links have already been removed.
+  Future<void> deleteProduct(int id) => (delete(productsTable)..where((t) => t.id.equals(id))).go();
+
   Future<bool> isProductNameTaken(int groupId, String name, {int? excludeId}) async {
     final query = select(productsTable)
       ..where((t) => t.groupId.equals(groupId))
@@ -146,6 +167,12 @@ class ProductsDao extends DatabaseAccessor<AppDatabase> with _$ProductsDaoMixin 
           isActive: Value(isActive),
         ),
       );
+
+  /// Hard-deletes a variant. Nothing references product_variants by FK
+  /// (sale_items stores the variant name as plain text), so this is always
+  /// safe regardless of order history.
+  Future<void> deleteVariant(int id) =>
+      (delete(productVariantsTable)..where((t) => t.id.equals(id))).go();
 
   Future<void> clearDefaultVariant(int productId) =>
       (update(productVariantsTable)..where((t) => t.productId.equals(productId)))
@@ -242,4 +269,7 @@ class ProductsDao extends DatabaseAccessor<AppDatabase> with _$ProductsDaoMixin 
             ..where((t) =>
                 t.productId.equals(productId) & t.modifierGroupId.equals(modifierGroupId)))
           .go();
+
+  Future<void> deleteModifierGroupLinksForProduct(int productId) =>
+      (delete(productModifierGroupsTable)..where((t) => t.productId.equals(productId))).go();
 }

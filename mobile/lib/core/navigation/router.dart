@@ -16,6 +16,7 @@ import '../../features/cashier_accounting/z_reading/view/z_reading_screen.dart';
 import '../../features/inventory/view/inventory_screen.dart';
 import '../../features/inventory/view/modifier_groups_screen.dart';
 import '../../features/dashboard/view/dashboard_screen.dart';
+import '../../features/ordering/view/discount_screen.dart';
 import '../../features/ordering/view/ordering_screen.dart';
 import '../../features/ordering/view/payment_screen.dart';
 import '../../features/ordering/view/receipt_screen.dart';
@@ -24,7 +25,6 @@ import '../../features/settings/view/csv_import_screen.dart';
 import '../../features/settings/view/printer_setup_screen.dart';
 import '../../features/settings/view/settings_screen.dart';
 import '../../features/settings/view/store_info_screen.dart';
-import '../../features/transactions/view/transaction_detail_screen.dart';
 import '../../features/transactions/view/transactions_screen.dart';
 import '../../features/users/view/users_screen.dart';
 
@@ -63,12 +63,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const OrderingScreen(),
         routes: [
           GoRoute(
+            path: 'discount',
+            builder: (context, state) => const DiscountScreen(),
+          ),
+          GoRoute(
             path: 'payment',
             builder: (context, state) => const PaymentScreen(),
           ),
           GoRoute(
-            path: 'receipt',
-            builder: (context, state) => const ReceiptScreen(),
+            path: 'receipt/:id',
+            builder: (context, state) => ReceiptScreen(
+              saleId: int.parse(state.pathParameters['id']!),
+            ),
           ),
         ],
       ),
@@ -82,7 +88,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: ':id',
-            builder: (context, state) => TransactionDetailScreen(
+            builder: (context, state) => ReceiptScreen(
               saleId: int.parse(state.pathParameters['id']!),
             ),
           ),

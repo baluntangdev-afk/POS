@@ -8,17 +8,14 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../auth/state/auth_providers.dart';
-import '../../auth/state/auth_state.dart';
-import '../../transactions/view/refund_auth_dialog.dart';
 import '../../transactions/view/refund_screen.dart';
+import '../../transactions/view/void_transaction_dialog.dart';
 import '../entities/receipt.dart';
 import '../entities/receipt_item.dart';
 import '../entities/refund.dart';
 import '../entities/sale_payment.dart';
 import '../state/ordering_notifier.dart';
 import '../state/receipt_notifier.dart';
-import 'void_sale_dialog.dart';
 
 class ReceiptScreen extends HookConsumerWidget {
   const ReceiptScreen({super.key, required this.saleId});
@@ -29,8 +26,6 @@ class ReceiptScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final printing = useState(false);
     final receiptAsync = ref.watch(receiptProvider(saleId));
-    final authState = ref.watch(authNotifierProvider);
-    final isAdmin = authState is AuthAuthenticated && authState.user.isAdminOrSupervisor;
     final canPop = Navigator.of(context).canPop() || GoRouter.of(context).canPop();
 
     return Scaffold(
@@ -69,14 +64,14 @@ class ReceiptScreen extends HookConsumerWidget {
               ),
               child: Column(
                 children: [
-                  FilledButton.icon(
-                    onPressed: () => _newOrder(context, ref),
-                    icon: const Icon(Icons.add_shopping_cart_rounded),
-                    label: const Text('New Order'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(double.infinity, AppSpacing.touchPreferred),
-                    ),
-                  ),
+                  // FilledButton.icon(
+                  //   onPressed: () => _newOrder(context, ref),
+                  //   icon: const Icon(Icons.add_shopping_cart_rounded),
+                  //   label: const Text('New Order'),
+                  //   style: FilledButton.styleFrom(
+                  //     minimumSize: const Size(double.infinity, AppSpacing.touchPreferred),
+                  //   ),
+                  // ),
                   const Gap(AppSpacing.md),
                   OutlinedButton.icon(
                     onPressed: printing.value
@@ -102,17 +97,17 @@ class ReceiptScreen extends HookConsumerWidget {
                       minimumSize: const Size(double.infinity, AppSpacing.touchMin),
                     ),
                   ),
-                  if (isAdmin && !receipt.isVoided) ...[
-                    const Gap(AppSpacing.md),
-                    OutlinedButton.icon(
-                      onPressed: () => _refundReceipt(context, ref),
-                      icon: const Icon(Icons.assignment_return_outlined),
-                      label: const Text('Refund Items'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, AppSpacing.touchMin),
-                      ),
-                    ),
-                  ],
+                  // if (!receipt.isVoided) ...[
+                  //   const Gap(AppSpacing.md),
+                  //   OutlinedButton.icon(
+                  //     onPressed: () => _refundReceipt(context, ref),
+                  //     icon: const Icon(Icons.assignment_return_outlined),
+                  //     label: const Text('Refund Items'),
+                  //     style: OutlinedButton.styleFrom(
+                  //       minimumSize: const Size(double.infinity, AppSpacing.touchMin),
+                  //     ),
+                  //   ),
+                  // ],
                   if (!receipt.isVoided) ...[
                     const Gap(AppSpacing.md),
                     OutlinedButton.icon(
@@ -148,16 +143,18 @@ class ReceiptScreen extends HookConsumerWidget {
   }
 
   Future<void> _voidReceipt(BuildContext context, WidgetRef ref) async {
-    final reason = await VoidSaleDialog.show(context);
-    if (reason == null || !context.mounted) return;
+    final receipt = ref.read(receiptProvider(saleId)).value;
+    if (receipt == null) return;
 
-    final authorized = await showDialog<bool>(
-      context: context,
-      builder: (_) => const RefundAuthDialog(),
+    final voided = await VoidTransactionDialog.show(
+      context,
+      saleId: saleId,
+      invoiceNumber: receipt.docNumber,
+      totalAmount: receipt.totalAmount,
     );
-    if (authorized != true) return;
+    if (!voided) return;
 
-    await ref.read(receiptProvider(saleId).notifier).void_(reason);
+    ref.invalidate(receiptProvider(saleId));
     ref.invalidate(orderingProvider);
   }
 }

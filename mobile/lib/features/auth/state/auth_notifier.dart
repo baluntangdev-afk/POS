@@ -51,6 +51,16 @@ class AuthNotifier extends Notifier<AuthState> {
     return result.fold(onSuccess: (ok) => ok, onFailure: (_) => false);
   }
 
+  Future<bool> verifyPinForUser(int userId, String pin) async {
+    final result = await _repo.verifyPinForUser(userId, pin);
+    return result.fold(onSuccess: (ok) => ok, onFailure: (_) => false);
+  }
+
+  Future<List<UserEntity>> loadAuthorizers() async {
+    final users = await loadUsers();
+    return users.where((u) => u.isAdminOrSupervisor).toList();
+  }
+
   void logout() => state = const AuthInitial();
 
   void clearError() {

@@ -25,29 +25,27 @@ class RefundScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text('$e')),
         data: (data) {
           final refundedQty = data.receipt.refundedQuantities;
-          final selectableItems = data.receipt.items.where((i) {
-            if (!i.isMain) return false;
-            return i.quantity - (refundedQty[i.id] ?? 0) > 0;
-          }).toList();
+          final mainItemEntries = data.receipt.mainItemsWithAddOns;
 
-          if (selectableItems.isEmpty) {
+          if (mainItemEntries.isEmpty) {
             return const Center(child: Text('Nothing left to refund on this sale'));
           }
 
           return ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
             children: [
-              for (final item in selectableItems)
+              for (final entry in mainItemEntries)
                 _RefundItemRow(
-                  item: item,
-                  maxQuantity: item.quantity - (refundedQty[item.id] ?? 0),
-                  selectedQty: data.form.selectedQuantities[item.id] ?? 0,
-                  onToggle: () => ref
-                      .read(refundProvider(saleId).notifier)
-                      .toggleItemSelection(itemId: item.id, maxQuantity: item.quantity - (refundedQty[item.id] ?? 0)),
+                  item: entry.mainItem,
+                  maxQuantity: entry.mainItem.quantity - (refundedQty[entry.mainItem.id] ?? 0),
+                  selectedQty: data.form.selectedQuantities[entry.mainItem.id] ?? 0,
+                  onToggle: () => ref.read(refundProvider(saleId).notifier).toggleItemSelection(
+                        itemId: entry.mainItem.id,
+                        maxQuantity: entry.mainItem.quantity - (refundedQty[entry.mainItem.id] ?? 0),
+                      ),
                   onQuantityChanged: (qty) => ref
                       .read(refundProvider(saleId).notifier)
-                      .changeQuantity(itemId: item.id, quantity: qty),
+                      .changeQuantity(itemId: entry.mainItem.id, quantity: qty),
                 ),
               const Gap(AppSpacing.lg),
               Text('REASON', style: AppTextStyles.labelMd.copyWith(color: AppColors.textSecondary)),
@@ -136,27 +134,51 @@ class _RefundItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isRefunded = maxQuantity <= 0;
+
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: isRefunded ? AppColors.surface.withValues(alpha: 0.5) : AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
       ),
       child: Row(
         children: [
-          Checkbox(value: selectedQty > 0, onChanged: (_) => onToggle()),
+          if (isRefunded)
+            const SizedBox(width: 48)
+          else
+            Checkbox(value: selectedQty > 0, onChanged: (_) => onToggle()),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.description, style: AppTextStyles.headingSm),
-                Text('Available: $maxQuantity × ₱${item.unitPrice.toStringAsFixed(2)}',
-                    style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
+                Text(
+                  item.description,
+                  style: AppTextStyles.headingSm.copyWith(
+                    color: isRefunded ? AppColors.textSecondary : null,
+                  ),
+                ),
+                Text(
+                  isRefunded
+                      ? 'Fully refunded'
+                      : 'Available: $maxQuantity × ₱${item.unitPrice.toStringAsFixed(2)}',
+                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
+                ),
               ],
             ),
           ),
-          if (selectedQty > 0) ...[
+          if (isRefunded)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.textSecondary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+              ),
+              child: Text('Refunded',
+                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
+            )
+          else if (selectedQty > 0) ...[
             IconButton(
               onPressed: selectedQty > 1 ? () => onQuantityChanged(selectedQty - 1) : null,
               icon: const Icon(Icons.remove_circle_outline),
@@ -179,20 +201,29 @@ class _RefundMethodSelector extends StatelessWidget {
 
   const _RefundMethodSelector({required this.selected, required this.onChanged});
 
-  static const _methods = ['Cash Refund', 'Card Refund', 'E-wallet Refund'];
+  static const _methods = ['Cash Refund'];
+  static const _comingSoonMethods = ['Card Refund', 'E-wallet Refund'];
 
   @override
   Widget build(BuildContext context) {
     return Wrap(
       spacing: AppSpacing.sm,
-      children: _methods.map((m) {
-        final isSel = selected == m;
-        return ChoiceChip(
-          label: Text(m),
-          selected: isSel,
-          onSelected: (_) => onChanged(m),
-        );
-      }).toList(),
+      children: [
+        for (final m in _methods)
+          ChoiceChip(
+            label: Text(m),
+            selected: selected == m,
+            onSelected: (_) => onChanged(m),
+          ),
+        for (final m in _comingSoonMethods)
+          ChoiceChip(
+            label: Text('$m (Coming soon)'),
+            selected: false,
+            onSelected: null,
+            labelStyle: TextStyle(color: AppColors.textSecondary),
+            backgroundColor: AppColors.surface.withValues(alpha: 0.5),
+          ),
+      ],
     );
   }
 }

@@ -13,8 +13,10 @@ Future<void> showMessageDialog(
   DialogType type = DialogType.info,
   String primaryButtonText = 'OK',
   String? secondaryButtonText,
+  String? tertiaryButtonText,
   VoidCallback? onPrimaryPressed,
   VoidCallback? onSecondaryPressed,
+  VoidCallback? onTertiaryPressed,
   bool barrierDismissible = true,
 }) {
   assert(
@@ -24,6 +26,14 @@ Future<void> showMessageDialog(
   assert(
     onSecondaryPressed == null || secondaryButtonText != null,
     'onSecondaryPressed provided without secondaryButtonText',
+  );
+  assert(
+    tertiaryButtonText == null || onTertiaryPressed != null,
+    'tertiaryButtonText provided without onTertiaryPressed callback',
+  );
+  assert(
+    onTertiaryPressed == null || tertiaryButtonText != null,
+    'onTertiaryPressed provided without tertiaryButtonText',
   );
   return showDialog<void>(
     context: context,
@@ -36,8 +46,10 @@ Future<void> showMessageDialog(
           type: type,
           primaryButtonText: primaryButtonText,
           secondaryButtonText: secondaryButtonText,
+          tertiaryButtonText: tertiaryButtonText,
           onPrimaryPressed: onPrimaryPressed ?? () => Navigator.of(context).pop(),
           onSecondaryPressed: onSecondaryPressed,
+          onTertiaryPressed: onTertiaryPressed,
         ),
   );
 }
@@ -50,8 +62,10 @@ class MessageDialog extends StatelessWidget {
     this.type = DialogType.info,
     this.primaryButtonText = 'OK',
     this.secondaryButtonText,
+    this.tertiaryButtonText,
     this.onPrimaryPressed,
     this.onSecondaryPressed,
+    this.onTertiaryPressed,
   });
 
   final String message;
@@ -59,8 +73,10 @@ class MessageDialog extends StatelessWidget {
   final DialogType type;
   final String primaryButtonText;
   final String? secondaryButtonText;
+  final String? tertiaryButtonText;
   final VoidCallback? onPrimaryPressed;
   final VoidCallback? onSecondaryPressed;
+  final VoidCallback? onTertiaryPressed;
 
   Color get _accentColor {
     switch (type) {
@@ -183,6 +199,20 @@ class MessageDialog extends StatelessWidget {
                     onSecondaryPressed: onSecondaryPressed,
                     accentColor: _accentColor,
                   ),
+                  if (tertiaryButtonText != null) ...[
+                    const SizedBox(height: 4),
+                    TextButton(
+                      onPressed: onTertiaryPressed,
+                      child: Text(
+                        tertiaryButtonText!,
+                        style: TextStyle(
+                          color: ColorSet.text.withValues(alpha: 0.55),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

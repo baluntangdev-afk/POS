@@ -6,8 +6,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../widgets/payment_methods_card.dart';
+import '../../../widgets/section_card.dart';
 import '../state/store_info_notifier.dart';
-import 'payment_method_form_dialog.dart';
 
 class StoreInfoScreen extends HookConsumerWidget {
   const StoreInfoScreen({super.key});
@@ -137,7 +138,7 @@ class _StoreInfoForm extends HookConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            _FormCard(
+            SectionCard(
               title: 'Basic Info',
               children: [
                 TextFormField(
@@ -180,56 +181,7 @@ class _StoreInfoForm extends HookConsumerWidget {
               ],
             ),
             const Gap(AppSpacing.lg),
-            const _PaymentMethodsCard(),
-            const Gap(AppSpacing.lg),
-            _FormCard(
-              title: 'Tax & Currency',
-              children: [
-                TextFormField(
-                  controller: taxRateCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Tax Rate',
-                    hintText: '0.0',
-                    border: OutlineInputBorder(),
-                    suffixText: '%',
-                  ),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return null;
-                    if (double.tryParse(v) == null) {
-                      return 'Enter a valid number';
-                    }
-                    return null;
-                  },
-                ),
-                const Gap(AppSpacing.md),
-                TextFormField(
-                  controller: currencyCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Currency Symbol',
-                    hintText: 'PHP',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
-            ),
-            const Gap(AppSpacing.lg),
-            _FormCard(
-              title: 'Receipt',
-              children: [
-                TextFormField(
-                  controller: footerCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Receipt Footer',
-                    hintText: 'Thank you for your purchase!',
-                    border: OutlineInputBorder(),
-                    alignLabelWithHint: true,
-                  ),
-                  maxLines: 3,
-                ),
-              ],
-            ),
+            const PaymentMethodsCard(),
             const Gap(AppSpacing.xl),
             FilledButton(
               onPressed: saving.value ? null : save,
@@ -254,161 +206,5 @@ class _StoreInfoForm extends HookConsumerWidget {
         ),
       ),
     );
-  }
-}
-
-class _FormCard extends StatelessWidget {
-  final String title;
-  final List<Widget> children;
-  const _FormCard({required this.title, required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title.toUpperCase(),
-            style: AppTextStyles.labelMd.copyWith(
-              color: AppColors.textSecondary,
-              letterSpacing: 0.8,
-            ),
-          ),
-          const Gap(AppSpacing.md),
-          ...children,
-        ],
-      ),
-    );
-  }
-}
-
-class _PaymentMethodsCard extends ConsumerWidget {
-  const _PaymentMethodsCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final methodsAsync = ref.watch(paymentMethodsProvider);
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'PAYMENT METHODS',
-                  style: AppTextStyles.labelMd.copyWith(
-                    color: AppColors.textSecondary,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: () => showDialog<void>(
-                  context: context,
-                  builder: (_) => const PaymentMethodFormDialog(),
-                ),
-                icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
-                tooltip: 'Add Payment Method',
-              ),
-            ],
-          ),
-          methodsAsync.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (e, _) => Text('$e', style: AppTextStyles.bodySm.copyWith(color: AppColors.error)),
-            data: (methods) {
-              if (methods.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                  child: Text(
-                    'No payment methods added yet.',
-                    style: AppTextStyles.bodySm.copyWith(color: AppColors.textDisabled),
-                  ),
-                );
-              }
-              return Column(
-                children: methods.map((m) {
-                  final subtitleParts = [
-                    if (m.accountName != null && m.accountName!.isNotEmpty) m.accountName!,
-                    if (m.accountNumber != null && m.accountNumber!.isNotEmpty) m.accountNumber!,
-                  ];
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(m.label),
-                    subtitle: subtitleParts.isEmpty ? null : Text(subtitleParts.join(' • ')),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined, size: 20),
-                          onPressed: () => showDialog<void>(
-                            context: context,
-                            builder: (_) => PaymentMethodFormDialog(existing: m),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.error),
-                          onPressed: () => _confirmDelete(context, ref, m.id, m.label),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, int id, String label) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete payment method?'),
-        content: Text('Remove "$label"? This cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      await ref.read(paymentMethodsProvider.notifier).delete(id);
-    }
   }
 }

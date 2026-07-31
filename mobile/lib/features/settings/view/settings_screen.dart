@@ -43,7 +43,7 @@ class SettingsScreen extends StatelessWidget {
             _SettingsTile(
               icon: Icons.store_outlined,
               title: 'Store Information',
-              subtitle: 'Name, address, tax rate, currency',
+              subtitle: 'Name, address, payment methods',
               onTap: () => context.push('/settings/store-info'),
             ),
             const SizedBox(height: AppSpacing.lg),

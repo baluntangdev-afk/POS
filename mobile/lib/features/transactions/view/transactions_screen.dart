@@ -9,6 +9,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../entities/transaction_summary.dart';
 import '../state/transactions_notifier.dart';
+import 'void_transaction_dialog.dart';
 
 const _kLoadMoreThreshold = 200;
 
@@ -95,14 +96,26 @@ class TransactionsScreen extends HookConsumerWidget {
                         itemCount: page.items.length,
                         separatorBuilder:
                             (_, __) => const SizedBox(height: AppSpacing.sm),
-                        itemBuilder:
-                            (context, i) => _TransactionTile(
-                              tx: page.items[i],
-                              onTap:
-                                  () => context.push(
-                                    '/transactions/${page.items[i].id}',
-                                  ),
-                            ),
+                        itemBuilder: (context, i) {
+                          final tx = page.items[i];
+                          return _TransactionTile(
+                            tx: tx,
+                            onTap: () => context.push('/transactions/${tx.id}'),
+                            onVoid: tx.isVoided
+                                ? null
+                                : () async {
+                                    final voided = await VoidTransactionDialog.show(
+                                      context,
+                                      saleId: tx.id,
+                                      invoiceNumber: tx.invoiceNumber,
+                                      totalAmount: tx.netTotal,
+                                    );
+                                    if (voided) {
+                                      ref.read(transactionsProvider.notifier).refresh();
+                                    }
+                                  },
+                          );
+                        },
                       ),
                     ),
                   );
@@ -119,7 +132,8 @@ class TransactionsScreen extends HookConsumerWidget {
 class _TransactionTile extends StatelessWidget {
   final TransactionSummary tx;
   final VoidCallback onTap;
-  const _TransactionTile({required this.tx, required this.onTap});
+  final VoidCallback? onVoid;
+  const _TransactionTile({required this.tx, required this.onTap, this.onVoid});
 
   @override
   Widget build(BuildContext context) {
@@ -162,18 +176,24 @@ class _TransactionTile extends StatelessWidget {
               color: AppColors.textSecondary,
             ),
           ),
-          trailing: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                '₱${tx.netTotal.toStringAsFixed(2)}',
-                style: AppTextStyles.headingSm,
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '₱${tx.netTotal.toStringAsFixed(2)}',
+                    style: AppTextStyles.headingSm,
+                  ),
+                  Text(
+                    statusLabel,
+                    style: AppTextStyles.bodySm.copyWith(color: statusColor),
+                  ),
+                ],
               ),
-              Text(
-                statusLabel,
-                style: AppTextStyles.bodySm.copyWith(color: statusColor),
-              ),
+
             ],
           ),
         ),

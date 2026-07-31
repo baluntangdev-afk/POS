@@ -6,8 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../widgets/setup_prompt_dialog.dart';
 import '../../auth/state/auth_providers.dart';
 import '../../auth/state/auth_state.dart';
+import '../../inventory/state/inventory_notifier.dart';
+import '../../settings/state/store_info_notifier.dart';
+import '../../users/state/users_notifier.dart';
+import 'store_details_dialog.dart';
 
 class _Tile {
   final String label;
@@ -68,6 +73,119 @@ class DashboardScreen extends HookConsumerWidget {
     final authState = ref.watch(authNotifierProvider);
     final user = authState is AuthAuthenticated ? authState.user : null;
     final isAdmin = user?.isAdminOrSupervisor ?? false;
+
+    final hasShownStoreDetailsDialog = useRef(false);
+    final hasShownEmployeesDialog = useRef(false);
+    final hasShownProductsDialog = useRef(false);
+
+    void checkAndShowStoreDetailsDialog() {
+      if (hasShownStoreDetailsDialog.value) return;
+      if (user?.isAdmin != true) return;
+
+      final storeState = ref.read(storeInfoProvider);
+      if (storeState.isLoading || storeState.hasError) return;
+      final info = storeState.value;
+      if (info == null || info.storeName.trim().isNotEmpty) return;
+
+      hasShownStoreDetailsDialog.value = true;
+      unawaited(showStoreDetailsDialog(
+        context,
+        onSignOut: () => ref.read(authNotifierProvider.notifier).logout(),
+      ));
+    }
+
+    void checkAndShowEmployeesDialog() {
+      if (hasShownEmployeesDialog.value) return;
+      if (user?.isAdmin != true) return;
+
+      final usersState = ref.read(usersProvider);
+      if (usersState.isLoading || usersState.hasError) return;
+      final users = usersState.value;
+      if (users == null || users.length > 1) return;
+
+      hasShownEmployeesDialog.value = true;
+      unawaited(showSetupPromptDialog(
+        context,
+        title: 'No Employees Added',
+        message: 'No employee accounts have been set up yet. '
+            'Add at least one employee before operating the system.',
+        type: SetupPromptType.warning,
+        primaryButtonText: 'Add Employee',
+        secondaryButtonText: 'Sign Out',
+        barrierDismissible: false,
+        onPrimaryPressed: () {
+          Navigator.of(context, rootNavigator: true).pop();
+          context.push('/users');
+        },
+        onSecondaryPressed: () {
+          Navigator.of(context, rootNavigator: true).pop();
+          ref.read(authNotifierProvider.notifier).logout();
+        },
+      ));
+    }
+
+    void checkAndShowProductsDialog() {
+      if (hasShownProductsDialog.value) return;
+      if (user?.isAdmin != true) return;
+
+      final inventoryState = ref.read(inventoryNotifierProvider);
+      if (inventoryState.isLoading || inventoryState.hasError) return;
+      final products = inventoryState.value?.products;
+      if (products == null || products.isNotEmpty) return;
+
+      hasShownProductsDialog.value = true;
+      unawaited(showSetupPromptDialog(
+        context,
+        title: 'No Products Found',
+        message: 'Import your product catalog to get started.',
+        type: SetupPromptType.warning,
+        primaryButtonText: 'Import Products',
+        secondaryButtonText: 'Sign Out',
+        tertiaryButtonText: 'Skip for now',
+        barrierDismissible: false,
+        onPrimaryPressed: () {
+          Navigator.of(context, rootNavigator: true).pop();
+          context.push('/settings/csv-import');
+        },
+        onSecondaryPressed: () {
+          Navigator.of(context, rootNavigator: true).pop();
+          ref.read(authNotifierProvider.notifier).logout();
+        },
+        onTertiaryPressed: () {
+          Navigator.of(context, rootNavigator: true).pop();
+        },
+      ));
+    }
+
+    ref.listen(storeInfoProvider, (prev, next) {
+      checkAndShowStoreDetailsDialog();
+      checkAndShowEmployeesDialog();
+      checkAndShowProductsDialog();
+    });
+    ref.listen(usersProvider, (prev, next) {
+      checkAndShowStoreDetailsDialog();
+      checkAndShowEmployeesDialog();
+      checkAndShowProductsDialog();
+    });
+    ref.listen(inventoryNotifierProvider, (prev, next) {
+      checkAndShowStoreDetailsDialog();
+      checkAndShowEmployeesDialog();
+      checkAndShowProductsDialog();
+    });
+
+    // ref.listen only fires on state *changes*. If storeInfoProvider /
+    // usersProvider / inventoryNotifierProvider already resolved during an
+    // earlier session (they aren't autoDispose, so they stay cached across
+    // logout/login), re-checking must also happen against the value already
+    // in memory, not just future transitions.
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        checkAndShowStoreDetailsDialog();
+        checkAndShowEmployeesDialog();
+        checkAndShowProductsDialog();
+      });
+      return null;
+    }, const []);
 
     final now = useState(DateTime.now());
     useEffect(() {

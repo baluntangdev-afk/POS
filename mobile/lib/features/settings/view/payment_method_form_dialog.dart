@@ -3,6 +3,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
+import '../entities/payment_method_type.dart';
 import '../state/store_info_notifier.dart';
 
 class PaymentMethodFormDialog extends HookConsumerWidget {
@@ -12,9 +13,35 @@ class PaymentMethodFormDialog extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final labelCtrl = useTextEditingController(text: existing?.label ?? '');
-    final accountNameCtrl = useTextEditingController(text: existing?.accountName ?? '');
-    final accountNumberCtrl = useTextEditingController(text: existing?.accountNumber ?? '');
+    final standardTypes =
+        PaymentMethodType.values.where((t) => t != PaymentMethodType.other);
+    final otherEntries = (ref.read(paymentMethodsProvider).value ?? const <PaymentMethodsTableData>[])
+        .where((m) => m.id != existing?.id);
+
+    final existingTypes = standardTypes
+        .where((t) => otherEntries.any((m) => m.label == t.label))
+        .toSet();
+    final existingOtherNames = otherEntries
+        .where((m) => !standardTypes.any((t) => t.label == m.label))
+        .map((m) => m.label.trim().toLowerCase())
+        .toSet();
+
+    final availableMethods = PaymentMethodType.values
+        .where((t) => t == PaymentMethodType.other || !existingTypes.contains(t))
+        .toList();
+
+    final initialType = existing == null
+        ? availableMethods.first
+        : PaymentMethodType.values.firstWhere(
+            (t) => t.label == existing!.label,
+            orElse: () => PaymentMethodType.other,
+          );
+
+    final selectedType = useState(initialType);
+    final methodNameCtrl = useTextEditingController(
+      text: initialType == PaymentMethodType.other ? (existing?.label ?? '') : '',
+    );
+    final numberCtrl = useTextEditingController(text: existing?.accountNumber ?? '');
     final formKey = useMemoized(GlobalKey<FormState>.new);
     final isSaving = useState(false);
 
@@ -22,20 +49,19 @@ class PaymentMethodFormDialog extends HookConsumerWidget {
       if (!(formKey.currentState?.validate() ?? false)) return;
       isSaving.value = true;
       try {
-        final label = labelCtrl.text.trim();
-        final accountName = accountNameCtrl.text.trim();
-        final accountNumber = accountNumberCtrl.text.trim();
+        final label = selectedType.value == PaymentMethodType.other
+            ? methodNameCtrl.text.trim()
+            : selectedType.value.label;
+        final accountNumber = numberCtrl.text.trim();
         if (existing == null) {
           await ref.read(paymentMethodsProvider.notifier).create(
                 label: label,
-                accountName: accountName.isEmpty ? null : accountName,
                 accountNumber: accountNumber.isEmpty ? null : accountNumber,
               );
         } else {
           await ref.read(paymentMethodsProvider.notifier).edit(
                 id: existing!.id,
                 label: label,
-                accountName: accountName.isEmpty ? null : accountName,
                 accountNumber: accountNumber.isEmpty ? null : accountNumber,
               );
         }
@@ -52,20 +78,43 @@ class PaymentMethodFormDialog extends HookConsumerWidget {
         key: formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextFormField(
-              controller: labelCtrl,
-              decoration: const InputDecoration(labelText: 'Label (e.g. GCash, Bank Transfer)'),
-              validator: (v) => (v?.trim().isEmpty ?? true) ? 'Label is required' : null,
+            DropdownButtonFormField<PaymentMethodType>(
+              initialValue: selectedType.value,
+              decoration: const InputDecoration(labelText: 'Payment Method'),
+              items: availableMethods
+                  .map((t) => DropdownMenuItem(value: t, child: Text(t.label)))
+                  .toList(),
+              onChanged: (t) {
+                if (t == null) return;
+                selectedType.value = t;
+                methodNameCtrl.clear();
+                numberCtrl.clear();
+              },
             ),
-            TextFormField(
-              controller: accountNameCtrl,
-              decoration: const InputDecoration(labelText: 'Account Name (optional)'),
-            ),
-            TextFormField(
-              controller: accountNumberCtrl,
-              decoration: const InputDecoration(labelText: 'Account Number (optional)'),
-            ),
+            if (selectedType.value == PaymentMethodType.other) ...[
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: methodNameCtrl,
+                decoration: const InputDecoration(labelText: 'Payment Method Name'),
+                validator: (v) {
+                  final trimmed = (v ?? '').trim();
+                  if (trimmed.isEmpty) return 'Payment method name is required';
+                  if (existingOtherNames.contains(trimmed.toLowerCase())) {
+                    return 'A payment method with this name already exists';
+                  }
+                  return null;
+                },
+              ),
+            ],
+            if (selectedType.value != PaymentMethodType.cash) ...[
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: numberCtrl,
+                decoration: const InputDecoration(labelText: 'Payment Number (optional)'),
+              ),
+            ],
           ],
         ),
       ),
@@ -75,7 +124,7 @@ class PaymentMethodFormDialog extends HookConsumerWidget {
           onPressed: isSaving.value ? null : submit,
           child: isSaving.value
               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Save'),
+              : Text(existing == null ? 'Add' : 'Update'),
         ),
       ],
     );

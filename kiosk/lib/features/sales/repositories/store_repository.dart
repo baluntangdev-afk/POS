@@ -1,7 +1,7 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../data/shared_preferences/schemas/franchisee_info_pref.dart';
-import '../../../data/shared_preferences/sources/franchisee_info_storage.dart';
+import '../../../data/backend_api/schemas/pos_terminal_dto.dart';
+import '../../../data/backend_api/sources/pos_terminals_api.dart';
 import '../entities/store.dart';
 
 abstract class StoreRepository {
@@ -9,28 +9,27 @@ abstract class StoreRepository {
 }
 
 final storeRepositoryProvider = Provider<StoreRepository>((ref) {
-  final storage = ref.watch(franchiseeInfoStorageProvider);
-  return StoreRepositoryImpl(storage);
+  final api = ref.watch(posTerminalsApiProvider);
+  return StoreRepositoryImpl(api);
 });
 
 class StoreRepositoryImpl implements StoreRepository {
-  const StoreRepositoryImpl(this._franchiseeInfoStorage);
+  const StoreRepositoryImpl(this._posTerminalsApi);
 
-  final FranchiseeInfoStorage _franchiseeInfoStorage;
+  final PosTerminalsApi _posTerminalsApi;
 
   @override
   Future<Store> getCurrent() async {
-    final pref = await _franchiseeInfoStorage.fetch();
-    return _storeFromFranchiseeInfoPref(pref);
+    final terminal = await _posTerminalsApi.getMyTerminal();
+    return _storeFromPosTerminal(terminal);
   }
 
-  Store _storeFromFranchiseeInfoPref(FranchiseeInfoPref pref) {
+  Store _storeFromPosTerminal(PosTerminalDto terminal) {
     return Store(
-      legalName: pref.legalName,
-      tin: pref.tin,
-      addressLine1: pref.addressLine1,
-      addressLine2: pref.addressLine2,
-      logo: pref.franchiseLogo,
+      legalName: terminal.legalName ?? '',
+      tin: terminal.tinNumber,
+      addressLine1: terminal.address,
+      addressLine2: '',
     );
   }
 }

@@ -155,6 +155,7 @@ class MenuScreen extends HookConsumerWidget {
             type: DialogType.warning,
             primaryButtonText: 'Import Products',
             secondaryButtonText: 'Sign Out',
+            tertiaryButtonText: 'Skip for now',
             barrierDismissible: false,
             onPrimaryPressed: () {
               Navigator.of(context, rootNavigator: true).pop();
@@ -163,6 +164,9 @@ class MenuScreen extends HookConsumerWidget {
             onSecondaryPressed: () {
               Navigator.of(context, rootNavigator: true).pop();
               const LoginRoute().go(context);
+            },
+            onTertiaryPressed: () {
+              Navigator.of(context, rootNavigator: true).pop();
             },
           ));
         } else {

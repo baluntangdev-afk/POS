@@ -82,12 +82,6 @@ class TransactionsNotifier extends AsyncNotifier<TransactionsPage> {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _load());
   }
-
-  Future<void> voidTransaction(int saleId) async {
-    final db = ref.read(databaseProvider);
-    await db.salesDao.voidSale(saleId);
-    await refresh();
-  }
 }
 
 final transactionsProvider =

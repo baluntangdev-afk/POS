@@ -1,6 +1,7 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../ordering/entities/receipt.dart';
+import '../../ordering/entities/receipt_item.dart';
 import '../../ordering/repositories/receipt_repository.dart';
 import '../../ordering/use_cases/process_refund.dart';
 
@@ -54,11 +55,19 @@ class RefundNotifier extends AsyncNotifier<RefundData> {
 
   void toggleItemSelection({required int itemId, required int maxQuantity}) {
     if (!state.hasValue) return;
+    final receipt = state.requireValue.receipt;
+    final addOns = _addOnsFor(receipt, itemId);
     final current = Map<int, int>.from(state.requireValue.form.selectedQuantities);
     if (current.containsKey(itemId)) {
       current.remove(itemId);
+      for (final addOn in addOns) {
+        current.remove(addOn.id);
+      }
     } else {
       current[itemId] = maxQuantity;
+      for (final addOn in addOns) {
+        current[addOn.id] = maxQuantity;
+      }
     }
     state = AsyncData(state.requireValue.copyWith(
       form: state.requireValue.form.copyWith(selectedQuantities: current),
@@ -67,13 +76,25 @@ class RefundNotifier extends AsyncNotifier<RefundData> {
 
   void changeQuantity({required int itemId, required int quantity}) {
     if (!state.hasValue) return;
-    final item = state.requireValue.receipt.items.firstWhere((i) => i.id == itemId);
+    final receipt = state.requireValue.receipt;
+    final item = receipt.items.firstWhere((i) => i.id == itemId);
     if (quantity <= 0 || quantity > item.quantity) return;
+    final addOns = _addOnsFor(receipt, itemId);
     final current = Map<int, int>.from(state.requireValue.form.selectedQuantities);
     current[itemId] = quantity;
+    for (final addOn in addOns) {
+      current[addOn.id] = quantity;
+    }
     state = AsyncData(state.requireValue.copyWith(
       form: state.requireValue.form.copyWith(selectedQuantities: current),
     ));
+  }
+
+  List<ReceiptItem> _addOnsFor(Receipt receipt, int mainItemId) {
+    for (final entry in receipt.mainItemsWithAddOns) {
+      if (entry.mainItem.id == mainItemId) return entry.addOns;
+    }
+    return const [];
   }
 
   void changeReason(String reason) {

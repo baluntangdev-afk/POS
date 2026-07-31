@@ -5,7 +5,6 @@ import '../../../core/providers/database_provider.dart';
 import '../../../core/services/print_service.dart';
 import '../entities/receipt.dart';
 import '../repositories/receipt_repository.dart';
-import '../use_cases/void_sale.dart';
 
 final storeInfoProvider = FutureProvider.autoDispose<StoreInfoTableData?>((ref) {
   final db = ref.watch(databaseProvider);
@@ -45,12 +44,5 @@ class ReceiptNotifier extends AsyncNotifier<Receipt> {
       storeTin: storeInfo?.tin,
       terminalName: storeInfo?.terminalName,
     );
-  }
-
-  Future<void> void_(String reason) async {
-    final voidSale = ref.read(voidSaleProvider);
-    await voidSale(saleId: saleId, reason: reason);
-    ref.invalidateSelf();
-    await future;
   }
 }

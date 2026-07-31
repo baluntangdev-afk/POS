@@ -86,6 +86,10 @@ import { ProductsUniqueNamePerGroup1779584400000 } from './migrations/1779584400
 import { SalesOrdersDoneDailyReportAndXReading1783692405858 } from './migrations/1783692405858-sales-orders-done-daily-report-and-x-reading';
 import { CashierDailyReportsAndXReadings1783702635689 } from './migrations/1783702635689-cashier-daily-reports-and-x-readings';
 import { ZReadings1784000000000 } from './migrations/1784000000000-z-readings';
+import { ProductSku1784246400000 } from './migrations/1784246400000-product-sku';
+import { ErpOrderPush1784246500000 } from './migrations/1784246500000-erp-order-push';
+import { ProductAvailableServings1784246600000 } from './migrations/1784246600000-product-available-servings';
+import { ErpReportPush1784246700000 } from './migrations/1784246700000-erp-report-push';
 
 /**
  * Migration classes for POSBackend.exe --migrate (same as npm run migration:up).
@@ -178,5 +182,9 @@ export const migrations: Array<new () => MigrationInterface> = [
   ProductsUniqueNamePerGroup1779584400000,
   SalesOrdersDoneDailyReportAndXReading1783692405858,
   CashierDailyReportsAndXReadings1783702635689,
-  ZReadings1784000000000
+  ZReadings1784000000000,
+  ProductSku1784246400000,
+  ErpOrderPush1784246500000,
+  ProductAvailableServings1784246600000,
+  ErpReportPush1784246700000
 ];

@@ -11,8 +11,10 @@ import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
+import '../../../utils/windows_touch_keyboard.dart';
 import '../../../widgets/android_bottom_sheet.dart';
 import '../../../widgets/button.dart';
+import '../../../widgets/numeric_keypad.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../entities/payment.dart';
 
@@ -21,8 +23,9 @@ Future<Payment?> showReferencePaymentDialog(
   required PaymentMethodEntryDto entry,
   required Decimal collectibleAmount,
 }) {
+  Future<Payment?> future;
   if (Platform.isAndroid) {
-    return showAndroidBottomSheet<Payment>(
+    future = showAndroidBottomSheet<Payment>(
       context: context,
       maxHeightRatio: 0.95,
       builder: (ctx) => _ReferencePaymentContent(
@@ -30,26 +33,28 @@ Future<Payment?> showReferencePaymentDialog(
         collectibleAmount: collectibleAmount,
       ),
     );
-  }
-  return showDialog<Payment>(
-    context: context,
-    builder: (context) => Dialog(
-      backgroundColor: ColorSet.light,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+  } else {
+    future = showDialog<Payment>(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: ColorSet.light,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+          ),
+        ),
+        insetPadding: EdgeInsets.symmetric(
+          horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+          vertical: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+        ),
+        child: _ReferencePaymentContent(
+          entry: entry,
+          collectibleAmount: collectibleAmount,
         ),
       ),
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-        vertical: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-      ),
-      child: _ReferencePaymentContent(
-        entry: entry,
-        collectibleAmount: collectibleAmount,
-      ),
-    ),
-  );
+    );
+  }
+  return future.whenComplete(WindowsTouchKeyboard.dismiss);
 }
 
 class _ReferencePaymentContent extends HookWidget {
@@ -75,6 +80,19 @@ class _ReferencePaymentContent extends HookWidget {
     final referenceController = useTextEditingController();
     final cardDigitsController = useTextEditingController();
     final bottomInset = Platform.isAndroid ? MediaQuery.of(context).viewPadding.bottom : 0.0;
+
+    useListenable(cardDigitsController);
+
+    void appendCardDigit(String digit) {
+      if (cardDigitsController.text.length >= 4) return;
+      cardDigitsController.text = '${cardDigitsController.text}$digit';
+    }
+
+    void backspaceCardDigit() {
+      final text = cardDigitsController.text;
+      if (text.isEmpty) return;
+      cardDigitsController.text = text.substring(0, text.length - 1);
+    }
 
     return Form(
       key: formKey,
@@ -148,13 +166,15 @@ class _ReferencePaymentContent extends HookWidget {
                   fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
                 ),
               ),
-              if (_isCard)
+              if (_isCard) ...[
                 TextBoxFormField(
                   controller: cardDigitsController,
                   label: 'Last 4 Digits of Card',
                   hint: '0000',
                   maxLines: 1,
-                  keyboardType: TextInputType.number,
+                  // Use in-app NumericKeypad — do not open the system keyboard.
+                  readOnly: true,
+                  keyboardType: TextInputType.none,
                   textInputAction: TextInputAction.done,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
@@ -170,6 +190,12 @@ class _ReferencePaymentContent extends HookWidget {
                     fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
                   ),
                 ),
+                NumericKeypad(
+                  keyHeight: context.responsive.value(kiosk: 64, tablet: 56, phone: 48),
+                  onKeyPressed: appendCardDigit,
+                  onBackspace: backspaceCardDigit,
+                ),
+              ],
               Row(
                 children: [
                   Button.outlined(

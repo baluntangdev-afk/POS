@@ -10,10 +10,12 @@ import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../utils/decimal_input_formatter.dart';
+import '../../../utils/windows_touch_keyboard.dart';
 import '../../../validation/rules/min_value.dart';
 import '../../../validation/validate.dart';
 import '../../../widgets/android_bottom_sheet.dart';
 import '../../../widgets/button.dart';
+import '../../../widgets/numeric_keypad.dart';
 import '../../../widgets/resposive_wrap_container.dart';
 import '../entities/payment.dart';
 
@@ -26,8 +28,9 @@ Future<CashPayment?> showCashPaymentDialog(
   required Decimal collectibleAmount,
   Decimal? initialCashReceived,
 }) {
+  Future<CashPayment?> future;
   if (Platform.isAndroid) {
-    return showAndroidBottomSheet<CashPayment>(
+    future = showAndroidBottomSheet<CashPayment>(
       context: context,
       maxHeightRatio: 0.95,
       builder: (ctx) => _CashPaymentContent(
@@ -35,14 +38,16 @@ Future<CashPayment?> showCashPaymentDialog(
         initialCashReceived: initialCashReceived,
       ),
     );
+  } else {
+    future = showDialog<CashPayment>(
+      context: context,
+      builder: (context) => CashPaymentDialog(
+        collectibleAmount: collectibleAmount,
+        initialCashReceived: initialCashReceived,
+      ),
+    );
   }
-  return showDialog<CashPayment>(
-    context: context,
-    builder: (context) => CashPaymentDialog(
-      collectibleAmount: collectibleAmount,
-      initialCashReceived: initialCashReceived,
-    ),
-  );
+  return future.whenComplete(WindowsTouchKeyboard.dismiss);
 }
 
 /// Windows dialog wrapper — wraps [_CashPaymentContent] in a [Dialog].
@@ -99,6 +104,34 @@ class _CashPaymentContent extends HookWidget {
 
     final cashReceived = Decimal.tryParse(cashController.text.replaceAll(',', '')) ?? Decimal.zero;
     final bottomInset = Platform.isAndroid ? MediaQuery.of(context).viewPadding.bottom : 0.0;
+
+    void applyFormatted(String rawText) {
+      final newValue = cashInputFormatter.formatEditUpdate(
+        cashController.value,
+        TextEditingValue(
+          text: rawText,
+          selection: TextSelection.collapsed(offset: rawText.length),
+        ),
+      );
+      cashController.value = newValue;
+    }
+
+    void appendKey(String key) {
+      final current = cashController.text.replaceAll(',', '');
+      applyFormatted('$current$key');
+    }
+
+    void appendDecimal() {
+      final current = cashController.text.replaceAll(',', '');
+      if (current.contains('.')) return;
+      applyFormatted(current.isEmpty ? '0.' : '$current.');
+    }
+
+    void backspace() {
+      final current = cashController.text.replaceAll(',', '');
+      if (current.isEmpty) return;
+      applyFormatted(current.substring(0, current.length - 1));
+    }
 
     return Form(
         key: formKey,
@@ -168,8 +201,12 @@ class _CashPaymentContent extends HookWidget {
                     const SizedBox(height: 4),
                     TextFormField(
                       controller: cashController,
-                      maxLines: 1,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      // Drive input via NumericKeypad / denomination buttons only —
+                      // do not open the Windows/Android system keyboard.
+                      readOnly: true,
+                      showCursor: true,
+                      enableInteractiveSelection: false,
+                      keyboardType: TextInputType.none,
                       textInputAction: TextInputAction.done,
                       inputFormatters: [cashInputFormatter],
                       style: TextStyle(
@@ -216,6 +253,12 @@ class _CashPaymentContent extends HookWidget {
                       },
                     ),
                   ],
+                ),
+                NumericKeypad(
+                  keyHeight: context.responsive.value(kiosk: 64, tablet: 56, phone: 48),
+                  onKeyPressed: appendKey,
+                  onBackspace: backspace,
+                  onDecimal: appendDecimal,
                 ),
                 ResponsiveWrapContainer(
                   spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),

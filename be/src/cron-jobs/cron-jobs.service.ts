@@ -62,8 +62,16 @@ export class CronJobsService {
         countedQty: true,
         material: { id: true },
         unit: { id: true },
+        salesOrderItem: {
+          id: true,
+          productVariant: { id: true, product: { id: true, sku: true } },
+        },
       },
-      relations: { material: true, unit: true },
+      relations: {
+        material: true,
+        unit: true,
+        salesOrderItem: { productVariant: { product: true } },
+      },
     });
 
     if (pendingItems.length === 0) {
@@ -74,6 +82,16 @@ export class CronJobsService {
     await this.inventoryStockRepository.manager.transaction(async (tx) => {
       for (const item of pendingItems) {
         if (item.material?.id == null) continue;
+
+        // ERP-managed products (sku set) deduct stock in the ERP back office on
+        // order push; skip the local deduction but still mark the item synced.
+        const erpManaged = Boolean(item.salesOrderItem?.productVariant?.product?.sku);
+        if (erpManaged) {
+          await tx.getRepository(InventoryCountItem).update(item.id, {
+            status: InventoryCountItemStatus.SYNCED,
+          });
+          continue;
+        }
 
         const stock = await tx.getRepository(InventoryStock).findOne({
           where: {

@@ -56,4 +56,32 @@ export class AppConfigService {
   get jwtRefreshExpiresIn(): string {
     return this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d');
   }
+
+  // --- ERP back-office integration ---
+
+  get erpSyncEnabled(): boolean {
+    return this.configService.get<string>('ERP_SYNC_ENABLED', 'true') !== 'false';
+  }
+
+  get erpBaseUrl(): string {
+    return this.configService.get<string>('ERP_BASE_URL', '');
+  }
+
+  get erpUsername(): string {
+    return this.configService.get<string>('ERP_USERNAME', '');
+  }
+
+  get erpPassword(): string {
+    return this.configService.get<string>('ERP_PASSWORD', '');
+  }
+
+  /** Terminal identifier reported to the ERP on order/report push. */
+  get erpTerminalId(): string {
+    return this.configService.get<string>('ERP_TERMINAL_ID', 'POS-1');
+  }
+
+  /** Store code matching ERP pos_store.code (multi-site). */
+  get erpStoreCode(): string {
+    return this.configService.get<string>('ERP_STORE_CODE', '');
+  }
 }

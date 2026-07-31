@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { SalesOrder } from '../../sales-orders/entities/sales-order.entity';
@@ -26,6 +27,7 @@ import type {
   NameAmountRawRow,
   ZReadingCashierBreakdownRawRow,
 } from '../reports.interface';
+import { ReportClosedEvent, ReportEvents } from '../events/report-closed.event';
 
 /**
  * Z-Reading: store-wide, supervisor-authorized close of all cashiers' unreported transactions,
@@ -40,6 +42,7 @@ export class ZReadingReportService extends BaseReportService<User, ZReadingRespo
     @InjectRepository(ZReading)
     private readonly zReadingRepository: Repository<ZReading>,
     private readonly usersService: UsersService,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     super();
   }
@@ -60,7 +63,7 @@ export class ZReadingReportService extends BaseReportService<User, ZReadingRespo
   async closeReport(causer: User, authorizerId: string, pin: string): Promise<ZReadingResponseDto> {
     await this.usersService.verifyPin(authorizerId, pin);
 
-    return this.salesOrderRepository.manager.transaction(async (manager) => {
+    const result = await this.salesOrderRepository.manager.transaction(async (manager) => {
       const requestTime = new Date();
 
       const authorizer = await manager.findOne(User, { where: { userId: authorizerId } });
@@ -106,6 +109,12 @@ export class ZReadingReportService extends BaseReportService<User, ZReadingRespo
 
       return { ...dto, id: report.id, zCounter, closedByName, authorizedByName };
     });
+
+    this.eventEmitter.emit(
+      ReportEvents.REPORT_CLOSED,
+      new ReportClosedEvent('z_reading', String(result.id), result as unknown as Record<string, unknown>),
+    );
+    return result;
   }
 
   async getHistory(query: PaginatedQueryParams): Promise<PaginatedResult<ZReadingHistoryItemDto>> {

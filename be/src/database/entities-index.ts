@@ -32,6 +32,8 @@ import { UserPermission } from '../user-permissions/entities/user-permission.ent
 import { Uom } from '../uom/entities/uom.entity';
 import { PosTerminal } from '../pos-terminals/entities/pos-terminal.entity';
 import { PosTerminalPaymentMethod } from '../pos-terminals/entities/pos-terminal-payment-method.entity';
+import { ErpOrderPush } from '../erp-sync/entities/erp-order-push.entity';
+import { ErpReportPush } from '../erp-sync/entities/erp-report-push.entity';
 import { CashierDailyReport } from '../reports/entities/cashier-daily-report.entity';
 import { CashierXReading } from '../reports/entities/cashier-x-reading.entity';
 import { ZReading } from '../reports/entities/z-reading.entity';
@@ -77,6 +79,8 @@ export const entities: EntityCtor[] = [
   Uom,
   PosTerminal,
   PosTerminalPaymentMethod,
+  ErpOrderPush,
+  ErpReportPush,
   CashierDailyReport,
   CashierXReading,
   ZReading,

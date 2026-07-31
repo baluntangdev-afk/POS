@@ -2,10 +2,21 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { config as loadDotenv } from 'dotenv';
 import { AppModule } from './app.module';
 import { AppConfigService } from './config/config.service';
 import { runExecArgs } from './exec';
+
+/**
+ * Load .env into process.env, overriding stale shell values (e.g. ERP_BASE_URL
+ * left pointing at a dead port from a previous terminal session).
+ * Order: .env first, then .env.local so local wins.
+ */
+function loadEnvFiles(): void {
+  loadDotenv({ path: resolve(process.cwd(), '.env'), override: true });
+  loadDotenv({ path: resolve(process.cwd(), '.env.local'), override: true });
+}
 
 /**
  * Load .env from SEA asset into process.env when running inside a Single Executable Application.
@@ -86,6 +97,7 @@ async function waitForPostgres(logger: Logger): Promise<void> {
 }
 
 async function bootstrap(): Promise<void> {
+  loadEnvFiles();
   loadEnvFromSeaAsset();
 
   const logger = new Logger('Bootstrap');

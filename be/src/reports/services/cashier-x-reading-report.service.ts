@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { SalesOrder } from '../../sales-orders/entities/sales-order.entity';
@@ -30,6 +31,7 @@ import type {
   CashierVoidedRawRow,
   NameAmountRawRow,
 } from '../reports.interface';
+import { ReportClosedEvent, ReportEvents } from '../events/report-closed.event';
 
 /**
  * X Reading: read-only snapshot of the current cashier's own unreported transactions (from
@@ -46,6 +48,7 @@ export class CashierXReadingReportService extends BaseReportService<
     private readonly salesOrderRepository: Repository<SalesOrder>,
     @InjectRepository(CashierXReading)
     private readonly cashierXReadingRepository: Repository<CashierXReading>,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     super();
   }
@@ -61,7 +64,7 @@ export class CashierXReadingReportService extends BaseReportService<
    * always agree.
    */
   async closeReport(causer: User): Promise<CashierXReadingResponseDto> {
-    return this.salesOrderRepository.manager.transaction(async (manager) => {
+    const result = await this.salesOrderRepository.manager.transaction(async (manager) => {
       const requestTime = new Date();
       const dto = await this.computeReport(causer.id, requestTime, manager);
 
@@ -89,6 +92,12 @@ export class CashierXReadingReportService extends BaseReportService<
 
       return { ...dto, id: report.id };
     });
+
+    this.eventEmitter.emit(
+      ReportEvents.REPORT_CLOSED,
+      new ReportClosedEvent('x_reading', String(result.id), result as unknown as Record<string, unknown>),
+    );
+    return result;
   }
 
   async getHistory(

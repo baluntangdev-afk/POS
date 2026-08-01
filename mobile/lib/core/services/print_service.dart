@@ -6,6 +6,8 @@ import '../../features/cashier_accounting/daily_report/entities/daily_report_dat
 import '../../features/cashier_accounting/x_reading/entities/x_reading_data.dart';
 import '../../features/cashier_accounting/z_reading/entities/z_reading_data.dart';
 import '../../features/ordering/entities/receipt.dart';
+import 'built_in_printer.dart';
+import 'receipt_print_document.dart';
 
 const _prefMacKey = 'printer_mac';
 const _prefNameKey = 'printer_name';
@@ -42,6 +44,24 @@ abstract final class PrintService {
     String? storeTin,
     String? terminalName,
   }) async {
+    final document = ReceiptPrintDocument.build(
+      receipt,
+      currency: currency,
+      storeName: storeName,
+      storeAddress: storeAddress,
+      storeTin: storeTin,
+      terminalName: terminalName,
+      storeFooter: storeFooter,
+    );
+
+    if (await BuiltInPrinter.isAvailable()) {
+      return BuiltInPrinter.print(document);
+    }
+
+    return _printViaBluetooth(document);
+  }
+
+  static Future<bool> _printViaBluetooth(List<PrintInstruction> document) async {
     final mac = await getSavedMac();
     if (mac == null) return false;
 
@@ -54,176 +74,9 @@ abstract final class PrintService {
       var bytes = <int>[];
 
       bytes += generator.reset();
-
-      if (storeName != null && storeName.isNotEmpty) {
-        bytes += generator.text(
-          storeName,
-          styles: const PosStyles(align: PosAlign.center, bold: true),
-        );
+      for (final instruction in document) {
+        bytes += _encodeBluetoothInstruction(generator, instruction);
       }
-      if (storeAddress != null && storeAddress.isNotEmpty) {
-        bytes += generator.text(
-          storeAddress,
-          styles: const PosStyles(align: PosAlign.center),
-        );
-      }
-      if (storeTin != null && storeTin.isNotEmpty) {
-        bytes += generator.text(
-          'TIN: $storeTin',
-          styles: const PosStyles(align: PosAlign.center),
-        );
-      }
-      bytes += generator.text(
-        'RECEIPT',
-        styles: const PosStyles(
-          align: PosAlign.center,
-          bold: true,
-          height: PosTextSize.size2,
-          width: PosTextSize.size2,
-        ),
-      );
-      bytes += generator.feed(1);
-      bytes += generator.text(
-        receipt.docNumber,
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      bytes += generator.hr();
-      bytes += generator.text('Cashier: ${receipt.cashierName}');
-      bytes += generator.text('Date:    ${_fmtDate(receipt.docDate)}');
-      bytes += generator.text('Type:    ${_fmtSaleType(receipt.type)}');
-      if (terminalName != null && terminalName.isNotEmpty) {
-        bytes += generator.text('Terminal: $terminalName');
-      }
-      bytes += generator.hr();
-
-      for (final item in receipt.items) {
-        bytes += generator.row([
-          PosColumn(
-            text: '${item.isMain ? '' : '  '}x${item.quantity}  ${item.description}',
-            width: 8,
-          ),
-          PosColumn(
-            text: '$currency ${item.totalAmount.toStringAsFixed(2)}',
-            width: 4,
-            styles: const PosStyles(align: PosAlign.right),
-          ),
-        ]);
-        if (item.discountAmount > 0) {
-          bytes += generator.row([
-            PosColumn(text: '   Discount', width: 8),
-            PosColumn(
-              text: '-$currency ${item.discountAmount.toStringAsFixed(2)}',
-              width: 4,
-              styles: const PosStyles(align: PosAlign.right),
-            ),
-          ]);
-          if (item.discountBeneficiaryName != null && item.discountBeneficiaryName!.isNotEmpty) {
-            bytes += generator.text(
-              '   ${item.discountType}: ${item.discountBeneficiaryName} '
-              '(${item.discountBeneficiaryId})',
-              styles: const PosStyles(align: PosAlign.left),
-            );
-          }
-        }
-      }
-
-      bytes += generator.hr();
-      bytes += generator.row([
-        PosColumn(text: 'Subtotal', width: 8),
-        PosColumn(
-          text: '$currency ${receipt.grossAmount.toStringAsFixed(2)}',
-          width: 4,
-          styles: const PosStyles(align: PosAlign.right),
-        ),
-      ]);
-      bytes += generator.row([
-        PosColumn(text: 'VATable Sales', width: 8),
-        PosColumn(
-          text: '$currency ${receipt.vatableAmount.toStringAsFixed(2)}',
-          width: 4,
-          styles: const PosStyles(align: PosAlign.right),
-        ),
-      ]);
-      if (receipt.vatExemptSales > 0) {
-        bytes += generator.row([
-          PosColumn(text: 'VAT-Exempt Sales', width: 8),
-          PosColumn(
-            text: '$currency ${receipt.vatExemptSales.toStringAsFixed(2)}',
-            width: 4,
-            styles: const PosStyles(align: PosAlign.right),
-          ),
-        ]);
-      }
-      bytes += generator.row([
-        PosColumn(text: 'VAT', width: 8),
-        PosColumn(
-          text: '$currency ${receipt.vatAmount.toStringAsFixed(2)}',
-          width: 4,
-          styles: const PosStyles(align: PosAlign.right),
-        ),
-      ]);
-      if (receipt.discountAmount > 0) {
-        bytes += generator.row([
-          PosColumn(text: 'Discount', width: 8),
-          PosColumn(
-            text: '-$currency ${receipt.discountAmount.toStringAsFixed(2)}',
-            width: 4,
-            styles: const PosStyles(align: PosAlign.right),
-          ),
-        ]);
-      }
-      bytes += generator.hr();
-      bytes += generator.row([
-        PosColumn(text: 'TOTAL', width: 8, styles: const PosStyles(bold: true)),
-        PosColumn(
-          text: '$currency ${receipt.totalAmount.toStringAsFixed(2)}',
-          width: 4,
-          styles: const PosStyles(align: PosAlign.right, bold: true),
-        ),
-      ]);
-      bytes += generator.hr();
-      bytes += generator.row([
-        PosColumn(text: 'Payment', width: 8),
-        PosColumn(
-          text: _fmtMethod(receipt.payment.method),
-          width: 4,
-          styles: const PosStyles(align: PosAlign.right),
-        ),
-      ]);
-      if (receipt.payment.method == 'cash') {
-        bytes += generator.row([
-          PosColumn(text: 'Tendered', width: 8),
-          PosColumn(
-            text: '$currency ${receipt.payment.amountPaid.toStringAsFixed(2)}',
-            width: 4,
-            styles: const PosStyles(align: PosAlign.right),
-          ),
-        ]);
-        bytes += generator.row([
-          PosColumn(text: 'Change', width: 8),
-          PosColumn(
-            text: '$currency ${receipt.payment.change.toStringAsFixed(2)}',
-            width: 4,
-            styles: const PosStyles(align: PosAlign.right),
-          ),
-        ]);
-      } else if (receipt.payment.reference != null && receipt.payment.reference!.isNotEmpty) {
-        bytes += generator.row([
-          PosColumn(text: 'Reference', width: 8),
-          PosColumn(
-            text: receipt.payment.reference!,
-            width: 4,
-            styles: const PosStyles(align: PosAlign.right),
-          ),
-        ]);
-      }
-
-      bytes += generator.hr();
-      bytes += generator.text(
-        storeFooter.isNotEmpty ? storeFooter : 'Thank you!',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      bytes += generator.feed(3);
       bytes += generator.cut();
 
       return await PrintBluetoothThermal.writeBytes(bytes);
@@ -233,6 +86,43 @@ abstract final class PrintService {
       await PrintBluetoothThermal.disconnect;
     }
   }
+
+  static List<int> _encodeBluetoothInstruction(
+    Generator generator,
+    PrintInstruction instruction,
+  ) {
+    return switch (instruction) {
+      PrintText(:final text, :final align, :final bold, :final sizeMultiplier) => generator.text(
+          text,
+          styles: PosStyles(
+            align: _posAlign(align),
+            bold: bold,
+            height: sizeMultiplier >= 2 ? PosTextSize.size2 : PosTextSize.size1,
+            width: sizeMultiplier >= 2 ? PosTextSize.size2 : PosTextSize.size1,
+          ),
+        ),
+      PrintRow(:final columns, :final weights, :final lastColumnAlign, :final bold) => generator
+          .row([
+            for (var i = 0; i < columns.length; i++)
+              PosColumn(
+                text: columns[i],
+                width: weights[i],
+                styles: PosStyles(
+                  align: i == columns.length - 1 ? _posAlign(lastColumnAlign) : PosAlign.left,
+                  bold: bold,
+                ),
+              ),
+          ]),
+      PrintDivider() => generator.hr(),
+      PrintFeed(:final lines) => generator.feed(lines),
+    };
+  }
+
+  static PosAlign _posAlign(PrintAlign align) => switch (align) {
+        PrintAlign.left => PosAlign.left,
+        PrintAlign.center => PosAlign.center,
+        PrintAlign.right => PosAlign.right,
+      };
 
   static Future<bool> printXReading(XReadingData data, {String currency = 'PHP'}) async {
     final mac = await getSavedMac();
@@ -479,19 +369,6 @@ abstract final class PrintService {
       '${dt.hour.toString().padLeft(2, '0')}:'
       '${dt.minute.toString().padLeft(2, '0')}';
 
-  static String _fmtSaleType(String type) => switch (type) {
-        'dine_in' => 'Dine In',
-        'take_out' => 'Take Out',
-        'delivery' => 'Delivery',
-        _ => type,
-      };
-
-  static String _fmtMethod(String method) => switch (method) {
-        'cash' => 'Cash',
-        'card' => 'Card',
-        'ewallet' => 'E-Wallet',
-        _ => method,
-      };
 }
 
 // ─── Shared byte-building helpers for cashier-accounting reports ──────────────

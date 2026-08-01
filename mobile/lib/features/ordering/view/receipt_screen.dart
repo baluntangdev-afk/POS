@@ -115,7 +115,7 @@ class ReceiptScreen extends HookConsumerWidget {
                                           content: Text(
                                             ok
                                                 ? 'Receipt printed'
-                                                : 'No printer configured — go to Settings → Printer Setup',
+                                                : 'Couldn\'t print — check your printer and try again',
                                           ),
                                         ),
                                       );

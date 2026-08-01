@@ -36,20 +36,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthenticated = authState is AuthAuthenticated;
       final isOnLogin = state.matchedLocation == '/login';
       final isOnSetupPin = state.matchedLocation == '/setup-pin';
-      final mustChangePin = authState is AuthAuthenticated && authState.mustChangePin;
+      final mustChangePin =
+          authState is AuthAuthenticated && authState.mustChangePin;
 
       if (!isAuthenticated && !isOnLogin) return '/login';
-      if (isAuthenticated && mustChangePin && !isOnSetupPin) return '/setup-pin';
-      if (isAuthenticated && !mustChangePin && isOnSetupPin) return '/dashboard';
+      if (isAuthenticated && mustChangePin && !isOnSetupPin) {
+        return '/setup-pin';
+      }
+      if (isAuthenticated && !mustChangePin && isOnSetupPin) {
+        return '/dashboard';
+      }
       if (isAuthenticated && isOnLogin) return '/dashboard';
       return null;
     },
     refreshListenable: _AuthStateListenable(ref),
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/setup-pin',
         builder: (context, state) => const SetupPinScreen(),
@@ -72,9 +74,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: 'receipt/:id',
-            builder: (context, state) => ReceiptScreen(
-              saleId: int.parse(state.pathParameters['id']!),
-            ),
+            builder:
+                (context, state) => ReceiptScreen(
+                  saleId: int.parse(state.pathParameters['id']!),
+                  type: ReceiptType.order,
+                ),
           ),
         ],
       ),
@@ -88,9 +92,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: ':id',
-            builder: (context, state) => ReceiptScreen(
-              saleId: int.parse(state.pathParameters['id']!),
-            ),
+            builder:
+                (context, state) => ReceiptScreen(
+                  saleId: int.parse(state.pathParameters['id']!),
+                  type: ReceiptType.transaction,
+                ),
           ),
         ],
       ),
@@ -108,9 +114,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: ':id',
-                    builder: (context, state) => XReadingReprintScreen(
-                      historyId: int.parse(state.pathParameters['id']!),
-                    ),
+                    builder:
+                        (context, state) => XReadingReprintScreen(
+                          historyId: int.parse(state.pathParameters['id']!),
+                        ),
                   ),
                 ],
               ),
@@ -126,9 +133,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: ':id',
-                    builder: (context, state) => DailyReportReprintScreen(
-                      historyId: int.parse(state.pathParameters['id']!),
-                    ),
+                    builder:
+                        (context, state) => DailyReportReprintScreen(
+                          historyId: int.parse(state.pathParameters['id']!),
+                        ),
                   ),
                 ],
               ),
@@ -144,9 +152,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: ':id',
-                    builder: (context, state) => ZReadingReprintScreen(
-                      historyId: int.parse(state.pathParameters['id']!),
-                    ),
+                    builder:
+                        (context, state) => ZReadingReprintScreen(
+                          historyId: int.parse(state.pathParameters['id']!),
+                        ),
                   ),
                 ],
               ),
@@ -160,16 +169,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: 'products/:id/modifiers',
-            builder: (context, state) => ModifierGroupsScreen(
-              productId: int.parse(state.pathParameters['id']!),
-            ),
+            builder:
+                (context, state) => ModifierGroupsScreen(
+                  productId: int.parse(state.pathParameters['id']!),
+                ),
           ),
         ],
       ),
-      GoRoute(
-        path: '/users',
-        builder: (context, state) => const UsersScreen(),
-      ),
+      GoRoute(path: '/users', builder: (context, state) => const UsersScreen()),
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),

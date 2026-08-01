@@ -17,114 +17,160 @@ import '../entities/sale_payment.dart';
 import '../state/ordering_notifier.dart';
 import '../state/receipt_notifier.dart';
 
+enum ReceiptType { order, transaction }
+
 class ReceiptScreen extends HookConsumerWidget {
-  const ReceiptScreen({super.key, required this.saleId});
+  const ReceiptScreen({super.key, required this.saleId, required this.type});
 
   final int saleId;
+  final ReceiptType type;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final printing = useState(false);
     final receiptAsync = ref.watch(receiptProvider(saleId));
-    final canPop = Navigator.of(context).canPop() || GoRouter.of(context).canPop();
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Receipt'),
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        automaticallyImplyLeading: canPop,
-        actions: [
-          TextButton.icon(
-            onPressed: () => _newOrder(context, ref),
-            icon: const Icon(Icons.add_shopping_cart_rounded),
-            label: const Text('New Order'),
+    void handleBack() {
+      switch (type) {
+        case ReceiptType.order:
+          context.go('/dashboard');
+        case ReceiptType.transaction:
+          context.pop();
+      }
+    }
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text('Receipt'),
+          backgroundColor: AppColors.surface,
+          surfaceTintColor: Colors.transparent,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: handleBack,
           ),
-        ],
-      ),
-      body: receiptAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
-        data: (receipt) => Column(
-          children: [
-            _StatusBanner(receipt: receipt),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Center(child: _ReceiptPreview(receipt: receipt)),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                0,
-                AppSpacing.lg,
-                AppSpacing.lg,
-              ),
-              child: Column(
-                children: [
-                  // FilledButton.icon(
-                  //   onPressed: () => _newOrder(context, ref),
-                  //   icon: const Icon(Icons.add_shopping_cart_rounded),
-                  //   label: const Text('New Order'),
-                  //   style: FilledButton.styleFrom(
-                  //     minimumSize: const Size(double.infinity, AppSpacing.touchPreferred),
-                  //   ),
-                  // ),
-                  const Gap(AppSpacing.md),
-                  OutlinedButton.icon(
-                    onPressed: printing.value
-                        ? null
-                        : () async {
-                            printing.value = true;
-                            final ok = await ref.read(receiptProvider(saleId).notifier).print();
-                            printing.value = false;
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text(ok
-                                    ? 'Receipt printed'
-                                    : 'No printer configured — go to Settings → Printer Setup'),
-                              ));
-                            }
-                          },
-                    icon: printing.value
-                        ? const SizedBox(
-                            width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.print_outlined),
-                    label: const Text('Print Receipt'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, AppSpacing.touchMin),
-                    ),
-                  ),
-                  // if (!receipt.isVoided) ...[
-                  //   const Gap(AppSpacing.md),
-                  //   OutlinedButton.icon(
-                  //     onPressed: () => _refundReceipt(context, ref),
-                  //     icon: const Icon(Icons.assignment_return_outlined),
-                  //     label: const Text('Refund Items'),
-                  //     style: OutlinedButton.styleFrom(
-                  //       minimumSize: const Size(double.infinity, AppSpacing.touchMin),
-                  //     ),
-                  //   ),
-                  // ],
-                  if (!receipt.isVoided) ...[
-                    const Gap(AppSpacing.md),
-                    OutlinedButton.icon(
-                      onPressed: () => _voidReceipt(context, ref),
-                      icon: const Icon(Icons.block_rounded),
-                      label: const Text('Void Transaction'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.error,
-                        minimumSize: const Size(double.infinity, AppSpacing.touchMin),
-                        side: const BorderSide(color: AppColors.error),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+          actions: [
+            TextButton.icon(
+              onPressed: () => _newOrder(context, ref),
+              icon: const Icon(Icons.add_shopping_cart_rounded),
+              label: const Text('New Order'),
             ),
           ],
+        ),
+        body: receiptAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('$e')),
+          data:
+              (receipt) => Column(
+                children: [
+                  _StatusBanner(receipt: receipt),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Center(child: _ReceiptPreview(receipt: receipt)),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg,
+                      0,
+                      AppSpacing.lg,
+                      AppSpacing.lg,
+                    ),
+                    child: Column(
+                      children: [
+                        // FilledButton.icon(
+                        //   onPressed: () => _newOrder(context, ref),
+                        //   icon: const Icon(Icons.add_shopping_cart_rounded),
+                        //   label: const Text('New Order'),
+                        //   style: FilledButton.styleFrom(
+                        //     minimumSize: const Size(double.infinity, AppSpacing.touchPreferred),
+                        //   ),
+                        // ),
+                        const Gap(AppSpacing.md),
+                        OutlinedButton.icon(
+                          onPressed:
+                              printing.value
+                                  ? null
+                                  : () async {
+                                    printing.value = true;
+                                    final ok =
+                                        await ref
+                                            .read(
+                                              receiptProvider(saleId).notifier,
+                                            )
+                                            .print();
+                                    printing.value = false;
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            ok
+                                                ? 'Receipt printed'
+                                                : 'No printer configured — go to Settings → Printer Setup',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
+                          icon:
+                              printing.value
+                                  ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                  : const Icon(Icons.print_outlined),
+                          label: const Text('Print Receipt'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(
+                              double.infinity,
+                              AppSpacing.touchMin,
+                            ),
+                          ),
+                        ),
+                        // if (!receipt.isVoided) ...[
+                        //   const Gap(AppSpacing.md),
+                        //   OutlinedButton.icon(
+                        //     onPressed: () => _refundReceipt(context, ref),
+                        //     icon: const Icon(Icons.assignment_return_outlined),
+                        //     label: const Text('Refund Items'),
+                        //     style: OutlinedButton.styleFrom(
+                        //       minimumSize: const Size(double.infinity, AppSpacing.touchMin),
+                        //     ),
+                        //   ),
+                        // ],
+                        if (!receipt.isVoided) ...[
+                          const Gap(AppSpacing.md),
+                          OutlinedButton.icon(
+                            onPressed: () => _voidReceipt(context, ref),
+                            icon: const Icon(Icons.block_rounded),
+                            label: const Text('Void Transaction'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.error,
+                              minimumSize: const Size(
+                                double.infinity,
+                                AppSpacing.touchMin,
+                              ),
+                              side: const BorderSide(color: AppColors.error),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
         ),
       ),
     );
@@ -136,9 +182,9 @@ class ReceiptScreen extends HookConsumerWidget {
   }
 
   Future<void> _refundReceipt(BuildContext context, WidgetRef ref) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => RefundScreen(saleId: saleId)),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => RefundScreen(saleId: saleId)));
     ref.invalidate(receiptProvider(saleId));
   }
 
@@ -172,7 +218,10 @@ class _StatusBanner extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
       color: isVoided ? AppColors.errorLight : AppColors.successLight,
       child: Row(
         children: [
@@ -241,7 +290,11 @@ class _ReceiptPreview extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _StoreInfoView(storeName: storeInfo?.storeName, address: storeInfo?.address, tin: storeInfo?.tin),
+                _StoreInfoView(
+                  storeName: storeInfo?.storeName,
+                  address: storeInfo?.address,
+                  tin: storeInfo?.tin,
+                ),
                 const Gap(8),
                 const _ReceiptDivider(char: '*'),
                 const Gap(4),
@@ -249,7 +302,10 @@ class _ReceiptPreview extends ConsumerWidget {
                 const Gap(4),
                 const _ReceiptDivider(char: '*'),
                 const Gap(16),
-                _ItemsView(items: receipt.items, refundedQuantities: receipt.refundedQuantities),
+                _ItemsView(
+                  items: receipt.items,
+                  refundedQuantities: receipt.refundedQuantities,
+                ),
                 const Gap(16),
                 const _ReceiptDivider(char: '-'),
                 const Gap(16),
@@ -258,7 +314,10 @@ class _ReceiptPreview extends ConsumerWidget {
                   const Gap(16),
                   const _ReceiptDivider(char: '-'),
                   const Gap(16),
-                  _RefundsView(refunds: receipt.refunds, originalTotal: receipt.totalAmount),
+                  _RefundsView(
+                    refunds: receipt.refunds,
+                    originalTotal: receipt.totalAmount,
+                  ),
                 ],
                 if (receipt.isVoided && receipt.voidReason != null) ...[
                   const Gap(16),
@@ -266,12 +325,16 @@ class _ReceiptPreview extends ConsumerWidget {
                   const Gap(8),
                   Text(
                     'VOID REASON:',
-                    style: AppTextStyles.labelMd.copyWith(color: AppColors.error),
+                    style: AppTextStyles.labelMd.copyWith(
+                      color: AppColors.error,
+                    ),
                   ),
                   const Gap(2),
                   Text(
                     receipt.voidReason!,
-                    style: AppTextStyles.bodySm.copyWith(color: AppColors.error),
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.error,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -294,9 +357,15 @@ class _ReceiptPreview extends ConsumerWidget {
                       child: Opacity(
                         opacity: 0.25,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
-                            border: Border.all(color: AppColors.error, width: 6),
+                            border: Border.all(
+                              color: AppColors.error,
+                              width: 6,
+                            ),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Text(
@@ -335,7 +404,11 @@ class _StoreInfoView extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (storeName != null && storeName!.isNotEmpty)
-          Text(storeName!, textAlign: TextAlign.center, style: AppTextStyles.headingSm),
+          Text(
+            storeName!,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.headingSm,
+          ),
         if (address != null && address!.isNotEmpty) ...[
           const Gap(4),
           Text(address!, textAlign: TextAlign.center, style: style),
@@ -345,7 +418,11 @@ class _StoreInfoView extends StatelessWidget {
           Text('TIN: $tin', style: style),
         ],
         const Gap(12),
-        Text('Sales Invoice', style: AppTextStyles.headingSm, textAlign: TextAlign.center),
+        Text(
+          'Sales Invoice',
+          style: AppTextStyles.headingSm,
+          textAlign: TextAlign.center,
+        ),
       ],
     );
   }
@@ -385,7 +462,10 @@ class _DocumentInfoView extends StatelessWidget {
         const Gap(4),
         Align(
           alignment: Alignment.centerLeft,
-          child: Text('Cashier: ${receipt.cashierName}', style: AppTextStyles.bodySm),
+          child: Text(
+            'Cashier: ${receipt.cashierName}',
+            style: AppTextStyles.bodySm,
+          ),
         ),
       ],
     );
@@ -419,7 +499,8 @@ class _ItemsView extends StatelessWidget {
   Widget _buildItemRow(ReceiptItem item) {
     final refundedQty = item.isMain ? (refundedQuantities[item.id] ?? 0) : 0;
     final isFullyRefunded = item.isMain && refundedQty >= item.quantity;
-    final isPartiallyRefunded = item.isMain && refundedQty > 0 && !isFullyRefunded;
+    final isPartiallyRefunded =
+        item.isMain && refundedQty > 0 && !isFullyRefunded;
     final lineStyle = AppTextStyles.bodySm.copyWith(
       decoration: isFullyRefunded ? TextDecoration.lineThrough : null,
       color: isFullyRefunded ? AppColors.textDisabled : AppColors.textPrimary,
@@ -434,17 +515,27 @@ class _ItemsView extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: Text('${item.quantity} ${item.description}', style: lineStyle)),
+              Expanded(
+                child: Text(
+                  '${item.quantity} ${item.description}',
+                  style: lineStyle,
+                ),
+              ),
               Text(item.totalAmount.toStringAsFixed(2), style: lineStyle),
             ],
           ),
-          if (item.isMain && item.discountBeneficiaryName != null && item.discountBeneficiaryName!.isNotEmpty)
+          if (item.isMain &&
+              item.discountBeneficiaryName != null &&
+              item.discountBeneficiaryName!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 1),
               child: Text(
                 'LESS: ${item.discountType ?? 'Discount'} '
                 '— ${item.discountBeneficiaryName} (${item.discountBeneficiaryId})',
-                style: AppTextStyles.bodySm.copyWith(color: AppColors.error, fontWeight: FontWeight.w600),
+                style: AppTextStyles.bodySm.copyWith(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           if (isPartiallyRefunded)
@@ -469,15 +560,20 @@ class _SummaryView extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         _row('VATable Sales', receipt.vatableAmount),
-        if (receipt.vatExemptSales > 0) _row('VAT-Exempt Sales', receipt.vatExemptSales),
+        if (receipt.vatExemptSales > 0)
+          _row('VAT-Exempt Sales', receipt.vatExemptSales),
         _row('VAT', receipt.vatAmount),
-        if (receipt.discountAmount > 0) _row('Discount', -receipt.discountAmount),
+        if (receipt.discountAmount > 0)
+          _row('Discount', -receipt.discountAmount),
         const Gap(4),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('Total', style: AppTextStyles.priceMd),
-            Text(receipt.totalAmount.toStringAsFixed(2), style: AppTextStyles.priceMd),
+            Text(
+              receipt.totalAmount.toStringAsFixed(2),
+              style: AppTextStyles.priceMd,
+            ),
           ],
         ),
       ],
@@ -508,7 +604,11 @@ class _RefundsView extends StatelessWidget {
   Widget build(BuildContext context) {
     final totalRefund = refunds.fold(
       0.0,
-      (sum, refund) => sum + refund.items.where((ri) => ri.isMain).fold(0.0, (s, ri) => s + ri.refundAmount),
+      (sum, refund) =>
+          sum +
+          refund.items
+              .where((ri) => ri.isMain)
+              .fold(0.0, (s, ri) => s + ri.refundAmount),
     );
     final netTotal = originalTotal - totalRefund;
 
@@ -518,8 +618,14 @@ class _RefundsView extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('REFUNDS', style: AppTextStyles.labelLg.copyWith(color: AppColors.error)),
-            Text('Amount', style: AppTextStyles.labelLg.copyWith(color: AppColors.error)),
+            Text(
+              'REFUNDS',
+              style: AppTextStyles.labelLg.copyWith(color: AppColors.error),
+            ),
+            Text(
+              'Amount',
+              style: AppTextStyles.labelLg.copyWith(color: AppColors.error),
+            ),
           ],
         ),
         const Gap(8),
@@ -528,7 +634,10 @@ class _RefundsView extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Text(
               'Reason: ${refund.reason}',
-              style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary, fontStyle: FontStyle.italic),
+              style: AppTextStyles.bodySm.copyWith(
+                color: AppColors.textSecondary,
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ),
           const Gap(2),
@@ -542,12 +651,16 @@ class _RefundsView extends StatelessWidget {
                   Expanded(
                     child: Text(
                       '${ri.quantity} ${ri.description}',
-                      style: AppTextStyles.bodySm.copyWith(color: AppColors.error),
+                      style: AppTextStyles.bodySm.copyWith(
+                        color: AppColors.error,
+                      ),
                     ),
                   ),
                   Text(
                     '-${ri.refundAmount.toStringAsFixed(2)}',
-                    style: AppTextStyles.bodySm.copyWith(color: AppColors.error),
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.error,
+                    ),
                   ),
                 ],
               ),
@@ -559,11 +672,17 @@ class _RefundsView extends StatelessWidget {
           children: [
             Text(
               'Total Refund',
-              style: AppTextStyles.bodySm.copyWith(color: AppColors.error, fontWeight: FontWeight.bold),
+              style: AppTextStyles.bodySm.copyWith(
+                color: AppColors.error,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             Text(
               '-${totalRefund.toStringAsFixed(2)}',
-              style: AppTextStyles.bodySm.copyWith(color: AppColors.error, fontWeight: FontWeight.bold),
+              style: AppTextStyles.bodySm.copyWith(
+                color: AppColors.error,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -596,14 +715,20 @@ class _PaymentView extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Cash', style: AppTextStyles.bodySm),
-              Text(payment.cashReceived.toStringAsFixed(2), style: AppTextStyles.bodySm),
+              Text(
+                payment.cashReceived.toStringAsFixed(2),
+                style: AppTextStyles.bodySm,
+              ),
             ],
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Change', style: AppTextStyles.bodySm),
-              Text(payment.change.toStringAsFixed(2), style: AppTextStyles.bodySm),
+              Text(
+                payment.change.toStringAsFixed(2),
+                style: AppTextStyles.bodySm,
+              ),
             ],
           ),
         ],
@@ -617,26 +742,35 @@ class _PaymentView extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(_methodLabel(payment.method), style: AppTextStyles.bodySm),
-            Text(payment.amountPaid.toStringAsFixed(2), style: AppTextStyles.bodySm),
+            Text(
+              payment.amountPaid.toStringAsFixed(2),
+              style: AppTextStyles.bodySm,
+            ),
           ],
         ),
         if (payment.reference != null && payment.reference!.isNotEmpty) ...[
           const Gap(4),
-          Center(child: Text('Ref: ${payment.reference}', style: AppTextStyles.bodySm)),
+          Center(
+            child: Text(
+              'Ref: ${payment.reference}',
+              style: AppTextStyles.bodySm,
+            ),
+          ),
         ],
       ],
     );
   }
 
   String _methodLabel(String method) => switch (method) {
-        'card' => 'Card',
-        'ewallet' => 'E-Wallet',
-        _ => method,
-      };
+    'card' => 'Card',
+    'ewallet' => 'E-Wallet',
+    _ => method,
+  };
 }
 
 class _ReceiptDivider extends StatelessWidget {
-  const _ReceiptDivider({required this.char}) : assert(char.length == 1, 'char should be 1 character long.');
+  const _ReceiptDivider({required this.char})
+    : assert(char.length == 1, 'char should be 1 character long.');
 
   final String char;
 
@@ -650,7 +784,10 @@ class _ReceiptDivider extends StatelessWidget {
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: List.generate(dashCount, (_) {
-            return Text(char, style: AppTextStyles.bodySm.copyWith(fontSize: 10));
+            return Text(
+              char,
+              style: AppTextStyles.bodySm.copyWith(fontSize: 10),
+            );
           }),
         );
       },

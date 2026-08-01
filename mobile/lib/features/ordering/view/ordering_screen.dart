@@ -736,7 +736,9 @@ class _CartItemRow extends HookConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item.productName,
+                          item.variantName.isEmpty
+                              ? item.productName
+                              : '${item.productName} (${item.variantName})',
                           style: AppTextStyles.labelLg.copyWith(
                             fontWeight: FontWeight.w700,
                             color:

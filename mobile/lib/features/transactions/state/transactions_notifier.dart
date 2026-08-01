@@ -1,6 +1,8 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/providers/database_provider.dart';
+import '../../auth/state/auth_providers.dart';
+import '../../auth/state/auth_state.dart';
 import '../entities/transaction_summary.dart';
 
 class TransactionsPage {
@@ -33,13 +35,21 @@ class TransactionsNotifier extends AsyncNotifier<TransactionsPage> {
 
   Future<TransactionsPage> _load({int offset = 0}) async {
     final db = ref.watch(databaseProvider);
+    final authState = ref.watch(authNotifierProvider);
+    final user = authState is AuthAuthenticated ? authState.user : null;
+    final cashierId = (user == null || user.isAdminOrSupervisor) ? null : user.id;
     final items = await db.salesDao.getTransactions(
       date: _date,
       search: _search,
+      cashierId: cashierId,
       limit: _pageSize,
       offset: offset,
     );
-    final totalCount = await db.salesDao.getTransactionCount(date: _date, search: _search);
+    final totalCount = await db.salesDao.getTransactionCount(
+      date: _date,
+      search: _search,
+      cashierId: cashierId,
+    );
     return TransactionsPage(items: items, totalCount: totalCount, offset: offset, limit: _pageSize);
   }
 

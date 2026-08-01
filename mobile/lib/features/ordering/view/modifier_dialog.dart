@@ -48,10 +48,15 @@ class _ModifierSheet extends HookConsumerWidget {
     final notesController = useTextEditingController();
     final selectedByGroup = useState<Map<int, Set<int>>>({});
     final groupData = useState<List<_ModifierGroupData>>([]);
+    final variants = useState<List<ProductVariantsTableData>>([]);
+    final selectedVariant = useState<ProductVariantsTableData?>(null);
     final isLoading = useState(true);
 
     useEffect(() {
       Future(() async {
+        final allVariants = await db.productsDao.getVariantsForProduct(product.id);
+        final activeVariants = allVariants.where((v) => v.isActive).toList();
+
         final groups = await db.productsDao.getModifierGroupsForProduct(product.id);
         final result = <_ModifierGroupData>[];
         for (final g in groups) {
@@ -59,6 +64,13 @@ class _ModifierSheet extends HookConsumerWidget {
           result.add(_ModifierGroupData(group: g, options: options));
         }
         if (context.mounted) {
+          variants.value = activeVariants;
+          if (activeVariants.isNotEmpty) {
+            selectedVariant.value = activeVariants.firstWhere(
+              (v) => v.isDefault,
+              orElse: () => activeVariants.first,
+            );
+          }
           groupData.value = result;
           isLoading.value = false;
         }
@@ -84,6 +96,7 @@ class _ModifierSheet extends HookConsumerWidget {
     }
 
     bool canConfirm() {
+      if (variants.value.isNotEmpty && selectedVariant.value == null) return false;
       for (final g in groupData.value) {
         if (g.group.isRequired) {
           final sel = selectedByGroup.value[g.group.id] ?? {};
@@ -119,16 +132,17 @@ class _ModifierSheet extends HookConsumerWidget {
         productName: product.name,
         groupName: groupName,
         imageUrl: product.imageUrl,
-        basePrice: product.price,
+        basePrice: selectedVariant.value?.price ?? product.price,
         quantity: quantity.value,
         modifiers: modifiers,
         notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+        variantName: selectedVariant.value?.name ?? '',
       );
 
       Navigator.of(context).pop(lineItem);
     }
 
-    final totalPrice = product.price +
+    final totalPrice = (selectedVariant.value?.price ?? product.price) +
         groupData.value
             .expand((g) => g.options.where((o) =>
                 (selectedByGroup.value[g.group.id] ?? {}).contains(o.id)))
@@ -136,7 +150,8 @@ class _ModifierSheet extends HookConsumerWidget {
 
     return DraggableScrollableSheet(
       expand: false,
-      initialChildSize: groupData.value.isEmpty ? 0.45 : 0.7,
+      initialChildSize:
+          groupData.value.isEmpty && variants.value.isEmpty ? 0.45 : 0.7,
       minChildSize: 0.35,
       maxChildSize: 0.92,
       builder: (context, controller) => Column(
@@ -195,6 +210,16 @@ class _ModifierSheet extends HookConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(
                         AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
                     children: [
+                      // Variants
+                      if (variants.value.isNotEmpty) ...[
+                        _VariantSection(
+                          variants: variants.value,
+                          selectedId: selectedVariant.value?.id,
+                          onSelect: (v) => selectedVariant.value = v,
+                        ),
+                        const Gap(AppSpacing.md),
+                      ],
+
                       // Modifier groups
                       ...groupData.value.map((g) => _ModifierGroupSection(
                             data: g,
@@ -271,6 +296,103 @@ class _ModifierSheet extends HookConsumerWidget {
             ),
           ),
           Gap(MediaQuery.of(context).viewInsets.bottom),
+        ],
+      ),
+    );
+  }
+}
+
+class _VariantSection extends StatelessWidget {
+  final List<ProductVariantsTableData> variants;
+  final int? selectedId;
+  final ValueChanged<ProductVariantsTableData> onSelect;
+
+  const _VariantSection({
+    required this.variants,
+    required this.selectedId,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('Variant', style: AppTextStyles.headingSm),
+              const Gap(AppSpacing.sm),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.error,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                ),
+                child: Text(
+                  'Required',
+                  style: AppTextStyles.labelMd.copyWith(
+                      color: Colors.white, fontSize: 10),
+                ),
+              ),
+            ],
+          ),
+          const Gap(AppSpacing.sm),
+          ...variants.map((v) {
+            final isSelected = v.id == selectedId;
+            return GestureDetector(
+              onTap: () => onSelect(v),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColors.primary.withValues(alpha: 0.08)
+                      : AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  border: Border.all(
+                    color: isSelected ? AppColors.primary : Colors.transparent,
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.primary : Colors.transparent,
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.border,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                      ),
+                      child: isSelected
+                          ? const Icon(Icons.check_rounded,
+                              color: Colors.white, size: 14)
+                          : null,
+                    ),
+                    const Gap(AppSpacing.md),
+                    Expanded(
+                      child: Text(v.name, style: AppTextStyles.bodyMd),
+                    ),
+                    Text(
+                      'PHP ${v.price.toStringAsFixed(2)}',
+                      style: AppTextStyles.labelMd
+                          .copyWith(color: AppColors.primary),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
         ],
       ),
     );

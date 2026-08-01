@@ -38,6 +38,14 @@ class PaymentMethodFormDialog extends HookConsumerWidget {
           );
 
     final selectedType = useState(initialType);
+    // `availableMethods` is recomputed from live provider data on every rebuild
+    // (e.g. each keystroke), so a type the user already picked can stop being
+    // valid mid-edit if the payment-methods list finishes loading afterwards.
+    // Fall back to a type that's still in the list so the dropdown below never
+    // gets handed a value that isn't one of its items.
+    final currentType = availableMethods.contains(selectedType.value)
+        ? selectedType.value
+        : availableMethods.first;
     final methodNameCtrl = useTextEditingController(
       text: initialType == PaymentMethodType.other ? (existing?.label ?? '') : '',
     );
@@ -49,9 +57,9 @@ class PaymentMethodFormDialog extends HookConsumerWidget {
       if (!(formKey.currentState?.validate() ?? false)) return;
       isSaving.value = true;
       try {
-        final label = selectedType.value == PaymentMethodType.other
+        final label = currentType == PaymentMethodType.other
             ? methodNameCtrl.text.trim()
-            : selectedType.value.label;
+            : currentType.label;
         final accountNumber = numberCtrl.text.trim();
         if (existing == null) {
           await ref.read(paymentMethodsProvider.notifier).create(
@@ -81,7 +89,7 @@ class PaymentMethodFormDialog extends HookConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DropdownButtonFormField<PaymentMethodType>(
-              initialValue: selectedType.value,
+              initialValue: currentType,
               decoration: const InputDecoration(labelText: 'Payment Method'),
               items: availableMethods
                   .map((t) => DropdownMenuItem(value: t, child: Text(t.label)))
@@ -93,7 +101,7 @@ class PaymentMethodFormDialog extends HookConsumerWidget {
                 numberCtrl.clear();
               },
             ),
-            if (selectedType.value == PaymentMethodType.other) ...[
+            if (currentType == PaymentMethodType.other) ...[
               const SizedBox(height: 8),
               TextFormField(
                 controller: methodNameCtrl,
@@ -108,7 +116,7 @@ class PaymentMethodFormDialog extends HookConsumerWidget {
                 },
               ),
             ],
-            if (selectedType.value != PaymentMethodType.cash) ...[
+            if (currentType != PaymentMethodType.cash) ...[
               const SizedBox(height: 8),
               TextFormField(
                 controller: numberCtrl,

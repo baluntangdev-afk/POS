@@ -35,6 +35,7 @@ class LineItem {
   final List<SelectedModifierGroup> modifiers;
   final String? notes;
   final Discount? discount;
+  final String variantName;
 
   const LineItem({
     required this.id,
@@ -47,6 +48,7 @@ class LineItem {
     required this.modifiers,
     this.notes,
     this.discount,
+    this.variantName = '',
   });
 
   double get modifierTotal =>
@@ -79,5 +81,6 @@ class LineItem {
         modifiers: modifiers,
         notes: notes ?? this.notes,
         discount: discount != null ? discount() : this.discount,
+        variantName: variantName,
       );
 }

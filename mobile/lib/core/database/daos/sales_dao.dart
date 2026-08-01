@@ -103,7 +103,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         final itemId = await insertSaleItem(SaleItemsTableCompanion.insert(
           saleId: saleId,
           productId: item.productId,
-          variantName: '',
+          variantName: item.variantName,
           qty: item.quantity,
           unitPrice: item.unitPrice,
           discountType: Value(discount?.code),
@@ -237,10 +237,14 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       final itemTotal = itemVatExemptAmount > 0
           ? grossAmount.vatExclusiveAmount - itemDiscountAmount
           : grossAmount - itemDiscountAmount;
+      final productName = product?.name ?? 'Unknown Product';
+      final description = item.variantName.isEmpty
+          ? productName
+          : '$productName (${item.variantName})';
       receiptItems.add(ReceiptItem(
         id: item.id,
         sequence: sequence,
-        description: product?.name ?? 'Unknown Product',
+        description: description,
         quantity: item.qty,
         unitPrice: item.unitPrice,
         grossAmount: grossAmount,
@@ -818,6 +822,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   Future<List<TransactionSummary>> getTransactions({
     DateTime? date,
     String? search,
+    int? cashierId,
     int limit = 20,
     int offset = 0,
   }) async {
@@ -830,6 +835,8 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       final to = DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
       q.where(salesTable.createdAt.isBetweenValues(from, to));
     }
+
+    if (cashierId != null) q.where(salesTable.cashierId.equals(cashierId));
 
     final searchId = int.tryParse((search ?? '').replaceAll('#', ''));
     if (searchId != null) q.where(salesTable.id.equals(searchId));
@@ -870,7 +877,11 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     return map;
   }
 
-  Future<int> getTransactionCount({DateTime? date, String? search}) async {
+  Future<int> getTransactionCount({
+    DateTime? date,
+    String? search,
+    int? cashierId,
+  }) async {
     final q = selectOnly(salesTable)..addColumns([salesTable.id.count()]);
 
     if (date != null) {
@@ -878,6 +889,8 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       final to = DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
       q.where(salesTable.createdAt.isBetweenValues(from, to));
     }
+
+    if (cashierId != null) q.where(salesTable.cashierId.equals(cashierId));
 
     final searchId = int.tryParse((search ?? '').replaceAll('#', ''));
     if (searchId != null) q.where(salesTable.id.equals(searchId));

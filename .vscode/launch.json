@@ -1,0 +1,75 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "main (debug)",
+            "cwd": "kiosk",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "presentation": {
+                "group": "main",
+                "order": 1
+            }
+        },
+        {
+            "name": "main (profile)",
+            "cwd": "kiosk",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "flutterMode": "profile",
+            "presentation": {
+                "group": "main",
+                "order": 2
+            }
+        },
+        {
+            "name": "main (release)",
+            "cwd": "kiosk",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "flutterMode": "release",
+            "presentation": {
+                "group": "main",
+                "order": 3
+            }
+        },
+        {
+            "name": "dev (debug)",
+            "cwd": "kiosk",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main_dev.dart",
+            "presentation": {
+                "group": "dev",
+                "order": 1
+            }
+        },
+        {
+            "name": "dev (profile)",
+            "cwd": "kiosk",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main_dev.dart",
+            "flutterMode": "profile",
+            "presentation": {
+                "group": "dev",
+                "order": 2
+            }
+        },
+        {
+            "name": "dev (release)",
+            "cwd": "kiosk",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main_dev.dart",
+            "flutterMode": "release",
+            "presentation": {
+                "group": "dev",
+                "order": 3
+            }
+        }
+    ]
+}

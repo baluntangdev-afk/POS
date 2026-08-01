@@ -17,3 +17,30 @@ class ResponsiveBuilder extends StatelessWidget {
     return kiosk(context);
   }
 }
+
+/// Switches layout by [DeviceFormFactor], distinguishing Android tablet from
+/// Windows tablet in addition to kiosk.
+///
+/// Use this instead of [ResponsiveBuilder] when Android requires different
+/// chrome (safe area, Material ripple, bottom nav, gesture zones, etc.).
+class FormFactorBuilder extends StatelessWidget {
+  const FormFactorBuilder({
+    super.key,
+    required this.kiosk,
+    required this.windowsTablet,
+    required this.androidTablet,
+  });
+
+  final WidgetBuilder kiosk;
+  final WidgetBuilder windowsTablet;
+  final WidgetBuilder androidTablet;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (context.breakpoint.formFactor) {
+      DeviceFormFactor.kiosk => kiosk(context),
+      DeviceFormFactor.windowsTablet => windowsTablet(context),
+      DeviceFormFactor.androidTablet => androidTablet(context),
+    };
+  }
+}

@@ -1,6 +1,8 @@
 import 'package:dart_mappable/dart_mappable.dart';
 import 'package:decimal/decimal.dart';
 
+import '../enums/sale_type.dart';
+
 part 'receipt_item.mapper.dart';
 
 @MappableClass()
@@ -19,6 +21,11 @@ class ReceiptItem with ReceiptItemMappable {
     required this.vatAmount,
     required this.totalAmount,
     required this.isMain,
+    this.saleType,
+    this.note,
+    this.category,
+    this.discountBeneficiaryIdNumber,
+    this.discountBeneficiaryName,
   });
 
   final String id;
@@ -34,4 +41,9 @@ class ReceiptItem with ReceiptItemMappable {
   final Decimal vatAmount;
   final Decimal totalAmount;
   final bool isMain;
+  final SaleType? saleType;
+  final String? note;
+  final String? category;
+  final String? discountBeneficiaryIdNumber;
+  final String? discountBeneficiaryName;
 }

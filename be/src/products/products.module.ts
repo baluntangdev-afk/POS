@@ -8,27 +8,23 @@ import { Product } from './entities/product.entity';
 import { ProductVariant } from './entities/product-variant.entity';
 import { ProductGroup } from '../product-groups/entities/product-group.entity';
 import { CurrenciesModule } from '../currencies/currencies.module';
-import { StoreMenusModule } from '../store-menus/store-menus.module';
 import { CreateProductService } from './services/create-product.service';
 import { FindProductsService } from './services/find-products.service';
 import { FindProductService } from './services/find-product.service';
 import { FindProductVariantsService } from './services/find-product-variants.service';
 import { UpdateProductService } from './services/update-product.service';
-import { DeleteProductService } from './services/delete-product.service';
 import { FindProductGroupService } from './services/find-product-group.service';
 import { CreateProductVariantService } from './services/create-product-variant.service';
 import { FindProductVariantsByProductIdService } from './services/find-product-variants-by-product-id.service';
 import { FindProductVariantService } from './services/find-product-variant.service';
 import { UpdateProductVariantService } from './services/update-product-variant.service';
 import { FindProductDetailsService } from './services/find-product-details.service';
-import { DeleteProductVariantService } from './services/delete-product-variant.service';
+import { RecomputeProductPriceService } from './services/recompute-product-price.service';
+import { FindDistinctVariantNamesService } from './services/find-distinct-variant-names.service';
+import { ImportProductsCsvService } from './services/import-products-csv.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Product, ProductVariant, ProductGroup]),
-    CurrenciesModule,
-    StoreMenusModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Product, ProductVariant, ProductGroup]), CurrenciesModule],
   controllers: [ProductsController, ProductVariantsController],
   providers: [
     ProductsService,
@@ -39,13 +35,14 @@ import { DeleteProductVariantService } from './services/delete-product-variant.s
     FindProductDetailsService,
     FindProductVariantsService,
     UpdateProductService,
-    DeleteProductService,
     FindProductGroupService,
     CreateProductVariantService,
     FindProductVariantsByProductIdService,
     FindProductVariantService,
     UpdateProductVariantService,
-    DeleteProductVariantService,
+    RecomputeProductPriceService,
+    FindDistinctVariantNamesService,
+    ImportProductsCsvService,
   ],
   exports: [ProductsService, ProductVariantsService],
 })

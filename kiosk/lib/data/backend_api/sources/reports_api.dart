@@ -5,9 +5,14 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../features/reports/state/sales_report_state.dart';
 import '../api_clients.dart';
+import '../schemas/cashier_daily_report_dto.dart';
+import '../schemas/cashier_x_reading_dto.dart';
+import '../schemas/exportable_report_dto.dart';
+import '../schemas/paginated_response_dto.dart';
 import '../schemas/sales_data_item_dto.dart';
 import '../schemas/sales_report_type_dto.dart';
 import '../schemas/sales_summary_dto.dart';
+import '../schemas/z_reading_dto.dart';
 
 final reportsApiProvider = Provider<ReportsApi>((ref) {
   final httpClient = ref.watch(secureApiClientProvider);
@@ -99,5 +104,118 @@ class ReportsApi {
     );
     final dataList = response.data as List<dynamic>;
     return dataList.map((item) => SalesDataItemDto.fromJson(jsonEncode(item))).toList();
+  }
+
+  Future<ExportableReportDto> getExportable({required DateTime date}) async {
+    final dateStr = '${date.year.toString().padLeft(4, '0')}'
+        '-${date.month.toString().padLeft(2, '0')}'
+        '-${date.day.toString().padLeft(2, '0')}';
+    final response = await _httpClient.get<dynamic>(
+      '/api/v1/reports/exportable',
+      queryParameters: {'date': dateStr},
+    );
+    return ExportableReportDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<void> markExported({required DateTime date}) async {
+    final dateStr = '${date.year.toString().padLeft(4, '0')}'
+        '-${date.month.toString().padLeft(2, '0')}'
+        '-${date.day.toString().padLeft(2, '0')}';
+    await _httpClient.patch<dynamic>(
+      '/api/v1/reports/mark-exported',
+      data: {'date': dateStr},
+    );
+  }
+
+  Future<CashierXReadingDto> getCashierXReading() async {
+    final response = await _httpClient.get<dynamic>('/api/v1/reports/cashier-x-reading');
+    return CashierXReadingDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<CashierDailyReportDto> getCashierDailyReport() async {
+    final response = await _httpClient.get<dynamic>('/api/v1/reports/cashier-daily-report');
+    return CashierDailyReportDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<CashierXReadingDto> closeCashierXReading() async {
+    final response = await _httpClient.post<dynamic>('/api/v1/reports/cashier-x-reading/close');
+    return CashierXReadingDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<PaginatedResponseDto<CashierXReadingHistoryItemDto>> getCashierXReadingHistory({
+    required int page,
+    required int limit,
+  }) async {
+    final response = await _httpClient.get<dynamic>(
+      '/api/v1/reports/cashier-x-reading/history',
+      queryParameters: {'page': page, 'limit': limit},
+    );
+    CashierXReadingHistoryItemDtoMapper.ensureInitialized();
+    return PaginatedResponseDtoMapper.fromJson<CashierXReadingHistoryItemDto>(
+      jsonEncode(response.data),
+    );
+  }
+
+  Future<CashierXReadingDto> getCashierXReadingHistoryDetail(String id) async {
+    final response = await _httpClient.get<dynamic>(
+      '/api/v1/reports/cashier-x-reading/history/$id',
+    );
+    return CashierXReadingDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<CashierDailyReportDto> closeCashierDailyReport() async {
+    final response = await _httpClient.post<dynamic>('/api/v1/reports/cashier-daily-report/close');
+    return CashierDailyReportDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<PaginatedResponseDto<CashierDailyReportHistoryItemDto>> getCashierDailyReportHistory({
+    required int page,
+    required int limit,
+  }) async {
+    final response = await _httpClient.get<dynamic>(
+      '/api/v1/reports/cashier-daily-report/history',
+      queryParameters: {'page': page, 'limit': limit},
+    );
+    CashierDailyReportHistoryItemDtoMapper.ensureInitialized();
+    return PaginatedResponseDtoMapper.fromJson<CashierDailyReportHistoryItemDto>(
+      jsonEncode(response.data),
+    );
+  }
+
+  Future<CashierDailyReportDto> getCashierDailyReportHistoryDetail(String id) async {
+    final response = await _httpClient.get<dynamic>(
+      '/api/v1/reports/cashier-daily-report/history/$id',
+    );
+    return CashierDailyReportDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<ZReadingDto> getZReading() async {
+    final response = await _httpClient.get<dynamic>('/api/v1/reports/z-reading');
+    return ZReadingDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<ZReadingDto> closeZReading({required String authorizerId, required String pin}) async {
+    final response = await _httpClient.post<dynamic>(
+      '/api/v1/reports/z-reading/close',
+      data: {'authorizerId': authorizerId, 'pin': pin},
+    );
+    return ZReadingDto.fromJson(jsonEncode(response.data));
+  }
+
+  Future<PaginatedResponseDto<ZReadingHistoryItemDto>> getZReadingHistory({
+    required int page,
+    required int limit,
+  }) async {
+    final response = await _httpClient.get<dynamic>(
+      '/api/v1/reports/z-reading/history',
+      queryParameters: {'page': page, 'limit': limit},
+    );
+    ZReadingHistoryItemDtoMapper.ensureInitialized();
+    return PaginatedResponseDtoMapper.fromJson<ZReadingHistoryItemDto>(jsonEncode(response.data));
+  }
+
+  Future<ZReadingDto> getZReadingHistoryDetail(String id) async {
+    final response = await _httpClient.get<dynamic>('/api/v1/reports/z-reading/history/$id');
+    return ZReadingDto.fromJson(jsonEncode(response.data));
   }
 }

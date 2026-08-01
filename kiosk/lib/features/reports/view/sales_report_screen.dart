@@ -1,204 +1,250 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
+import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/resposive_wrap_container.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/metric.dart';
+import '../repositories/reports_repository.dart';
+import '../state/export_notifier.dart';
 import '../state/sales_report_notifier.dart';
 import '../state/sales_report_state.dart';
 import 'report_tab_selector.dart';
 import 'sales_bar_chart.dart';
 import 'sales_health_page.dart';
+import 'unexported_export_dialog.dart';
 
-class SalesReportScreen extends ConsumerWidget {
+class SalesReportScreen extends HookConsumerWidget {
   const SalesReportScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(salesReportProvider);
-    final selectedDateFilter = state.selectedDateFilter;
+    final exportState = ref.watch(exportNotifierProvider);
     final selectedTab = state.selectedTab;
+    final isAndroid = context.breakpoint.isAndroid;
+    final r = context.responsive;
 
-    return WindowsScaffold(
-      backgroundColor: Colors.grey.shade50,
-      body: Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+    ref.listen<ExportState>(exportNotifierProvider, (prev, next) {
+      if ((prev?.isExporting ?? false) && !next.isExporting) {
+        if (next.exportError != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Export failed: ${next.exportError}'),
+              backgroundColor: ColorSet.danger,
             ),
-            child: TopAppBar(
-              onBackPressed: () {
-                if (context.canPop()) {
-                  context.pop();
-                }
-              },
-              title: 'Sales Report',
+          );
+        } else if (next.lastExportPath != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Report saved to ${next.lastExportPath}'),
+              backgroundColor: ColorSet.primary,
             ),
-          ),
-          Container(
-            padding: context.responsive.value<EdgeInsets>(
-              phone: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              tablet: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              kiosk: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-            ),
-            color: Colors.white,
-            child: ReportTabSelector(
-              selectedTab: selectedTab,
-              onTabChanged: (tab) {
-                ref.read(salesReportProvider.notifier).updateTab(tab);
-              },
-            ),
-          ),
+          );
+        }
+      }
+    });
 
-          // Content with AnimatedSwitcher
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              transitionBuilder: (child, animation) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-              child:
-                  selectedTab == ReportTab.dashboard
-                      ? _DashboardContent(
-                        key: const ValueKey('dashboard'),
-                        state: state,
-                        selectedDateFilter: selectedDateFilter,
-                      )
-                      : const SalesHealthPage(),
-            ),
-          ),
-        ],
-      ),
+    useEffect(() {
+      Future.microtask(() async {
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        final start = DateTime(yesterday.year, yesterday.month, yesterday.day);
+        final end = DateTime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59);
+        try {
+          final repo = ref.read(reportsRepositoryProvider);
+          final result = await repo.getExportable(startDate: start, endDate: end);
+          if (result.count > 0 && context.mounted) {
+            showDialog<void>(
+              context: context,
+              barrierDismissible: false,
+              builder: (_) => UnexportedExportDialog(
+                date: yesterday,
+                count: result.count,
+              ),
+            );
+          }
+        } catch (_) {
+          // Do not block the screen if the check itself fails
+        }
+      });
+      return null;
+    }, const []);
+
+    final exportButton = IconButton(
+      onPressed: exportState.isExporting
+          ? null
+          : () => ref.read(exportNotifierProvider.notifier).export(DateTime.now()),
+      tooltip: 'Export Today\'s Report',
+      icon: exportState.isExporting
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            )
+          : const Icon(Icons.file_download_outlined, color: Colors.white),
     );
-  }
-}
 
-class _DashboardContent extends StatelessWidget {
-  const _DashboardContent({super.key, required this.state, required this.selectedDateFilter});
-
-  final SalesReportState state;
-  final DateFilter selectedDateFilter;
-
-  @override
-  Widget build(BuildContext context) {
-    final responsive = context.responsive;
-    return Align(
-      alignment: Alignment.topCenter,
-      child: SingleChildScrollView(
-        padding: responsive.value<EdgeInsets>(
-          phone: const EdgeInsets.symmetric(horizontal: 20),
-          tablet: const EdgeInsets.symmetric(horizontal: 24),
-          kiosk: const EdgeInsets.symmetric(horizontal: 32),
-        ),
+    Widget content = ColoredBox(
+      color: ColorSet.background,
+      child: ColoredBox(
+        color: Colors.white,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: responsive.scale(33)),
-            _MetricsCards(
-              state: state,
-              columns: responsive.value<int>(kiosk: 3, tablet: 2, phone: 2),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: TopAppBar(
+                onBackPressed: () {
+                  if (context.canPop()) context.pop();
+                },
+                title: 'Sales Report',
+                trailing: exportButton,
+              ),
             ),
-            SizedBox(height: responsive.scale(45)),
-            SizedBox(
-              height: MediaQuery.of(context).size.height * 0.6,
-              child: const _SalesChartSection(),
+            ColoredBox(
+              color: Colors.white,
+              child: Container(
+                padding: r.value<EdgeInsets>(
+                  phone: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  tablet: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  kiosk: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                ),
+                child: ReportTabSelector(
+                  selectedTab: selectedTab,
+                  onTabChanged: (tab) =>
+                      ref.read(salesReportProvider.notifier).updateTab(tab),
+                ),
+              ),
             ),
-            SizedBox(height: responsive.scale(45)),
-            // _QuickActions(state: state),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (child, animation) =>
+                    FadeTransition(opacity: animation, child: child),
+                child: selectedTab == ReportTab.dashboard
+                    ? _DashboardContent(
+                        key: const ValueKey('dashboard'),
+                        state: state,
+                        isAndroid: isAndroid,
+                        onRetry: () => ref.invalidate(salesReportProvider),
+                      )
+                    : const SalesHealthPage(key: ValueKey('health')),
+              ),
+            ),
           ],
         ),
       ),
     );
+
+    if (isAndroid) {
+      content = RefreshIndicator(
+        onRefresh: () async => ref.invalidate(salesReportProvider),
+        color: ColorSet.primary,
+        child: content,
+      );
+    }
+
+    if (isAndroid) {
+      return AndroidScaffold(backgroundColor: ColorSet.background, body: content);
+    }
+    return WindowsScaffold(backgroundColor: ColorSet.background, body: content);
   }
 }
 
-class _SalesChartSection extends StatelessWidget {
-  const _SalesChartSection();
+class _DashboardContent extends StatelessWidget {
+  const _DashboardContent({
+    super.key,
+    required this.state,
+    required this.isAndroid,
+    required this.onRetry,
+  });
+
+  final SalesReportState state;
+  final bool isAndroid;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    final responsive = context.responsive;
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    if (state.error != null && !state.isLoading) {
+      return _ReportErrorView(error: state.error!, onRetry: onRetry);
+    }
+
+    if (state.isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: ColorSet.primary,
+          strokeWidth: 3,
+          strokeCap: StrokeCap.round,
+        ),
+      );
+    }
+
+    return _WindowsDashboard(state: state);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Windows layout: metrics row on top, chart fills remaining height
+// ─────────────────────────────────────────────────────────────────────────────
+class _WindowsDashboard extends StatelessWidget {
+  const _WindowsDashboard({required this.state});
+
+  final SalesReportState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.responsive;
+    final metrics = _buildMetrics(state);
+    final padding = r.value<double>(kiosk: 20, tablet: 16, phone: 12);
+    final gap = r.value<double>(kiosk: 12, tablet: 10, phone: 8);
+
+    return Padding(
+      padding: EdgeInsets.all(padding),
+      child: Column(
+        children: [
+          // ── Top: 5 metric cards in a single row ──
+          SizedBox(
+            child: ResponsiveWrapContainer(
+              equalWidth: true,
+              rowItems: 2,
+              items: [
+                for (int i = 0; i < metrics.length; i++) ...[_MetricCard(metric: metrics[i])],
+              ],
+            ),
+          ),
+          Gap(gap),
+          // ── Bottom: chart fills all remaining space ──
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(POSRadius.xl),
+                boxShadow: POSShadow.card,
+              ),
+              padding: EdgeInsets.all(r.value<double>(kiosk: 20, tablet: 16, phone: 12)),
+              child: const SalesBarChart(),
+            ),
           ),
         ],
       ),
-      child: Padding(
-        padding: EdgeInsets.all(responsive.value<double>(kiosk: 16, tablet: 14, phone: 12)),
-        child: const SalesBarChart(),
-      ),
-    );
-  }
-}
-
-class _MetricsCards extends StatelessWidget {
-  const _MetricsCards({required this.state, required this.columns});
-
-  final SalesReportState state;
-  final int columns;
-
-  @override
-  Widget build(BuildContext context) {
-    final responsive = context.responsive;
-    final metrics = [
-      Metric(
-        title: 'Total Net Sales',
-        value: state.totalNetSales.toStringAsFixed(2),
-        icon: Icons.trending_up,
-        color: Colors.green,
-      ),
-      Metric(
-        title: 'Total Refunds',
-        value: state.totalRefunds.toStringAsFixed(2),
-        icon: Icons.money_off,
-        color: Colors.red,
-      ),
-      Metric(
-        title: 'Total Discounts',
-        value: state.totalDiscounts.toStringAsFixed(2),
-        icon: Icons.local_offer,
-        color: Colors.orange,
-      ),
-      Metric(
-        isMonetary: false,
-        title: 'No. of Transactions',
-        value: state.totalTransactions.toString(),
-        icon: Icons.receipt,
-        color: Colors.purple,
-      ),
-      Metric(
-        isMonetary: false,
-        title: 'No. of Items',
-        value: state.totalItems.toString(),
-        icon: Icons.inventory_2,
-        color: Colors.teal,
-      ),
-    ];
-
-    return ResponsiveWrapContainer(
-      items: metrics.map((metric) => _MetricCard(metric: metric)).toList(),
-      rowItems: columns,
-      spacing: responsive.value<double>(kiosk: 12, tablet: 10, phone: 8),
     );
   }
 }
@@ -210,80 +256,310 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final responsive = context.responsive;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final padding = responsive.scale(21);
-        final iconSize = responsive.scale(35);
-        final titleFontSize = responsive.scale(23);
-        final valueFontSize = responsive.scale(27);
-        final spacing = responsive.scale(17);
+    final r = context.responsive;
+    final raw = double.tryParse(metric.value.replaceAll(',', '')) ?? 0.0;
+    final displayValue =
+        metric.isMonetary
+            ? 'P${NumberFormat.decimalPattern().format(raw)}'
+            : NumberFormat.decimalPattern().format(raw);
 
-        final value =
-            '${metric.isMonetary ? r'P' : ''}${NumberFormat.decimalPattern().format(double.tryParse(metric.value.replaceAll(',', '')) ?? 0)}';
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        boxShadow: POSShadow.card,
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: r.value<double>(kiosk: 16, tablet: 14, phone: 12),
+        vertical: r.value<double>(kiosk: 14, tablet: 12, phone: 10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(r.value<double>(kiosk: 6, tablet: 5, phone: 5)),
+                decoration: BoxDecoration(
+                  color: metric.color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(POSRadius.sm),
+                ),
+                child: Icon(
+                  metric.icon,
+                  color: metric.color,
+                  size: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                ),
+              ),
+              const Gap(6),
+              Expanded(
+                child: Text(
+                  metric.title,
+                  style: TextStyle(
+                    fontSize: r.value<double>(kiosk: 11, tablet: 11, phone: 10),
+                    color: POSColors.textTertiary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
-          child: Padding(
-            padding: EdgeInsets.all(padding),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: metric.color.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Icon(metric.icon, color: metric.color, size: iconSize),
-                    ),
-                    const Gap(10),
-                    Expanded(
-                      child: Text(
-                        metric.title,
-                        style: TextStyle(
-                          fontSize: titleFontSize,
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: spacing),
-                Flexible(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: valueFontSize,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              displayValue,
+              style: TextStyle(
+                fontSize: r.value<double>(kiosk: 22, tablet: 19, phone: 16),
+                fontWeight: FontWeight.w800,
+                color: POSColors.textPrimary,
+                letterSpacing: -0.5,
+              ),
             ),
           ),
-        );
-      },
+          if (metric.subtitle != null) ...[
+            const Gap(2),
+            Text(
+              metric.subtitle!,
+              style: TextStyle(
+                fontSize: r.value<double>(kiosk: 11, tablet: 10, phone: 9),
+                color: POSColors.textTertiary,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Android layout: scrollable column
+// ─────────────────────────────────────────────────────────────────────────────
+class _AndroidDashboard extends StatelessWidget {
+  const _AndroidDashboard({required this.state});
+
+  final SalesReportState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.responsive;
+    final metrics = _buildMetrics(state);
+
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: r.value<EdgeInsets>(
+        phone: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        tablet: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        kiosk: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GridView.count(
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 1.7,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            children: metrics.map((m) => _AndroidMetricCard(metric: m)).toList(),
+          ),
+          const Gap(16),
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.4,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(POSRadius.xl),
+                boxShadow: POSShadow.card,
+              ),
+              padding: const EdgeInsets.all(12),
+              child: const SalesBarChart(),
+            ),
+          ),
+          const Gap(20),
+        ],
+      ),
+    );
+  }
+}
+
+class _AndroidMetricCard extends StatelessWidget {
+  const _AndroidMetricCard({required this.metric});
+
+  final Metric metric;
+
+  @override
+  Widget build(BuildContext context) {
+    final raw = double.tryParse(metric.value.replaceAll(',', '')) ?? 0.0;
+    final displayValue =
+        metric.isMonetary
+            ? 'P${NumberFormat.decimalPattern().format(raw)}'
+            : NumberFormat.decimalPattern().format(raw);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        boxShadow: POSShadow.card,
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: metric.color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(POSRadius.sm),
+            ),
+            child: Icon(metric.icon, color: metric.color, size: 16),
+          ),
+          const Gap(8),
+          Text(
+            metric.title,
+            style: const TextStyle(
+              fontSize: 11,
+              color: POSColors.textTertiary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const Gap(2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              displayValue,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: POSColors.textPrimary,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ),
+          if (metric.subtitle != null) ...[
+            const Gap(2),
+            Text(
+              metric.subtitle!,
+              style: const TextStyle(
+                fontSize: 10,
+                color: POSColors.textTertiary,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared
+// ─────────────────────────────────────────────────────────────────────────────
+List<Metric> _buildMetrics(SalesReportState state) => [
+  Metric(
+    title: 'Net Sales',
+    value: state.totalNetSales.toStringAsFixed(2),
+    icon: Icons.trending_up_rounded,
+    color: const Color(0xFF10B981),
+  ),
+  Metric(
+    title: 'Discounts',
+    value: state.totalDiscounts.toStringAsFixed(2),
+    icon: Icons.local_offer_outlined,
+    color: const Color(0xFFF97316),
+  ),
+  Metric(
+    title: 'Refunds',
+    value: state.totalRefunds.toStringAsFixed(2),
+    icon: Icons.money_off_rounded,
+    color: const Color(0xFFEF4444),
+  ),
+  Metric(
+    title: 'Voided',
+    value: state.totalVoidedTransactions.toString(),
+    // subtitle: 'P${NumberFormat.decimalPattern().format(state.totalVoidedAmount)}',
+    icon: Icons.block_rounded,
+    color: const Color(0xFF6B7280),
+    isMonetary: false,
+  ),
+];
+
+class _ReportErrorView extends StatelessWidget {
+  const _ReportErrorView({required this.error, required this.onRetry});
+
+  final String error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = context.responsive;
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(r.value<double>(kiosk: 48, tablet: 32, phone: 24)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: r.value<double>(kiosk: 88, tablet: 72, phone: 60),
+              height: r.value<double>(kiosk: 88, tablet: 72, phone: 60),
+              decoration: BoxDecoration(
+                color: ColorSet.danger.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.cloud_off_rounded,
+                color: ColorSet.danger,
+                size: r.value<double>(kiosk: 44, tablet: 36, phone: 30),
+              ),
+            ),
+            SizedBox(height: r.value<double>(kiosk: 24, tablet: 20, phone: 16)),
+            Text(
+              'Failed to Load Report',
+              style: TextStyle(
+                fontSize: r.value<double>(kiosk: 22, tablet: 18, phone: 16),
+                fontWeight: FontWeight.w700,
+                color: POSColors.textPrimary,
+              ),
+            ),
+            SizedBox(height: r.value<double>(kiosk: 10, tablet: 8, phone: 6)),
+            Text(
+              error,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: r.value<double>(kiosk: 15, tablet: 13, phone: 12),
+                color: POSColors.textTertiary,
+                height: 1.5,
+              ),
+            ),
+            SizedBox(height: r.value<double>(kiosk: 28, tablet: 24, phone: 20)),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Retry'),
+              style: FilledButton.styleFrom(
+                backgroundColor: ColorSet.primary,
+                padding: EdgeInsets.symmetric(
+                  horizontal: r.value<double>(kiosk: 28, tablet: 22, phone: 18),
+                  vertical: r.value<double>(kiosk: 14, tablet: 12, phone: 10),
+                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.md)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../state/sales_report_state.dart';
 
 class ReportTabSelector extends StatelessWidget {
@@ -11,60 +13,93 @@ class ReportTabSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final responsive = context.responsive;
+    final r = context.responsive;
 
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: EdgeInsets.all(responsive.scale(15)),
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: POSColors.surfaceSubtle,
+        borderRadius: BorderRadius.circular(POSRadius.lg),
+        border: Border.all(color: POSColors.borderDefault),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: ReportTab.values.map((tab) {
+          final isSelected = tab == selectedTab;
+          return _TabItem(
+            tab: tab,
+            isSelected: isSelected,
+            onTap: () => onTabChanged(tab),
+            responsive: r,
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _TabItem extends StatelessWidget {
+  const _TabItem({
+    required this.tab,
+    required this.isSelected,
+    required this.onTap,
+    required this.responsive,
+  });
+
+  final ReportTab tab;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final ResponsiveValue responsive;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(POSRadius.md),
+      child: AnimatedContainer(
+        duration: POSAnimation.normal,
+        curve: POSAnimation.ease,
         decoration: BoxDecoration(
-          color: ColorSet.background,
-          borderRadius: BorderRadius.circular(responsive.scale(17)),
+          gradient: isSelected
+              ? const LinearGradient(
+                  colors: ColorSet.gradientBg,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: isSelected ? null : Colors.transparent,
+          borderRadius: BorderRadius.circular(POSRadius.md),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children:
-              ReportTab.values.map((tab) {
-                final isSelected = tab == selectedTab;
-                return Padding(
-                  padding: EdgeInsets.only(right: responsive.scale(13)),
-                  child: GestureDetector(
-                    onTap: () => onTabChanged(tab),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: responsive.scale(25),
-                        vertical: responsive.scale(15),
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected ? ColorSet.secondary : ColorSet.transparent,
-                        borderRadius: BorderRadius.circular(responsive.scale(13)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            tab.icon,
-                            size: responsive.scale(40),
-                            color: isSelected ? ColorSet.light : Colors.grey.shade600,
-                          ),
-                          SizedBox(width: responsive.scale(15)),
-                          Text(
-                            tab.displayName,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: isSelected ? ColorSet.light : Colors.grey.shade600,
-                              fontSize: responsive.scale(25),
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(POSRadius.md),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: responsive.value<double>(kiosk: 20, tablet: 16, phone: 12),
+                vertical: responsive.value<double>(kiosk: 10, tablet: 8, phone: 7),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    tab.icon,
+                    size: responsive.value<double>(kiosk: 18, tablet: 16, phone: 14),
+                    color: isSelected ? Colors.white : POSColors.textTertiary,
+                  ),
+                  SizedBox(width: responsive.scale(8)),
+                  Text(
+                    tab.displayName,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : POSColors.textSecondary,
+                      fontSize: responsive.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
-                );
-              }).toList(),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

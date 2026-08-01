@@ -1,6 +1,10 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/experimental/mutation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../services/device/device_serial_number.dart';
 import '../../../services/printer/win32_printer.dart';
 import '../entities/receipt.dart';
 import '../repositories/receipt_repository.dart';
@@ -26,9 +30,11 @@ class ReceiptNotifier extends AsyncNotifier<Receipt> {
 
   Future<void> print() async {
     if (!state.hasValue) return;
+    if (kIsWeb || !Platform.isWindows) return;
 
+    final serialNumber = await ref.read(deviceSerialNumberProvider.future);
     final encodeReceipt = ref.read(encodeEscPosReceiptProvider);
-    final data = await encodeReceipt(receipt: state.requireValue);
+    final data = await encodeReceipt(receipt: state.requireValue, serialNumber: serialNumber);
 
     final printerTransport = ref.read(win32PrinterTransportProvider);
     await printerTransport.sendData(data);

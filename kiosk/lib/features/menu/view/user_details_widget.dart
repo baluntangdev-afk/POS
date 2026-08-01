@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../entities/access.dart';
 
 class UserDetailsWidget extends StatelessWidget {
@@ -22,20 +23,15 @@ class UserDetailsWidget extends StatelessWidget {
       padding: responsive.value<EdgeInsets>(
         phone: const EdgeInsets.all(16.0),
         tablet: const EdgeInsets.all(24.0),
-        kiosk: const EdgeInsets.all(32.0),
+        kiosk: const EdgeInsets.all(28.0),
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: POSColors.surfaceBase,
         borderRadius: BorderRadius.circular(
-          responsive.value<double>(phone: 12, tablet: 16, kiosk: 20),
+          responsive.value<double>(phone: 16, tablet: 20, kiosk: 24),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: POSShadow.card,
+        border: Border.all(color: POSColors.borderSubtle),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -43,9 +39,26 @@ class UserDetailsWidget extends StatelessWidget {
           Container(
             width: responsive.scale(110),
             height: responsive.scale(110),
-            decoration: const BoxDecoration(shape: BoxShape.circle, color: ColorSet.userDetails),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  ColorSet.userDetails,
+                  ColorSet.primary,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: ColorSet.userDetails.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             child: ClipOval(
-              child: Icon(Icons.person, size: responsive.scale(60), color: Colors.white),
+              child: Icon(Icons.person, size: responsive.scale(56), color: Colors.white),
             ),
           ),
           SizedBox(width: responsive.value<double>(phone: 16, tablet: 20, kiosk: 24)),
@@ -53,28 +66,50 @@ class UserDetailsWidget extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  access.role.title,
-                  style: TextStyle(
-                    fontSize: responsive.scale(14),
-                    color: ColorSet.userDetails,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: ColorSet.userDetails.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    access.role.title.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: responsive.scale(11),
+                      color: ColorSet.primary,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.0,
+                    ),
                   ),
                 ),
-                SizedBox(height: responsive.value<double>(phone: 4, tablet: 6, kiosk: 8)),
+                SizedBox(height: responsive.value<double>(phone: 6, tablet: 8, kiosk: 10)),
                 Text(
                   access.fullName,
                   style: TextStyle(
-                    fontSize: responsive.scale(28),
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    fontSize: responsive.scale(26),
+                    fontWeight: FontWeight.w700,
+                    color: POSColors.textPrimary,
+                    letterSpacing: -0.3,
                   ),
                 ),
-                SizedBox(height: responsive.value<double>(phone: 2, tablet: 4, kiosk: 6)),
-                Text(
-                  access.employeeId,
-                  style: TextStyle(fontSize: responsive.scale(18), color: Colors.black45),
+                SizedBox(height: responsive.value<double>(phone: 2, tablet: 4, kiosk: 4)),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.badge_outlined,
+                      size: responsive.scale(14),
+                      color: POSColors.textTertiary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      access.employeeId,
+                      style: TextStyle(
+                        fontSize: responsive.scale(16),
+                        color: POSColors.textTertiary,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

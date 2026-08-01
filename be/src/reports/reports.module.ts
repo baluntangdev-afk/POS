@@ -8,13 +8,35 @@ import { ProductGroupSalesReportService } from './services/product-group-sales-r
 import { ProductSalesReportService } from './services/product-sales-report.service';
 import { UserSalesReportService } from './services/user-sales-report.service';
 import { PaymentSalesReportService } from './services/payment-sales-report.service';
+import { ExportableReportService } from './services/exportable-report.service';
+import { CashierXReadingReportService } from './services/cashier-x-reading-report.service';
+import { CashierDailyReportService } from './services/cashier-daily-report.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SalesOrder } from '../sales-orders/entities/sales-order.entity';
 import { SalesOrderItem } from '../sales-orders/entities/sales-order-item.entity';
+import { SalesOrderDiscount } from '../sales-orders/entities/sales-order-discount.entity';
 import { Payment } from '../payments/entities/payment.entity';
+import { User } from '../users/entities/user.entity';
+import { CashierDailyReport } from './entities/cashier-daily-report.entity';
+import { CashierXReading } from './entities/cashier-x-reading.entity';
+import { ZReadingReportService } from './services/z-reading-report.service';
+import { ZReading } from './entities/z-reading.entity';
+import { UsersModule } from '../users/users.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([SalesOrder, SalesOrderItem, Payment])],
+  imports: [
+    TypeOrmModule.forFeature([
+      SalesOrder,
+      SalesOrderItem,
+      SalesOrderDiscount,
+      Payment,
+      User,
+      CashierDailyReport,
+      CashierXReading,
+      ZReading,
+    ]),
+    UsersModule,
+  ],
   controllers: [ReportsController],
   providers: [
     TotalReportService,
@@ -25,6 +47,10 @@ import { Payment } from '../payments/entities/payment.entity';
     ProductSalesReportService,
     UserSalesReportService,
     PaymentSalesReportService,
+    ExportableReportService,
+    CashierXReadingReportService,
+    CashierDailyReportService,
+    ZReadingReportService,
   ],
 })
 export class ReportsModule {}

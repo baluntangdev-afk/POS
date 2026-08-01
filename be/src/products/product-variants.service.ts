@@ -6,8 +6,8 @@ import { CreateProductVariantDto } from './dto/create-product.variant.dto';
 import { FindProductVariantsByProductIdService } from './services/find-product-variants-by-product-id.service';
 import { CreateProductVariantService } from './services/create-product-variant.service';
 import { FindProductVariantService } from './services/find-product-variant.service';
-import { DeleteProductVariantService } from './services/delete-product-variant.service';
 import { UpdateProductVariantService } from './services/update-product-variant.service';
+import { FindDistinctVariantNamesService } from './services/find-distinct-variant-names.service';
 
 @Injectable()
 export class ProductVariantsService {
@@ -16,7 +16,7 @@ export class ProductVariantsService {
     private readonly findProductVariantsByProductIdService: FindProductVariantsByProductIdService,
     private readonly findProductVariantService: FindProductVariantService,
     private readonly updateProductVariantService: UpdateProductVariantService,
-    private readonly deleteProductVariantService: DeleteProductVariantService,
+    private readonly findDistinctVariantNamesService: FindDistinctVariantNamesService,
   ) {}
 
   async create(
@@ -34,6 +34,10 @@ export class ProductVariantsService {
     return this.findProductVariantService.execute(id);
   }
 
+  async findDistinctNames(): Promise<string[]> {
+    return this.findDistinctVariantNamesService.execute();
+  }
+
   async update(
     id: number,
     updateProductVariantDto: UpdateProductVariantDto,
@@ -41,11 +45,5 @@ export class ProductVariantsService {
   ): Promise<ProductVariantDto> {
     await this.updateProductVariantService.execute(id, updateProductVariantDto, causer);
     return this.findProductVariantService.execute(id);
-  }
-
-  async remove(id: number, causer: User) {
-    await this.findProductVariantService.execute(id);
-    await this.deleteProductVariantService.execute(id, causer);
-    return { message: 'Product variant deleted successfully' };
   }
 }

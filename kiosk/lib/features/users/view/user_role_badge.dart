@@ -2,30 +2,49 @@ import 'package:flutter/material.dart';
 
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 
 class UserRoleBadge extends StatelessWidget {
-  const UserRoleBadge({required this.isAdmin, super.key});
+  const UserRoleBadge({required this.role, super.key});
 
-  final bool isAdmin;
+  final String role;
 
   @override
   Widget build(BuildContext context) {
+    final (color, iconData, label) = switch (role) {
+      'admin' => (ColorSet.secondary, Icons.admin_panel_settings_rounded, 'Admin'),
+      'supervisor' => (ColorSet.tertiary, Icons.supervised_user_circle_rounded, 'Supervisor'),
+      _ => (ColorSet.success, Icons.person_rounded, 'User'),
+    };
+
+    final r = context.responsive;
+    final fontSize = r.value<double>(kiosk: 13, tablet: 12, phone: 12);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color:
-            isAdmin
-                ? ColorSet.secondary.withValues(alpha: 0.1)
-                : ColorSet.success.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
+      padding: EdgeInsets.symmetric(
+        horizontal: r.value<double>(kiosk: 10, tablet: 9, phone: 8),
+        vertical: 4,
       ),
-      child: Text(
-        isAdmin ? 'Admin' : 'User',
-        style: TextStyle(
-          fontSize: context.responsive.scale(16),
-          fontWeight: FontWeight.w600,
-          color: isAdmin ? ColorSet.secondary : ColorSet.success,
-        ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(POSRadius.full),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(iconData, size: fontSize, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.w700,
+              color: color,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
       ),
     );
   }

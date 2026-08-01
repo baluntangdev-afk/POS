@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from '../entities/product.entity';
 import { CurrenciesService } from '../../currencies/currencies.service';
-import { StoreMenusService } from '../../store-menus/store-menus.service';
 import { ProductDetailMapper } from '../mapper/product-detail.mapper';
 import { ProductDetailsDto } from '../dto/product-details/product-details.dto';
 
@@ -13,44 +12,27 @@ export class FindProductDetailsService {
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
     private readonly currenciesService: CurrenciesService,
-    private readonly storeMenusService: StoreMenusService,
   ) {}
 
   async execute(id: number): Promise<ProductDetailsDto> {
-    const [currency, defaultStoreMenu] = await Promise.all([
-      this.currenciesService.findDefaultCurrency(),
-      this.storeMenusService.findDefaultStoreMenu(),
-    ]);
+    const currency = await this.currenciesService.findDefaultCurrency();
 
     const product = await this.productsRepository
       .createQueryBuilder('product')
       .select([
-        // product columns
         'product.id',
         'product.name',
         'product.description',
         'product.imageUrl',
         'product.status',
-
-        // product variant columns
-        'pv.id',
-        'pv.name',
-        'pv.isDefault',
-
-        // menu item columns
-        'mi.id',
-        'mi.displayPrice',
-
-        // menu item modifier columns
-        'mim.id',
-
-        // modifier group columns
-        'mg.id',
-        'mg.name',
-        'mg.minSelection',
-        'mg.maxSelection',
-
-        // modifier option columns
+        'product.price',
+      ])
+      .leftJoin('product.productGroup', 'pg')
+      .addSelect(['pg.id', 'pg.name'])
+      .leftJoin('pg.modifiers', 'mg')
+      .addSelect(['mg.id', 'mg.name', 'mg.minSelection', 'mg.maxSelection'])
+      .leftJoin('mg.modifierOptions', 'mo')
+      .addSelect([
         'mo.id',
         'mo.name',
         'mo.priceAddOn',
@@ -59,13 +41,10 @@ export class FindProductDetailsService {
         'mo.imageUrl',
       ])
       .leftJoin('product.productVariants', 'pv')
-      .leftJoin('pv.menuItems', 'mi', 'mi.store_menu_id = :storeMenuId', {
-        storeMenuId: defaultStoreMenu.id,
-      })
-      .leftJoin('mi.menuItemModifiers', 'mim')
-      .leftJoin('mim.modifierGroup', 'mg')
-      .leftJoin('mg.modifierOptions', 'mo')
+      .addSelect(['pv.id', 'pv.name', 'pv.price', 'pv.isDefault', 'pv.status'])
       .where('product.id = :id', { id })
+      .orderBy('pv.isDefault', 'DESC')
+      .addOrderBy('pv.id', 'ASC')
       .getOne();
 
     if (!product) {

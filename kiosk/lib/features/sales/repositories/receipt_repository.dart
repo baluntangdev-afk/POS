@@ -4,12 +4,12 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../data/backend_api/enums/payment_method.dart';
-import '../../../data/backend_api/enums/sales_order_status.dart';
 import '../../../data/backend_api/enums/sales_order_type.dart';
 import '../../../data/backend_api/schemas/confirm_sales_order_dto.dart';
 import '../../../data/backend_api/schemas/payment_details_dto.dart';
 import '../../../data/backend_api/schemas/payment_query_dto.dart';
 import '../../../data/backend_api/schemas/payment_response_dto.dart';
+import '../../../data/backend_api/schemas/pos_terminal_dto.dart';
 import '../../../data/backend_api/schemas/refund_item_response_dto.dart';
 import '../../../data/backend_api/schemas/refund_query_dto.dart';
 import '../../../data/backend_api/schemas/refund_with_items_response_dto.dart';
@@ -18,11 +18,10 @@ import '../../../data/backend_api/schemas/sales_order_query_dto.dart';
 import '../../../data/backend_api/schemas/sales_order_with_items_response_dto.dart';
 import '../../../data/backend_api/schemas/user_dto.dart';
 import '../../../data/backend_api/sources/payments_api.dart';
+import '../../../data/backend_api/sources/pos_terminals_api.dart';
 import '../../../data/backend_api/sources/refunds_api.dart';
 import '../../../data/backend_api/sources/sales_orders_api.dart';
 import '../../../data/backend_api/sources/user_api.dart';
-import '../../../data/shared_preferences/schemas/franchisee_info_pref.dart';
-import '../../../data/shared_preferences/sources/franchisee_info_storage.dart';
 import '../../../utils/paginated_data.dart';
 import '../entities/cashier.dart';
 import '../entities/payment.dart';
@@ -41,7 +40,7 @@ abstract class ReceiptRepository {
   Future<PaginatedData<Receipt>> getAll({
     required int page,
     required int limit,
-    String? soNumber,
+    String? search,
     DateTime? soDate,
     String? sort,
   });
@@ -53,7 +52,7 @@ final receiptRepositoryProvider = Provider<ReceiptRepository>((ref) {
     ref.watch(userApiProvider),
     ref.watch(paymentsApiProvider),
     ref.watch(refundsApiProvider),
-    ref.watch(franchiseeInfoStorageProvider),
+    ref.watch(posTerminalsApiProvider),
   );
 });
 
@@ -63,14 +62,14 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
     this._usersApi,
     this._paymentsApi,
     this._refundsApi,
-    this._franchiseeInfoStorage,
+    this._posTerminalsApi,
   );
 
   final SalesOrdersApi _salesOrdersApi;
   final UserApi _usersApi;
   final PaymentsApi _paymentsApi;
   final RefundsApi _refundsApi;
-  final FranchiseeInfoStorage _franchiseeInfoStorage;
+  final PosTerminalsApi _posTerminalsApi;
 
   @override
   Future<Receipt> save(Receipt receipt) async {
@@ -95,19 +94,19 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
   Future<Receipt> getById(String id) async {
     final getResponse = await _salesOrdersApi.getById(id);
 
-    final (userDto, paginatedPaymentDto, paginatedRefundDto, franchiseeInfoPref) =
+    final (userDto, paginatedPaymentDto, paginatedRefundDto, posTerminalDto) =
         await (
           _usersApi.getUserById(getResponse.createdBy),
           _paymentsApi.getAll(PaymentQueryDto(soNumber: getResponse.soNumber)),
           _refundsApi.getAll(RefundQueryDto(originalSalesOrderId: getResponse.id)),
-          _franchiseeInfoStorage.fetch(),
+          _posTerminalsApi.getMyTerminal(),
         ).wait;
 
     return _receiptFromSalesOrderWithItemsDto(
       getResponse,
       cashier: _cashierFromUserDto(userDto),
       payment: _paymentFromPaymentResponseDto(paginatedPaymentDto.data.firstOrNull),
-      store: _storeFromFranchiseeInfoPref(franchiseeInfoPref),
+      store: _storeFromPosTerminalDto(posTerminalDto),
       refunds:
           paginatedRefundDto.data
               .map((dto) => _refundFromRefundWithItemsResponseDto(dto, salesOrder: getResponse))
@@ -119,21 +118,42 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
   Future<PaginatedData<Receipt>> getAll({
     required int page,
     required int limit,
-    String? soNumber,
+    String? search,
     DateTime? soDate,
     String? sort,
   }) async {
     final salesOrdersQuery = SalesOrderQueryDto(
       page: page,
       limit: limit,
-      soNumber: soNumber,
+      search: search,
       soDate: soDate,
       sort: sort,
-      status: SalesOrderStatus.confirmed,
     );
 
-    final (salesOrdersResponse, franchiseeInfoPref) =
-        await (_salesOrdersApi.getAll(salesOrdersQuery), _franchiseeInfoStorage.fetch()).wait;
+    final salesOrdersResponse = await _salesOrdersApi.getAll(salesOrdersQuery);
+
+    PosTerminalDto? posTerminalDto;
+    try {
+      posTerminalDto = await _posTerminalsApi.getMyTerminal();
+    } catch (_) {
+      // Not all users (e.g. supervisors) have a terminal assigned; store info
+      // is not shown on the transactions list so this is safe to ignore.
+    }
+
+    final store = posTerminalDto != null
+        ? _storeFromPosTerminalDto(posTerminalDto)
+        : const Store(legalName: '', tin: '', addressLine1: '', addressLine2: '');
+
+    final cashiersByUserId = <int, Cashier>{};
+    await Future.wait(
+      salesOrdersResponse.data.map((dto) => dto.createdBy).toSet().map((userId) async {
+        try {
+          cashiersByUserId[userId] = _cashierFromUserDto(await _usersApi.getUserById(userId));
+        } catch (_) {
+          // User may have been deleted; fall back to an unknown cashier below.
+        }
+      }),
+    );
 
     return PaginatedData(
       page: page,
@@ -143,9 +163,12 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
           salesOrdersResponse.data.map((dto) {
             return _receiptFromSalesOrderWithItemsDto(
               dto,
-              store: _storeFromFranchiseeInfoPref(franchiseeInfoPref),
-              cashier: Cashier.unknown(),
+              store: store,
+              cashier: cashiersByUserId[dto.createdBy] ?? Cashier.unknown(),
               payment: ZeroPayment(),
+              refundedAmount: dto.totalRefundAmount > 0
+                  ? Decimal.parse(dto.totalRefundAmount.toString())
+                  : null,
             );
           }).toIList(),
     );
@@ -169,8 +192,27 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
         amountPaid: cashReceived.toString(),
         change: change.toString(),
       ),
-      CardPayment() => throw 'Card payment is unsupported.',
-      QRPayment() => throw 'QR payment is unsupported.',
+      CardPayment(:final paidAmount, :final referenceNumber) => PaymentDetailsDto(
+        payeeName: '',
+        method: PaymentMethod.creditCard,
+        grossAmount: receipt.grossAmount.toString(),
+        taxAmount: receipt.vatAmount.toString(),
+        netAmount: receipt.totalAmount.toString(),
+        amountPaid: paidAmount.toString(),
+        change: '0',
+        transactionReference: referenceNumber,
+      ),
+      QRPayment(:final paidAmount, :final referenceNumber, :final walletProvider) => PaymentDetailsDto(
+        payeeName: '',
+        method: walletProvider == 'GCash' ? PaymentMethod.gCash : PaymentMethod.other,
+        grossAmount: receipt.grossAmount.toString(),
+        taxAmount: receipt.vatAmount.toString(),
+        netAmount: receipt.totalAmount.toString(),
+        amountPaid: paidAmount.toString(),
+        change: '0',
+        transactionReference: referenceNumber,
+        paymentMethodName: walletProvider == 'GCash' ? null : walletProvider,
+      ),
       ZeroPayment() => throw 'Zero payment is unsupported.',
     };
   }
@@ -189,6 +231,7 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
     required Payment payment,
     required Store store,
     IList<Refund> refunds = const IList.empty(),
+    Decimal? refundedAmount,
   }) {
     return Receipt(
       id: dto.id,
@@ -203,12 +246,15 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
               .sorted((a, b) {
                 final comparison = (a.itemSequence ?? 0).compareTo(b.itemSequence ?? 0);
                 if (comparison != 0) return comparison;
-                // Main item comes first
                 return a.addOn ? 1 : -1;
               })
               .map(_receiptItemFromSalesOrderItemDto)
               .toIList(),
       refunds: refunds,
+      refundedAmount: refundedAmount,
+      isVoided: dto.status == 'Cancelled',
+      voidReason: dto.voidReason,
+      voidedAt: dto.voidedAt,
     );
   }
 
@@ -220,9 +266,26 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
         paidAmount: Decimal.parse(amountPaid) - Decimal.parse(change),
         cashReceived: Decimal.parse(amountPaid),
       ),
-      CreditCardPaymentDto() => throw 'CreditCardPayment is unsupported.',
-      GCashPaymentDto() => throw 'GCashPayment is unsupported.',
-      OtherPaymentDto() => throw 'OtherPayment is unsupported.',
+      CreditCardPaymentDto(:final id, :final amountPaid, :final transactionReference) =>
+        CardPayment(
+          id: id,
+          paidAmount: Decimal.parse(amountPaid),
+          referenceNumber: transactionReference,
+          cardType: 'Credit/Debit',
+          cardNumber: '0000',
+        ),
+      GCashPaymentDto(:final id, :final amountPaid, :final transactionReference) => QRPayment(
+        id: id,
+        paidAmount: Decimal.parse(amountPaid),
+        referenceNumber: transactionReference,
+        walletProvider: 'GCash',
+      ),
+      OtherPaymentDto(:final id, :final amountPaid, :final transactionReference, :final paymentMethodName) => QRPayment(
+        id: id,
+        paidAmount: Decimal.parse(amountPaid),
+        referenceNumber: transactionReference,
+        walletProvider: paymentMethodName ?? 'Other',
+      ),
     };
   }
 
@@ -236,14 +299,28 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
       grossAmount: Decimal.parse(
         ((double.tryParse(dto.qty) ?? 1).round() * dto.unitPrice).toString(),
       ),
-      discountCode: '',
+      discountCode: dto.discountName ?? '',
       discountRate: Decimal.parse(dto.itemDiscountRate.toString()),
       discountAmount: Decimal.parse(dto.itemDiscountedPrice.toString()),
       vatExclusiveAmount: Decimal.parse(dto.vatExclusiveAmount.toString()),
       vatAmount: Decimal.parse((dto.vatAmount ?? 0.0).toString()),
       totalAmount: Decimal.parse(dto.itemTotalAmount.toString()),
       isMain: !dto.addOn,
+      saleType: _saleTypeFromString(dto.saleType),
+      note: dto.note,
+      category: dto.category,
+      discountBeneficiaryIdNumber: dto.discountBeneficiaryIdNumber,
+      discountBeneficiaryName: dto.discountBeneficiaryName,
     );
+  }
+
+  SaleType? _saleTypeFromString(String? value) {
+    return switch (value) {
+      'Dine-In' => SaleType.dineIn,
+      'Take-Out' => SaleType.takeOut,
+      'Delivery' => SaleType.delivery,
+      _ => null,
+    };
   }
 
   SaleType _saleTypeFromSalesOrderType(SalesOrderType type) {
@@ -265,13 +342,12 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
     );
   }
 
-  Store _storeFromFranchiseeInfoPref(FranchiseeInfoPref pref) {
+  Store _storeFromPosTerminalDto(PosTerminalDto dto) {
     return Store(
-      legalName: pref.legalName,
-      tin: pref.tin,
-      addressLine1: pref.addressLine1,
-      addressLine2: pref.addressLine2,
-      logo: pref.franchiseLogo,
+      legalName: dto.legalName ?? '',
+      tin: dto.tinNumber,
+      addressLine1: dto.address,
+      addressLine2: '',
     );
   }
 

@@ -38,4 +38,10 @@ export class PaymentResponseDto {
     example: 'TXN-123456',
   })
   transactionReference?: string;
+
+  @ApiProperty({
+    description: 'Payment method display name (for Other payments)',
+    example: 'Maya',
+  })
+  paymentMethodName?: string;
 }

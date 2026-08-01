@@ -1,6 +1,7 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../exceptions/exception_extension.dart';
 import '../entities/sales_data_item.dart';
 import '../enums/sales_data_item_type.dart';
 import '../repositories/reports_repository.dart';
@@ -56,7 +57,7 @@ class SalesReportNotifier extends Notifier<SalesReportState> {
           }).toIList();
       state = state.copyWith(salesReports: convertedReports);
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      state = state.copyWith(error: e.message, isLoading: false);
     }
   }
 
@@ -168,7 +169,7 @@ class SalesReportNotifier extends Notifier<SalesReportState> {
       }
       state = state.copyWith(groupedSalesData: groupedResult, isLoading: false);
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      state = state.copyWith(error: e.message, isLoading: false);
     }
   }
 

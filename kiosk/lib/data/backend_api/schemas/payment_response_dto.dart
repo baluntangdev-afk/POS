@@ -51,9 +51,16 @@ class GCashPaymentDto extends PaymentResponseDto with GCashPaymentDtoMappable {
 
 @MappableClass(discriminatorValue: 'Other')
 class OtherPaymentDto extends PaymentResponseDto with OtherPaymentDtoMappable {
-  const OtherPaymentDto({required super.id, required this.amountPaid});
+  const OtherPaymentDto({
+    required super.id,
+    required this.amountPaid,
+    this.transactionReference = '',
+    this.paymentMethodName,
+  });
 
   final String amountPaid;
+  final String transactionReference;
+  final String? paymentMethodName;
 
   static const fromJson = OtherPaymentDtoMapper.fromJson;
 }

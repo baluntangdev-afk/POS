@@ -1,0 +1,37 @@
+Modifier Group Name,Group Description,Selection Type,Is Required,Min Selection,Max Selection,Linked Product Group,Option Name,Option Price Add-On,Option Available
+Size,Choose your size,single,true,1,1,Coffee & Drinks & Ice Cream,Regular,0.00,true
+Size,Choose your size,single,true,1,1,Coffee & Drinks & Ice Cream,Large,25.00,true
+Size,Choose your size,single,true,1,1,Coffee & Drinks & Ice Cream,Extra Large,45.00,true
+Sugar Level,Choose your sugar level,single,true,1,1,Coffee & Drinks & Ice Cream,0%,0.00,true
+Sugar Level,Choose your sugar level,single,true,1,1,Coffee & Drinks & Ice Cream,25%,0.00,true
+Sugar Level,Choose your sugar level,single,true,1,1,Coffee & Drinks & Ice Cream,50%,0.00,true
+Sugar Level,Choose your sugar level,single,true,1,1,Coffee & Drinks & Ice Cream,75%,0.00,true
+Sugar Level,Choose your sugar level,single,true,1,1,Coffee & Drinks & Ice Cream,100%,0.00,true
+Temperature,Choose your preferred temperature,single,true,1,1,Coffee & Drinks & Ice Cream,Hot,0.00,true
+Temperature,Choose your preferred temperature,single,true,1,1,Coffee & Drinks & Ice Cream,Cold,0.00,true
+Add Drink,Add a drink to your meal,single,false,0,1,Food,Iced Tea,25.00,true
+Add Drink,Add a drink to your meal,single,false,0,1,Food,Lemonade,30.00,true
+Add Drink,Add a drink to your meal,single,false,0,1,Food,Soft Drink,25.00,true
+Add Drink,Add a drink to your meal,single,false,0,1,Food,Mineral Water,20.00,true
+Spice Level,How spicy do you like it?,single,false,0,1,(not linked in seeds),Mild,0.00,true
+Spice Level,How spicy do you like it?,single,false,0,1,(not linked in seeds),Medium,0.00,true
+Spice Level,How spicy do you like it?,single,false,0,1,(not linked in seeds),Hot,0.00,true
+Add-Ons,Customise your meal,multiple,false,0,5,(not linked in seeds),Extra Cheese,15.00,true
+Add-Ons,Customise your meal,multiple,false,0,5,(not linked in seeds),Bacon,25.00,true
+Add-Ons,Customise your meal,multiple,false,0,5,(not linked in seeds),Fried Egg,20.00,true
+Add-Ons,Customise your meal,multiple,false,0,5,(not linked in seeds),Avocado,30.00,true
+Add-Ons,Customise your meal,multiple,false,0,5,(not linked in seeds),Jalapeños,10.00,true
+Sauce,Choose a dipping sauce,single,false,0,1,(not linked in seeds),Ketchup,0.00,true
+Sauce,Choose a dipping sauce,single,false,0,1,(not linked in seeds),Mustard,0.00,true
+Sauce,Choose a dipping sauce,single,false,0,1,(not linked in seeds),Aioli,0.00,true
+Sauce,Choose a dipping sauce,single,false,0,1,(not linked in seeds),BBQ Sauce,0.00,true
+Sauce,Choose a dipping sauce,single,false,0,1,(not linked in seeds),Hot Sauce,0.00,true
+Beverage Add-Ons,Customise your beverage,multiple,false,0,5,(not linked in seeds),Whipped Cream,15.00,true
+Beverage Add-Ons,Customise your beverage,multiple,false,0,5,(not linked in seeds),Extra Espresso Shot,25.00,true
+Beverage Add-Ons,Customise your beverage,multiple,false,0,5,(not linked in seeds),Milk Foam,10.00,true
+Beverage Add-Ons,Customise your beverage,multiple,false,0,5,(not linked in seeds),Oat Milk,20.00,true
+Beverage Add-Ons,Customise your beverage,multiple,false,0,5,(not linked in seeds),Coconut Milk,20.00,true
+Add Syrup,Add a flavoured syrup,multiple,false,0,3,(not linked in seeds),Vanilla,15.00,true
+Add Syrup,Add a flavoured syrup,multiple,false,0,3,(not linked in seeds),Caramel,15.00,true
+Add Syrup,Add a flavoured syrup,multiple,false,0,3,(not linked in seeds),Hazelnut,15.00,true
+Add Syrup,Add a flavoured syrup,multiple,false,0,3,(not linked in seeds),Chocolate,15.00,true

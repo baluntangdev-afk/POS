@@ -1,10 +1,9 @@
-import 'dart:typed_data';
-
 import 'package:dart_mappable/dart_mappable.dart';
 import 'package:decimal/decimal.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 
 import '../../../utils/tax_calculator.dart';
+import '../enums/sale_type.dart';
 import 'discount.dart';
 import 'selected_modifier.dart';
 import 'selected_variant.dart';
@@ -21,17 +20,23 @@ class LineItem with LineItemMappable {
     required this.quantity,
     required this.variant,
     required this.modifiers,
+    required this.categoryName,
     this.discount,
+    this.itemSaleType,
+    this.notes,
   });
 
   final String id;
   final int productId;
   final String productName;
-  final Uint8List productImage;
+  final String categoryName;
+  final String productImage;
   final int quantity;
   final SelectedVariant variant;
   final IList<SelectedModifier> modifiers;
   final Discount? discount;
+  final SaleType? itemSaleType;
+  final String? notes;
 
   Decimal get grossAmount {
     final modifiersPrice = modifiers.fold(

@@ -26,7 +26,7 @@ export class RecipesSeeder implements Seeder {
     const variants = await variantRepo.find({ relations: { product: true } });
     const variantKey = (v: ProductVariant) => `${v.product.name}:${v.name}`;
     const variantsFromFixture = new Set(
-      PRODUCT_VARIANTS_FIXTURE.flatMap((f) => f.variantNames.map((vn) => `${f.productName}:${vn}`)),
+      PRODUCT_VARIANTS_FIXTURE.flatMap((f) => f.variants.map((v) => `${f.productName}:${v.name}`)),
     );
     const relevantVariants = variants.filter((v) => variantsFromFixture.has(variantKey(v)));
 

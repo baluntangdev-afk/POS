@@ -7,6 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
   DeleteDateColumn,
+  Index,
   OneToMany,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
@@ -15,6 +16,12 @@ import { ProductVariant } from './product-variant.entity';
 import { ProductStatus } from '../products.enum';
 
 @Entity('products')
+// Product names are unique per category (group), not globally. Partial index so
+// soft-deleted rows never block re-using a name — see migration 1779584300000.
+@Index('UQ_products_group_name', ['productGroup', 'name'], {
+  unique: true,
+  where: '"deleted_at" IS NULL',
+})
 export class Product {
   @PrimaryGeneratedColumn({ type: 'int' })
   id: number;
@@ -23,23 +30,40 @@ export class Product {
   @JoinColumn({ name: 'group_id' })
   productGroup: ProductGroup;
 
-  @Column({ type: 'varchar', length: 100, unique: true })
+  @Column({ type: 'varchar', length: 100 })
   name: string;
 
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
   @Column({
-    type: 'bytea',
+    type: 'text',
     nullable: true,
     name: 'image_url',
     transformer: {
-      to: (value: Buffer | string | null): Buffer | null =>
-        value == null ? null : typeof value === 'string' ? Buffer.from(value, 'base64') : value,
-      from: (value: Buffer | null): Buffer | null => value,
+      to: (value: Buffer | string | null): string | null => {
+        if (value == null) return null;
+        if (typeof value === 'string') return value;
+        return value.toString('base64');
+      },
+      from: (value: string | null): string | null => value,
     },
   })
-  imageUrl: Buffer | null;
+  imageUrl: string | null;
+
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0,
+  })
+  price: string;
+
+  @Column({ type: 'boolean', name: 'is_available', default: true })
+  isAvailable: boolean;
+
+  @Column({ type: 'int', name: 'sort_order', default: 0 })
+  sortOrder: number;
 
   @Column({
     type: 'enum',

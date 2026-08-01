@@ -10,9 +10,15 @@ export class ProductListItemDto {
   @ApiProperty({ description: 'Product name', example: 'Espresso' })
   name: string;
 
+  @ApiProperty({ description: 'Display price', example: '149.00' })
+  price: string;
+
   @ApiPropertyOptional({
     description: 'Image URL or base64-encoded image data',
     nullable: true,
   })
   imageUrl: string | null;
+
+  @ApiProperty({ description: 'Category name (product group)', example: 'Beverages' })
+  categoryName: string;
 }

@@ -5,10 +5,12 @@ import {
   Body,
   Patch,
   Param,
-  Delete,
   Query,
   UseInterceptors,
   UploadedFile,
+  UseGuards,
+  Req,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,7 +19,6 @@ import {
   ApiBody,
   ApiCreatedResponse,
   ApiOkResponse,
-  ApiResponse,
   ApiConsumes,
 } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
@@ -31,6 +32,11 @@ import { PaginatedResponse } from '../utils/pagination/dto';
 import { ProductDetailsDto } from './dto/product-details/product-details.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { File } from 'multer';
+import type { Request } from 'express';
+import { AdminOrSupervisorGuard } from '../auth/guards/admin-or-supervisor.guard';
+import { getBaseUrl } from '../utils/image-storage.helper';
+import { ImportProductsCsvDto } from './dto/import-products-csv.dto';
+import { ImportProductsCsvResultDto } from './dto/import-products-csv-result.dto';
 
 @ApiTags('Products')
 @Controller('products')
@@ -38,6 +44,7 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
+  @UseGuards(AdminOrSupervisorGuard)
   @UseInterceptors(FileInterceptor('image'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Create a new product' })
@@ -62,8 +69,38 @@ export class ProductsController {
     @Body() createProductDto: CreateProductDto,
     @UploadedFile() image: File,
     @CurrentUser() causer: User,
+    @Req() req: Request,
   ) {
-    return this.productsService.create(createProductDto, image, causer);
+    return this.productsService.create(createProductDto, image, causer, getBaseUrl(req));
+  }
+
+  @Post('import-csv')
+  @UseGuards(AdminOrSupervisorGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Import categories/products/variants from a CSV file' })
+  @ApiBody({
+    description:
+      'CSV file (Category,Category Description,Product Name,Product Description,' +
+      'Product Base Price,Variant Name,Variant Price[,Product Image URL]) plus an import mode',
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        mode: { type: 'string', enum: ['upsert', 'replace'], example: 'upsert' },
+      },
+      required: ['file'],
+    },
+  })
+  @ApiOkResponse({
+    description: 'Summary of rows inserted/updated/soft-deleted.',
+    type: ImportProductsCsvResultDto,
+  })
+  importCsv(@UploadedFile() file: File, @Body() body: ImportProductsCsvDto) {
+    if (!file) {
+      throw new BadRequestException('A CSV file is required.');
+    }
+    return this.productsService.importCsv(file.buffer.toString('utf-8'), body.mode ?? 'upsert');
   }
 
   @Get()
@@ -88,6 +125,7 @@ export class ProductsController {
   }
 
   @Patch(':id')
+  @UseGuards(AdminOrSupervisorGuard)
   @UseInterceptors(FileInterceptor('image'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Update a product by ID' })
@@ -113,15 +151,8 @@ export class ProductsController {
     @Body() updateProductDto: UpdateProductDto,
     @UploadedFile() image: File,
     @CurrentUser() causer: User,
+    @Req() req: Request,
   ) {
-    return this.productsService.update(+id, updateProductDto, image, causer);
-  }
-
-  @Delete(':id')
-  @ApiOperation({ summary: 'Remove a product by ID' })
-  @ApiParam({ name: 'id', description: 'Product ID', example: 1 })
-  @ApiResponse({ status: 200, description: 'The product has been removed.' })
-  remove(@Param('id') id: string, @CurrentUser() causer: User) {
-    return this.productsService.remove(+id, causer);
+    return this.productsService.update(+id, updateProductDto, image, causer, getBaseUrl(req));
   }
 }

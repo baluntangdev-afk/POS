@@ -13,7 +13,11 @@ import { FindProductService } from './services/find-product.service';
 import { FindProductVariantsService } from './services/find-product-variants.service';
 import { UpdateProductService } from './services/update-product.service';
 import { FindProductDetailsService } from './services/find-product-details.service';
-import { DeleteProductService } from './services/delete-product.service';
+import {
+  ImportProductsCsvMode,
+  ImportProductsCsvService,
+} from './services/import-products-csv.service';
+import { ProductsCsvSeedSummary } from '../database/seeders/csv/products-csv.seeder';
 
 @Injectable()
 export class ProductsService {
@@ -24,11 +28,16 @@ export class ProductsService {
     private readonly findProductVariantsService: FindProductVariantsService,
     private readonly updateProductService: UpdateProductService,
     private readonly findProductDetailsService: FindProductDetailsService,
-    private readonly deleteProductService: DeleteProductService,
+    private readonly importProductsCsvService: ImportProductsCsvService,
   ) {}
 
-  async create(createProductDto: CreateProductDto, image: File, causer: User): Promise<ProductDto> {
-    return this.createProductService.execute(createProductDto, image, causer);
+  async create(
+    createProductDto: CreateProductDto,
+    image: File,
+    causer: User,
+    baseUrl: string,
+  ): Promise<ProductDto> {
+    return this.createProductService.execute(createProductDto, image, causer, baseUrl);
   }
 
   async findAll(query: ProductQueryDto) {
@@ -48,14 +57,16 @@ export class ProductsService {
     updateProductDto: UpdateProductDto,
     image: File,
     causer: User,
+    baseUrl: string,
   ): Promise<ProductDetailsDto> {
-    await this.updateProductService.execute(id, updateProductDto, image, causer);
+    await this.updateProductService.execute(id, updateProductDto, image, causer, baseUrl);
     return this.findProductDetailsService.execute(id);
   }
 
-  async remove(id: number, causer: User) {
-    await this.findProductDetailsService.execute(id);
-    await this.deleteProductService.execute(id, causer);
-    return { message: 'Product deleted successfully' };
+  async importCsv(
+    fileContent: string,
+    mode: ImportProductsCsvMode,
+  ): Promise<ProductsCsvSeedSummary> {
+    return this.importProductsCsvService.execute(fileContent, mode);
   }
 }

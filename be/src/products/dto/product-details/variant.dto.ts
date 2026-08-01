@@ -1,26 +1,18 @@
-import { ApiProperty, ApiSchema } from '@nestjs/swagger';
-import { ModifierGroupDto } from './modifier-group.dto';
+import { ApiProperty } from '@nestjs/swagger';
 
-@ApiSchema({ name: 'ProductVariantDetailsDto' })
-export class ProductVariantDto {
-  @ApiProperty({ description: 'Product variant ID', example: 1 })
+export class ProductVariantDetailsDto {
+  @ApiProperty({ description: 'Variant ID', example: 1 })
   id: number;
 
-  @ApiProperty({ description: 'Product variant name', example: 'Regular' })
+  @ApiProperty({ description: 'Variant name', example: 'Regular' })
   name: string;
 
-  @ApiProperty({ description: 'Display price', example: '100' })
+  @ApiProperty({ description: 'Display price', example: '100.00' })
   displayPrice: string;
 
-  @ApiProperty({ description: 'Menu item ID', example: 1 })
-  menuItemId: number;
-
-  @ApiProperty({ description: 'Is default', example: true })
+  @ApiProperty({ description: 'Is the default variant', example: true })
   isDefault: boolean;
 
-  @ApiProperty({ description: 'Is selected', example: true })
-  isSelected?: boolean;
-
-  @ApiProperty({ type: () => [ModifierGroupDto] })
-  modifierGroups: ModifierGroupDto[];
+  @ApiProperty({ description: 'Whether this variant is enabled', example: true })
+  isActive: boolean;
 }

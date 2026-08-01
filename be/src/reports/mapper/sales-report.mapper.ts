@@ -14,6 +14,8 @@ export class SalesReportMapper {
         totalRefunds: 0,
         totalItems: 0,
         totalTransactions: 0,
+        totalVoidedTransactions: 0,
+        totalVoidedAmount: 0,
       };
     }
     return {
@@ -22,6 +24,8 @@ export class SalesReportMapper {
       totalRefunds: toDecimalNumber(raw.totalRefunds),
       totalItems: toDecimalNumber(raw.totalItems),
       totalTransactions: toDecimalNumber(raw.totalTransactions),
+      totalVoidedTransactions: toDecimalNumber(raw.totalVoidedTransactions),
+      totalVoidedAmount: toDecimalNumber(raw.totalVoidedAmount),
     };
   }
 }

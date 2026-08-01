@@ -7,6 +7,7 @@ import { ProductVariant } from '../entities/product-variant.entity';
 import { ProductVariantDto } from '../dto/product-variant.dto';
 import { FindProductService } from './find-product.service';
 import { ProductVariantMapper } from '../mapper/product-variant.mapper';
+import { RecomputeProductPriceService } from './recompute-product-price.service';
 
 @Injectable()
 export class CreateProductVariantService {
@@ -14,6 +15,7 @@ export class CreateProductVariantService {
     @InjectRepository(ProductVariant)
     private readonly productVariantsRepository: Repository<ProductVariant>,
     private readonly findProductService: FindProductService,
+    private readonly recomputeProductPriceService: RecomputeProductPriceService,
   ) {}
 
   async execute(
@@ -22,6 +24,8 @@ export class CreateProductVariantService {
   ): Promise<ProductVariantDto> {
     const payload: Partial<ProductVariant> = {
       name: createProductVariantDto.name,
+      price: createProductVariantDto.price,
+      isDefault: createProductVariantDto.isDefault,
       createdBy: causer,
       updatedBy: causer,
     };
@@ -31,6 +35,8 @@ export class CreateProductVariantService {
 
     const entity = this.productVariantsRepository.create(payload);
     const result = await this.productVariantsRepository.save(entity);
+
+    await this.recomputeProductPriceService.execute(product.id);
 
     return ProductVariantMapper.toProductVariantDto(result);
   }

@@ -8,6 +8,8 @@ extension DTOMapper on SalesSummaryDto {
     totalRefunds: totalRefunds,
     totalItems: totalItems,
     totalTransactions: totalTransactions,
+    totalVoidedTransactions: totalVoidedTransactions,
+    totalVoidedAmount: totalVoidedAmount,
   );
 }
 
@@ -18,5 +20,7 @@ extension EntityMapper on SalesSummary {
     totalRefunds: totalRefunds,
     totalItems: totalItems,
     totalTransactions: totalTransactions,
+    totalVoidedTransactions: totalVoidedTransactions,
+    totalVoidedAmount: totalVoidedAmount,
   );
 }

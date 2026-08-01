@@ -1,0 +1,210 @@
+<h2>Option C — Detailed Layout</h2>
+<p class="subtitle">Right panel shown at near-full scale. Tap an item row to see the expanded editor with Dine In/Take Out + Notes.</p>
+
+<div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;">
+
+  <!-- FULL SCREEN LAYOUT PREVIEW -->
+  <div class="mockup" style="flex:2;min-width:300px;">
+    <div class="mockup-header">Full Screen — Kiosk Layout (item selected)</div>
+    <div class="mockup-body" style="padding:0;overflow:hidden;">
+      <div style="display:flex;height:420px;font-size:11px;background:#F3F1ED;">
+
+        <!-- LEFT: Header + Category chips + Product grid -->
+        <div style="display:flex;flex-direction:column;flex:1.7;overflow:hidden;">
+          <!-- Header -->
+          <div style="background:white;border-bottom:1px solid #e0e0e0;padding:8px 12px;display:flex;align-items:center;gap:8px;">
+            <div style="border:1.5px solid #1B7A8C;border-radius:6px;padding:3px 8px;font-size:9px;color:#1B7A8C;font-weight:700;">← Back</div>
+            <div style="flex:1;text-align:center;font-size:12px;font-weight:800;color:#1B7A8C;">AdtoKart</div>
+            <div style="width:44px;"></div>
+          </div>
+          <!-- Category chips -->
+          <div style="background:white;border-bottom:1px solid #e0e0e0;padding:5px 10px;display:flex;gap:5px;overflow:hidden;">
+            <div style="background:#1B7A8C;color:white;border-radius:10px;padding:3px 10px;font-size:8px;font-weight:700;white-space:nowrap;">Burgers</div>
+            <div style="background:#eee;color:#888;border-radius:10px;padding:3px 10px;font-size:8px;white-space:nowrap;">Drinks</div>
+            <div style="background:#eee;color:#888;border-radius:10px;padding:3px 10px;font-size:8px;white-space:nowrap;">Sides</div>
+            <div style="background:#eee;color:#888;border-radius:10px;padding:3px 10px;font-size:8px;white-space:nowrap;">Desserts</div>
+          </div>
+          <!-- Product grid -->
+          <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:10px;overflow:hidden;">
+            <div style="background:white;border-radius:8px;box-shadow:0 1px 4px #0002;display:flex;flex-direction:column;align-items:center;padding:8px;gap:3px;">
+              <div style="width:42px;height:42px;background:#FFF3E0;border-radius:6px;"></div>
+              <div style="font-size:9px;font-weight:700;color:#333;">Burger</div>
+              <div style="font-size:9px;color:#1B7A8C;font-weight:700;">₱149</div>
+            </div>
+            <div style="background:white;border-radius:8px;box-shadow:0 1px 4px #0002;display:flex;flex-direction:column;align-items:center;padding:8px;gap:3px;">
+              <div style="width:42px;height:42px;background:#E8F5E9;border-radius:6px;"></div>
+              <div style="font-size:9px;font-weight:700;color:#333;">Chicken</div>
+              <div style="font-size:9px;color:#1B7A8C;font-weight:700;">₱129</div>
+            </div>
+            <div style="background:white;border-radius:8px;box-shadow:0 1px 4px #0002;display:flex;flex-direction:column;align-items:center;padding:8px;gap:3px;">
+              <div style="width:42px;height:42px;background:#EDE7F6;border-radius:6px;"></div>
+              <div style="font-size:9px;font-weight:700;color:#333;">Fries</div>
+              <div style="font-size:9px;color:#1B7A8C;font-weight:700;">₱69</div>
+            </div>
+            <div style="background:white;border-radius:8px;box-shadow:0 1px 4px #0002;display:flex;flex-direction:column;align-items:center;padding:8px;gap:3px;">
+              <div style="width:42px;height:42px;background:#FCE4EC;border-radius:6px;"></div>
+              <div style="font-size:9px;font-weight:700;color:#333;">Sundae</div>
+              <div style="font-size:9px;color:#1B7A8C;font-weight:700;">₱89</div>
+            </div>
+            <div style="background:white;border-radius:8px;box-shadow:0 1px 4px #0002;display:flex;flex-direction:column;align-items:center;padding:8px;gap:3px;">
+              <div style="width:42px;height:42px;background:#E3F2FD;border-radius:6px;"></div>
+              <div style="font-size:9px;font-weight:700;color:#333;">Coke</div>
+              <div style="font-size:9px;color:#1B7A8C;font-weight:700;">₱59</div>
+            </div>
+            <div style="background:white;border-radius:8px;box-shadow:0 1px 4px #0002;display:flex;flex-direction:column;align-items:center;padding:8px;gap:3px;">
+              <div style="width:42px;height:42px;background:#F3E5F5;border-radius:6px;"></div>
+              <div style="font-size:9px;font-weight:700;color:#333;">Ube Shake</div>
+              <div style="font-size:9px;color:#1B7A8C;font-weight:700;">₱99</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Order Panel -->
+        <div style="width:185px;background:white;border-left:1px solid #e0e0e0;display:flex;flex-direction:column;">
+          <!-- Panel header -->
+          <div style="padding:8px 10px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:5px;">
+              <span style="font-size:11px;">🛒</span>
+              <span style="font-weight:800;font-size:11px;color:#222;">Order</span>
+            </div>
+            <span style="background:#1B7A8C;color:white;border-radius:8px;padding:1px 6px;font-size:9px;font-weight:700;">2</span>
+          </div>
+
+          <!-- Item list -->
+          <div style="flex:1;overflow:hidden;padding:6px;">
+
+            <!-- ITEM 1: EXPANDED / SELECTED STATE -->
+            <div style="background:#1B7A8C0D;border:2px solid #1B7A8C;border-radius:8px;padding:8px;margin-bottom:6px;">
+              <!-- Item header row -->
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+                <div>
+                  <div style="font-size:10px;font-weight:800;color:#1B7A8C;">Classic Burger</div>
+                  <div style="font-size:8px;color:#999;margin-top:1px;">No onions • Extra sauce</div>
+                </div>
+                <div style="font-size:10px;font-weight:800;color:#1B7A8C;">₱298</div>
+              </div>
+
+              <!-- Quantity stepper -->
+              <div style="display:flex;align-items:center;gap:4px;margin-bottom:7px;">
+                <span style="font-size:8px;color:#777;font-weight:600;margin-right:2px;">Qty</span>
+                <div style="display:flex;align-items:center;background:white;border:1px solid #ddd;border-radius:16px;padding:2px 6px;gap:6px;">
+                  <span style="font-size:11px;color:#1B7A8C;font-weight:700;line-height:1;">−</span>
+                  <span style="font-size:10px;font-weight:800;color:#333;min-width:12px;text-align:center;">2</span>
+                  <span style="font-size:11px;color:white;font-weight:700;background:#1B7A8C;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;line-height:1;">+</span>
+                </div>
+                <!-- delete -->
+                <div style="margin-left:auto;width:22px;height:22px;background:#FEE2E2;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                  <span style="font-size:10px;">🗑</span>
+                </div>
+              </div>
+
+              <!-- Dine In / Take Out toggle -->
+              <div style="margin-bottom:7px;">
+                <div style="font-size:8px;color:#777;font-weight:600;margin-bottom:3px;">Order Type</div>
+                <div style="display:flex;background:#f0f0f0;border-radius:16px;padding:2px;gap:0;">
+                  <div style="flex:1;background:#1B7A8C;color:white;border-radius:14px;text-align:center;font-size:8px;font-weight:700;padding:3px 0;">Dine In</div>
+                  <div style="flex:1;color:#999;border-radius:14px;text-align:center;font-size:8px;font-weight:600;padding:3px 0;">Take Out</div>
+                </div>
+              </div>
+
+              <!-- Notes field -->
+              <div>
+                <div style="font-size:8px;color:#777;font-weight:600;margin-bottom:3px;">Notes</div>
+                <div style="background:white;border:1px solid #ddd;border-radius:6px;padding:4px 6px;font-size:8px;color:#aaa;min-height:26px;font-style:italic;">e.g. no onions, extra rice...</div>
+              </div>
+            </div>
+
+            <!-- ITEM 2: COLLAPSED STATE -->
+            <div style="background:#f5f5f5;border:1.5px solid transparent;border-radius:8px;padding:7px 8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <div style="font-size:10px;font-weight:700;color:#333;">Fries</div>
+                  <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+                    <span style="font-size:8px;color:#999;">x1</span>
+                    <span style="font-size:7px;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 4px;font-weight:600;">Dine In</span>
+                  </div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:10px;font-weight:700;color:#1B7A8C;">₱69</div>
+                  <div style="font-size:7px;color:#bbb;margin-top:1px;">tap to edit</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Total + Checkout -->
+          <div style="border-top:1px solid #eee;padding:8px 10px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+              <span style="font-size:9px;color:#999;font-weight:600;">TOTAL</span>
+              <span style="font-size:15px;font-weight:900;color:#1B7A8C;">₱367</span>
+            </div>
+            <div style="background:linear-gradient(135deg,#1B7A8C,#156070);color:white;border-radius:16px;text-align:center;font-size:10px;font-weight:800;padding:7px 0;box-shadow:0 2px 6px #1B7A8C44;">Proceed to Checkout →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLOSE-UP: Expanded item row -->
+  <div class="mockup" style="flex:1;min-width:200px;">
+    <div class="mockup-header">Cart Item — Expanded State (close-up)</div>
+    <div class="mockup-body" style="padding:12px;">
+      <div style="background:#1B7A8C0D;border:2px solid #1B7A8C;border-radius:12px;padding:14px;font-size:12px;max-width:260px;">
+
+        <!-- name + price -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+          <div>
+            <div style="font-size:13px;font-weight:800;color:#1B7A8C;">Classic Burger</div>
+            <div style="font-size:10px;color:#999;margin-top:2px;">No onions • Extra sauce</div>
+          </div>
+          <div style="font-size:13px;font-weight:800;color:#1B7A8C;">₱298</div>
+        </div>
+
+        <!-- Quantity -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span style="font-size:11px;color:#777;font-weight:600;">Qty</span>
+          <div style="display:flex;align-items:center;background:white;border:1.5px solid #ddd;border-radius:20px;padding:3px 10px;gap:10px;flex:1;">
+            <span style="font-size:16px;color:#1B7A8C;font-weight:700;cursor:pointer;">−</span>
+            <span style="font-size:14px;font-weight:800;color:#333;flex:1;text-align:center;">2</span>
+            <div style="width:22px;height:22px;background:#1B7A8C;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+              <span style="font-size:14px;color:white;font-weight:700;line-height:1;">+</span>
+            </div>
+          </div>
+          <div style="width:30px;height:30px;background:#FEE2E2;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;">🗑</div>
+        </div>
+
+        <!-- Dine In / Take Out -->
+        <div style="margin-bottom:12px;">
+          <div style="font-size:10px;color:#777;font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;">Order Type</div>
+          <div style="display:flex;background:#eeeeee;border-radius:20px;padding:3px;gap:0;">
+            <div style="flex:1;background:#1B7A8C;color:white;border-radius:17px;text-align:center;font-size:11px;font-weight:700;padding:5px 0;box-shadow:0 1px 3px #1B7A8C55;">🍽 Dine In</div>
+            <div style="flex:1;color:#aaa;border-radius:17px;text-align:center;font-size:11px;font-weight:600;padding:5px 0;">📦 Take Out</div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <div style="font-size:10px;color:#777;font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;">Notes</div>
+          <div style="background:white;border:1.5px solid #ddd;border-radius:8px;padding:8px 10px;font-size:11px;color:#bbb;font-style:italic;min-height:38px;">e.g. no onions, extra rice...</div>
+        </div>
+
+      </div>
+
+      <div style="margin-top:16px;padding:10px 12px;background:#f0fafa;border-radius:8px;border-left:3px solid #1B7A8C;">
+        <p style="font-size:11px;color:#444;margin:0;"><strong>Collapsed state</strong> shows a summary badge (Dine In / Take Out) and notes preview below the item name. No controls visible until tapped.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" style="margin-top:20px;">
+  <h3>What changes from the current code</h3>
+  <ul style="font-size:13px;line-height:1.7;color:#444;">
+    <li><strong>ordering_screen.dart</strong> — replace <code>_MiniCartPanel</code> / <code>_StickyCartBar</code> with a new <code>_OrderPanel</code> widget used in all breakpoints</li>
+    <li><strong>LineItem entity</strong> — add <code>saleType</code> (dine-in / takeout, per-item) and <code>notes</code> (nullable String) fields; regenerate mapper</li>
+    <li><strong>ordering_notifier.dart</strong> — update <code>replaceLineItem</code> to carry the new fields (no new methods needed)</li>
+    <li><strong>No dialog changes</strong> — the add-item flow (LineItemDialog) is unchanged; editing happens entirely inside the panel</li>
+  </ul>
+</div>

@@ -32,14 +32,17 @@ export class PaymentSalesReportService extends BaseReportService<
     const qb = this.paymentRepository
       .createQueryBuilder('p')
       .innerJoin('p.salesOrder', 'so')
-      .select('p.payment_method', 'name')
-      .addSelect('SUM(so.final_total_amount)', 'totalSales')
+      .select(`COALESCE(p.payment_method_name, p.payment_method::text)`, 'name')
+      .addSelect(
+        `SUM(so.final_total_amount - COALESCE((SELECT SUM(r.total_refund_amount) FROM refunds r WHERE r.original_sales_order_id = so.id), 0))`,
+        'totalSales',
+      )
       .where('so.status IN (:...statusFilter)', { statusFilter: STATUS_FILTER })
       .andWhere('so.so_date BETWEEN :startDate AND :endDate', {
         startDate: query.startDate,
         endDate: query.endDate,
       })
-      .groupBy('p.payment_method')
+      .groupBy(`COALESCE(p.payment_method_name, p.payment_method::text)`)
       .orderBy('SUM(so.final_total_amount)', query.sort ?? 'DESC');
 
     const rawRows = await qb.getRawMany<PaymentMethodSalesRawRow>();

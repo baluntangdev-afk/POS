@@ -1,14 +1,17 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
+  IsString,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateSalesOrderModifierGroupDto } from './modifier-group.dto';
+import { SalesOrderType } from '../../sales-orders.enum';
 import { ProductVariant } from '../../../products/entities/product-variant.entity';
 import { RecipeItem } from '../../../recipes/entities/recipe-item.entity';
 import { User } from '../../../users/entities/user.entity';
@@ -55,12 +58,30 @@ export class CreateSalesOrderItemDto {
   @Type(() => ApplyDiscountItemDiscountDto)
   discount?: ApplyDiscountItemDiscountDto;
 
+  @ApiPropertyOptional({ description: 'Item display name sent from client', example: 'Chickenjoy' })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiPropertyOptional({
+    description: 'Sale type for this item',
+    enum: SalesOrderType,
+    example: SalesOrderType.DINE_IN,
+  })
+  @IsOptional()
+  @IsEnum(SalesOrderType)
+  saleType?: SalesOrderType;
+
+  @ApiPropertyOptional({ description: 'Item-level note', example: 'No onions please' })
+  @IsOptional()
+  @IsString()
+  note?: string;
+
   // Hidden from dto
   causer: User;
-  productVariant: ProductVariant;
-  recipeId: number;
+  productVariant: ProductVariant | null;
+  recipeId: number | null;
   itemSequence: number;
-  description: string;
   addOn: boolean;
   recipeItem: RecipeItem;
 }

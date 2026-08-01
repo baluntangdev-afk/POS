@@ -1,3 +1,6 @@
+﻿import 'dart:io';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:decimal/decimal.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
@@ -7,9 +10,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../utils/uuidv7.dart';
+import '../../../widgets/android_bottom_sheet.dart';
 import '../../../widgets/button.dart';
+import '../../../widgets/product_image_placeholder.dart';
+import '../../../widgets/resposive_wrap_container.dart';
 import '../entities/line_item.dart';
 import '../entities/modifier_group.dart';
 import '../entities/modifier_option.dart';
@@ -18,6 +25,7 @@ import '../entities/product_variant.dart';
 import '../entities/selected_modifier.dart';
 import '../entities/selected_option.dart';
 import '../entities/selected_variant.dart';
+import '../enums/sale_type.dart';
 import '../state/line_item_notifier.dart';
 
 Future<LineItem?> showLineItemDialog(
@@ -27,38 +35,45 @@ Future<LineItem?> showLineItemDialog(
   SelectedVariant? initialVariant,
   IList<SelectedModifier> initialModifiers = const IList.empty(),
 }) {
+  Widget content(BuildContext ctx) => Consumer(
+    builder: (context, ref, child) {
+      switch (ref.watch(lineItemProvider(productId))) {
+        case AsyncLoading():
+          return const Center(
+            child: CircularProgressIndicator(
+              color: ColorSet.primary,
+              strokeWidth: 3,
+              strokeCap: StrokeCap.round,
+            ),
+          );
+        case AsyncError():
+          return const Center(child: Text('Cannot load product'));
+        case AsyncData(value: final product):
+          return LineItemDialog(
+            product: product,
+            initialQuantity: initialQuantity,
+            initialModifiers: initialModifiers,
+          );
+      }
+    },
+  );
+
   return showDialog<LineItem>(
     context: context,
-    builder: (context) {
-      return Consumer(
-        builder: (context, ref, child) {
-          switch (ref.watch(lineItemProvider(productId))) {
-            case AsyncLoading():
-              return const Center(child: CircularProgressIndicator());
-            case AsyncError():
-              return const Center(child: Text('Cannot load product'));
-            case AsyncData(value: final product):
-              final defaultVariant =
-                  product.variants.isEmpty
-                      ? null
-                      : product.variants.firstWhere(
-                        (variant) => variant.isDefault,
-                        orElse: () => product.variants.first,
-                      );
-              if (defaultVariant != null) {
-                final ProductVariant(:id, :name, :price) = defaultVariant;
-                initialVariant ??= SelectedVariant(id: id, name: name, price: price);
-              }
-              return LineItemDialog(
-                product: product,
-                initialQuantity: initialQuantity,
-                initialVariant: initialVariant,
-                initialModifiers: initialModifiers,
-              );
-          }
-        },
-      );
-    },
+    builder:
+        (context) => Dialog(
+          backgroundColor: ColorSet.light,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+              context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+            ),
+          ),
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+            vertical: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+          ),
+          child: content(context),
+        ),
   );
 }
 
@@ -67,20 +82,23 @@ class LineItemDialog extends HookConsumerWidget {
     super.key,
     required this.product,
     this.initialQuantity = 1,
-    this.initialVariant,
     this.initialModifiers = const IList.empty(),
   });
 
   final Product product;
   final int initialQuantity;
-  final SelectedVariant? initialVariant;
   final IList<SelectedModifier> initialModifiers;
+
+  ProductVariant? _defaultVariant(IList<ProductVariant> variants) {
+    if (variants.isEmpty) return null;
+    return variants.firstWhere((v) => v.isDefault, orElse: () => variants.first);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedQuantity = useState(initialQuantity);
-    final selectedVariant = useState(initialVariant);
     final selectedModifiers = useState<IList<SelectedModifier>>(initialModifiers);
+    final selectedVariant = useState<ProductVariant?>(_defaultVariant(product.variants));
 
     void onQuantityChanged(int? value) {
       if (value == null || value < 1) return;
@@ -97,12 +115,8 @@ class LineItemDialog extends HookConsumerWidget {
       return (basePrice + modifiersPrice) * quantity;
     }
 
-    final modifierGroups =
-        selectedVariant.value != null
-            ? product.variants
-                .firstWhere((variant) => variant.id == selectedVariant.value!.id)
-                .modifierGroups
-            : const IList<ModifierGroup>.empty();
+    final modifierGroups = product.modifierGroups;
+    final variants = product.variants;
     final currentPrice = calculateCurrentPrice();
 
     void toggleModifierOption(ModifierOption option) {
@@ -237,88 +251,74 @@ class LineItemDialog extends HookConsumerWidget {
     }
 
     LineItem buildLineItem() {
+      final variant = selectedVariant.value;
       return LineItem(
         id: UuidV7.generate(),
         productId: product.id,
         productName: product.name,
         productImage: product.image,
         quantity: selectedQuantity.value,
-        variant: selectedVariant.value!,
+        variant: SelectedVariant(
+          id: variant?.id ?? product.defaultVariantId,
+          name: variant?.name ?? product.name,
+          price: variant?.price ?? product.price,
+        ),
         modifiers: selectedModifiers.value,
+        categoryName: product.categoryName,
+        itemSaleType: SaleType.dineIn,
       );
     }
 
-    return Dialog(
-      backgroundColor: ColorSet.light,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-        ),
-      ),
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-        vertical: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-      ),
-      child: SingleChildScrollView(
-        child: SizedBox(
-          width: context.responsive.value(kiosk: 1200, tablet: 600, phone: double.infinity),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-              _ProductDetails(
-                product: product,
-                selectedQuantity: selectedQuantity.value,
-                selectedVariant: selectedVariant.value,
-                onIncrease: () => onQuantityChanged(selectedQuantity.value + 1),
-                onDecrease: () => onQuantityChanged(selectedQuantity.value - 1),
-              ),
+    return SingleChildScrollView(
+      child: SizedBox(
+        width: context.responsive.value(kiosk: 1200, tablet: 600, phone: double.infinity),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+            _ProductDetails(
+              product: product,
+              selectedQuantity: selectedQuantity.value,
+              basePrice: selectedVariant.value?.price ?? product.price,
+              onIncrease: () => onQuantityChanged(selectedQuantity.value + 1),
+              onDecrease: () => onQuantityChanged(selectedQuantity.value - 1),
+            ),
+            if (variants.isNotEmpty) ...[
               Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
               Padding(
                 padding: EdgeInsetsGeometry.symmetric(
                   horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
                 ),
                 child: _VariantSelector(
-                  variants: product.variants,
-                  selectedVariant:
-                      selectedVariant.value != null
-                          ? product.variants.firstWhere(
-                            (variant) => variant.id == selectedVariant.value!.id,
-                          )
-                          : null,
-                  onVariantSelected: (variant) {
-                    selectedVariant.value = SelectedVariant(
-                      id: variant.id,
-                      name: variant.name,
-                      price: variant.price,
-                    );
-                  },
+                  variants: variants,
+                  selectedVariant: selectedVariant.value,
+                  onSelect: (v) => selectedVariant.value = v,
                 ),
               ),
-              Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-              Padding(
-                padding: EdgeInsetsGeometry.symmetric(
-                  horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-                ),
-                child: _ModifierGroupSelector(
-                  modifierGroups: modifierGroups,
-                  selectedOptions: getSelectedModifierOptions(),
-                  onToggleOption: toggleModifierOption,
-                ),
-              ),
-              Gap(context.responsive.value(kiosk: 64, tablet: 48, phone: 32)),
-              _ActionControls(
-                totalAmount: currentPrice,
-                onCancel: () => Navigator.of(context).pop(),
-                onConfirm:
-                    areModifierSelectionsValid()
-                        ? () => Navigator.of(context).pop(buildLineItem())
-                        : null,
-              ),
-              Gap(context.responsive.value(kiosk: 64, tablet: 48, phone: 32)),
             ],
-          ),
+            Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+            Padding(
+              padding: EdgeInsetsGeometry.symmetric(
+                horizontal: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+              ),
+              child: _ModifierGroupSelector(
+                modifierGroups: modifierGroups,
+                selectedOptions: getSelectedModifierOptions(),
+                onToggleOption: toggleModifierOption,
+              ),
+            ),
+            Gap(context.responsive.value(kiosk: 64, tablet: 48, phone: 32)),
+            _ActionControls(
+              totalAmount: currentPrice,
+              onCancel: () => Navigator.of(context).pop(),
+              onConfirm:
+                  areModifierSelectionsValid()
+                      ? () => Navigator.of(context).pop(buildLineItem())
+                      : null,
+            ),
+            Gap(context.responsive.value(kiosk: 64, tablet: 48, phone: 32)),
+          ],
         ),
       ),
     );
@@ -329,27 +329,48 @@ class _ProductDetails extends StatelessWidget {
   const _ProductDetails({
     required this.product,
     required this.selectedQuantity,
-    this.selectedVariant,
+    required this.basePrice,
     required this.onIncrease,
     required this.onDecrease,
   });
 
   final Product product;
   final int selectedQuantity;
-  final SelectedVariant? selectedVariant;
+  final Decimal basePrice;
   final VoidCallback onIncrease;
   final VoidCallback onDecrease;
 
   @override
   Widget build(BuildContext context) {
+    final style = productPlaceholder(product.categoryName);
+
     return Row(
       children: [
         Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-        Image.memory(
-          product.image,
-          width: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
-          height: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
-          fit: BoxFit.contain,
+        ClipRRect(
+          borderRadius: BorderRadius.circular(POSRadius.lg),
+          child: CachedNetworkImage(
+            imageUrl: product.image,
+            width: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
+            height: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
+            fit: BoxFit.cover,
+            fadeInDuration: POSAnimation.fast,
+            placeholderFadeInDuration: Duration.zero,
+            errorWidget: (context, url, error) {
+              return Container(
+                width: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
+                height: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
+                color: style.bg,
+                child: Center(
+                  child: Icon(
+                    style.icon,
+                    color: style.fg,
+                    size: context.responsive.value(kiosk: 64, tablet: 48, phone: 32),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
         Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
         Expanded(
@@ -360,6 +381,9 @@ class _ProductDetails extends StatelessWidget {
                 product.name,
                 style: TextStyle(
                   fontSize: context.responsive.value(kiosk: 36, tablet: 24, phone: 18),
+                  fontWeight: FontWeight.w700,
+                  color: POSColors.textPrimary,
+                  letterSpacing: -0.3,
                 ),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
@@ -369,7 +393,7 @@ class _ProductDetails extends StatelessWidget {
                 'Quantity',
                 style: TextStyle(
                   fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
-                  color: ColorSet.text.withValues(alpha: 0.5),
+                  color: POSColors.textTertiary,
                 ),
               ),
               Gap(context.responsive.value(kiosk: 4, tablet: 4, phone: 4)),
@@ -383,14 +407,14 @@ class _ProductDetails extends StatelessWidget {
                 'Base Price',
                 style: TextStyle(
                   fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
-                  color: ColorSet.text.withValues(alpha: 0.5),
+                  color: POSColors.textTertiary,
                 ),
               ),
               Text(
-                (selectedVariant?.price ?? product.price).pesoFormatted,
+                basePrice.pesoFormatted,
                 style: TextStyle(
                   fontSize: context.responsive.value(kiosk: 30, tablet: 20, phone: 16),
-                  color: ColorSet.secondary,
+                  color: ColorSet.primary,
                 ),
               ),
             ],
@@ -414,40 +438,50 @@ class _QuantityControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final btnSize = context.responsive.value<double>(kiosk: 36, tablet: 28, phone: 24);
     return Row(
       children: [
-        GestureDetector(
-          onTap: onDecrease,
-          child: Container(
-            height: context.responsive.value(kiosk: 32, tablet: 24, phone: 20),
-            width: context.responsive.value(kiosk: 32, tablet: 24, phone: 20),
-            decoration: BoxDecoration(
-              color: ColorSet.secondary.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.remove,
-              color: ColorSet.secondary,
-              size: context.responsive.value(kiosk: 24, tablet: 18, phone: 16),
+        Material(
+          color: ColorSet.primary.withValues(alpha: 0.1),
+          shape: const CircleBorder(),
+          child: InkWell(
+            onTap: onDecrease,
+            customBorder: const CircleBorder(),
+            child: SizedBox(
+              width: btnSize,
+              height: btnSize,
+              child: Icon(
+                Icons.remove_rounded,
+                color: ColorSet.primary,
+                size: context.responsive.value(kiosk: 20, tablet: 16, phone: 14),
+              ),
             ),
           ),
         ),
         Gap(context.responsive.value(kiosk: 24, tablet: 18, phone: 12)),
         Text(
           '$quantity',
-          style: TextStyle(fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12)),
+          style: TextStyle(
+            fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
+            fontWeight: FontWeight.w700,
+            color: POSColors.textPrimary,
+          ),
         ),
         Gap(context.responsive.value(kiosk: 24, tablet: 18, phone: 12)),
-        GestureDetector(
-          onTap: onIncrease,
-          child: Container(
-            height: context.responsive.value(kiosk: 32, tablet: 24, phone: 20),
-            width: context.responsive.value(kiosk: 32, tablet: 24, phone: 20),
-            decoration: const BoxDecoration(color: ColorSet.secondary, shape: BoxShape.circle),
-            child: Icon(
-              Icons.add,
-              color: ColorSet.light,
-              size: context.responsive.value(kiosk: 24, tablet: 18, phone: 16),
+        Material(
+          color: ColorSet.primary,
+          shape: const CircleBorder(),
+          child: InkWell(
+            onTap: onIncrease,
+            customBorder: const CircleBorder(),
+            child: SizedBox(
+              width: btnSize,
+              height: btnSize,
+              child: Icon(
+                Icons.add_rounded,
+                color: ColorSet.light,
+                size: context.responsive.value(kiosk: 20, tablet: 16, phone: 14),
+              ),
             ),
           ),
         ),
@@ -460,60 +494,111 @@ class _VariantSelector extends StatelessWidget {
   const _VariantSelector({
     required this.variants,
     required this.selectedVariant,
-    required this.onVariantSelected,
+    required this.onSelect,
   });
 
   final IList<ProductVariant> variants;
   final ProductVariant? selectedVariant;
-  final ValueChanged<ProductVariant> onVariantSelected;
+  final ValueChanged<ProductVariant> onSelect;
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-      runSpacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-      children:
-          variants.map((variant) {
-            final isSelected = variant == selectedVariant;
-            return GestureDetector(
-              onTap: () => onVariantSelected(variant),
-              child: Container(
-                width: context.responsive.value(kiosk: 120, tablet: 90, phone: 70),
-                padding: EdgeInsets.all(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-                decoration: BoxDecoration(
-                  color: isSelected ? ColorSet.primary.withValues(alpha: 0.2) : ColorSet.light,
-                  border: Border.all(
-                    color: isSelected ? ColorSet.primary : ColorSet.text.withValues(alpha: 0.2),
-                    width: 2,
-                  ),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                alignment: Alignment.center,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Variants',
+          style: TextStyle(
+            fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
+            fontWeight: FontWeight.w700,
+            color: POSColors.textPrimary,
+          ),
+        ),
+        Gap(context.responsive.value(kiosk: 12, tablet: 8, phone: 8)),
+        ResponsiveWrapContainer(
+          rowItems: 3,
+          equalWidth: true,
+          items:
+              variants.map((variant) {
+                final isSelected = selectedVariant?.id == variant.id;
+                return _VariantCard(
+                  variant: variant,
+                  isSelected: isSelected,
+                  onTap: () => onSelect(variant),
+                );
+              }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _VariantCard extends StatelessWidget {
+  const _VariantCard({required this.variant, required this.isSelected, required this.onTap});
+
+  final ProductVariant variant;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: isSelected ? ColorSet.primary.withValues(alpha: 0.08) : Colors.white,
+      borderRadius: BorderRadius.circular(POSRadius.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(POSRadius.md),
+        child: Container(
+          width: context.responsive.value(kiosk: 160, tablet: 130, phone: 110),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: isSelected ? ColorSet.primary : POSColors.borderDefault,
+              width: isSelected ? 2 : 1,
+            ),
+            borderRadius: BorderRadius.circular(POSRadius.md),
+          ),
+          padding: EdgeInsets.all(context.responsive.value(kiosk: 12, tablet: 10, phone: 8)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
                       variant.name,
                       style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
+                        fontSize: context.responsive.value(kiosk: 15, tablet: 12, phone: 12),
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        color: POSColors.textPrimary,
+                        height: 1.3,
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                    if (variant.price != Decimal.zero) ...[
-                      const Gap(4),
-                      Text(
-                        variant.price.pesoFormatted,
-                        style: TextStyle(
-                          fontSize: context.responsive.value(kiosk: 16, tablet: 12, phone: 12),
-                          color: ColorSet.secondary,
-                        ),
-                      ),
-                    ],
+                  ),
+                  if (isSelected) ...[
+                    Gap(context.responsive.value(kiosk: 4, tablet: 4, phone: 2)),
+                    Icon(
+                      Icons.check_circle_rounded,
+                      color: ColorSet.primary,
+                      size: context.responsive.value(kiosk: 18, tablet: 14, phone: 12),
+                    ),
                   ],
+                ],
+              ),
+              Gap(context.responsive.value(kiosk: 6, tablet: 4, phone: 4)),
+              Text(
+                variant.price.pesoFormatted,
+                style: TextStyle(
+                  fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 11),
+                  color: ColorSet.primary,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-            );
-          }).toList(),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -565,7 +650,8 @@ class _ModifierGroupSection extends StatelessWidget {
           group.name,
           style: TextStyle(
             fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
+            color: POSColors.textPrimary,
           ),
         ),
         if (group.minSelections > 0 || group.maxSelections > 0) ...[
@@ -574,7 +660,7 @@ class _ModifierGroupSection extends StatelessWidget {
             _getSelectionLabel(group),
             style: TextStyle(
               fontSize: context.responsive.value(kiosk: 16, tablet: 12, phone: 10),
-              color: ColorSet.text.withValues(alpha: 0.6),
+              color: POSColors.textTertiary,
             ),
           ),
         ],
@@ -620,67 +706,87 @@ class _ModifierOptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: context.responsive.value(kiosk: 160, tablet: 120, phone: 96),
-        height: context.responsive.value(kiosk: 80, tablet: 60, phone: 60),
-        decoration: BoxDecoration(
-          color: isSelected ? ColorSet.secondary.withValues(alpha: 0.1) : ColorSet.light,
-          border: Border.all(
-            color: isSelected ? ColorSet.secondary : ColorSet.text.withValues(alpha: 0.2),
-            width: 2,
+    return Material(
+      color: isSelected ? ColorSet.primary.withValues(alpha: 0.08) : Colors.white,
+      borderRadius: BorderRadius.circular(POSRadius.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(POSRadius.md),
+        child: Container(
+          width: context.responsive.value(kiosk: 160, tablet: 130, phone: 110),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: isSelected ? ColorSet.primary : POSColors.borderDefault,
+              width: isSelected ? 2 : 1,
+            ),
+            borderRadius: BorderRadius.circular(POSRadius.md),
           ),
-          borderRadius: BorderRadius.circular(
-            context.responsive.value(kiosk: 12, tablet: 8, phone: 8),
-          ),
-        ),
-        padding: EdgeInsets.all(context.responsive.value(kiosk: 12, tablet: 8, phone: 8)),
-        child: Row(
-          children: [
-            if (option.image != null) ...[
-              Image.memory(
-                option.image!,
-                width: context.responsive.value(kiosk: 40, tablet: 32, phone: 24),
-                height: context.responsive.value(kiosk: 40, tablet: 32, phone: 24),
-                fit: BoxFit.cover,
-              ),
-              Gap(context.responsive.value(kiosk: 8, tablet: 4, phone: 4)),
-            ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    option.name,
-                    style: TextStyle(
-                      fontSize: context.responsive.value(kiosk: 16, tablet: 12, phone: 12),
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+          padding: EdgeInsets.all(context.responsive.value(kiosk: 12, tablet: 10, phone: 8)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (option.image != null) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(POSRadius.sm),
+                  child: Image.memory(
+                    option.image!,
+                    width: double.infinity,
+                    height: context.responsive.value(kiosk: 64, tablet: 48, phone: 40),
+                    fit: BoxFit.cover,
+                    errorBuilder:
+                        (context, error, stackTrace) => Container(
+                          height: context.responsive.value(kiosk: 64, tablet: 48, phone: 40),
+                          color: defaultProductPlaceholder.bg,
+                          child: Center(
+                            child: Icon(
+                              defaultProductPlaceholder.icon,
+                              color: defaultProductPlaceholder.fg,
+                              size: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+                            ),
+                          ),
+                        ),
                   ),
-                  if (option.price != Decimal.zero) ...[
-                    const Gap(4),
-                    Text(
-                      option.price.pesoFormatted,
+                ),
+                Gap(context.responsive.value(kiosk: 8, tablet: 6, phone: 6)),
+              ],
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      option.name,
                       style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 12),
-                        color: ColorSet.secondary,
+                        fontSize: context.responsive.value(kiosk: 15, tablet: 12, phone: 12),
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        color: POSColors.textPrimary,
+                        height: 1.3,
                       ),
+                    ),
+                  ),
+                  if (isSelected) ...[
+                    Gap(context.responsive.value(kiosk: 4, tablet: 4, phone: 2)),
+                    Icon(
+                      Icons.check_circle_rounded,
+                      color: ColorSet.primary,
+                      size: context.responsive.value(kiosk: 18, tablet: 14, phone: 12),
                     ),
                   ],
                 ],
               ),
-            ),
-            if (isSelected)
-              Icon(
-                Icons.check_circle,
-                color: ColorSet.secondary,
-                size: context.responsive.value(kiosk: 20, tablet: 15, phone: 12),
-              ),
-          ],
+              if (option.price != Decimal.zero) ...[
+                Gap(context.responsive.value(kiosk: 6, tablet: 4, phone: 4)),
+                Text(
+                  option.price.pesoFormatted,
+                  style: TextStyle(
+                    fontSize: context.responsive.value(kiosk: 14, tablet: 12, phone: 11),
+                    color: ColorSet.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -714,7 +820,7 @@ class _ActionControls extends StatelessWidget {
               totalAmount.pesoFormatted,
               style: TextStyle(
                 fontSize: context.responsive.value(kiosk: 30, tablet: 24, phone: 18),
-                color: ColorSet.secondary,
+                color: ColorSet.primary,
               ),
             ),
             Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
@@ -746,7 +852,7 @@ class _ActionControls extends StatelessWidget {
             Button(
               onPressed: onConfirm,
               foregroundColor: ColorSet.light,
-              backgroundColor: ColorSet.secondary,
+              backgroundColor: ColorSet.primary,
               label: Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),

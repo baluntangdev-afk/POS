@@ -1,15 +1,19 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../data/backend_api/schemas/login_request_dto.dart';
+import '../../../data/backend_api/schemas/login_roster_item_dto.dart';
 import '../../../data/backend_api/schemas/user_dto.dart';
 import '../../../data/backend_api/sources/auth_api.dart';
 import '../../../data/backend_api/sources/user_api.dart';
 import '../../../data/secure_storage/schemas/auth_doc.dart';
 import '../../../data/secure_storage/sources/auth_storage.dart';
 import '../entities/auth.dart';
+import '../entities/login_roster_item.dart';
 
 abstract class AuthRepository {
   Future<Auth> getCurrent();
+
+  Future<List<LoginRosterItem>> getLoginRoster();
 
   Future<Auth> login(String username, String pin);
 
@@ -22,7 +26,11 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final authApi = ref.watch(authApiProvider);
   final authStorage = ref.watch(authStorageProvider);
   final userApi = ref.watch(userApiProvider);
-  return AuthRepositoryImpl(authApi: authApi, authStorage: authStorage, userApi: userApi);
+  return AuthRepositoryImpl(
+    authApi: authApi,
+    authStorage: authStorage,
+    userApi: userApi,
+  );
 });
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -30,9 +38,10 @@ class AuthRepositoryImpl implements AuthRepository {
     required AuthApi authApi,
     required AuthStorage authStorage,
     required UserApi userApi,
-  }) : _authApi = authApi,
-       _authStorage = authStorage,
-       _userApi = userApi;
+  })
+      : _authApi = authApi,
+        _authStorage = authStorage,
+        _userApi = userApi;
 
   final AuthApi _authApi;
   final AuthStorage _authStorage;
@@ -42,6 +51,12 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Auth> getCurrent() async {
     final dto = await _authApi.auth();
     return _authFromUserDto(dto);
+  }
+
+  @override
+  Future<List<LoginRosterItem>> getLoginRoster() async {
+    final dtos = await _userApi.getLoginRoster();
+    return dtos.map(_rosterItemFromDto).toList();
   }
 
   @override
@@ -69,6 +84,18 @@ class AuthRepositoryImpl implements AuthRepository {
     return _authFromUserDto(dto);
   }
 
+  LoginRosterItem _rosterItemFromDto(LoginRosterItemDto dto) {
+    return LoginRosterItem(
+      id: dto.id,
+      userId: dto.userId,
+      firstName: dto.firstName,
+      middleName: dto.middleName,
+      lastName: dto.lastName,
+      suffix: dto.suffix == 'None' ? null : dto.suffix,
+      image: dto.image,
+    );
+  }
+
   Auth _authFromUserDto(UserDto dto) {
     return Auth(
       id: dto.id,
@@ -78,6 +105,7 @@ class AuthRepositoryImpl implements AuthRepository {
       middleName: dto.middleName,
       suffix: dto.suffix == 'None' ? null : dto.suffix,
       isPinChanged: dto.isPinChanged,
+      role: dto.role,
     );
   }
 }

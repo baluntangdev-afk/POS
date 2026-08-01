@@ -99,6 +99,7 @@ export class SalesOrderItemBuildService {
           parseFloat(discount.value),
           amounts,
           causer,
+          { idNumber: product.discount.idNumber, beneficiaryName: product.discount.beneficiaryName },
         );
 
         itemDiscount = SalesOrderDiscountMapper.toEntityWithAppliedAmount(
@@ -127,6 +128,7 @@ export class SalesOrderItemBuildService {
             parseFloat(discount.value),
             amounts,
             causer,
+            { idNumber: product.discount.idNumber, beneficiaryName: product.discount.beneficiaryName },
           );
 
           const appliedAmount = ApplyDiscountToItemMapper.computeAppliedAmount(
@@ -256,6 +258,7 @@ export class SalesOrderItemBuildService {
         ctx.discountValue,
         ctx.amounts,
         causer,
+        { idNumber: itemDto.discounts.idNumber, beneficiaryName: itemDto.discounts.beneficiaryName },
       );
       childItem.qty = Number(itemDto.qty).toFixed(DECIMAL_PLACES);
       childItem.createdBy = causer;
@@ -276,6 +279,7 @@ export class SalesOrderItemBuildService {
       ctx.discountValue,
       ctx.amounts,
       causer,
+      { idNumber: itemDto.discounts.idNumber, beneficiaryName: itemDto.discounts.beneficiaryName },
     );
     ctx.existingItem.updatedBy = causer;
     return [ctx.existingItem];
@@ -335,9 +339,15 @@ export class SalesOrderItemBuildService {
   }
 
   private async loadLookupData(products: CreateSalesOrderDto['products']): Promise<LookupData> {
+    const variantIds = products.map((p) => p.productVariantId).filter((id) => id > 0);
+
     const [recipeIds, productVariants, modifierOptionMap] = await Promise.all([
-      this.recipesService.findRecipeIdsByProductVariantIds(products.map((p) => p.productVariantId)),
-      this.productsService.findProductVariantsByIds(products.map((p) => p.productVariantId)),
+      variantIds.length > 0
+        ? this.recipesService.findRecipeIdsByProductVariantIds(variantIds)
+        : Promise.resolve(new Map()),
+      variantIds.length > 0
+        ? this.productsService.findProductVariantsByIds(variantIds)
+        : Promise.resolve(new Map()),
       this.modifierGroupsService.findModifierOptionWithRelationById(getModifierOptionIds(products)),
     ]);
 
@@ -350,20 +360,28 @@ export class SalesOrderItemBuildService {
     causer: User,
     itemSequence: number,
   ): void {
-    const recipeId = lookup.recipeIds.get(product.productVariantId);
+    product.causer = causer;
+    product.itemSequence = itemSequence;
+
+    if (product.productVariantId === 0) {
+      product.productVariant = null;
+      product.recipeId = null;
+      return;
+    }
+
     const productVariant = lookup.productVariants.get(product.productVariantId);
+    const recipeId = lookup.recipeIds.get(product.productVariantId);
 
     if (!productVariant) {
       throw new Error(`Product variant not found for product ${product.productVariantId}`);
     }
-    if (!recipeId) {
-      throw new Error(`Recipe not found for product variant ${product.productVariantId}`);
-    }
 
+    // A variant without a recipe (e.g. a simple CSV-imported menu item, which
+    // carries no ingredient data) is still orderable — it just deducts no
+    // inventory. Inventory validation and the order-created event already skip
+    // recipe-less items, so a missing recipe must not block the order.
     product.productVariant = productVariant;
-    product.recipeId = recipeId;
-    product.causer = causer;
-    product.itemSequence = itemSequence;
+    product.recipeId = recipeId ?? null;
   }
 
   private buildAddOnItemsForProduct(

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../state/sales_report_notifier.dart';
 import '../state/sales_report_state.dart';
 import 'date_filter_dialog.dart';
@@ -31,12 +33,10 @@ class PeriodSelector extends StatelessWidget {
     switch (selectedDateFilter) {
       case DateFilter.today:
       case DateFilter.yesterday:
-        // For single day, only hourly makes sense
         return [SalesReportPeriod.hourly];
 
       case DateFilter.thisMonth:
       case DateFilter.lastMonth:
-        // For full month, daily and monthly are appropriate
         return [SalesReportPeriod.daily];
 
       case DateFilter.custom:
@@ -44,85 +44,61 @@ class PeriodSelector extends StatelessWidget {
           final daysDifference = customEndDate!.difference(customStartDate!).inDays;
 
           if (daysDifference == 0) {
-            // 1 day
             return [SalesReportPeriod.hourly];
           } else if (daysDifference <= 31) {
-            // ≤31 days
             return [SalesReportPeriod.daily];
           } else {
-            // ≤365 days or >365 days
             return [SalesReportPeriod.monthly];
           }
         }
-        // Fallback for incomplete custom range
         return SalesReportPeriod.values;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final responsive = context.responsive;
+    final r = context.responsive;
     final availablePeriods = _availablePeriods;
 
-    // Auto-select first available period if current is not available
     final effectivePeriod =
         availablePeriods.contains(currentPeriod) ? currentPeriod : availablePeriods.first;
 
     return Container(
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(
-          responsive.value<double>(kiosk: 10, tablet: 9, phone: 8),
-        ),
+        color: POSColors.surfaceSubtle,
+        borderRadius: BorderRadius.circular(POSRadius.md),
+        border: Border.all(color: POSColors.borderDefault),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-
         children: [
           ...availablePeriods.map((period) {
             final isSelected = period == effectivePeriod;
-            return GestureDetector(
+            return _PeriodTab(
+              label: period.displayName,
+              isSelected: isSelected,
               onTap: () => onPeriodChanged(period),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: EdgeInsets.symmetric(
-                  horizontal: responsive.value<double>(kiosk: 16, tablet: 14, phone: 12),
-                  vertical: responsive.value<double>(kiosk: 10, tablet: 9, phone: 8),
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected ? Colors.blue.shade600 : Colors.transparent,
-                  borderRadius: BorderRadius.circular(
-                    responsive.value<double>(kiosk: 8, tablet: 7, phone: 6),
-                  ),
-                ),
-                child: Text(
-                  period.displayName,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.grey.shade700,
-                    fontSize: responsive.scale(18),
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                  ),
-                ),
-              ),
+              responsive: r,
             );
           }),
-          Gap(responsive.value<double>(kiosk: 10, tablet: 8, phone: 6)),
+          Gap(r.value<double>(kiosk: 6, tablet: 5, phone: 4)),
           Consumer(
             builder: (context, ref, child) {
               return _DateFilterButton(
                 selectedFilter: selectedDateFilter,
+                responsive: r,
                 onPressed: () {
                   final selectedFilter = ref.watch(
                     salesReportProvider.select((state) => state.selectedDateFilter),
                   );
                   showDialog<void>(
                     context: context,
-                    builder:
-                        (context) => DateFilterDialog(
-                          selectedFilter: selectedFilter,
-                          onFilterChanged: onFilterChanged,
-                          onCustomDateChanged: onCustomDateChanged,
-                        ),
+                    builder: (context) => DateFilterDialog(
+                      selectedFilter: selectedFilter,
+                      onFilterChanged: onFilterChanged,
+                      onCustomDateChanged: onCustomDateChanged,
+                    ),
                   );
                 },
               );
@@ -134,29 +110,78 @@ class PeriodSelector extends StatelessWidget {
   }
 }
 
+class _PeriodTab extends StatelessWidget {
+  const _PeriodTab({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    required this.responsive,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final ResponsiveValue responsive;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(POSRadius.sm),
+      child: AnimatedContainer(
+        duration: POSAnimation.fast,
+        decoration: BoxDecoration(
+          color: isSelected ? ColorSet.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(POSRadius.sm),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(POSRadius.sm),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: responsive.value<double>(kiosk: 14, tablet: 12, phone: 10),
+                vertical: responsive.value<double>(kiosk: 8, tablet: 7, phone: 6),
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : POSColors.textSecondary,
+                  fontSize: responsive.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _DateFilterButton extends StatelessWidget {
-  const _DateFilterButton({required this.selectedFilter, required this.onPressed});
+  const _DateFilterButton({
+    required this.selectedFilter,
+    required this.responsive,
+    required this.onPressed,
+  });
 
   final DateFilter selectedFilter;
+  final ResponsiveValue responsive;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final responsive = context.responsive;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(
-          responsive.value<double>(kiosk: 8, tablet: 7, phone: 6),
-        ),
-        border: Border.all(color: Colors.blue.shade200),
+        color: ColorSet.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(POSRadius.sm),
+        border: Border.all(color: ColorSet.primary.withValues(alpha: 0.3)),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(
-            responsive.value<double>(kiosk: 8, tablet: 7, phone: 6),
-          ),
+          borderRadius: BorderRadius.circular(POSRadius.sm),
           onTap: onPressed,
           child: Padding(
             padding: EdgeInsets.symmetric(
@@ -166,21 +191,25 @@ class _DateFilterButton extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.calendar_today, size: responsive.scale(20), color: Colors.blue.shade700),
+                Icon(
+                  Icons.calendar_month_rounded,
+                  size: responsive.value<double>(kiosk: 15, tablet: 14, phone: 13),
+                  color: ColorSet.primary,
+                ),
                 SizedBox(width: responsive.value<double>(kiosk: 6, tablet: 5, phone: 4)),
                 Text(
                   selectedFilter.displayName,
                   style: TextStyle(
-                    color: Colors.blue.shade700,
+                    color: ColorSet.primary,
                     fontWeight: FontWeight.w600,
-                    fontSize: responsive.scale(18),
+                    fontSize: responsive.value<double>(kiosk: 13, tablet: 12, phone: 11),
                   ),
                 ),
                 SizedBox(width: responsive.value<double>(kiosk: 4, tablet: 3, phone: 2)),
                 Icon(
-                  Icons.arrow_drop_down,
-                  size: responsive.scale(20),
-                  color: Colors.blue.shade700,
+                  Icons.keyboard_arrow_down_rounded,
+                  size: responsive.value<double>(kiosk: 15, tablet: 14, phone: 13),
+                  color: ColorSet.primary,
                 ),
               ],
             ),

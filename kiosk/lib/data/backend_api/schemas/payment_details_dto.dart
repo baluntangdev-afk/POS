@@ -15,6 +15,7 @@ class PaymentDetailsDto with PaymentDetailsDtoMappable {
     required this.amountPaid,
     required this.change,
     this.transactionReference,
+    this.paymentMethodName,
   });
 
   final String payeeName;
@@ -25,6 +26,7 @@ class PaymentDetailsDto with PaymentDetailsDtoMappable {
   final String amountPaid;
   final String change;
   final String? transactionReference;
+  final String? paymentMethodName;
 
   static const fromJson = PaymentDetailsDtoMapper.fromJson;
 }

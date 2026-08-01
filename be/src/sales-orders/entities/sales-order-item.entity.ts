@@ -16,7 +16,7 @@ import { Recipe } from '../../recipes/entities/recipe.entity';
 import { RecipeItem } from '../../recipes/entities/recipe-item.entity';
 import { Uom } from '../../uom/entities/uom.entity';
 import { Currency } from '../../currencies/entities/currency.entity';
-import { SalesOrderStatus } from '../sales-orders.enum';
+import { SalesOrderStatus, SalesOrderType } from '../sales-orders.enum';
 import { SalesOrderDiscount } from './sales-order-discount.entity';
 import { RefundItem } from '../../refunds/entities/refund-item.entity';
 
@@ -36,13 +36,13 @@ export class SalesOrderItem extends UuidIdEntity {
   @Column({ type: 'int', nullable: true, name: 'item_sequence' })
   itemSequence: number | null;
 
-  @ManyToOne(() => ProductVariant, { nullable: false })
+  @ManyToOne(() => ProductVariant, { nullable: true })
   @JoinColumn({ name: 'product_variant_id' })
-  productVariant: ProductVariant;
+  productVariant: ProductVariant | null;
 
-  @ManyToOne(() => Recipe, { nullable: false })
+  @ManyToOne(() => Recipe, { nullable: true })
   @JoinColumn({ name: 'recipe_id' })
-  recipe: Recipe;
+  recipe: Recipe | null;
 
   @Column({
     type: 'varchar',
@@ -104,6 +104,22 @@ export class SalesOrderItem extends UuidIdEntity {
   itemDiscountedPrice: string | null;
 
   @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    name: 'discount_beneficiary_id_number',
+  })
+  discountBeneficiaryIdNumber: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    name: 'discount_beneficiary_name',
+  })
+  discountBeneficiaryName: string | null;
+
+  @Column({
     type: 'decimal',
     precision: 18,
     scale: 6,
@@ -153,6 +169,18 @@ export class SalesOrderItem extends UuidIdEntity {
 
   @OneToMany(() => RefundItem, (refundItem) => refundItem.salesOrderItem)
   refundItems: RefundItem[];
+
+  @Column({
+    type: 'enum',
+    enum: SalesOrderType,
+    enumName: 'sales_orders_so_type_enum',
+    name: 'sale_type',
+    nullable: true,
+  })
+  saleType: SalesOrderType | null;
+
+  @Column({ type: 'varchar', length: 500, nullable: true, name: 'note' })
+  note: string | null;
 
   @Column({
     type: 'varchar',

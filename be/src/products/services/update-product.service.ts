@@ -7,6 +7,7 @@ import { Product } from '../entities/product.entity';
 import { EntityHelper } from '../../utils/entity.helper';
 import { File } from 'multer';
 import { FindProductGroupService } from './find-product-group.service';
+import { saveUploadedImage } from '../../utils/image-storage.helper';
 
 @Injectable()
 export class UpdateProductService {
@@ -21,10 +22,12 @@ export class UpdateProductService {
     updateProductDto: UpdateProductDto,
     image: File,
     causer: User,
+    baseUrl: string,
   ): Promise<void> {
     const payload: Partial<Product> = {
       name: updateProductDto.name,
       description: updateProductDto.description,
+      isAvailable: updateProductDto.isAvailable,
       updatedBy: causer,
     };
 
@@ -34,7 +37,7 @@ export class UpdateProductService {
     }
 
     if (image) {
-      payload.imageUrl = image.buffer;
+      payload.imageUrl = saveUploadedImage(image, 'products', baseUrl);
     }
 
     await this.productsRepository.update(id, EntityHelper.toPartialEntity(payload));

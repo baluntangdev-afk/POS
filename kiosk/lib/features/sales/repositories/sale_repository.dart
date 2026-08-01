@@ -58,6 +58,11 @@ class SaleRepositoryImpl implements SaleRepository {
       modifierGroups:
           item.modifiers.map(_createSalesOrderModifierGroupDtoFromSelectedModifier).toList(),
       discount: _applyDiscountItemDiscountDtoFromDiscount(item.discount),
+      description: item.productName,
+      saleType: item.itemSaleType != null
+          ? _salesOrderTypeFromSaleType(item.itemSaleType!)
+          : null,
+      note: item.notes,
     );
   }
 
@@ -79,11 +84,14 @@ class SaleRepositoryImpl implements SaleRepository {
 
   ApplyDiscountItemDiscountDto? _applyDiscountItemDiscountDtoFromDiscount(Discount? discount) {
     return switch (discount) {
-      SeniorPwdDiscount(:final code, :final rate) => ApplyDiscountItemDiscountDto(
-        id: 1,
-        name: code,
-        value: rate.toDouble(),
-      ),
+      SeniorPwdDiscount(:final code, :final rate, :final beneficiaryId, :final beneficiaryName) =>
+        ApplyDiscountItemDiscountDto(
+          id: 1,
+          name: code,
+          value: rate.toDouble(),
+          idNumber: beneficiaryId,
+          beneficiaryName: beneficiaryName,
+        ),
       _ => null,
     };
   }

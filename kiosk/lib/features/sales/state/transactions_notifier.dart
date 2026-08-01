@@ -19,7 +19,7 @@ class TransactionsNotifier extends AsyncNotifier<PaginatedData<Receipt>> {
   Future<void> getResults({
     required int page,
     required int limit,
-    String? soNumber,
+    String? search,
     DateTime? soDate,
     String? sort,
   }) async {
@@ -29,7 +29,7 @@ class TransactionsNotifier extends AsyncNotifier<PaginatedData<Receipt>> {
       return repository.getAll(
         page: page,
         limit: limit,
-        soNumber: soNumber,
+        search: search,
         soDate: soDate,
         sort: sort,
       );

@@ -13,11 +13,11 @@ export class SalesOrderItemResponseDto {
   @ApiPropertyOptional({ description: 'Line item sequence', example: 1, nullable: true })
   itemSequence: number | null;
 
-  @ApiProperty({ description: 'Product variant ID', example: 1 })
-  productVariantId: number;
+  @ApiPropertyOptional({ description: 'Product variant ID', example: 1, nullable: true })
+  productVariantId: number | null;
 
-  @ApiProperty({ description: 'Recipe ID', example: 1 })
-  recipeId: number;
+  @ApiPropertyOptional({ description: 'Recipe ID', example: 1, nullable: true })
+  recipeId: number | null;
 
   @ApiProperty({ description: 'Quantity', example: '1' })
   qty: string;
@@ -57,6 +57,44 @@ export class SalesOrderItemResponseDto {
 
   @ApiPropertyOptional({ description: 'Recipe item ID when add-on', example: null, nullable: true })
   recipeItemId: number | null;
+
+  @ApiPropertyOptional({
+    description: 'Sale type for this item',
+    example: 'Dine-In',
+    nullable: true,
+  })
+  saleType: string | null;
+
+  @ApiPropertyOptional({ description: 'Item-level note', example: 'No onions please', nullable: true })
+  note: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Product category (product group) name',
+    example: 'Burgers',
+    nullable: true,
+  })
+  category: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Discount name applied to this line (e.g. Senior Citizen / PWD)',
+    example: 'Senior Citizen / PWD',
+    nullable: true,
+  })
+  discountName: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Discount beneficiary ID number (Senior Citizen/PWD discounts only)',
+    example: 'SC-2024-00001',
+    nullable: true,
+  })
+  discountBeneficiaryIdNumber: string | null;
+
+  @ApiPropertyOptional({
+    description: "Discount beneficiary's name (Senior Citizen/PWD discounts only)",
+    example: 'Juan Dela Cruz',
+    nullable: true,
+  })
+  discountBeneficiaryName: string | null;
 }
 
 /**
@@ -105,6 +143,15 @@ export class SalesOrderWithItemsResponseDto {
 
   @ApiProperty({ description: 'Created by user ID', example: 1 })
   createdBy: number;
+
+  @ApiProperty({ description: 'Total amount refunded across all refunds', example: 0 })
+  totalRefundAmount: number;
+
+  @ApiPropertyOptional({ description: 'Void reason', nullable: true, example: null })
+  voidReason: string | null;
+
+  @ApiPropertyOptional({ description: 'Voided at timestamp', nullable: true, example: null })
+  voidedAt: Date | null;
 
   @ApiProperty({
     description: 'Sales order line items',

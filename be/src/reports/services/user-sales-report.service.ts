@@ -35,7 +35,10 @@ export class UserSalesReportService extends BaseReportService<
       .innerJoin('so.createdBy', 'u')
       .select('u.id', 'id')
       .addSelect("u.first_name || ' ' || u.last_name", 'name')
-      .addSelect('SUM(soi.item_total_amount)', 'totalSales')
+      .addSelect(
+        `SUM(soi.item_total_amount - COALESCE((SELECT SUM(ri.refund_amount) FROM refund_items ri WHERE ri.sales_order_item_id = soi.id), 0))`,
+        'totalSales',
+      )
       .where('so.status IN (:...statusFilter)', { statusFilter: STATUS_FILTER })
       .andWhere('so.so_date BETWEEN :startDate AND :endDate', {
         startDate: query.startDate,

@@ -13,6 +13,7 @@ export class PaymentMapper {
       paymentMethod: payment.paymentMethod,
       paymentDate: payment.paymentDate,
       transactionReference: payment.transactionReference ?? undefined,
+      paymentMethodName: payment.paymentMethodName ?? undefined,
     };
   }
 }

@@ -16,7 +16,10 @@ import {
 } from '../utils/pagination';
 import { PRODUCT_LIST_SELECT } from './product-group.constant';
 import { EntityHelper } from '../utils/entity.helper';
+import { BaseStatus } from '../utils/shared-enums';
+import { ProductStatus } from '../products/products.enum';
 import { ProductGroupMapper } from './mapper/product-group.mapper';
+import { ProductListItemDto } from './dto/product-list-item.dto';
 import { File } from 'multer';
 
 @Injectable()
@@ -61,7 +64,7 @@ export class ProductGroupsService {
       defaultOrder: { id: 'ASC' },
     });
 
-    const where: FindOptionsWhere<ProductGroup> = {};
+    const where: FindOptionsWhere<ProductGroup> = { status: BaseStatus.ACTIVE };
 
     if (name) {
       where.name = ILike(`%${name}%`);
@@ -92,7 +95,7 @@ export class ProductGroupsService {
   async findProductsByGroupId(
     groupId: number,
     query: PaginatedQueryDto,
-  ): Promise<PaginatedResult<Product>> {
+  ): Promise<PaginatedResult<ProductListItemDto>> {
     const { page, limit, sort, filter } = query;
     const skip = (page - 1) * limit;
 
@@ -105,16 +108,30 @@ export class ProductGroupsService {
     const PRODUCT_FILTERABLE_FIELDS: (keyof Product)[] = ['name', 'description'];
     const filterWhere = buildFilterWhere<Product>(filter, PRODUCT_FILTERABLE_FIELDS);
 
-    const baseWhere = { productGroup: { id: groupId } };
+    const baseWhere = {
+      productGroup: { id: groupId },
+      isAvailable: true,
+      status: ProductStatus.ACTIVE,
+    };
     const where = filterWhere ? filterWhere.map((w) => ({ ...w, ...baseWhere })) : baseWhere;
 
-    const [data, total] = await this.productRepository.findAndCount({
+    const [products, total] = await this.productRepository.findAndCount({
       where,
       order,
       take: limit,
       skip,
       select: PRODUCT_LIST_SELECT,
+      relations: { productGroup: true },
     });
+
+    const data: ProductListItemDto[] = products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      imageUrl: p.imageUrl,
+      categoryName: p.productGroup?.name ?? '',
+    }));
+
     return { data, total, page, limit };
   }
 

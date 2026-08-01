@@ -9,7 +9,7 @@ export class SalesOrderWithItemsMapper {
   /**
    * Maps a SalesOrder entity (with salesOrderItems loaded) to the API response DTO.
    */
-  static toResponse(salesOrder: SalesOrder): SalesOrderWithItemsResponseDto {
+  static toResponse(salesOrder: SalesOrder, totalRefundAmount = 0): SalesOrderWithItemsResponseDto {
     return {
       id: salesOrder.id,
       soNumber: salesOrder.soNumber,
@@ -23,6 +23,9 @@ export class SalesOrderWithItemsMapper {
       totalAmount: parseFloat(salesOrder.totalAmount),
       finalTotalAmount: parseFloat(salesOrder.finalTotalAmount),
       createdBy: salesOrder.createdBy.id,
+      totalRefundAmount,
+      voidReason: salesOrder.voidReason ?? null,
+      voidedAt: salesOrder.voidedAt ?? null,
       salesOrderItems: salesOrder.salesOrderItems.map(SalesOrderWithItemsMapper.toItemResponse),
     };
   }
@@ -31,8 +34,8 @@ export class SalesOrderWithItemsMapper {
     return {
       id: item.id,
       itemSequence: item.itemSequence,
-      productVariantId: item.productVariant.id,
-      recipeId: item.recipe.id,
+      productVariantId: item.productVariant?.id ?? null,
+      recipeId: item.recipe?.id ?? null,
       qty: item.qty,
       uomId: item.uom?.id ?? null,
       unitPrice: parseFloat(item.unitPrice),
@@ -46,6 +49,12 @@ export class SalesOrderWithItemsMapper {
       description: item.description,
       addOn: item.addOn,
       recipeItemId: item.recipeItem?.id ?? null,
+      saleType: item.saleType ?? null,
+      note: item.note ?? null,
+      category: item.productVariant?.product?.productGroup?.name ?? null,
+      discountName: item.salesOrderDiscount?.discount?.name ?? null,
+      discountBeneficiaryIdNumber: item.discountBeneficiaryIdNumber ?? null,
+      discountBeneficiaryName: item.discountBeneficiaryName ?? null,
     };
   }
 }

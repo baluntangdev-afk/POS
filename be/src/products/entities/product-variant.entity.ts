@@ -36,6 +36,9 @@ export class ProductVariant {
   })
   status: ProductVariantStatus;
 
+  @Column({ type: 'numeric', precision: 10, scale: 2, default: 0 })
+  price: number;
+
   @Column({ type: 'boolean', name: 'is_default', default: false })
   isDefault: boolean;
 

@@ -106,6 +106,7 @@ export class AuthService {
       type: 'access',
       systemAdmin: user.systemAdmin,
       isPinChanged: user.isPinChanged,
+      role: user.role,
     };
     const refreshPayload: JwtPayloadDto = {
       sub: user.id,
@@ -113,6 +114,7 @@ export class AuthService {
       type: 'refresh',
       systemAdmin: user.systemAdmin,
       isPinChanged: user.isPinChanged,
+      role: user.role,
     };
 
     const accessToken = this.jwtService.sign(accessPayload, {

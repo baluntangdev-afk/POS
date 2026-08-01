@@ -1,15 +1,6 @@
 part of 'router.dart';
 
-@TypedGoRoute<SalesRoute>(
-  path: '/sales',
-  routes: [
-    TypedGoRoute<OrderingRoute>(path: 'ordering'),
-    TypedGoRoute<CartRoute>(path: 'cart'),
-    TypedGoRoute<PaymentRoute>(path: 'payment'),
-    TypedGoRoute<ReceiptRoute>(path: 'receipt/:receiptId'),
-    TypedGoRoute<DiscountRoute>(path: 'discount'),
-  ],
-)
+@TypedGoRoute<SalesRoute>(path: '/sales')
 class SalesRoute extends GoRouteData with $SalesRoute {
   const SalesRoute();
 
@@ -19,6 +10,7 @@ class SalesRoute extends GoRouteData with $SalesRoute {
   }
 }
 
+@TypedGoRoute<OrderingRoute>(path: '/ordering')
 class OrderingRoute extends GoRouteData with $OrderingRoute {
   const OrderingRoute();
 
@@ -28,6 +20,7 @@ class OrderingRoute extends GoRouteData with $OrderingRoute {
   }
 }
 
+@TypedGoRoute<CartRoute>(path: '/cart')
 class CartRoute extends GoRouteData with $CartRoute {
   const CartRoute();
 
@@ -36,7 +29,7 @@ class CartRoute extends GoRouteData with $CartRoute {
     return const CartScreen();
   }
 }
-
+@TypedGoRoute<PaymentRoute>(path: '/payment')
 class PaymentRoute extends GoRouteData with $PaymentRoute {
   const PaymentRoute();
 
@@ -46,17 +39,19 @@ class PaymentRoute extends GoRouteData with $PaymentRoute {
   }
 }
 
+@TypedGoRoute<ReceiptRoute>(path: '/receipt/:receiptId')
 class ReceiptRoute extends GoRouteData with $ReceiptRoute {
-  const ReceiptRoute(this.receiptId);
+  const ReceiptRoute(this.receiptId, {this.autoPrint = false});
 
   final String receiptId;
+  final bool autoPrint;
 
   @override
   Widget build(BuildContext context, GoRouterState state) {
-    return ReceiptScreen(receiptId: receiptId);
+    return ReceiptScreen(receiptId: receiptId, autoPrint: autoPrint);
   }
 }
-
+@TypedGoRoute<DiscountRoute>(path: '/discount')
 class DiscountRoute extends GoRouteData with $DiscountRoute {
   const DiscountRoute();
 

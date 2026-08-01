@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../navigation/router.dart';
 import '../../../widgets/resposive_wrap_container.dart';
-import '../../settings/view/franchisee_info_dialog.dart';
+import '../../settings/view/pos_terminal_details_dialog.dart';
 import '../entities/menu_item.dart';
 import '../enums/menu_type.dart';
 import '../enums/role.dart';
@@ -20,24 +20,27 @@ class MenuGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final rowItems = constraints.maxWidth > 700 ? 3 : 2;
+        final width = constraints.maxWidth;
+        final rowItems = width > 900 ? 4 : width > 600 ? 3 : 2;
+        final padding = width > 900 ? 32.0 : width > 600 ? 24.0 : 16.0;
+        final spacing = width > 900 ? 20.0 : 16.0;
         return Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: EdgeInsets.all(padding),
           child: ResponsiveWrapContainer(
             equalWidth: true,
             rowItems: rowItems,
-            spacing: 30,
+            spacing: spacing,
             items:
                 menuItems.map((item) {
                   return MenuItemCard(
                     menuItem: item,
                     onTap: (type) {
                       if (type == MenuType.newOrder) {
-                        const SalesRoute().push<void>(context);
-                        return;
+                         const OrderingRoute().push<void>(context);
+                         return;
                       }
                       if (type == MenuType.logout) {
-                        const OnboardingRoute().go(context);
+                        const LoginRoute().go(context);
                         return;
                       }
                       if (type == MenuType.userManagement) {
@@ -49,7 +52,7 @@ class MenuGrid extends StatelessWidget {
                         return;
                       }
                       if (type == MenuType.settings) {
-                        showFranchiseeInfoDialog(context);
+                        showPosTerminalDetailsDialog(context);
                         return;
                       }
                       if (type == MenuType.inventory) {
@@ -79,7 +82,7 @@ class MenuGrid extends StatelessWidget {
       ),
       MenuItem(
         label: 'Replenishment',
-        icon: Assets.images.png.icAdtoKart.image(),
+        icon: Assets.images.cartivoLogo.image(),
         type: MenuType.replenishment,
       ),
       MenuItem(
@@ -88,29 +91,18 @@ class MenuGrid extends StatelessWidget {
         type: MenuType.transactions,
       ),
       MenuItem(label: 'Promos', icon: Assets.images.svg.icPromo.svg(), type: MenuType.promos),
-
-      MenuItem(
-        label: 'Sales Reports',
-        icon: Assets.images.svg.icReports.svg(),
-        type: MenuType.salesReports,
-      ),
+      // Sales Reports hidden for now
       MenuItem(
         label: 'Settings',
         icon: Assets.images.svg.icSettings.svg(),
         type: MenuType.settings,
       ),
       MenuItem(
-        label: 'User Management',
+        label: 'User',
         icon: Assets.images.svg.icUserManagement.svg(),
         type: MenuType.userManagement,
       ),
       MenuItem(label: 'Sync Data', icon: Assets.images.svg.icSync.svg(), type: MenuType.syncData),
-      MenuItem(
-        label: 'Inventory',
-        icon: Assets.images.svg.icInventory.svg(),
-        type: MenuType.inventory,
-      ),
-      MenuItem(label: 'Logout', icon: Assets.images.svg.icLogout.svg(), type: MenuType.logout),
     ];
     if (role == Role.user) {
       return baseItems
@@ -122,7 +114,7 @@ class MenuGrid extends StatelessWidget {
           )
           .toList();
     }
-    return baseItems;
+    return baseItems; // admin and supervisor see all menus
   }
 
   int getCrossAxisCount(double width) {

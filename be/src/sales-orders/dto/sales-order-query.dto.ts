@@ -41,12 +41,12 @@ export class SalesOrderQueryDto {
   sort?: string;
 
   @ApiPropertyOptional({
-    description: 'Sales order number',
+    description: 'Search by sales order number or cashier name',
     example: 'SO-001-2026-0001',
   })
   @IsOptional()
   @IsString()
-  soNumber?: string;
+  search?: string;
 
   @ApiPropertyOptional({
     description: 'Sales order date (ISO 8601)',

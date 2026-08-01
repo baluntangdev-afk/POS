@@ -2,10 +2,12 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../data/backend_api/sources/reports_api.dart';
+import '../entities/exportable_report.dart';
 import '../entities/sales_data_item.dart';
 import '../entities/sales_report_type.dart';
 import '../entities/sales_summary.dart';
 import '../enums/sales_data_item_type.dart';
+import '../mappers/exportable_report_mappers.dart';
 import '../mappers/sales_data_item_mappers.dart';
 import '../mappers/sales_report_type_mappers.dart';
 import '../mappers/sales_summary_mappers.dart';
@@ -27,6 +29,13 @@ abstract class ReportsRepository {
   Future<IList<SalesDataItem>> getSalesByUser({DateTime? startDate, DateTime? endDate});
 
   Future<IList<SalesDataItem>> getSalesByPayment({DateTime? startDate, DateTime? endDate});
+
+  Future<ExportableReport> getExportable({
+    required DateTime startDate,
+    required DateTime endDate,
+  });
+
+  Future<void> markExported(DateTime date);
 }
 
 final reportsRepositoryProvider = Provider<ReportsRepository>((ref) {
@@ -87,5 +96,19 @@ class ReportsRepositoryImpl implements ReportsRepository {
   Future<IList<SalesDataItem>> getSalesByPayment({DateTime? startDate, DateTime? endDate}) async {
     final response = await _reportsApi.getSalesByPayment(startDate: startDate, endDate: endDate);
     return response.map((e) => e.toEntity.copyWith(type: SalesDataItemType.payment)).toIList();
+  }
+
+  @override
+  Future<ExportableReport> getExportable({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    final dto = await _reportsApi.getExportable(date: startDate);
+    return dto.toEntity;
+  }
+
+  @override
+  Future<void> markExported(DateTime date) async {
+    await _reportsApi.markExported(date: date);
   }
 }

@@ -7,8 +7,8 @@ class SalesOrderItemResponseDto with SalesOrderItemResponseDtoMappable {
   const SalesOrderItemResponseDto({
     required this.id,
     this.itemSequence,
-    required this.productVariantId,
-    required this.recipeId,
+    this.productVariantId,
+    this.recipeId,
     required this.qty,
     this.uomId,
     required this.unitPrice,
@@ -22,12 +22,18 @@ class SalesOrderItemResponseDto with SalesOrderItemResponseDtoMappable {
     required this.description,
     required this.addOn,
     this.recipeItemId,
+    this.saleType,
+    this.note,
+    this.category,
+    this.discountName,
+    this.discountBeneficiaryIdNumber,
+    this.discountBeneficiaryName,
   });
 
   final String id;
   final int? itemSequence;
-  final int productVariantId;
-  final int recipeId;
+  final int? productVariantId;
+  final int? recipeId;
   final String qty;
   final int? uomId;
   final double unitPrice;
@@ -41,6 +47,12 @@ class SalesOrderItemResponseDto with SalesOrderItemResponseDtoMappable {
   final String description;
   final bool addOn;
   final int? recipeItemId;
+  final String? saleType;
+  final String? note;
+  final String? category;
+  final String? discountName;
+  final String? discountBeneficiaryIdNumber;
+  final String? discountBeneficiaryName;
 
   static const fromJson = SalesOrderItemResponseDtoMapper.fromJson;
 }

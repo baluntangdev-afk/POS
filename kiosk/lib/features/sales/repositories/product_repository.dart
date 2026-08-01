@@ -1,5 +1,6 @@
 import 'package:decimal/decimal.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../data/backend_api/schemas/menu_item_modifier_group_dto.dart';
@@ -17,6 +18,7 @@ import '../entities/product_variant.dart';
 
 abstract class ProductRepository {
   Future<IList<Product>> getByGroup(ProductGroup group);
+
   Future<Product> getById(int id);
 }
 
@@ -34,33 +36,53 @@ class ProductRepositoryImpl implements ProductRepository {
 
   @override
   Future<IList<Product>> getByGroup(ProductGroup group) async {
-    final paginatedDto = await _productGroupsApi.getProductsByGroup(group.id);
-    return paginatedDto.data.map(_productFromListItemDto).toIList();
+    try {
+      final paginatedDto = await _productGroupsApi.getProductsByGroup(group.id);
+      return paginatedDto.data.map(_productFromListItemDto).toIList();
+    } catch (e, s) {
+      debugPrint('TESTING $e $s');
+      return IList.empty();
+    }
+
   }
 
   @override
   Future<Product> getById(int id) async {
-    final dto = await _productsApi.getById(id);
-    return _productFromDetailsDto(dto);
+    try {
+      final dto = await _productsApi.getById(id);
+      return _productFromDetailsDto(dto);
+    } catch (e) {
+      throw Exception(e);
+    }
   }
 
   Product _productFromListItemDto(ProductListItemDto dto) {
     return Product(
+      categoryName: dto.categoryName,
       id: dto.id,
       name: dto.name,
-      price: Decimal.zero,
-      image: dto.imageUrl,
-      variants: const IList.empty(),
+      price: Decimal.parse(dto.price),
+      image: dto.imageUrl ?? '',
+      modifierGroups: const IList.empty(),
     );
   }
 
   Product _productFromDetailsDto(ProductDetailsDto dto) {
+    final activeVariants = dto.variants.where((v) => v.isActive).toList();
+    final defaultStillActive = activeVariants.any((v) => v.id == dto.defaultVariantId);
+    final resolvedDefaultId = defaultStillActive
+        ? (dto.defaultVariantId ?? 0)
+        : (activeVariants.isNotEmpty ? activeVariants.first.id : 0);
+
     return Product(
+      categoryName: dto.categoryName ?? '',
       id: dto.id,
       name: dto.name,
-      image: dto.imageUrl,
+      image: dto.imageUrl ?? '',
       price: Decimal.parse(dto.displayPrice),
-      variants: dto.variants.map(_productVariantFromDto).toIList(),
+      modifierGroups: dto.modifierGroups.map(_modifierGroupFromDto).toIList(),
+      variants: activeVariants.map(_productVariantFromDto).toIList(),
+      defaultVariantId: resolvedDefaultId,
     );
   }
 
@@ -69,8 +91,7 @@ class ProductRepositoryImpl implements ProductRepository {
       id: dto.id,
       name: dto.name,
       price: Decimal.parse(dto.displayPrice),
-      isDefault: false,
-      modifierGroups: dto.modifierGroups.map(_modifierGroupFromDto).toIList(),
+      isDefault: dto.isDefault,
     );
   }
 

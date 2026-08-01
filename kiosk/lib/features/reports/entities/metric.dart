@@ -7,6 +7,7 @@ class Metric {
     required this.icon,
     required this.color,
     this.isMonetary = true,
+    this.subtitle,
   });
 
   final String title;
@@ -14,4 +15,5 @@ class Metric {
   final IconData icon;
   final Color color;
   final bool isMonetary;
+  final String? subtitle;
 }

@@ -8,6 +8,7 @@ import { ProductDto } from '../dto/product.dto';
 import { ProductMapper } from '../mapper/product.mapper';
 import { File } from 'multer';
 import { FindProductGroupService } from './find-product-group.service';
+import { saveUploadedImage } from '../../utils/image-storage.helper';
 
 @Injectable()
 export class CreateProductService {
@@ -21,10 +22,12 @@ export class CreateProductService {
     createProductDto: CreateProductDto,
     image: File,
     causer: User,
+    baseUrl: string,
   ): Promise<ProductDto> {
     const payload: Partial<Product> = {
       name: createProductDto.name,
       description: createProductDto.description,
+      isAvailable: createProductDto.isAvailable ?? true,
       createdBy: causer,
       updatedBy: causer,
     };
@@ -33,7 +36,7 @@ export class CreateProductService {
     payload.productGroup = productGroup;
 
     if (image) {
-      payload.imageUrl = image.buffer;
+      payload.imageUrl = saveUploadedImage(image, 'products', baseUrl);
     }
 
     const entity = this.productsRepository.create(payload);

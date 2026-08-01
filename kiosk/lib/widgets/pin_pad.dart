@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
+import '../styles/color_set.dart';
 import '../styles/responsive/responsive_value.dart';
 import 'pin_button.dart';
 
@@ -10,75 +11,67 @@ class PinPad extends StatelessWidget {
     required this.onNumberPressed,
     required this.onBackspace,
     required this.selectedButton,
+    this.onConfirm,
   });
 
   final void Function(String) onNumberPressed;
   final VoidCallback onBackspace;
   final ValueNotifier<int?> selectedButton;
+  final VoidCallback? onConfirm;
 
   @override
   Widget build(BuildContext context) {
-    final responsive = context.responsive;
-    final buttonSize = responsive.scale(100);
-    final spacing = responsive.value<double>(phone: 16, tablet: 24, kiosk: 32);
+    final spacing = context.responsive.value<double>(phone: 8, tablet: 10, kiosk: 12);
+
+    Expanded numberButton(String digit) => Expanded(
+          child: PinButton(
+            label: digit,
+            onPressed: () => onNumberPressed(digit),
+            selectedButton: selectedButton,
+            buttonIndex: int.parse(digit),
+          ),
+        );
 
     return Column(
       children: [
-        _buildRow(['1', '2', '3'], buttonSize, spacing),
+        Row(children: [numberButton('1'), Gap(spacing), numberButton('2'), Gap(spacing), numberButton('3')]),
         Gap(spacing),
-        _buildRow(['4', '5', '6'], buttonSize, spacing),
+        Row(children: [numberButton('4'), Gap(spacing), numberButton('5'), Gap(spacing), numberButton('6')]),
         Gap(spacing),
-        _buildRow(['7', '8', '9'], buttonSize, spacing),
+        Row(children: [numberButton('7'), Gap(spacing), numberButton('8'), Gap(spacing), numberButton('9')]),
         Gap(spacing),
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SizedBox(width: buttonSize),
-            Gap(spacing),
-            PinButton(
-              size: buttonSize,
-              label: '0',
-              onPressed: () => onNumberPressed('0'),
-              selectedButton: selectedButton,
-              buttonIndex: 0,
+            Expanded(
+              child: PinButton(
+                onPressed: onBackspace,
+                selectedButton: selectedButton,
+                buttonIndex: 10,
+                child: Icon(
+                  Icons.backspace_outlined,
+                  size: context.responsive.value<double>(phone: 20, tablet: 22, kiosk: 26),
+                  color: ColorSet.dark,
+                ),
+              ),
             ),
             Gap(spacing),
-            PinButton(
-              size: buttonSize,
-              onPressed: onBackspace,
-              selectedButton: selectedButton,
-              buttonIndex: 11,
-              child: Text(
-                '⌫',
-                style: TextStyle(
-                  fontSize: context.responsive.scale(40),
-                  color: Colors.black,
-                  fontWeight: FontWeight.w600,
+            numberButton('0'),
+            Gap(spacing),
+            Expanded(
+              child: PinButton(
+                onPressed: onConfirm ?? () {},
+                selectedButton: selectedButton,
+                buttonIndex: 11,
+                child: Icon(
+                  Icons.check_rounded,
+                  size: context.responsive.value<double>(phone: 20, tablet: 22, kiosk: 26),
+                  color: ColorSet.dark,
                 ),
               ),
             ),
           ],
         ),
       ],
-    );
-  }
-
-  Widget _buildRow(List<String> numbers, double buttonSize, double spacing) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children:
-          numbers.map((number) {
-            return Padding(
-              padding: EdgeInsets.symmetric(horizontal: spacing / 2),
-              child: PinButton(
-                size: buttonSize,
-                label: number,
-                onPressed: () => onNumberPressed(number),
-                selectedButton: selectedButton,
-                buttonIndex: int.parse(number),
-              ),
-            );
-          }).toList(),
     );
   }
 }

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ProductVariantDto } from './variant.dto';
+import { ModifierGroupDto } from './modifier-group.dto';
+import { ProductVariantDetailsDto } from './variant.dto';
 
 export class ProductDetailsDto {
   @ApiProperty({ description: 'Product ID', example: 1 })
@@ -7,6 +8,9 @@ export class ProductDetailsDto {
 
   @ApiProperty({ description: 'Product name', example: 'Sinigang' })
   name: string;
+
+  @ApiProperty({ description: 'Category name (product group)', example: 'Beverages', nullable: true })
+  categoryName: string | null;
 
   @ApiProperty({
     description: 'Product description',
@@ -23,6 +27,12 @@ export class ProductDetailsDto {
   @ApiProperty({ description: 'Display price', example: '100' })
   displayPrice: string;
 
-  @ApiProperty({ type: () => [ProductVariantDto] })
-  variants: ProductVariantDto[];
+  @ApiProperty({ description: 'Default product variant ID for order placement', example: 1, nullable: true })
+  defaultVariantId: number | null;
+
+  @ApiProperty({ type: () => [ProductVariantDetailsDto] })
+  variants: ProductVariantDetailsDto[];
+
+  @ApiProperty({ type: () => [ModifierGroupDto] })
+  modifierGroups: ModifierGroupDto[];
 }

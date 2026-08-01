@@ -6,6 +6,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../api_clients.dart';
 import '../schemas/confirm_sales_order_dto.dart';
 import '../schemas/create_sales_order_dto.dart';
+import '../schemas/void_sales_order_dto.dart';
 import '../schemas/paginated_response_dto.dart';
 import '../schemas/sales_order_query_dto.dart';
 import '../schemas/sales_order_with_items_response_dto.dart';
@@ -42,6 +43,13 @@ class SalesOrdersApi {
     );
     final json = jsonEncode(response.data);
     return SalesOrderWithItemsResponseDto.fromJson(json);
+  }
+
+  Future<void> voidOrder(String id, VoidSalesOrderDto request) async {
+    await _httpClient.patch<dynamic>(
+      '/api/v1/sales-orders/$id/void',
+      data: request.toJson(),
+    );
   }
 
   Future<PaginatedResponseDto<SalesOrderWithItemsResponseDto>> getAll(

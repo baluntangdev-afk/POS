@@ -1,7 +1,14 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { UserRole } from './users.enum';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import {
@@ -11,27 +18,44 @@ import {
   buildFilterWhere,
 } from '../utils/pagination';
 import { USER_LIST_SELECT } from './dto/user-list-item.dto';
+import { LOGIN_ROSTER_SELECT } from './dto/login-roster-item.dto';
+import { BaseStatus } from '../utils/shared-enums';
 import * as bcrypt from 'bcryptjs';
 import { UserDetailsService } from '../user-details/user-details.service';
 import { EntityHelper } from '../utils/entity.helper';
+import { PosTerminal } from '../pos-terminals/entities/pos-terminal.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(PosTerminal)
+    private readonly posTerminalRepository: Repository<PosTerminal>,
     private readonly userDetailsService: UserDetailsService,
   ) {}
 
   async create(createUserDto: CreateUserDto, causer: User) {
-    // check if user already exists
-    const existingUser = await this.userRepository.findOne({
-      select: { id: true },
-      where: [{ email: createUserDto.email }, { userId: createUserDto.userId }],
-    });
+    const email =
+      createUserDto.email ??
+      `${createUserDto.userId.toLowerCase().replace(/[^a-z0-9]/g, '.')}@pos.local`;
 
-    if (existingUser) {
-      throw new ConflictException('User already exists');
+    if (createUserDto.email) {
+      const existingByEmail = await this.userRepository.findOne({
+        select: { id: true },
+        where: { email },
+      });
+      if (existingByEmail) {
+        throw new ConflictException(`The email address "${email}" is already in use.`);
+      }
+    }
+
+    const existingByUserId = await this.userRepository.findOne({
+      select: { id: true },
+      where: { userId: createUserDto.userId },
+    });
+    if (existingByUserId) {
+      throw new ConflictException(`The Employee ID "${createUserDto.userId}" is already in use.`);
     }
 
     const salt = await bcrypt.genSalt();
@@ -41,6 +65,7 @@ export class UsersService {
 
     const user = this.userRepository.create({
       ...createUserDto,
+      email,
       password,
       devicePin,
       salt,
@@ -48,7 +73,25 @@ export class UsersService {
       updatedBy: causer,
     });
 
+    if (createUserDto.role !== undefined) {
+      user.systemAdmin = createUserDto.role === UserRole.ADMIN;
+    }
+
     const savedUser = await this.userRepository.save(user);
+
+    // Auto-assign the new user to this deployment's POS terminal, if one has
+    // been registered yet. There is only ever one terminal per installation,
+    // so this applies regardless of whether the causer is an admin or supervisor.
+    const [terminal] = await this.posTerminalRepository.find({
+      select: { id: true },
+      order: { id: 'ASC' },
+      take: 1,
+    });
+    if (terminal) {
+      await this.userRepository.update(savedUser.id, {
+        posTerminal: { id: terminal.id },
+      });
+    }
 
     // Create user_details if any detail field is provided
     if (
@@ -70,6 +113,22 @@ export class UsersService {
     }
 
     return this.findOne(savedUser.id);
+  }
+
+  async findAuthorizers(): Promise<Partial<User>[]> {
+    return this.userRepository.find({
+      where: [{ role: UserRole.ADMIN }, { role: UserRole.SUPERVISOR }],
+      select: { id: true, userId: true, firstName: true, lastName: true, role: true },
+      order: { firstName: 'ASC' },
+    });
+  }
+
+  async findLoginRoster() {
+    return this.userRepository.find({
+      where: { status: BaseStatus.ACTIVE, locked: false },
+      select: LOGIN_ROSTER_SELECT,
+      order: { firstName: 'ASC' },
+    });
   }
 
   async findAll(query: PaginatedQueryDto): Promise<PaginatedResult<User>> {
@@ -125,6 +184,7 @@ export class UsersService {
         email: true,
         systemAdmin: true,
         isPinChanged: true,
+        role: true,
         ...(includePassword && { password: true }),
       },
     });
@@ -138,6 +198,7 @@ export class UsersService {
         email: true,
         systemAdmin: true,
         isPinChanged: true,
+        role: true,
         ...(includePassword && { password: true, devicePin: true }),
       },
     });
@@ -145,6 +206,10 @@ export class UsersService {
 
   async update(id: number, updateUserDto: UpdateUserDto) {
     const payload = this.userRepository.create(updateUserDto);
+
+    if (updateUserDto.role !== undefined) {
+      payload.systemAdmin = updateUserDto.role === UserRole.ADMIN;
+    }
 
     if (payload.password) {
       const salt = await bcrypt.genSalt();
@@ -183,6 +248,29 @@ export class UsersService {
     await this.userRepository.update(id, EntityHelper.toPartialEntity(payload));
 
     return this.findOne(id);
+  }
+
+  async verifyPin(userId: string, pin: string): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { userId },
+      select: { id: true, devicePin: true, role: true, systemAdmin: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Authorizer user not found');
+    }
+
+    const canAuthorize =
+      user.systemAdmin || user.role === UserRole.ADMIN || user.role === UserRole.SUPERVISOR;
+
+    if (!canAuthorize) {
+      throw new ForbiddenException('Only admins and supervisors can authorize this action');
+    }
+
+    const isPinValid = await bcrypt.compare(pin, user.devicePin);
+    if (!isPinValid) {
+      throw new BadRequestException('Invalid PIN. Please try again.');
+    }
   }
 
   async remove(id: number) {

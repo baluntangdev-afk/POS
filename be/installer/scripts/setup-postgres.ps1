@@ -1,0 +1,283 @@
+param(
+    [Parameter(Mandatory=$true)]
+    [string]$AppDir
+)
+
+$pgBin  = "$AppDir\pgsql\bin"
+$pgData = "C:\posdata"
+$logs   = "$AppDir\logs"
+
+if (!(Test-Path $logs)) { New-Item -ItemType Directory -Force $logs | Out-Null }
+
+Start-Transcript -Path "$logs\setup-postgres-install.log" -Force
+
+try {
+    Write-Host "AppDir   : $AppDir"
+    Write-Host "pgBin    : $pgBin"
+    Write-Host "pgData   : $pgData"
+
+    # -- 1. Verify binaries are present -----------------------------------
+    foreach ($exe in @("initdb.exe","pg_ctl.exe","pg_isready.exe","postgres.exe","psql.exe")) {
+        if (!(Test-Path "$pgBin\$exe")) {
+            Write-Error "Missing binary: $pgBin\$exe"
+            exit 1
+        }
+    }
+    Write-Host "All required binaries present."
+
+    # -- 1b. Tear down any existing services BEFORE touching the data dir ---
+    # A stale POSPostgres service (auto-start + failure-recovery) keeps
+    # relaunching postgres.exe every few seconds. If it does so while we run
+    # initdb / icacls below, it locks files under pgsql\bin and posdata and the
+    # whole setup aborts -- leaving a *registered* service pointing at a
+    # half-built data dir. That is the classic "stuck on Starting services"
+    # failure: postgres dies on every boot with
+    #   'could not access directory "C:/posdata"' and the backend, which
+    # DependsOnService POSPostgres, never starts. Stopping + unregistering
+    # first makes this script deterministic and idempotent.
+    Write-Host "Stopping any existing POS services before data-dir setup..."
+    sc.exe stop POSBackendService 2>&1 | Out-Null
+    sc.exe stop POSPostgres       2>&1 | Out-Null
+    Start-Sleep -Seconds 3
+    if (Get-Service POSPostgres -ErrorAction SilentlyContinue) {
+        Write-Host "Unregistering stale POSPostgres service..."
+        & "$pgBin\pg_ctl.exe" unregister -N POSPostgres 2>&1 | Write-Host
+        Start-Sleep -Seconds 2
+    }
+    # Kill any orphaned postgres.exe still holding locks on the binaries/data.
+    Get-Process postgres -ErrorAction SilentlyContinue |
+        Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+
+    # -- 2. Initialize data directory (idempotent) -------------------------
+    if (!(Test-Path "$pgData\PG_VERSION")) {
+        # Directory exists but was never fully initialized (e.g. from a failed
+        # prior install). initdb refuses to write into a non-empty directory, so
+        # remove it first.
+        if (Test-Path $pgData) {
+            Write-Host "Removing partial data directory at $pgData..."
+            Remove-Item $pgData -Recurse -Force
+        }
+        Write-Host "Initializing PostgreSQL data directory at $pgData..."
+        New-Item -ItemType Directory -Force $pgData | Out-Null
+
+        "postgres" | Set-Content "$env:TEMP\pgpass.txt" -Encoding Ascii -NoNewline
+        & "$pgBin\initdb.exe" -D $pgData -U postgres -A scram-sha-256 `
+            --pwfile="$env:TEMP\pgpass.txt" --encoding=UTF8 --locale=C
+        $initExit = $LASTEXITCODE
+        Remove-Item "$env:TEMP\pgpass.txt" -Force -ErrorAction SilentlyContinue
+
+        if ($initExit -ne 0 -or !(Test-Path "$pgData\PG_VERSION")) {
+            Write-Error "initdb failed (exit $initExit)."
+            exit 1
+        }
+        Write-Host "initdb complete."
+    } else {
+        Write-Host "Data directory already initialized at $pgData."
+    }
+
+    # -- 3. Write postgresql.conf settings (idempotent) --------------------
+    $confPath = "$pgData\postgresql.conf"
+    $confContent = Get-Content $confPath -Raw
+    $additions = @()
+    if ($confContent -notmatch "^port\s*=") {
+        $additions += "port = 5432"
+    }
+    if ($confContent -notmatch "^listen_addresses") {
+        $additions += "listen_addresses = 'localhost'"
+    }
+    if ($confContent -notmatch "^logging_collector") {
+        $additions += "logging_collector = on"
+        $additions += "log_directory = 'log'"
+        $additions += "log_filename = 'postgresql.log'"
+        $additions += "log_truncate_on_rotation = off"
+    }
+    if ($additions.Count -gt 0) {
+        Add-Content $confPath ("`n# POS Kiosk installer settings`n" + ($additions -join "`n"))
+        Write-Host "Updated postgresql.conf."
+    } else {
+        Write-Host "postgresql.conf already configured."
+    }
+
+    # Remove stale lock from a previous crash
+    Remove-Item "$pgData\postmaster.pid" -Force -ErrorAction SilentlyContinue
+
+    # -- 4. Grant NetworkService permissions -------------------------------
+    Write-Host "Granting permissions to NT AUTHORITY\NetworkService..."
+    icacls $pgData /grant "NT AUTHORITY\NetworkService:(OI)(CI)F" /T /Q
+    if ($LASTEXITCODE -ne 0) { Write-Error "icacls failed on $pgData"; exit 1 }
+    icacls $pgBin /grant "NT AUTHORITY\NetworkService:(OI)(CI)RX" /T /Q
+    # Non-fatal: NetworkService already has read+execute under C:\ by default,
+    # so this grant is belt-and-suspenders. A transient lock on one of the ~994
+    # binaries (AV scan, a racing process) must NOT abort the whole DB setup and
+    # leave a broken install behind.
+    if ($LASTEXITCODE -ne 0) { Write-Warning "icacls on $pgBin returned $LASTEXITCODE (non-fatal; continuing)." }
+    icacls $logs /grant "NT AUTHORITY\NetworkService:(OI)(CI)F" /T /Q
+    if ($LASTEXITCODE -ne 0) { Write-Error "icacls failed on $logs"; exit 1 }
+    Write-Host "Permissions granted."
+
+    # -- 5. Remove any existing POSPostgres service ------------------------
+    $existing = Get-Service "POSPostgres" -ErrorAction SilentlyContinue
+    if ($existing) {
+        Write-Host "Removing existing POSPostgres service..."
+        Stop-Service "POSPostgres" -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 3
+        & "$pgBin\pg_ctl.exe" unregister -N POSPostgres
+        Start-Sleep -Seconds 2
+        Write-Host "Existing service removed."
+    }
+
+    # -- 6. Register PostgreSQL as native Windows service -----------------
+    Write-Host "Registering POSPostgres service..."
+    & "$pgBin\pg_ctl.exe" register -N POSPostgres `
+        -U "NT AUTHORITY\NetworkService" -D $pgData -S auto
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "pg_ctl register failed (exit $LASTEXITCODE)"
+        exit 1
+    }
+    Write-Host "Service registered."
+
+    # Plain auto-start (not delayed): delayed-auto only starts ~2 minutes after
+    # boot, which is well after autologon reaches the desktop and the kiosk app
+    # auto-launches, leaving it stuck showing "Starting up..." the whole time.
+    # DependOnService (set on POSBackendService below) already guarantees
+    # correct startup order against Postgres, so the delay bought no safety --
+    # only a slower boot-to-ready time on every restart.
+    sc.exe config POSPostgres start= auto | Out-Null
+    Write-Host "POSPostgres set to auto start."
+
+    # Configure failure recovery: restart after 5 s, 15 s, 30 s on consecutive
+    # failures; reset the failure counter after 24 hours of clean uptime.
+    # Without this, any startup failure leaves the service stopped permanently.
+    sc.exe failure POSPostgres reset= 86400 actions= restart/5000/restart/15000/restart/30000 | Out-Null
+    Write-Host "POSPostgres failure recovery configured."
+
+    # -- 7. Start PostgreSQL -----------------------------------------------
+    # Warn if something else is already using port 5432 (e.g. a Docker postgres container)
+    $portInUse = netstat -ano 2>$null | Select-String ":5432\s"
+    if ($portInUse) {
+        Write-Warning "Port 5432 is already in use by another process. This will prevent POSPostgres from starting."
+        Write-Warning "Stop any Docker postgres containers or other PostgreSQL instances before running this installer."
+        Write-Warning "$portInUse"
+    }
+
+    # Retries the whole start+wait cycle a few times before giving up. On an
+    # unknown target machine, the first attempt can lose a race against
+    # third-party AV scanning the brand-new $pgData files (see the exclusion
+    # added in configure-security.ps1) or against Windows still finishing
+    # boot-time setup. A transient loss here must not leave the install
+    # requiring a manual recover-services.bat run, so retry automatically
+    # before surfacing an error.
+    $started = $false
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        Write-Host "Starting POSPostgres (attempt $attempt/3)..."
+        Start-Service "POSPostgres" -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 3
+
+        $svc = Get-Service "POSPostgres"
+        Write-Host "Service status: $($svc.Status)"
+
+        if ($svc.Status -ne "Running") {
+            Write-Host "Service did not reach Running state immediately, waiting..."
+            Start-Sleep -Seconds 10
+            $svc.Refresh()
+            Write-Host "Service status after wait: $($svc.Status)"
+        }
+
+        if ($svc.Status -eq "Running") {
+            $started = $true
+            break
+        }
+
+        if ($attempt -lt 3) {
+            Write-Host "Attempt $attempt failed. Clearing any stuck process and retrying..."
+            sc.exe stop POSPostgres 2>&1 | Out-Null
+            Get-Process postgres -ErrorAction SilentlyContinue |
+                Stop-Process -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 5
+        }
+    }
+
+    if (!$started) {
+        Write-Error "POSPostgres service failed to start after 3 attempts. Check that port 5432 is free and no other PostgreSQL is running (including Docker containers). See Application Event Log for details."
+        Write-Host "=== PostgreSQL log ==="
+        Get-ChildItem "$pgData\log\" -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1 |
+            ForEach-Object { Get-Content $_.FullName -Tail 30 }
+        exit 1
+    }
+
+    # -- 8. Wait for PostgreSQL to accept connections ----------------------
+    Write-Host "Waiting for PostgreSQL to accept connections (up to 60s)..."
+    $ready = $false
+    for ($i = 1; $i -le 60; $i++) {
+        Start-Sleep -Seconds 1
+        & "$pgBin\pg_isready.exe" -h 127.0.0.1 -p 5432 -q
+        if ($LASTEXITCODE -eq 0) { $ready = $true; break }
+        if ($i % 5 -eq 0) { Write-Host "  still waiting... ($i/60)" }
+    }
+
+    if (!$ready) {
+        Write-Error "PostgreSQL did not become ready within 60 seconds."
+        Write-Host "=== PostgreSQL log ==="
+        Get-ChildItem "$pgData\log\" -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1 |
+            ForEach-Object { Get-Content $_.FullName -Tail 30 }
+        exit 1
+    }
+    Write-Host "PostgreSQL is ready."
+
+    # -- 9. Create application database -----------------------------------
+    $env:PGPASSWORD = "postgres"
+    $exists = (& "$pgBin\psql.exe" -U postgres -h 127.0.0.1 -p 5432 `
+        -tAc "SELECT 1 FROM pg_database WHERE datname='pos_db'") 2>&1
+    if ($exists -match "^1") {
+        Write-Host "Database pos_db already exists."
+    } else {
+        Write-Host "Creating database pos_db..."
+        & "$pgBin\psql.exe" -U postgres -h 127.0.0.1 -p 5432 `
+            -c "CREATE DATABASE pos_db WITH ENCODING 'UTF8';"
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to create pos_db (exit $LASTEXITCODE)"
+            exit 1
+        }
+        Write-Host "Database pos_db created."
+    }
+
+    # -- 10. Run TypeORM migrations ----------------------------------------
+    $backend = "$AppDir\backend\POSBackend.exe"
+    if (!(Test-Path $backend)) {
+        Write-Error "POSBackend.exe not found at: $backend"
+        exit 1
+    }
+    Write-Host "Running database migrations..."
+    Set-Location "$AppDir\backend"
+    & $backend --migrate
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Migrations failed (exit $LASTEXITCODE)"
+        exit 1
+    }
+    Write-Host "Migrations complete."
+
+    # -- 11. Seed initial data (idempotent) -------------------------------
+    # Seeders upsert / check-before-insert, so running them on every install and
+    # every recovery is safe. This guarantees the admin login and reference data
+    # always exist  -  without it a fresh install has schema but no users, and the
+    # kiosk login fails with "seeded users cannot be found".
+    # Non-fatal: a seeding hiccup must never block the DB/service setup.
+    Write-Host "Seeding initial data..."
+    & $backend --seed
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "Seeding reported a non-zero exit ($LASTEXITCODE). Continuing  -  re-run is safe (seeders are idempotent). See backend output above."
+    } else {
+        Write-Host "Seeding complete."
+    }
+
+    Write-Host "setup-postgres.ps1 completed successfully."
+
+} catch {
+    Write-Error ('setup-postgres.ps1 failed: ' + $_.ToString())
+    exit 1
+} finally {
+    Stop-Transcript
+}

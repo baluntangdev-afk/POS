@@ -30,7 +30,11 @@ import { UserDetails } from '../user-details/entities/user-details.entity';
 import { UserGroup } from '../user-groups/entities/user-group.entity';
 import { UserPermission } from '../user-permissions/entities/user-permission.entity';
 import { Uom } from '../uom/entities/uom.entity';
-
+import { PosTerminal } from '../pos-terminals/entities/pos-terminal.entity';
+import { PosTerminalPaymentMethod } from '../pos-terminals/entities/pos-terminal-payment-method.entity';
+import { CashierDailyReport } from '../reports/entities/cashier-daily-report.entity';
+import { CashierXReading } from '../reports/entities/cashier-x-reading.entity';
+import { ZReading } from '../reports/entities/z-reading.entity';
 /** Entity constructor type for TypeORM (avoids generic Function). */
 type EntityCtor = new (...args: unknown[]) => object;
 
@@ -71,4 +75,9 @@ export const entities: EntityCtor[] = [
   UserGroup,
   UserPermission,
   Uom,
+  PosTerminal,
+  PosTerminalPaymentMethod,
+  CashierDailyReport,
+  CashierXReading,
+  ZReading,
 ];

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
+import '../../../theme/pos_design.dart';
 import '../entities/sales_report_type.dart';
 import '../state/sales_report_notifier.dart';
 import '../state/sales_report_state.dart';
@@ -24,24 +26,27 @@ class SalesBarChart extends ConsumerWidget {
     final customEndDate = ref.watch(salesReportProvider.select((state) => state.customEndDate));
     return LayoutBuilder(
       builder: (context, constraints) {
-        return Container(
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-          child: Padding(
-            padding: EdgeInsets.all(responsive.value<double>(kiosk: 20, tablet: 18, phone: 16)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Sales by Date',
-                      style: TextStyle(
-                        fontSize: responsive.scale(25),
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade800,
-                      ),
+        final groupedData = _groupDataByPeriod(salesReports.toList(), selectedPeriod);
+        final dataCount = groupedData.length;
+        final barWidth = dataCount <= 1
+            ? 60.0
+            : (constraints.maxWidth / dataCount * 0.55).clamp(14.0, 60.0);
+
+        return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Sales by Date',
+                    style: TextStyle(
+                      fontSize: responsive.scale(20),
+                      fontWeight: FontWeight.w700,
+                      color: POSColors.textPrimary,
+                      letterSpacing: -0.3,
                     ),
+                  ),
                     PeriodSelector(
                       currentPeriod: selectedPeriod,
                       selectedDateFilter: selectedDateFilter,
@@ -54,91 +59,67 @@ class SalesBarChart extends ConsumerWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: responsive.value<double>(kiosk: 8, tablet: 7, phone: 6)),
+                SizedBox(height: responsive.value<double>(kiosk: 4, tablet: 3, phone: 2)),
                 Text(
                   _getDateFilterDisplayText(selectedDateFilter, customStartDate, customEndDate),
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: responsive.scale(18)),
+                  style: TextStyle(
+                    color: POSColors.textTertiary,
+                    fontSize: responsive.scale(14),
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
-                SizedBox(height: responsive.value<double>(kiosk: 24, tablet: 20, phone: 16)),
+                SizedBox(height: responsive.value<double>(kiosk: 20, tablet: 16, phone: 12)),
                 if (salesReports.isNotEmpty)
                   Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minWidth: constraints.maxWidth,
-                          maxWidth: constraints.maxWidth <= 800 ? 1000 : constraints.maxWidth,
-                          minHeight: constraints.maxHeight - 100,
+                    child: Padding(
+                      padding: EdgeInsets.all(
+                        responsive.value<double>(kiosk: 10, tablet: 8, phone: 6),
+                      ),
+                      child: BarChart(
+                        key: ValueKey(
+                          '${selectedDateFilter.name}_${selectedPeriod.name}_$dataCount',
                         ),
-                        child: IntrinsicHeight(
-                          child: Padding(
-                            padding: EdgeInsets.all(
-                              responsive.value<double>(kiosk: 10, tablet: 8, phone: 6),
-                            ),
-                            child: BarChart(
-                              key: ValueKey(
-                                '${selectedDateFilter.name}_${selectedPeriod.name}_${salesReports.length}',
-                              ),
-                              _buildChartData(salesReports.toList(), selectedPeriod),
-                            ),
-                          ),
-                        ),
+                        _buildChartData(groupedData, selectedPeriod, barWidth),
                       ),
                     ),
                   )
                 else
                   Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.bar_chart,
-                              size: responsive.value<double>(kiosk: 48, tablet: 44, phone: 40),
-                              color: Colors.grey.shade400,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.bar_chart_rounded,
+                            size: responsive.value<double>(kiosk: 48, tablet: 44, phone: 40),
+                            color: POSColors.textDisabled,
+                          ),
+                          SizedBox(
+                            height: responsive.value<double>(kiosk: 12, tablet: 10, phone: 8),
+                          ),
+                          Text(
+                            'No sales data available',
+                            style: TextStyle(
+                              color: POSColors.textTertiary,
+                              fontSize: responsive.scale(15),
+                              fontWeight: FontWeight.w600,
                             ),
-                            SizedBox(
-                              height: responsive.value<double>(kiosk: 16, tablet: 14, phone: 12),
+                          ),
+                          SizedBox(
+                            height: responsive.value<double>(kiosk: 4, tablet: 3, phone: 2),
+                          ),
+                          Text(
+                            'Try adjusting your date filters',
+                            style: TextStyle(
+                              color: POSColors.textDisabled,
+                              fontSize: responsive.scale(13),
                             ),
-                            Text(
-                              'No sales data available',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: responsive.value<double>(
-                                  kiosk: 16,
-                                  tablet: 15,
-                                  phone: 14,
-                                ),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            SizedBox(
-                              height: responsive.value<double>(kiosk: 8, tablet: 7, phone: 6),
-                            ),
-                            Text(
-                              'Try adjusting your date filters',
-                              style: TextStyle(
-                                color: Colors.grey.shade500,
-                                fontSize: responsive.value<double>(
-                                  kiosk: 14,
-                                  tablet: 13,
-                                  phone: 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-              ],
-            ),
-          ),
+          ],
         );
       },
     );
@@ -170,18 +151,23 @@ class SalesBarChart extends ConsumerWidget {
     return ((value / 500).ceil() * 500).toDouble();
   }
 
-  BarChartData _buildChartData(List<SalesReportType> reports, SalesReportPeriod period) {
-    final groupedData = _groupDataByPeriod(reports, period);
+  BarChartData _buildChartData(
+    Map<DateTime, double> groupedData,
+    SalesReportPeriod period,
+    double barWidth,
+  ) {
     final maxSales =
         groupedData.values.isNotEmpty ? groupedData.values.reduce((a, b) => a > b ? a : b) : 0.0;
 
     return BarChartData(
-      alignment: BarChartAlignment.spaceAround,
+      alignment: groupedData.length <= 4
+          ? BarChartAlignment.spaceAround
+          : BarChartAlignment.spaceBetween,
       maxY: _roundToNearest200(maxSales),
       backgroundColor: Colors.transparent,
       barTouchData: BarTouchData(
         touchTooltipData: BarTouchTooltipData(
-          getTooltipColor: (_) => Colors.grey.shade800,
+          getTooltipColor: (_) => ColorSet.primary,
           getTooltipItem: (group, groupIndex, rod, rodIndex) {
             final value = rod.toY.round();
             return BarTooltipItem(
@@ -210,9 +196,9 @@ class SalesBarChart extends ConsumerWidget {
                     axisSide: meta.axisSide,
                     child: Text(
                       labels[index],
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 11,
-                        color: Colors.grey.shade600,
+                        color: POSColors.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -235,9 +221,9 @@ class SalesBarChart extends ConsumerWidget {
                 axisSide: meta.axisSide,
                 child: Text(
                   'P${NumberFormat.compact().format(value)}',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 10,
-                    color: Colors.grey.shade600,
+                    color: POSColors.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -251,7 +237,7 @@ class SalesBarChart extends ConsumerWidget {
       gridData: FlGridData(
         drawVerticalLine: false,
         getDrawingHorizontalLine: (value) {
-          return FlLine(color: Colors.grey.shade200, strokeWidth: 1, dashArray: [5, 5]);
+          return const FlLine(color: POSColors.borderSubtle, strokeWidth: 1, dashArray: [5, 5]);
         },
       ),
       borderData: FlBorderData(show: false),
@@ -260,12 +246,11 @@ class SalesBarChart extends ConsumerWidget {
             final index = groupedData.keys.toList().indexOf(entry.key);
             return BarChartGroupData(
               x: index,
-              barsSpace: groupedData.length > 10 ? 4.0 : 2.0,
               barRods: [
                 BarChartRodData(
                   toY: entry.value,
                   color: _getBarColor(index),
-                  width: groupedData.length > 10 ? 30 : 100,
+                  width: barWidth,
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
                   borderSide: BorderSide(
                     color: _getBarColor(index).withValues(alpha: 0.8),
@@ -279,11 +264,11 @@ class SalesBarChart extends ConsumerWidget {
   }
 
   Color _getBarColor(int index) {
-    final colors = [
-      Colors.blue.shade600,
-      Colors.indigo.shade600,
-      Colors.purple.shade600,
-      Colors.pink.shade600,
+    const colors = [
+      ColorSet.primary,
+      ColorSet.tertiary,
+      ColorSet.secondary,
+      Color(0xFF4DAFC0),
     ];
     return colors[index % colors.length];
   }

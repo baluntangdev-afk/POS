@@ -1,0 +1,7 @@
+
+# FVM Version Cache
+.fvm/
+
+# Superpowers brainstorming companion (local scratch)
+.superpowers/
+.worktrees/

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { SalesOrder } from '../../sales-orders/entities/sales-order.entity';
 import { SalesOrderItem } from '../../sales-orders/entities/sales-order-item.entity';
+import { SalesOrderStatus } from '../../sales-orders/sales-orders.enum';
 import { SalesQueryDto } from '../dto/sales-query.dto';
 import { SalesResponseDto } from '../dto/sales-response.dto';
 import { SalesReportMapper } from '../mapper/sales-report.mapper';
@@ -31,9 +32,11 @@ export class TotalReportService extends BaseReportService<SalesQueryDto, SalesRe
       .createQueryBuilder('so')
       .select('SUM(so.final_total_amount)', 'totalSales')
       .addSelect('SUM(so.discount_amount)', 'totalDiscount')
-      .addSelect('SUM(refund.total_refund_amount)', 'totalRefunds')
-      .addSelect('COUNT(so.id)', 'totalTransactions')
-      .leftJoin('so.refund', 'refund');
+      .addSelect(
+        `SUM(COALESCE((SELECT SUM(r.total_refund_amount) FROM refunds r WHERE r.original_sales_order_id = so.id), 0))`,
+        'totalRefunds',
+      )
+      .addSelect('COUNT(so.id)', 'totalTransactions');
 
     this.applyDateFilter(soQueryBuilder, query);
 
@@ -44,14 +47,25 @@ export class TotalReportService extends BaseReportService<SalesQueryDto, SalesRe
 
     this.applyDateFilter(soiQueryBuilder, query);
 
-    const [soQueryResult, soiQueryResult] = await Promise.all([
+    const voidedQueryBuilder = this.salesOrderRepository
+      .createQueryBuilder('so')
+      .select('COUNT(so.id)', 'totalVoidedTransactions')
+      .addSelect('SUM(so.final_total_amount)', 'totalVoidedAmount')
+      .andWhere('so.status = :voidedStatus', { voidedStatus: SalesOrderStatus.CANCELLED });
+
+    this.applyVoidedDateFilter(voidedQueryBuilder, query);
+
+    const [soQueryResult, soiQueryResult, voidedQueryResult] = await Promise.all([
       soQueryBuilder.getRawOne(),
       soiQueryBuilder.getRawOne<{ totalItems: string }>(),
+      voidedQueryBuilder.getRawOne(),
     ]);
 
     return SalesReportMapper.toDto({
       ...soQueryResult,
       totalItems: soiQueryResult?.totalItems ?? '0',
+      totalVoidedTransactions: voidedQueryResult?.totalVoidedTransactions ?? '0',
+      totalVoidedAmount: voidedQueryResult?.totalVoidedAmount ?? '0',
     });
   }
 
@@ -61,6 +75,22 @@ export class TotalReportService extends BaseReportService<SalesQueryDto, SalesRe
   ): void {
     qb.andWhere('so.status IN (:...statusFilter)', { statusFilter: STATUS_FILTER });
 
+    if (query.startDate && !query.endDate) {
+      qb.andWhere('so.so_date >= :startDate', { startDate: query.startDate });
+    } else if (query.endDate && !query.startDate) {
+      qb.andWhere('so.so_date <= :endDate', { endDate: query.endDate });
+    } else if (query.startDate && query.endDate) {
+      qb.andWhere('so.so_date BETWEEN :startDate AND :endDate', {
+        startDate: query.startDate,
+        endDate: query.endDate,
+      });
+    }
+  }
+
+  private applyVoidedDateFilter(
+    qb: SelectQueryBuilder<SalesOrder>,
+    query: SalesQueryDto,
+  ): void {
     if (query.startDate && !query.endDate) {
       qb.andWhere('so.so_date >= :startDate', { startDate: query.startDate });
     } else if (query.endDate && !query.startDate) {

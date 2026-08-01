@@ -6,6 +6,7 @@ import 'package:gap/gap.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../styles/color_set.dart';
+import '../theme/pos_design.dart';
 import '../widgets/button.dart';
 
 ImagePickerController useImagePickerController([Uint8List? initialValue]) {
@@ -94,37 +95,51 @@ class ImagePickerFormField extends HookWidget {
                   height: height,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: POSColors.surfaceSubtle,
                     border: Border.all(
-                      color: state.hasError ? ColorSet.danger : Colors.grey.shade300,
+                      color: state.hasError
+                          ? ColorSet.danger
+                          : POSColors.borderDefault,
+                      width: 1.5,
                     ),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
                     children: [
                       const Gap(16),
                       Expanded(
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
                           child: Image.memory(
                             effectiveController.value ?? Uint8List(0),
                             width: double.infinity,
                             height: double.infinity,
                             fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) {
-                              return Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.image, size: 48, color: Colors.grey.shade400),
-                                  const Gap(4),
-                                  Text(
-                                    'No image selected',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.grey,
-                                    ).merge(style),
+                              return Center(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.add_photo_alternate_outlined,
+                                        size: 48,
+                                        color: POSColors.iconSubtle,
+                                      ),
+                                      const Gap(8),
+                                      Text(
+                                        'No image selected',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          color: POSColors.textTertiary,
+                                          fontWeight: FontWeight.w400,
+                                        ).merge(style),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               );
                             },
                           ),
@@ -135,7 +150,7 @@ class ImagePickerFormField extends HookWidget {
                         child: Center(
                           child: Button.outlined(
                             foregroundColor:
-                                state.hasError ? ColorSet.danger : Colors.grey.shade700,
+                                state.hasError ? ColorSet.danger : POSColors.textSecondary,
                             onPressed: () async {
                               final image = await imagePicker.pickImage(
                                 source: ImageSource.gallery,

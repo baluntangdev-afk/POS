@@ -44,6 +44,8 @@ Start Postgres (e.g. `docker compose up -d postgres`), then:
 ```bash
 npm install --legacy-peer-deps
 npm run migration:up
+# Wipe all data and re-run every seeder from scratch
+npm run db:reset
 npm run seed:run
 npm run start:dev
 ```

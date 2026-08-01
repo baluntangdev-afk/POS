@@ -1,0 +1,9 @@
+#!/bin/sh
+# Block commits that introduce smart/curly quotes into installer scripts.
+# These break PowerShell and Inno Setup in ways that are very hard to debug on-site.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "be/installer/scripts/check-smart-quotes.ps1"
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "Commit blocked. Run 'cd be && npm run fix:quotes' to auto-fix."
+    exit 1
+fi

@@ -71,11 +71,27 @@ export class CreateSalesOrderMapper {
     const salesOrderItem = new SalesOrderItem();
 
     salesOrderItem.itemSequence = dto.itemSequence;
-    salesOrderItem.productVariant = new ProductVariant();
-    salesOrderItem.productVariant.id = dto.productVariantId;
-    salesOrderItem.recipe = new Recipe();
-    salesOrderItem.recipe.id = dto.recipeId;
-    salesOrderItem.description = `${dto.productVariant.name} ${dto.productVariant.product.name}`;
+
+    // Variant and recipe are set independently: a variant without a recipe (a
+    // simple CSV-imported menu item) is still a valid line item — it just
+    // carries no recipe and therefore deducts no inventory.
+    if (dto.productVariant) {
+      salesOrderItem.productVariant = new ProductVariant();
+      salesOrderItem.productVariant.id = dto.productVariantId;
+    } else {
+      salesOrderItem.productVariant = null;
+    }
+
+    if (dto.recipeId) {
+      salesOrderItem.recipe = new Recipe();
+      salesOrderItem.recipe.id = dto.recipeId;
+    } else {
+      salesOrderItem.recipe = null;
+    }
+
+    salesOrderItem.description = dto.productVariant
+      ? `${dto.productVariant.name} ${dto.productVariant.product.name}`
+      : dto.description || 'Item';
     salesOrderItem.qty = dto.quantity.toString();
     salesOrderItem.unitPrice = dto.price.toString();
 
@@ -98,9 +114,10 @@ export class CreateSalesOrderMapper {
       parseFloat(salesOrderItem.itemSubtotal ?? '0'),
     );
 
+    salesOrderItem.saleType = dto.saleType ?? null;
+    salesOrderItem.note = dto.note ?? null;
     salesOrderItem.createdBy = dto.causer;
     salesOrderItem.updatedBy = dto.causer;
-    // salesOrderItem.modifierGroups = dto.modifierGroups;
 
     return salesOrderItem;
   }
@@ -111,8 +128,12 @@ export class CreateSalesOrderMapper {
     if (dto.createSoItem) {
       salesOrderItem.itemSequence = dto.createSoItem.itemSequence;
       salesOrderItem.productVariant = dto.createSoItem.productVariant;
-      salesOrderItem.recipe = new Recipe();
-      salesOrderItem.recipe.id = dto.createSoItem.recipeId;
+      if (dto.createSoItem.recipeId) {
+        salesOrderItem.recipe = new Recipe();
+        salesOrderItem.recipe.id = dto.createSoItem.recipeId;
+      } else {
+        salesOrderItem.recipe = null;
+      }
       salesOrderItem.createdBy = dto.createSoItem.causer;
       salesOrderItem.updatedBy = dto.createSoItem.causer;
     }

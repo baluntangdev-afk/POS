@@ -31,6 +31,8 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CronJobsModule } from './cron-jobs/cron-jobs.module';
 import { ReportsModule } from './reports/reports.module';
+import { CatalogModule } from './catalog/catalog.module';
+import { PosTerminalsModule } from './pos-terminals/pos-terminals.module';
 
 @Module({
   imports: [
@@ -64,6 +66,8 @@ import { ReportsModule } from './reports/reports.module';
     MenusModule,
     CronJobsModule,
     ReportsModule,
+    CatalogModule,
+    PosTerminalsModule,
   ],
   providers: [AppConfigService],
 })

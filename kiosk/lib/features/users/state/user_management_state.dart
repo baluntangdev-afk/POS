@@ -23,7 +23,7 @@ class UserManagementPageState with UserManagementPageStateMappable {
   final IList<User> allUsers;
   final IList<User> filteredUsers;
   final String searchQuery;
-  final bool? selectedUserType;
+  final String? selectedUserType;
   final String sortColumn;
   final bool sortAscending;
 }

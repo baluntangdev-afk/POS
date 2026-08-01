@@ -19,7 +19,7 @@ sealed class Discount with DiscountMappable {
 
 @MappableClass()
 class SeniorPwdDiscount extends Discount with SeniorPwdDiscountMappable {
-  const SeniorPwdDiscount({required this.beneficiaryId});
+  const SeniorPwdDiscount({required this.beneficiaryId, required this.beneficiaryName});
 
   @override
   bool get isVatExempt => true;
@@ -30,6 +30,7 @@ class SeniorPwdDiscount extends Discount with SeniorPwdDiscountMappable {
   Decimal get rate => Decimal.fromInt(20);
 
   final String beneficiaryId;
+  final String beneficiaryName;
 
   @override
   Decimal calculateAmount(Decimal originalAmount) {

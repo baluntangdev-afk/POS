@@ -23,6 +23,10 @@ class Receipt with ReceiptMappable {
     required this.payment,
     required this.items,
     this.refunds = const IList.empty(),
+    this.refundedAmount,
+    this.isVoided = false,
+    this.voidReason,
+    this.voidedAt,
   });
 
   final String id;
@@ -34,6 +38,10 @@ class Receipt with ReceiptMappable {
   final Payment payment;
   final IList<ReceiptItem> items;
   final IList<Refund> refunds;
+  final Decimal? refundedAmount;
+  final bool isVoided;
+  final String? voidReason;
+  final DateTime? voidedAt;
 
   Decimal get grossAmount => items.fold(Decimal.zero, (total, item) => total + item.grossAmount);
 
@@ -51,6 +59,48 @@ class Receipt with ReceiptMappable {
       items.fold(Decimal.zero, (total, item) => total + item.discountAmount);
 
   Decimal get totalAmount => items.fold(Decimal.zero, (total, item) => total + item.totalAmount);
+
+  bool get hasRefunds =>
+      refunds.isNotEmpty || (refundedAmount != null && refundedAmount! > Decimal.zero);
+
+  Decimal get netTotalAmount {
+    if (refunds.isNotEmpty) {
+      final totalRefunded = refunds.fold(Decimal.zero, (sum, refund) {
+        return sum +
+            refund.items
+                .where((ri) => ri.isMain)
+                .fold(Decimal.zero, (s, ri) => s + ri.refundAmount);
+      });
+      return totalAmount - totalRefunded;
+    }
+    if (refundedAmount != null) return totalAmount - refundedAmount!;
+    return totalAmount;
+  }
+
+  Map<String, int> get refundedQuantities {
+    final result = <String, int>{};
+    for (final refund in refunds) {
+      for (final ri in refund.items) {
+        result[ri.receiptItemId] = (result[ri.receiptItemId] ?? 0) + ri.quantity;
+      }
+    }
+    return result;
+  }
+
+  bool get isFullyRefunded {
+    final mainItems = items.where((item) => item.isMain).toList();
+    if (mainItems.isEmpty || refunds.isEmpty) return false;
+    for (final mainItem in mainItems) {
+      final refunded = refunds.fold<int>(0, (sum, refund) {
+        return sum +
+            refund.items
+                .where((ri) => ri.receiptItemId == mainItem.id && ri.isMain)
+                .fold<int>(0, (s, ri) => s + ri.quantity);
+      });
+      if (refunded < mainItem.quantity) return false;
+    }
+    return true;
+  }
 
   IList<({ReceiptItem mainItem, IList<ReceiptItem> addOns})> get mainItemsWithAddOns {
     final grouped = <int, ({ReceiptItem mainItem, IList<ReceiptItem> addOns})>{};

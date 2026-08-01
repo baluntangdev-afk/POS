@@ -1,4 +1,5 @@
 import type { MigrationInterface } from 'typeorm';
+import { TestInit1770175003018 } from './migrations/1770175003018-test-init';
 import { UserEntity1770262063243 } from './migrations/1770262063243-user-entity';
 import { UserActionRelation1770277769598 } from './migrations/1770277769598-user-action-relation';
 import { UserDetails1770345160261 } from './migrations/1770345160261-user-details';
@@ -63,12 +64,36 @@ import { SoItemsVatAmountItemSubtotal1770874100000 } from './migrations/17708741
 import { PaymentsChangeForTransaction1770874200000 } from './migrations/1770874200000-payments-change-for-transaction';
 import { SalesOrdersDecimalPrecisionScale1770874300000 } from './migrations/1770874300000-sales-orders-decimal-precision-scale';
 import { AddRefundItemRelations1772524305356 } from './migrations/1772524305356-add-refund-item-relations';
+import { Catalog1779580800000 } from './migrations/1779580800000-catalog';
+import { AugmentTablesForKioskCatalog1779582000000 } from './migrations/1779582000000-augment-tables-for-kiosk-catalog';
+import { DropCatalogTables1779582100000 } from './migrations/1779582100000-drop-catalog-tables';
+import { ProductGroupModifierGroups1779582200000 } from './migrations/1779582200000-product-group-modifier-groups';
+import { SoItemsOptionalProductVariant1779582300000 } from './migrations/1779582300000-so-items-optional-product-variant';
+import { CreatePosTerminals1779583000000 } from './migrations/1779583000000-create-pos-terminals';
+import { AlterPosTerminalsKioskIdPaymentNumber1779583100000 } from './migrations/1779583100000-alter-pos-terminals-kiosk-id-payment-number';
+import { AlterPosTerminalsAddLegalName1779583200000 } from './migrations/1779583200000-alter-pos-terminals-add-legal-name';
+import { UsersPosTerminalId1779583300000 } from './migrations/1779583300000-users-pos-terminal-id';
+import { PosTerminalPaymentMethods1779583400000 } from './migrations/1779583400000-pos-terminal-payment-methods';
+import { PosTerminalPaymentMethodName1779583500000 } from './migrations/1779583500000-pos-terminal-payment-method-name';
+import { ProductVariantsPrice1779583600000 } from './migrations/1779583600000-product-variants-price';
+import { UsersRole1779583700000 } from './migrations/1779583700000-users-role';
+import { SalesOrdersVoidFields1779583800000 } from './migrations/1779583800000-sales-orders-void-fields';
+import { SalesOrdersDoneExport1779584000000 } from './migrations/1779584000000-sales-orders-done-export';
+import { SoItemsSaleTypeNote1779584100000 } from './migrations/1779584100000-so-items-sale-type-note';
+import { PaymentsMethodName1779584200000 } from './migrations/1779584200000-payments-method-name';
+import { FixAdminRole1779584300000 } from './migrations/1779584300000-fix-admin-role';
+import { ProductsUniqueNamePerGroup1779584400000 } from './migrations/1779584400000-products-unique-name-per-group';
+import { SalesOrdersDoneDailyReportAndXReading1783692405858 } from './migrations/1783692405858-sales-orders-done-daily-report-and-x-reading';
+import { CashierDailyReportsAndXReadings1783702635689 } from './migrations/1783702635689-cashier-daily-reports-and-x-readings';
+import { ZReadings1784000000000 } from './migrations/1784000000000-z-readings';
+import { SoItemsDiscountBeneficiary1785000000000 } from './migrations/1785000000000-so-items-discount-beneficiary';
 
 /**
  * Migration classes for POSBackend.exe --migrate (same as npm run migration:up).
  * Auto-synced by scripts/sync-migrations-index.js when creating or generating migrations.
  */
 export const migrations: Array<new () => MigrationInterface> = [
+  TestInit1770175003018,
   UserEntity1770262063243,
   UserActionRelation1770277769598,
   UserDetails1770345160261,
@@ -133,4 +158,27 @@ export const migrations: Array<new () => MigrationInterface> = [
   PaymentsChangeForTransaction1770874200000,
   SalesOrdersDecimalPrecisionScale1770874300000,
   AddRefundItemRelations1772524305356,
+  Catalog1779580800000,
+  AugmentTablesForKioskCatalog1779582000000,
+  DropCatalogTables1779582100000,
+  ProductGroupModifierGroups1779582200000,
+  SoItemsOptionalProductVariant1779582300000,
+  CreatePosTerminals1779583000000,
+  AlterPosTerminalsKioskIdPaymentNumber1779583100000,
+  AlterPosTerminalsAddLegalName1779583200000,
+  UsersPosTerminalId1779583300000,
+  PosTerminalPaymentMethods1779583400000,
+  PosTerminalPaymentMethodName1779583500000,
+  ProductVariantsPrice1779583600000,
+  UsersRole1779583700000,
+  SalesOrdersVoidFields1779583800000,
+  SalesOrdersDoneExport1779584000000,
+  SoItemsSaleTypeNote1779584100000,
+  PaymentsMethodName1779584200000,
+  FixAdminRole1779584300000,
+  ProductsUniqueNamePerGroup1779584400000,
+  SalesOrdersDoneDailyReportAndXReading1783692405858,
+  CashierDailyReportsAndXReadings1783702635689,
+  ZReadings1784000000000,
+  SoItemsDiscountBeneficiary1785000000000
 ];

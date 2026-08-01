@@ -7,4 +7,5 @@ export interface JwtPayloadDto {
   type: 'access' | 'refresh';
   systemAdmin: boolean;
   isPinChanged: boolean;
+  role: string;
 }

@@ -4,16 +4,16 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:intl/intl.dart';
 
-import '../../../exceptions/exception_extension.dart';
 import '../../../styles/color_set.dart';
+import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
-import '../../../validation/rules/is_email.dart';
+import '../../../theme/pos_design.dart';
 import '../../../validation/rules/is_phone.dart';
 import '../../../validation/rules/is_required.dart';
 import '../../../validation/validate.dart';
 import '../../../widgets/message_dialog.dart';
+import '../../../widgets/network_error_dialog.dart';
 import '../entities/user.dart';
 import '../state/modify_user_notifier.dart';
 import '../state/user_state.dart';
@@ -32,27 +32,19 @@ class UserFormDialog extends HookConsumerWidget {
     final firstNameController = useTextEditingController(text: user?.firstName ?? '');
     final lastNameController = useTextEditingController(text: user?.lastName ?? '');
     final middleNameController = useTextEditingController(text: user?.middleName ?? '');
-    final selectedSuffix = useState<String>(user?.suffix ?? '');
-    final emailController = useTextEditingController(text: user?.email ?? '');
     final phoneController = useTextEditingController(text: user?.phone ?? '');
-    final addressController = useTextEditingController(text: user?.address ?? '');
     final imageController = useTextEditingController(text: user?.image ?? '');
-    final selectedUserType = useState<bool>(user?.systemAdmin ?? false);
-    final selectedGender = useState<String>(user?.gender ?? '');
+    final selectedUserType = useState<String>(user?.role ?? 'user');
     final selectedStatus = useState<String>(user?.status ?? 'Active');
-    final selectedDateOfBirth = useState<DateTime?>(user?.dateOfBirth);
     final isLoading = useState(false);
     final isDialogShowing = useRef(false);
     final validationAttempted = useState(false);
 
-    // Create individual focus nodes for each text field
     final idNumberFocusNode = useFocusNode();
     final firstNameFocusNode = useFocusNode();
     final lastNameFocusNode = useFocusNode();
     final middleNameFocusNode = useFocusNode();
-    final emailFocusNode = useFocusNode();
     final phoneFocusNode = useFocusNode();
-    final addressFocusNode = useFocusNode();
 
     ref.listen(modifyUserProvider, (previous, next) {
       if (next.isLoading) {
@@ -65,7 +57,6 @@ class UserFormDialog extends HookConsumerWidget {
         return;
       }
 
-      // Dismiss loading dialog only if we actually showed one
       if (isDialogShowing.value) {
         isDialogShowing.value = false;
         Navigator.of(context, rootNavigator: true).pop();
@@ -107,7 +98,7 @@ class UserFormDialog extends HookConsumerWidget {
           }
         },
         error: (error, stackTrace) {
-          showMessageDialog(context, message: error.message, type: DialogType.error);
+          showNetworkErrorDialog(context, error: error);
         },
       );
     });
@@ -118,15 +109,11 @@ class UserFormDialog extends HookConsumerWidget {
     }
 
     Future<void> handleSubmit() async {
-      // Mark that validation was attempted (triggers rebuild to show custom field errors)
       validationAttempted.value = true;
 
-      // Validate all fields - collect all errors before returning
       final formValid = formKey.currentState!.validate();
-      final genderValid = selectedGender.value.isNotEmpty;
-      final dobValid = selectedDateOfBirth.value != null;
 
-      if (!formValid || !genderValid || !dobValid) return;
+      if (!formValid) return;
 
       isLoading.value = true;
 
@@ -137,14 +124,11 @@ class UserFormDialog extends HookConsumerWidget {
           firstName: firstNameController.text.trim(),
           lastName: lastNameController.text.trim(),
           middleName: middleNameController.text.trim(),
-          suffix: selectedSuffix.value,
-          email: emailController.text.trim(),
+          email: user?.email ?? '',
           phone: phoneController.text.trim(),
           image: imageController.text.trim(),
-          address: addressController.text.trim(),
-          gender: selectedGender.value,
-          dateOfBirth: selectedDateOfBirth.value,
-          systemAdmin: selectedUserType.value,
+          systemAdmin: selectedUserType.value == 'admin',
+          role: selectedUserType.value,
           emailVerified: user?.emailVerified ?? false,
           phoneVerified: user?.phoneVerified ?? false,
           locked: user?.locked ?? false,
@@ -158,9 +142,7 @@ class UserFormDialog extends HookConsumerWidget {
         await ref.read(modifyUserProvider.notifier).createUser(userData);
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: ColorSet.danger));
+          await showNetworkErrorDialog(context, error: e);
         }
       } finally {
         isLoading.value = false;
@@ -177,15 +159,10 @@ class UserFormDialog extends HookConsumerWidget {
           firstNameController: firstNameController,
           lastNameController: lastNameController,
           middleNameController: middleNameController,
-          selectedSuffix: selectedSuffix,
-          emailController: emailController,
           phoneController: phoneController,
-          addressController: addressController,
           imageController: imageController,
           selectedUserType: selectedUserType,
-          selectedGender: selectedGender,
           selectedStatus: selectedStatus,
-          selectedDateOfBirth: selectedDateOfBirth,
           validationAttempted: validationAttempted,
           isEditing: isEditing,
           handleSubmit: handleSubmit,
@@ -195,9 +172,7 @@ class UserFormDialog extends HookConsumerWidget {
           firstNameFocusNode: firstNameFocusNode,
           lastNameFocusNode: lastNameFocusNode,
           middleNameFocusNode: middleNameFocusNode,
-          emailFocusNode: emailFocusNode,
           phoneFocusNode: phoneFocusNode,
-          addressFocusNode: addressFocusNode,
         ),
       );
     }
@@ -206,9 +181,9 @@ class UserFormDialog extends HookConsumerWidget {
       backgroundColor: Colors.transparent,
       child: _buildLayoutContainer(
         context: context,
-        width: context.responsive.scale(700),
-        maxHeight: context.responsive.scale(900),
-        padding: const EdgeInsets.all(24),
+        width: context.responsive.value(kiosk: 700.0, tablet: 560.0, phone: double.infinity),
+        maxHeight: context.responsive.value<double>(kiosk: 900, tablet: 720, phone: 680),
+        padding: EdgeInsets.all(context.responsive.value<double>(kiosk: 24, tablet: 20, phone: 16)),
         buildFormContent: (context, edgeInsets) {
           return buildFormContent(context, edgeInsets);
         },
@@ -228,54 +203,90 @@ class UserFormDialog extends HookConsumerWidget {
       width: width,
       constraints: BoxConstraints(maxHeight: maxHeight, maxWidth: maxWidth ?? double.infinity),
       decoration: BoxDecoration(
-        color: ColorSet.light,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        boxShadow: POSShadow.elevated,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [_buildHeader(context), Flexible(child: buildFormContent(context, padding))],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(POSRadius.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [_buildHeader(context), Flexible(child: buildFormContent(context, padding))],
+        ),
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
+    final r = context.responsive;
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.symmetric(
+        horizontal: r.value<double>(kiosk: 24, tablet: 20, phone: 16),
+        vertical: r.value<double>(kiosk: 18, tablet: 16, phone: 14),
+      ),
       decoration: const BoxDecoration(
-        color: ColorSet.primary,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
+        gradient: LinearGradient(
+          colors: ColorSet.gradientBg,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
       ),
       child: Row(
         children: [
-          Icon(
-            isEditing ? Icons.edit : Icons.person_add,
-            color: ColorSet.light,
-            size: context.responsive.scale(28),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              isEditing ? 'Edit User' : 'Create New User',
-              style: TextStyle(
-                color: ColorSet.light,
-                fontSize: context.responsive.scale(24),
-                fontWeight: FontWeight.bold,
-              ),
+          Container(
+            padding: EdgeInsets.all(r.value<double>(kiosk: 10, tablet: 9, phone: 8)),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(POSRadius.sm),
+            ),
+            child: Icon(
+              isEditing ? Icons.edit_rounded : Icons.person_add_rounded,
+              color: Colors.white,
+              size: r.value<double>(kiosk: 22, tablet: 20, phone: 18),
             ),
           ),
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: Icon(Icons.close, color: ColorSet.light, size: context.responsive.scale(28)),
+          SizedBox(width: r.value<double>(kiosk: 14, tablet: 12, phone: 10)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isEditing ? 'Edit User' : 'Create New User',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: r.value<double>(kiosk: 20, tablet: 18, phone: 16),
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                Text(
+                  isEditing
+                      ? 'Update the employee information below'
+                      : 'Fill in the details to add a new employee',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Material(
+            color: Colors.white.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(POSRadius.sm),
+            child: InkWell(
+              onTap: () => Navigator.of(context).pop(),
+              borderRadius: BorderRadius.circular(POSRadius.sm),
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Icon(
+                  Icons.close_rounded,
+                  color: Colors.white,
+                  size: r.value<double>(kiosk: 22, tablet: 20, phone: 18),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -289,15 +300,10 @@ class UserFormDialog extends HookConsumerWidget {
     required TextEditingController firstNameController,
     required TextEditingController lastNameController,
     required TextEditingController middleNameController,
-    required ValueNotifier<String> selectedSuffix,
-    required TextEditingController emailController,
     required TextEditingController phoneController,
-    required TextEditingController addressController,
     required TextEditingController imageController,
-    required ValueNotifier<bool> selectedUserType,
-    required ValueNotifier<String> selectedGender,
+    required ValueNotifier<String> selectedUserType,
     required ValueNotifier<String> selectedStatus,
-    required ValueNotifier<DateTime?> selectedDateOfBirth,
     required ValueNotifier<bool> validationAttempted,
     required bool isEditing,
     required Future<void> Function() handleSubmit,
@@ -307,22 +313,22 @@ class UserFormDialog extends HookConsumerWidget {
     required FocusNode firstNameFocusNode,
     required FocusNode lastNameFocusNode,
     required FocusNode middleNameFocusNode,
-    required FocusNode emailFocusNode,
     required FocusNode phoneFocusNode,
-    required FocusNode addressFocusNode,
   }) {
     return Form(
       key: formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildRow([
+          _buildSectionLabel(context, 'Personal Information', Icons.person_outline_rounded),
+          const SizedBox(height: 12),
+          _buildResponsiveRow(context, [
             _buildTextField(
               context: context,
               controller: idNumberController,
               label: 'Employee ID',
               inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\s'))],
-              icon: Icons.badge,
+              icon: Icons.badge_rounded,
               enabled: !isEditing,
               focusNode: idNumberFocusNode,
               validator: Validate(rules: [isRequired(message: 'Employee ID is required.')]).call,
@@ -331,117 +337,65 @@ class UserFormDialog extends HookConsumerWidget {
               context: context,
               controller: firstNameController,
               label: 'First Name',
-              icon: Icons.person,
+              icon: Icons.person_rounded,
               focusNode: firstNameFocusNode,
               validator: Validate(rules: [isRequired(message: 'First name is required.')]).call,
             ),
           ]),
-          const SizedBox(height: 8),
-          _buildRow([
+          const SizedBox(height: 12),
+          _buildResponsiveRow(context, [
             _buildTextField(
               context: context,
               controller: middleNameController,
               label: 'Middle Name',
-              icon: Icons.person,
+              icon: Icons.person_rounded,
               focusNode: middleNameFocusNode,
             ),
             _buildTextField(
               context: context,
               controller: lastNameController,
               label: 'Last Name',
-              icon: Icons.person,
+              icon: Icons.person_rounded,
               focusNode: lastNameFocusNode,
               validator: Validate(rules: [isRequired(message: 'Last name is required.')]).call,
             ),
-            _buildSuffixDropdown(context, selectedSuffix, validationAttempted),
           ]),
-          const SizedBox(height: 8),
-          _buildRow([
-            _buildTextField(
-              context: context,
-              controller: emailController,
-              label: 'Email',
-              inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\s'))],
-              icon: Icons.email,
-              keyboardType: TextInputType.emailAddress,
-              focusNode: emailFocusNode,
-              validator:
-                  Validate(
-                    rules: [
-                      isRequired(message: 'Email is required.'),
-                      isEmail(message: 'Please enter a valid email address.'),
-                    ],
-                  ).call,
-            ),
-            _buildTextField(
-              context: context,
-              controller: phoneController,
-              label: 'Phone Number',
-              icon: Icons.phone,
-              keyboardType: TextInputType.phone,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              focusNode: phoneFocusNode,
-              validator:
-                  Validate(
-                    rules: [
-                      isRequired(message: 'Phone number is required.'),
-                      isPhone(message: 'Please enter a valid phone number.'),
-                    ],
-                  ).call,
-            ),
-          ]),
-          const SizedBox(height: 8),
-          _buildRow([
-            _buildTextField(
-              context: context,
-              controller: addressController,
-              label: 'Address',
-              icon: Icons.location_on,
-              focusNode: addressFocusNode,
-              validator: Validate(rules: [isRequired(message: 'Address is required.')]).call,
-            ),
-            _buildDatePickerField(
-              context: context,
-              label: 'Date of Birth',
-              icon: Icons.cake,
-              selectedDate: selectedDateOfBirth,
-              validator: (input) {
-                final date = input.toString();
-                final validator = Validate(
-                  rules: [isRequired(message: 'Date of birth is required.')],
-                );
-                return validator(date);
-              },
-              validationAttempted: validationAttempted,
-            ),
-          ]),
-          const SizedBox(height: 8),
-          _buildRow([
-            _buildPopupMenuField(
-              context: context,
-              label: 'Gender',
-              icon: Icons.wc,
-              value: selectedGender.value.isEmpty ? 'Select' : selectedGender.value,
-              items: const ['Male', 'Female', 'Other'],
-              onChanged: (value) => selectedGender.value = value,
-              validator: Validate(rules: [isRequired(message: 'Gender is required.')]).call,
-              validationAttempted: validationAttempted,
-            ),
+          const SizedBox(height: 20),
+          _buildSectionLabel(context, 'Contact Details', Icons.contact_phone_outlined),
+          const SizedBox(height: 12),
+          _buildTextField(
+            context: context,
+            controller: phoneController,
+            label: 'Phone Number',
+            icon: Icons.phone_rounded,
+            keyboardType: TextInputType.phone,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            focusNode: phoneFocusNode,
+            validator: Validate(
+              rules: [
+                isPhone(message: 'Please enter a valid phone number.'),
+              ],
+            ).call,
+          ),
+          const SizedBox(height: 20),
+          _buildSectionLabel(context, 'Account Settings', Icons.manage_accounts_rounded),
+          const SizedBox(height: 12),
+          _buildResponsiveRow(context, [
             if (isEditing)
               _buildStatusToggleField(
                 context: context,
                 label: 'Status',
-                icon: Icons.toggle_on,
+                icon: Icons.toggle_on_rounded,
                 selectedStatus: selectedStatus,
                 validationAttempted: validationAttempted,
               ),
             _buildPopupMenuField(
               context: context,
               label: 'User Type',
-              icon: Icons.security,
-              value: selectedUserType.value ? 'Admin' : 'User',
-              items: const ['User', 'Admin'],
-              onChanged: (value) => selectedUserType.value = value == 'Admin',
+              icon: Icons.security_rounded,
+              value: _roleLabel(selectedUserType.value),
+              items: const ['User', 'Supervisor', 'Admin'],
+              onChanged: (value) => selectedUserType.value = _roleValue(value),
               validationAttempted: validationAttempted,
             ),
           ]),
@@ -457,6 +411,49 @@ class UserFormDialog extends HookConsumerWidget {
     );
   }
 
+  String _roleLabel(String role) {
+    switch (role) {
+      case 'admin':
+        return 'Admin';
+      case 'supervisor':
+        return 'Supervisor';
+      default:
+        return 'User';
+    }
+  }
+
+  String _roleValue(String label) {
+    switch (label) {
+      case 'Admin':
+        return 'admin';
+      case 'Supervisor':
+        return 'supervisor';
+      default:
+        return 'user';
+    }
+  }
+
+  Widget _buildSectionLabel(BuildContext context, String label, IconData icon) {
+    final r = context.responsive;
+    return Row(
+      children: [
+        Icon(icon, size: r.value<double>(kiosk: 18, tablet: 16, phone: 15), color: ColorSet.primary),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+            fontWeight: FontWeight.w700,
+            color: ColorSet.primary,
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: Container(height: 1, color: POSColors.borderSubtle)),
+      ],
+    );
+  }
+
   Widget _buildRow(List<Widget> children) {
     final rowChildren = <Widget>[];
     for (var i = 0; i < children.length; i++) {
@@ -464,6 +461,20 @@ class UserFormDialog extends HookConsumerWidget {
       rowChildren.add(Expanded(child: children[i]));
     }
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: rowChildren);
+  }
+
+  Widget _buildResponsiveRow(BuildContext context, List<Widget> children) {
+    if (context.breakpoint.isTablet && children.length > 2) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildRow(children.sublist(0, 2)),
+          const SizedBox(height: 12),
+          _buildRow(children.sublist(2)),
+        ],
+      );
+    }
+    return _buildRow(children);
   }
 
   Widget _buildTextField({
@@ -477,6 +488,7 @@ class UserFormDialog extends HookConsumerWidget {
     String? Function(String?)? validator,
     bool enabled = true,
   }) {
+    final r = context.responsive;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -484,36 +496,32 @@ class UserFormDialog extends HookConsumerWidget {
           label,
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: ColorSet.text,
-            fontSize: context.responsive.scale(16),
+            color: POSColors.textSecondary,
+            fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         FormField<String>(
           initialValue: controller.text,
           validator: validator,
           autovalidateMode: AutovalidateMode.onUserInteraction,
-          builder:
-              (field) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    style: TextStyle(fontSize: context.responsive.scale(16)),
-                    focusNode: focusNode,
-                    controller: controller,
-                    keyboardType: keyboardType,
-                    inputFormatters: inputFormatters,
-                    enabled: enabled,
-                    decoration: _inputDecoration(
-                      context,
-                      icon,
-                    ).copyWith(errorText: field.hasError ? field.errorText : null),
-                    onChanged: (value) {
-                      field.didChange(value);
-                    },
-                  ),
-                ],
+          builder: (field) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                style: TextStyle(fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13), color: POSColors.textPrimary),
+                focusNode: focusNode,
+                controller: controller,
+                keyboardType: keyboardType,
+                inputFormatters: inputFormatters,
+                enabled: enabled,
+                decoration: _inputDecoration(context, icon).copyWith(
+                  errorText: field.hasError ? field.errorText : null,
+                ),
+                onChanged: (value) => field.didChange(value),
               ),
+            ],
+          ),
         ),
       ],
     );
@@ -532,6 +540,7 @@ class UserFormDialog extends HookConsumerWidget {
     final key = GlobalKey();
     final isSelected = items.contains(value);
     final errorText = validationAttempted.value ? validator?.call(isSelected ? value : null) : null;
+    final r = context.responsive;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -540,65 +549,90 @@ class UserFormDialog extends HookConsumerWidget {
           label,
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: ColorSet.text,
-            fontSize: context.responsive.scale(16),
+            color: POSColors.textSecondary,
+            fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 13),
           ),
         ),
-        const SizedBox(height: 8),
-        GestureDetector(
-          key: key,
-          onTap: () async {
-            final renderBox = key.currentContext!.findRenderObject()! as RenderBox;
-            final offset = renderBox.localToGlobal(Offset.zero);
-            final size = renderBox.size;
+        const SizedBox(height: 6),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            key: key,
+            onTap: () async {
+              final renderBox = key.currentContext!.findRenderObject()! as RenderBox;
+              final offset = renderBox.localToGlobal(Offset.zero);
+              final size = renderBox.size;
 
-            if (!context.mounted) return;
+              if (!context.mounted) return;
 
-            final selected = await showMenu<String>(
-              context: context,
-              position: RelativeRect.fromLTRB(
-                offset.dx,
-                offset.dy + size.height,
-                offset.dx + size.width,
-                offset.dy,
+              final selected = await showMenu<String>(
+                context: context,
+                position: RelativeRect.fromLTRB(
+                  offset.dx,
+                  offset.dy + size.height + 4,
+                  offset.dx + size.width,
+                  offset.dy,
+                ),
+                color: Colors.white,
+                elevation: 8,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(POSRadius.md),
+                ),
+                menuPadding: const EdgeInsets.symmetric(vertical: 8),
+                items: items
+                    .map(
+                      (item) => PopupMenuItem<String>(
+                        value: item,
+                        child: Text(
+                          item.isEmpty ? 'None' : item,
+                          style: TextStyle(
+                            fontWeight: item == value ? FontWeight.w700 : FontWeight.normal,
+                            color: item == value ? ColorSet.primary : POSColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              );
+
+              if (selected != null) onChanged(selected);
+            },
+            borderRadius: BorderRadius.circular(POSRadius.md),
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(
+                horizontal: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                vertical: r.value<double>(kiosk: 12, tablet: 11, phone: 10),
               ),
-              color: Colors.white,
-              menuPadding: const EdgeInsets.symmetric(vertical: 10),
-              items:
-                  items
-                      .map((item) => PopupMenuItem<String>(value: item, child: Text(item)))
-                      .toList(),
-            );
-
-            if (selected != null) {
-              onChanged(selected);
-            }
-          },
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: ColorSet.background,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color:
-                    errorText != null ? ColorSet.danger : ColorSet.primary.withValues(alpha: 0.3),
+              decoration: BoxDecoration(
+                color: POSColors.surfaceSubtle,
+                borderRadius: BorderRadius.circular(POSRadius.md),
+                border: Border.all(
+                  color: errorText != null
+                      ? ColorSet.danger
+                      : POSColors.borderDefault,
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                Icon(icon, color: ColorSet.primary, size: context.responsive.scale(23)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    value,
-                    style: TextStyle(
-                      color: value.isEmpty ? ColorSet.text.withValues(alpha: 0.5) : ColorSet.text,
+              child: Row(
+                children: [
+                  Icon(icon, color: ColorSet.primary, size: r.value<double>(kiosk: 18, tablet: 17, phone: 16)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 13),
+                        color: isSelected ? POSColors.textPrimary : POSColors.textTertiary,
+                      ),
                     ),
                   ),
-                ),
-                const Icon(Icons.arrow_drop_down, color: ColorSet.primary),
-              ],
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: POSColors.iconSubtle,
+                    size: r.value<double>(kiosk: 18, tablet: 17, phone: 16),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -606,7 +640,7 @@ class UserFormDialog extends HookConsumerWidget {
           const SizedBox(height: 4),
           Text(
             errorText,
-            style: TextStyle(color: ColorSet.danger, fontSize: context.responsive.scale(14)),
+            style: TextStyle(color: ColorSet.danger, fontSize: r.value<double>(kiosk: 12, tablet: 12, phone: 11)),
           ),
         ],
       ],
@@ -621,6 +655,7 @@ class UserFormDialog extends HookConsumerWidget {
     required ValueNotifier<bool> validationAttempted,
   }) {
     final isActive = selectedStatus.value == 'Active';
+    final r = context.responsive;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -629,182 +664,100 @@ class UserFormDialog extends HookConsumerWidget {
           label,
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: ColorSet.text,
-            fontSize: context.responsive.scale(16),
+            color: POSColors.textSecondary,
+            fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 13),
           ),
         ),
-        const SizedBox(height: 8),
-        GestureDetector(
-          onTap: () {
-            selectedStatus.value = isActive ? 'Cancelled' : 'Active';
-          },
-          child: Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.responsive.scale(5)),
-            decoration: BoxDecoration(
-              color: ColorSet.background,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: ColorSet.primary.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              children: [
-                Icon(icon, color: ColorSet.primary, size: context.responsive.scale(23)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    selectedStatus.value,
-                    style: TextStyle(
-                      color: isActive ? ColorSet.success : ColorSet.danger,
-                      fontSize: context.responsive.scale(16),
-                      fontWeight: FontWeight.w600,
+        const SizedBox(height: 6),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => selectedStatus.value = isActive ? 'Cancelled' : 'Active',
+            borderRadius: BorderRadius.circular(POSRadius.md),
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(
+                horizontal: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                vertical: r.value<double>(kiosk: 12, tablet: 11, phone: 10),
+              ),
+              decoration: BoxDecoration(
+                color: POSColors.surfaceSubtle,
+                borderRadius: BorderRadius.circular(POSRadius.md),
+                border: Border.all(color: POSColors.borderDefault),
+              ),
+              child: Row(
+                children: [
+                  Icon(icon, color: ColorSet.primary, size: r.value<double>(kiosk: 18, tablet: 17, phone: 16)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      selectedStatus.value,
+                      style: TextStyle(
+                        color: isActive ? ColorSet.success : ColorSet.danger,
+                        fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 13),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
-                SizedBox(
-                  width: context.responsive.scale(50),
-                  child: Transform.scale(
-                    scale: 0.8,
-                    child: Switch(
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      padding: EdgeInsets.zero,
-                      value: isActive,
-                      onChanged: (value) {
-                        selectedStatus.value = value ? 'Active' : 'Cancelled';
-                      },
-                      activeThumbColor: ColorSet.success,
-                      inactiveThumbColor: ColorSet.danger,
-                      inactiveTrackColor: ColorSet.danger.withValues(alpha: 0.2),
+                  SizedBox(
+                    width: r.scale(44),
+                    child: Transform.scale(
+                      scale: 0.85,
+                      child: Switch(
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        padding: EdgeInsets.zero,
+                        value: isActive,
+                        onChanged: (value) =>
+                            selectedStatus.value = value ? 'Active' : 'Cancelled',
+                        activeThumbColor: ColorSet.success,
+                        inactiveThumbColor: ColorSet.danger,
+                        inactiveTrackColor: ColorSet.danger.withValues(alpha: 0.2),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSuffixDropdown(
-    BuildContext context,
-    ValueNotifier<String> selectedSuffix,
-    ValueNotifier<bool> validationAttempted,
-  ) {
-    return _buildPopupMenuField(
-      context: context,
-      label: 'Suffix',
-      icon: Icons.short_text,
-      value: selectedSuffix.value.isEmpty ? 'Select' : selectedSuffix.value,
-      items: const ['', 'Jr.', 'Sr.', 'I', 'II', 'III', 'IV', 'V'],
-      onChanged: (value) => selectedSuffix.value = value,
-      validationAttempted: validationAttempted,
-    );
-  }
-
-  Widget _buildDatePickerField({
-    required BuildContext context,
-    required String label,
-    required IconData icon,
-    required ValueNotifier<DateTime?> selectedDate,
-    String? Function(DateTime?)? validator,
-    required ValueNotifier<bool> validationAttempted,
-  }) {
-    final errorText = validationAttempted.value ? validator?.call(selectedDate.value) : null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: ColorSet.text,
-            fontSize: context.responsive.scale(16),
-          ),
-        ),
-        const SizedBox(height: 8),
-        GestureDetector(
-          onTap: () async {
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: selectedDate.value ?? DateTime(2000),
-              firstDate: DateTime(1900),
-              lastDate: DateTime.now(),
-            );
-            if (picked != null) {
-              selectedDate.value = picked;
-            }
-          },
-          child: InputDecorator(
-            decoration: _inputDecoration(context, icon).copyWith(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color:
-                      errorText != null ? ColorSet.danger : ColorSet.primary.withValues(alpha: 0.3),
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color:
-                      errorText != null ? ColorSet.danger : ColorSet.primary.withValues(alpha: 0.3),
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: errorText != null ? ColorSet.danger : ColorSet.primary,
-                  width: 2,
-                ),
-              ),
-            ),
-            child: Text(
-              selectedDate.value != null
-                  ? DateFormat('MMM dd, yyyy').format(selectedDate.value!)
-                  : 'Select date',
-              style: TextStyle(
-                fontSize: context.responsive.scale(16),
-                color:
-                    selectedDate.value != null
-                        ? ColorSet.text
-                        : ColorSet.text.withValues(alpha: 0.5),
+                ],
               ),
             ),
           ),
         ),
-        if (errorText != null) ...[
-          const SizedBox(height: 4),
-          Text(errorText, style: const TextStyle(color: ColorSet.danger, fontSize: 12)),
-        ],
       ],
     );
   }
 
   InputDecoration _inputDecoration(BuildContext context, IconData icon) {
+    final r = context.responsive;
     return InputDecoration(
-      prefixIcon: Icon(icon, color: ColorSet.primary, size: context.responsive.scale(23)),
+      prefixIcon: Icon(icon, color: ColorSet.primary, size: r.value<double>(kiosk: 20, tablet: 18, phone: 16)),
+      filled: true,
+      fillColor: POSColors.surfaceSubtle,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: ColorSet.primary.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(POSRadius.md),
+        borderSide: const BorderSide(color: POSColors.borderDefault),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: ColorSet.primary.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(POSRadius.md),
+        borderSide: const BorderSide(color: POSColors.borderDefault),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: ColorSet.primary, width: 2),
+        borderRadius: BorderRadius.circular(POSRadius.md),
+        borderSide: const BorderSide(color: ColorSet.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(POSRadius.md),
         borderSide: const BorderSide(color: ColorSet.danger),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: ColorSet.danger, width: 2),
+        borderRadius: BorderRadius.circular(POSRadius.md),
+        borderSide: const BorderSide(color: ColorSet.danger, width: 1.5),
       ),
-      contentPadding: EdgeInsets.all(context.responsive.scale(16)),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(POSRadius.md),
+        borderSide: const BorderSide(color: POSColors.borderSubtle),
+      ),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: r.value<double>(kiosk: 16, tablet: 14, phone: 14),
+        vertical: r.value<double>(kiosk: 14, tablet: 12, phone: 12),
+      ),
     );
   }
 
@@ -814,73 +767,111 @@ class UserFormDialog extends HookConsumerWidget {
     required Future<void> Function() handleSubmit,
     required Future<void> Function() handleReset,
   }) {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton(
-            onPressed: isLoading.value ? null : () => Navigator.of(context).pop(),
-            style: OutlinedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: context.responsive.scale(20)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              side: const BorderSide(color: ColorSet.primary),
-            ),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: ColorSet.primary, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: FilledButton(
-            onPressed: isLoading.value ? null : handleSubmit,
-            style: FilledButton.styleFrom(
-              backgroundColor: ColorSet.primary,
-              padding: EdgeInsets.symmetric(vertical: context.responsive.scale(20)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child:
-                isLoading.value
-                    ? const SizedBox(
+    final r = context.responsive;
+
+    final cancelBtn = OutlinedButton(
+      onPressed: isLoading.value ? null : () => Navigator.of(context).pop(),
+      style: OutlinedButton.styleFrom(
+        padding: EdgeInsets.symmetric(vertical: r.value<double>(kiosk: 14, tablet: 13, phone: 12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.md)),
+        side: const BorderSide(color: POSColors.borderStrong),
+        foregroundColor: POSColors.textSecondary,
+      ),
+      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+    );
+
+    final submitBtn = DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: isLoading.value
+            ? null
+            : const LinearGradient(
+                colors: ColorSet.gradientBg,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        color: isLoading.value ? POSColors.borderStrong : null,
+        borderRadius: BorderRadius.circular(POSRadius.md),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(POSRadius.md),
+        child: InkWell(
+          onTap: isLoading.value ? null : handleSubmit,
+          borderRadius: BorderRadius.circular(POSRadius.md),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: r.value<double>(kiosk: 14, tablet: 13, phone: 12)),
+            child: Center(
+              child: isLoading.value
+                  ? const SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(ColorSet.light),
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
-                    : Text(
-                      isEditing ? 'Update User' : 'Create User',
-                      style: const TextStyle(color: ColorSet.light, fontWeight: FontWeight.w600),
-                    ),
-          ),
-        ),
-        if (isEditing) const SizedBox(width: 16),
-        if (isEditing)
-          Expanded(
-            child: FilledButton(
-              onPressed: handleReset,
-              style: FilledButton.styleFrom(
-                backgroundColor: ColorSet.danger,
-                padding: EdgeInsets.symmetric(vertical: context.responsive.scale(20)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child:
-                  isLoading.value
-                      ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(ColorSet.light),
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isEditing ? Icons.check_rounded : Icons.person_add_rounded,
+                          color: Colors.white,
+                          size: r.value<double>(kiosk: 16, tablet: 15, phone: 14),
                         ),
-                      )
-                      : const Text(
-                        'Reset Pin',
-                        style: TextStyle(color: ColorSet.light, fontWeight: FontWeight.w600),
-                      ),
+                        const SizedBox(width: 6),
+                        Text(
+                          isEditing ? 'Update User' : 'Create User',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
             ),
           ),
+        ),
+      ),
+    );
+
+    final resetBtn = isEditing
+        ? SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: handleReset,
+              icon: Icon(Icons.lock_reset_rounded, size: r.value<double>(kiosk: 16, tablet: 15, phone: 14)),
+              label: const Text('Reset Pin', style: TextStyle(fontWeight: FontWeight.w600)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: ColorSet.danger,
+                side: BorderSide(color: ColorSet.danger.withValues(alpha: 0.5)),
+                padding: EdgeInsets.symmetric(vertical: r.value<double>(kiosk: 14, tablet: 13, phone: 12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(POSRadius.md),
+                ),
+              ),
+            ),
+          )
+        : null;
+
+    if (context.breakpoint.isPhone) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          submitBtn,
+          const SizedBox(height: 10),
+          if (resetBtn != null) ...[resetBtn, const SizedBox(height: 10)],
+          cancelBtn,
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(child: cancelBtn),
+        const SizedBox(width: 12),
+        Expanded(child: submitBtn),
+        if (resetBtn != null) ...[const SizedBox(width: 12), Expanded(child: resetBtn)],
       ],
     );
   }

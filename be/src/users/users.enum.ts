@@ -8,3 +8,9 @@ export enum UserSuffix {
   IV = 'IV',
   V = 'V',
 }
+
+export enum UserRole {
+  USER = 'user',
+  ADMIN = 'admin',
+  SUPERVISOR = 'supervisor',
+}

@@ -36,13 +36,15 @@ export class ApplyDiscountToItemMapper {
   }
 
   /**
-   * Applies discount fields to a sales order item (mutates the item).
+   * Applies discount fields to a sales order item (mutates the item). Beneficiary fields are only
+   * set when provided (Senior Citizen/PWD discounts); otherwise they're left null.
    */
   static applyDiscountAmountsToItem(
     item: SalesOrderItem,
     itemDiscountRate: number,
     amounts: ItemDiscountAmounts,
     causer: User,
+    beneficiary?: { idNumber?: string; beneficiaryName?: string },
   ): void {
     item.itemDiscountRate = itemDiscountRate.toFixed(DECIMAL_PLACES);
     item.itemDiscountedPrice = amounts.discountedUnitPrice;
@@ -50,6 +52,8 @@ export class ApplyDiscountToItemMapper {
     item.vatAmount = amounts.vatAmount;
     item.itemSubtotal = amounts.subTotalAmount;
     item.itemTotalAmount = amounts.totalAmount;
+    item.discountBeneficiaryIdNumber = beneficiary?.idNumber ?? null;
+    item.discountBeneficiaryName = beneficiary?.beneficiaryName ?? null;
     item.updatedBy = causer;
   }
 

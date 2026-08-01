@@ -8,6 +8,7 @@ environment:
   sdk: ^3.7.2
 
 dependencies:
+  cached_network_image: ^3.4.1
   collection: ^1.19.1
   cupertino_icons: ^1.0.8
   dart_mappable: ^4.6.1
@@ -17,6 +18,9 @@ dependencies:
   esc_pos_utils_plus: ^2.0.4
   fast_immutable_collections: ^11.1.0
   ffi: ^2.1.5
+  excel:
+    path: packages/excel
+  file_picker: ^8.1.7
   fl_chart: ^0.69.2
   flutter:
     sdk: flutter
@@ -34,6 +38,8 @@ dependencies:
   json_annotation: ^4.9.0
   mime: ^2.0.0
   multicast_dns: ^0.3.3
+  permission_handler: ^11.0.0
+  share_plus: ^10.0.0
   shared_preferences: ^2.5.4
   vector_graphics: ^1.1.19
   win32: ^5.15.0
@@ -59,6 +65,9 @@ flutter:
     - assets/images/svg/
     - assets/images/png/
     - assets/fonts/
+
+dependency_overrides:
+  archive: ^4.0.7
 
 flutter_gen:
   output: lib/gen/

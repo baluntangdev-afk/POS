@@ -19,6 +19,7 @@ export class PaymentDetailsToPaymentMapper {
     payment.paymentMethod = dto.method;
     payment.paymentDate = new Date();
     payment.transactionReference = dto.transactionReference ?? null;
+    payment.paymentMethodName = dto.paymentMethodName ?? null;
 
     return payment;
   }

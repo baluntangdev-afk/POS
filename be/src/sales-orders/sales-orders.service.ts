@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { User } from '../users/entities/user.entity';
+import { UserRole } from '../users/users.enum';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SalesOrder } from './entities/sales-order.entity';
-import { In, Repository, FindOptionsWhere, Between } from 'typeorm';
+import { Refund } from '../refunds/entities/refund.entity';
+import { In, Repository, FindOptionsWhere, Between, ILike } from 'typeorm';
 import { SalesOrderStatus } from './sales-orders.enum';
 import { CreateSalesOrderService } from './services/create-sales-order.service';
 import { CreateSalesOrderDto } from './dto/create-sales-order/create-sales-order.dto';
@@ -23,6 +25,8 @@ export class SalesOrdersService {
     private readonly salesOrderRepository: Repository<SalesOrder>,
     @InjectRepository(SalesOrderItem)
     private readonly salesOrderItemRepository: Repository<SalesOrderItem>,
+    @InjectRepository(Refund)
+    private readonly refundRepository: Repository<Refund>,
     private readonly productsService: ProductsService,
     private readonly createSalesOrderService: CreateSalesOrderService,
     private readonly appendSalesOrderItemService: AppendSalesOrderItemService,
@@ -30,8 +34,9 @@ export class SalesOrdersService {
 
   async findAll(
     query: SalesOrderQueryDto,
+    currentUser: User,
   ): Promise<PaginatedResult<SalesOrderWithItemsResponseDto>> {
-    const { page, limit, sort, soNumber, soDate, soType, createdBy, status } = query;
+    const { page, limit, sort, search, soDate, soType, createdBy, status } = query;
     const skip = (page - 1) * limit;
 
     const SALES_ORDER_SORTABLE_FIELDS: (keyof SalesOrder)[] = [
@@ -48,28 +53,45 @@ export class SalesOrdersService {
       defaultOrder: { id: 'DESC' },
     });
 
-    const where: FindOptionsWhere<SalesOrder> = {};
+    const baseWhere: FindOptionsWhere<SalesOrder> = {};
 
-    if (soNumber) {
-      where.soNumber = soNumber;
-    }
-
-    if (soDate) {
+    // A search term takes precedence over the date filter so a stale date
+    // pill doesn't hide results while the user is actively searching.
+    if (soDate && !search) {
       const startDate = dayjs(soDate).startOf('day').toDate();
       const endDate = dayjs(soDate).endOf('day').toDate();
-      where.soDate = Between(startDate, endDate);
+      baseWhere.soDate = Between(startDate, endDate);
     }
 
     if (soType) {
-      where.soType = soType;
+      baseWhere.soType = soType;
     }
 
-    if (createdBy) {
-      where.createdBy = { id: createdBy };
+    const canSeeAll =
+      currentUser.systemAdmin ||
+      currentUser.role === UserRole.ADMIN ||
+      currentUser.role === UserRole.SUPERVISOR;
+
+    if (!canSeeAll) {
+      baseWhere.createdBy = { id: currentUser.id };
+    } else if (createdBy) {
+      baseWhere.createdBy = { id: createdBy };
     }
 
     if (status) {
-      where.status = status;
+      baseWhere.status = status;
+    }
+
+    // Search matches either the sales order number or the cashier's first/last
+    // name; each branch keeps the same AND-ed scoping conditions from baseWhere.
+    let where: FindOptionsWhere<SalesOrder> | FindOptionsWhere<SalesOrder>[] = baseWhere;
+    if (search) {
+      const createdByWhere = (baseWhere.createdBy as FindOptionsWhere<User>) ?? {};
+      where = [
+        { ...baseWhere, soNumber: ILike(`%${search}%`) },
+        { ...baseWhere, createdBy: { ...createdByWhere, firstName: ILike(`%${search}%`) } },
+        { ...baseWhere, createdBy: { ...createdByWhere, lastName: ILike(`%${search}%`) } },
+      ];
     }
 
     const [salesOrders, total] = await this.salesOrderRepository.findAndCount({
@@ -89,6 +111,8 @@ export class SalesOrdersService {
         taxAmount: true,
         totalAmount: true,
         finalTotalAmount: true,
+        voidReason: true,
+        voidedAt: true,
         createdBy: { id: true },
         salesOrderItems: {
           id: true,
@@ -104,10 +128,15 @@ export class SalesOrdersService {
           itemSubtotal: true,
           itemTotalAmount: true,
           status: true,
+          saleType: true,
+          note: true,
+          discountBeneficiaryIdNumber: true,
+          discountBeneficiaryName: true,
           productVariant: { id: true },
           recipe: { id: true },
           uom: { id: true },
           recipeItem: { id: true },
+          salesOrderDiscount: { id: true, discount: { id: true, name: true } },
         },
       },
       relations: {
@@ -117,11 +146,15 @@ export class SalesOrdersService {
           recipe: true,
           uom: true,
           recipeItem: true,
+          salesOrderDiscount: { discount: true },
         },
       },
     });
 
-    const data = salesOrders.map(SalesOrderWithItemsMapper.toResponse);
+    const refundAmounts = await this.getRefundAmountsBySoIds(salesOrders.map((so) => so.id));
+    const data = salesOrders.map((so) =>
+      SalesOrderWithItemsMapper.toResponse(so, refundAmounts.get(so.id) ?? 0),
+    );
 
     return { data, total, page, limit };
   }
@@ -156,6 +189,8 @@ export class SalesOrdersService {
         taxAmount: true,
         totalAmount: true,
         finalTotalAmount: true,
+        voidReason: true,
+        voidedAt: true,
         createdBy: { id: true },
         salesOrderItems: {
           id: true,
@@ -171,20 +206,29 @@ export class SalesOrdersService {
           itemSubtotal: true,
           itemTotalAmount: true,
           status: true,
-          productVariant: { id: true },
+          saleType: true,
+          note: true,
+          discountBeneficiaryIdNumber: true,
+          discountBeneficiaryName: true,
+          productVariant: {
+            id: true,
+            product: { id: true, productGroup: { id: true, name: true } },
+          },
           recipe: { id: true },
           uom: { id: true },
           recipeItem: { id: true },
+          salesOrderDiscount: { id: true, discount: { id: true, name: true } },
         },
       },
       where: { id },
       relations: {
         createdBy: true,
         salesOrderItems: {
-          productVariant: true,
+          productVariant: { product: { productGroup: true } },
           recipe: true,
           uom: true,
           recipeItem: true,
+          salesOrderDiscount: { discount: true },
         },
       },
       order: { salesOrderItems: { itemSequence: 'ASC' } },
@@ -194,7 +238,8 @@ export class SalesOrdersService {
       throw new NotFoundException('Sales order not found');
     }
 
-    return SalesOrderWithItemsMapper.toResponse(salesOrder);
+    const refundAmounts = await this.getRefundAmountsBySoIds([id]);
+    return SalesOrderWithItemsMapper.toResponse(salesOrder, refundAmounts.get(id) ?? 0);
   }
 
   async findOneItem(id: string, itemId: string): Promise<ProductDetailsDto> {
@@ -220,16 +265,17 @@ export class SalesOrdersService {
     });
     const addOnNames = new Set(salesOrderItemAddon.map((addon) => addon.description));
 
+    if (!salesOrderItem.productVariant) {
+      throw new NotFoundException('Product variant not found for this sales order item');
+    }
+
     const productDetails = await this.productsService.findOne(
       salesOrderItem.productVariant.product.id,
     );
 
-    productDetails.variants.forEach((variant) => {
-      variant.isSelected = variant.id === salesOrderItem.productVariant.id;
-      variant.modifierGroups.forEach((modifierGroup) => {
-        modifierGroup.options.forEach((option) => {
-          option.isSelected = addOnNames.has(option.name);
-        });
+    productDetails.modifierGroups.forEach((modifierGroup) => {
+      modifierGroup.options.forEach((option) => {
+        option.isSelected = addOnNames.has(option.name);
       });
     });
 
@@ -254,6 +300,19 @@ export class SalesOrdersService {
         status: In([SalesOrderStatus.PENDING, SalesOrderStatus.PREPARING]),
       },
     });
+  }
+
+  private async getRefundAmountsBySoIds(soIds: string[]): Promise<Map<string, number>> {
+    if (soIds.length === 0) return new Map();
+    const rows = await this.refundRepository
+      .createQueryBuilder('r')
+      .innerJoin('r.originalSalesOrder', 'so')
+      .select('so.id', 'soId')
+      .addSelect('SUM(r.totalRefundAmount)', 'total')
+      .where('so.id IN (:...ids)', { ids: soIds })
+      .groupBy('so.id')
+      .getRawMany<{ soId: string; total: string }>();
+    return new Map(rows.map((r) => [r.soId, parseFloat(r.total ?? '0')]));
   }
 
   async upsert(dto: CreateSalesOrderDto, causer: User): Promise<SalesOrderWithItemsMapper> {

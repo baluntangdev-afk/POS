@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/widgets/popup_menu_form_field.dart';
 import '../../auth/entities/user_entity.dart';
 import '../../auth/state/auth_providers.dart';
 
@@ -61,11 +62,11 @@ class _RefundAuthDialogState extends ConsumerState<RefundAuthDialog> {
               child: CircularProgressIndicator(),
             ),
             error: (e, _) => Text('Failed to load authorizers: $e'),
-            data: (authorizers) => DropdownButtonFormField<UserEntity>(
+            data: (authorizers) => PopupMenuFormField<UserEntity>(
               initialValue: _selectedAuthorizer,
               decoration: const InputDecoration(labelText: 'Authorizer'),
               items: authorizers
-                  .map((u) => DropdownMenuItem(value: u, child: Text('${u.name} (${u.role})')))
+                  .map((u) => PopupMenuFormFieldItem(value: u, child: Text('${u.name} (${u.role})')))
                   .toList(),
               onChanged: (u) => setState(() {
                 _selectedAuthorizer = u;

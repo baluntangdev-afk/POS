@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/popup_menu_form_field.dart';
 import '../../auth/entities/user_entity.dart';
 import '../../auth/state/auth_providers.dart';
 import '../../ordering/use_cases/void_sale.dart';
@@ -188,12 +189,12 @@ class VoidTransactionDialog extends HookConsumerWidget {
                       ),
                       error: (e, _) => Text('Failed to load authorizers: $e',
                           style: AppTextStyles.bodySm.copyWith(color: AppColors.error)),
-                      data: (authorizers) => DropdownButtonFormField<UserEntity>(
+                      data: (authorizers) => PopupMenuFormField<UserEntity>(
                         initialValue: selectedAuthorizer.value,
                         decoration: const InputDecoration(labelText: 'Authorizer'),
                         items: authorizers
                             .map((u) =>
-                                DropdownMenuItem(value: u, child: Text('${u.name} (${u.role})')))
+                                PopupMenuFormFieldItem(value: u, child: Text('${u.name} (${u.role})')))
                             .toList(),
                         onChanged: (u) => selectedAuthorizer.value = u,
                       ),

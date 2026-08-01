@@ -3,6 +3,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/widgets/popup_menu_form_field.dart';
 import '../entities/payment_method_type.dart';
 import '../state/store_info_notifier.dart';
 
@@ -88,11 +89,11 @@ class PaymentMethodFormDialog extends HookConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DropdownButtonFormField<PaymentMethodType>(
+            PopupMenuFormField<PaymentMethodType>(
               initialValue: currentType,
               decoration: const InputDecoration(labelText: 'Payment Method'),
               items: availableMethods
-                  .map((t) => DropdownMenuItem(value: t, child: Text(t.label)))
+                  .map((t) => PopupMenuFormFieldItem(value: t, child: Text(t.label)))
                   .toList(),
               onChanged: (t) {
                 if (t == null) return;

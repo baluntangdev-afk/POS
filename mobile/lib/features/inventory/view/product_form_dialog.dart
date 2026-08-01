@@ -10,6 +10,7 @@ import '../../../core/services/image_storage_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/popup_menu_form_field.dart';
 import '../entities/inventory_product.dart';
 import '../state/inventory_notifier.dart';
 
@@ -275,11 +276,11 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
                   },
                 ),
                 const Gap(AppSpacing.md),
-                DropdownButtonFormField<int>(
+                PopupMenuFormField<int>(
                   initialValue: _selectedGroupId,
                   decoration: const InputDecoration(labelText: 'Category'),
                   items: groups
-                      .map((g) => DropdownMenuItem(value: g.id, child: Text(g.name)))
+                      .map((g) => PopupMenuFormFieldItem(value: g.id, child: Text(g.name)))
                       .toList(),
                   onChanged: (v) => setState(() => _selectedGroupId = v),
                   validator: (v) => v == null ? 'Category is required' : null,

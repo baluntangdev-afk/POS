@@ -145,6 +145,11 @@ class XReadingReprintScreen extends ConsumerWidget {
               ),
             )
             .toList();
+    final discounts =
+        (jsonDecode(row.discountsJson) as List)
+            .map((e) => NameAmount(name: e['name'] as String, amount: (e['amount'] as num).toDouble()))
+            .toList();
+    final paymentLedgers = PaymentLedger.decodeList(row.paymentLedgersJson);
 
     return XReadingData(
       id: row.id,
@@ -158,6 +163,16 @@ class XReadingReprintScreen extends ConsumerWidget {
       refundedCount: row.refundedCount,
       paymentBreakdown: paymentBreakdown,
       topProducts: topProducts,
+      paymentLedgers: paymentLedgers,
+      discounts: discounts,
+      totalDiscounts: row.totalDiscounts,
+      vatableSales: row.vatableSales,
+      vatAmount: row.vatAmount,
+      vatExemptSales: row.vatExemptSales,
+      averageSale: row.averageSale,
+      highestSale: row.highestSale,
+      lowestSale: row.lowestSale,
+      cashCollected: row.cashCollected,
     );
   }
 }

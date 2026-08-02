@@ -84,8 +84,6 @@ void main() {
           closedByName: 'Ana',
           authorizedByUserId: 0,
           authorizedByName: 'Supervisor',
-          beginningBalance: 500,
-          endingBalance: 800,
         );
 
     final after = container.read(zReadingProvider).value!;
@@ -100,8 +98,10 @@ void main() {
     expect(history.first.zCounter, 1);
     expect(history.first.totalSales, 300);
     expect(history.first.authorizedByName, 'Supervisor');
-    expect(history.first.beginningBalance, 500);
-    expect(history.first.endingBalance, 800);
+    // No prior Z-Reading exists, so beginningBalance starts at 0 and
+    // endingBalance is the cumulative running total (0 + totalSales).
+    expect(history.first.beginningBalance, 0);
+    expect(history.first.endingBalance, 300);
     expect(adminId, isPositive); // admin seeded for realism, not directly asserted further
   });
 }

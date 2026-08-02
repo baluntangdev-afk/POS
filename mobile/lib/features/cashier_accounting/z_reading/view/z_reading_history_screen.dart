@@ -148,6 +148,11 @@ class ZReadingReprintScreen extends ConsumerWidget {
               ),
             )
             .toList();
+    final discounts =
+        (jsonDecode(row.discountsJson) as List)
+            .map((e) => NameAmount(name: e['name'] as String, amount: (e['amount'] as num).toDouble()))
+            .toList();
+    final paymentLedgers = PaymentLedger.decodeList(row.paymentLedgersJson);
 
     return ZReadingData(
       id: row.id,
@@ -171,7 +176,9 @@ class ZReadingReprintScreen extends ConsumerWidget {
       cashCollected: row.cashCollected,
       totalQtySold: row.totalQtySold,
       paymentBreakdown: paymentBreakdown,
+      paymentLedgers: paymentLedgers,
       salesByCashier: salesByCashier,
+      discounts: discounts,
     );
   }
 }

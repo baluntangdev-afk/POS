@@ -28,4 +28,6 @@ class ZReadingsTable extends Table {
   IntColumn get totalQtySold => integer()();
   TextColumn get paymentBreakdownJson => text()();
   TextColumn get salesByCashierJson => text()();
+  TextColumn get discountsJson => text().withDefault(const Constant('[]'))();
+  TextColumn get paymentLedgersJson => text().withDefault(const Constant('[]'))();
 }

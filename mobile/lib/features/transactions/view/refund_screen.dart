@@ -99,11 +99,11 @@ class RefundScreen extends ConsumerWidget {
       return;
     }
 
-    final authorized = await showDialog<bool>(
+    final authorized = await showDialog<RefundAuthResult>(
       context: context,
       builder: (_) => const RefundAuthDialog(),
     );
-    if (authorized != true || !context.mounted) return;
+    if (authorized == null || !context.mounted) return;
 
     try {
       await ref.read(refundProvider(saleId).notifier).confirmRefund();

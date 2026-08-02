@@ -6266,6 +6266,126 @@ class $XReadingsTableTable extends XReadingsTable
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _discountsJsonMeta = const VerificationMeta(
+    'discountsJson',
+  );
+  @override
+  late final GeneratedColumn<String> discountsJson = GeneratedColumn<String>(
+    'discounts_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _totalDiscountsMeta = const VerificationMeta(
+    'totalDiscounts',
+  );
+  @override
+  late final GeneratedColumn<double> totalDiscounts = GeneratedColumn<double>(
+    'total_discounts',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _vatableSalesMeta = const VerificationMeta(
+    'vatableSales',
+  );
+  @override
+  late final GeneratedColumn<double> vatableSales = GeneratedColumn<double>(
+    'vatable_sales',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _vatAmountMeta = const VerificationMeta(
+    'vatAmount',
+  );
+  @override
+  late final GeneratedColumn<double> vatAmount = GeneratedColumn<double>(
+    'vat_amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _vatExemptSalesMeta = const VerificationMeta(
+    'vatExemptSales',
+  );
+  @override
+  late final GeneratedColumn<double> vatExemptSales = GeneratedColumn<double>(
+    'vat_exempt_sales',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _averageSaleMeta = const VerificationMeta(
+    'averageSale',
+  );
+  @override
+  late final GeneratedColumn<double> averageSale = GeneratedColumn<double>(
+    'average_sale',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _highestSaleMeta = const VerificationMeta(
+    'highestSale',
+  );
+  @override
+  late final GeneratedColumn<double> highestSale = GeneratedColumn<double>(
+    'highest_sale',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _lowestSaleMeta = const VerificationMeta(
+    'lowestSale',
+  );
+  @override
+  late final GeneratedColumn<double> lowestSale = GeneratedColumn<double>(
+    'lowest_sale',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _cashCollectedMeta = const VerificationMeta(
+    'cashCollected',
+  );
+  @override
+  late final GeneratedColumn<double> cashCollected = GeneratedColumn<double>(
+    'cash_collected',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _paymentLedgersJsonMeta =
+      const VerificationMeta('paymentLedgersJson');
+  @override
+  late final GeneratedColumn<String> paymentLedgersJson =
+      GeneratedColumn<String>(
+        'payment_ledgers_json',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('[]'),
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -6280,6 +6400,16 @@ class $XReadingsTableTable extends XReadingsTable
     refundedCount,
     paymentBreakdownJson,
     topProductsJson,
+    discountsJson,
+    totalDiscounts,
+    vatableSales,
+    vatAmount,
+    vatExemptSales,
+    averageSale,
+    highestSale,
+    lowestSale,
+    cashCollected,
+    paymentLedgersJson,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -6408,6 +6538,90 @@ class $XReadingsTableTable extends XReadingsTable
     } else if (isInserting) {
       context.missing(_topProductsJsonMeta);
     }
+    if (data.containsKey('discounts_json')) {
+      context.handle(
+        _discountsJsonMeta,
+        discountsJson.isAcceptableOrUnknown(
+          data['discounts_json']!,
+          _discountsJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('total_discounts')) {
+      context.handle(
+        _totalDiscountsMeta,
+        totalDiscounts.isAcceptableOrUnknown(
+          data['total_discounts']!,
+          _totalDiscountsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('vatable_sales')) {
+      context.handle(
+        _vatableSalesMeta,
+        vatableSales.isAcceptableOrUnknown(
+          data['vatable_sales']!,
+          _vatableSalesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('vat_amount')) {
+      context.handle(
+        _vatAmountMeta,
+        vatAmount.isAcceptableOrUnknown(data['vat_amount']!, _vatAmountMeta),
+      );
+    }
+    if (data.containsKey('vat_exempt_sales')) {
+      context.handle(
+        _vatExemptSalesMeta,
+        vatExemptSales.isAcceptableOrUnknown(
+          data['vat_exempt_sales']!,
+          _vatExemptSalesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('average_sale')) {
+      context.handle(
+        _averageSaleMeta,
+        averageSale.isAcceptableOrUnknown(
+          data['average_sale']!,
+          _averageSaleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('highest_sale')) {
+      context.handle(
+        _highestSaleMeta,
+        highestSale.isAcceptableOrUnknown(
+          data['highest_sale']!,
+          _highestSaleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('lowest_sale')) {
+      context.handle(
+        _lowestSaleMeta,
+        lowestSale.isAcceptableOrUnknown(data['lowest_sale']!, _lowestSaleMeta),
+      );
+    }
+    if (data.containsKey('cash_collected')) {
+      context.handle(
+        _cashCollectedMeta,
+        cashCollected.isAcceptableOrUnknown(
+          data['cash_collected']!,
+          _cashCollectedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payment_ledgers_json')) {
+      context.handle(
+        _paymentLedgersJsonMeta,
+        paymentLedgersJson.isAcceptableOrUnknown(
+          data['payment_ledgers_json']!,
+          _paymentLedgersJsonMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -6477,6 +6691,56 @@ class $XReadingsTableTable extends XReadingsTable
             DriftSqlType.string,
             data['${effectivePrefix}top_products_json'],
           )!,
+      discountsJson:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}discounts_json'],
+          )!,
+      totalDiscounts:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}total_discounts'],
+          )!,
+      vatableSales:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}vatable_sales'],
+          )!,
+      vatAmount:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}vat_amount'],
+          )!,
+      vatExemptSales:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}vat_exempt_sales'],
+          )!,
+      averageSale:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}average_sale'],
+          )!,
+      highestSale:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}highest_sale'],
+          )!,
+      lowestSale:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}lowest_sale'],
+          )!,
+      cashCollected:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}cash_collected'],
+          )!,
+      paymentLedgersJson:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}payment_ledgers_json'],
+          )!,
     );
   }
 
@@ -6500,6 +6764,16 @@ class XReadingsTableData extends DataClass
   final int refundedCount;
   final String paymentBreakdownJson;
   final String topProductsJson;
+  final String discountsJson;
+  final double totalDiscounts;
+  final double vatableSales;
+  final double vatAmount;
+  final double vatExemptSales;
+  final double averageSale;
+  final double highestSale;
+  final double lowestSale;
+  final double cashCollected;
+  final String paymentLedgersJson;
   const XReadingsTableData({
     required this.id,
     required this.cashierId,
@@ -6513,6 +6787,16 @@ class XReadingsTableData extends DataClass
     required this.refundedCount,
     required this.paymentBreakdownJson,
     required this.topProductsJson,
+    required this.discountsJson,
+    required this.totalDiscounts,
+    required this.vatableSales,
+    required this.vatAmount,
+    required this.vatExemptSales,
+    required this.averageSale,
+    required this.highestSale,
+    required this.lowestSale,
+    required this.cashCollected,
+    required this.paymentLedgersJson,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -6529,6 +6813,16 @@ class XReadingsTableData extends DataClass
     map['refunded_count'] = Variable<int>(refundedCount);
     map['payment_breakdown_json'] = Variable<String>(paymentBreakdownJson);
     map['top_products_json'] = Variable<String>(topProductsJson);
+    map['discounts_json'] = Variable<String>(discountsJson);
+    map['total_discounts'] = Variable<double>(totalDiscounts);
+    map['vatable_sales'] = Variable<double>(vatableSales);
+    map['vat_amount'] = Variable<double>(vatAmount);
+    map['vat_exempt_sales'] = Variable<double>(vatExemptSales);
+    map['average_sale'] = Variable<double>(averageSale);
+    map['highest_sale'] = Variable<double>(highestSale);
+    map['lowest_sale'] = Variable<double>(lowestSale);
+    map['cash_collected'] = Variable<double>(cashCollected);
+    map['payment_ledgers_json'] = Variable<String>(paymentLedgersJson);
     return map;
   }
 
@@ -6546,6 +6840,16 @@ class XReadingsTableData extends DataClass
       refundedCount: Value(refundedCount),
       paymentBreakdownJson: Value(paymentBreakdownJson),
       topProductsJson: Value(topProductsJson),
+      discountsJson: Value(discountsJson),
+      totalDiscounts: Value(totalDiscounts),
+      vatableSales: Value(vatableSales),
+      vatAmount: Value(vatAmount),
+      vatExemptSales: Value(vatExemptSales),
+      averageSale: Value(averageSale),
+      highestSale: Value(highestSale),
+      lowestSale: Value(lowestSale),
+      cashCollected: Value(cashCollected),
+      paymentLedgersJson: Value(paymentLedgersJson),
     );
   }
 
@@ -6569,6 +6873,18 @@ class XReadingsTableData extends DataClass
         json['paymentBreakdownJson'],
       ),
       topProductsJson: serializer.fromJson<String>(json['topProductsJson']),
+      discountsJson: serializer.fromJson<String>(json['discountsJson']),
+      totalDiscounts: serializer.fromJson<double>(json['totalDiscounts']),
+      vatableSales: serializer.fromJson<double>(json['vatableSales']),
+      vatAmount: serializer.fromJson<double>(json['vatAmount']),
+      vatExemptSales: serializer.fromJson<double>(json['vatExemptSales']),
+      averageSale: serializer.fromJson<double>(json['averageSale']),
+      highestSale: serializer.fromJson<double>(json['highestSale']),
+      lowestSale: serializer.fromJson<double>(json['lowestSale']),
+      cashCollected: serializer.fromJson<double>(json['cashCollected']),
+      paymentLedgersJson: serializer.fromJson<String>(
+        json['paymentLedgersJson'],
+      ),
     );
   }
   @override
@@ -6587,6 +6903,16 @@ class XReadingsTableData extends DataClass
       'refundedCount': serializer.toJson<int>(refundedCount),
       'paymentBreakdownJson': serializer.toJson<String>(paymentBreakdownJson),
       'topProductsJson': serializer.toJson<String>(topProductsJson),
+      'discountsJson': serializer.toJson<String>(discountsJson),
+      'totalDiscounts': serializer.toJson<double>(totalDiscounts),
+      'vatableSales': serializer.toJson<double>(vatableSales),
+      'vatAmount': serializer.toJson<double>(vatAmount),
+      'vatExemptSales': serializer.toJson<double>(vatExemptSales),
+      'averageSale': serializer.toJson<double>(averageSale),
+      'highestSale': serializer.toJson<double>(highestSale),
+      'lowestSale': serializer.toJson<double>(lowestSale),
+      'cashCollected': serializer.toJson<double>(cashCollected),
+      'paymentLedgersJson': serializer.toJson<String>(paymentLedgersJson),
     };
   }
 
@@ -6603,6 +6929,16 @@ class XReadingsTableData extends DataClass
     int? refundedCount,
     String? paymentBreakdownJson,
     String? topProductsJson,
+    String? discountsJson,
+    double? totalDiscounts,
+    double? vatableSales,
+    double? vatAmount,
+    double? vatExemptSales,
+    double? averageSale,
+    double? highestSale,
+    double? lowestSale,
+    double? cashCollected,
+    String? paymentLedgersJson,
   }) => XReadingsTableData(
     id: id ?? this.id,
     cashierId: cashierId ?? this.cashierId,
@@ -6616,6 +6952,16 @@ class XReadingsTableData extends DataClass
     refundedCount: refundedCount ?? this.refundedCount,
     paymentBreakdownJson: paymentBreakdownJson ?? this.paymentBreakdownJson,
     topProductsJson: topProductsJson ?? this.topProductsJson,
+    discountsJson: discountsJson ?? this.discountsJson,
+    totalDiscounts: totalDiscounts ?? this.totalDiscounts,
+    vatableSales: vatableSales ?? this.vatableSales,
+    vatAmount: vatAmount ?? this.vatAmount,
+    vatExemptSales: vatExemptSales ?? this.vatExemptSales,
+    averageSale: averageSale ?? this.averageSale,
+    highestSale: highestSale ?? this.highestSale,
+    lowestSale: lowestSale ?? this.lowestSale,
+    cashCollected: cashCollected ?? this.cashCollected,
+    paymentLedgersJson: paymentLedgersJson ?? this.paymentLedgersJson,
   );
   XReadingsTableData copyWithCompanion(XReadingsTableCompanion data) {
     return XReadingsTableData(
@@ -6648,6 +6994,37 @@ class XReadingsTableData extends DataClass
           data.topProductsJson.present
               ? data.topProductsJson.value
               : this.topProductsJson,
+      discountsJson:
+          data.discountsJson.present
+              ? data.discountsJson.value
+              : this.discountsJson,
+      totalDiscounts:
+          data.totalDiscounts.present
+              ? data.totalDiscounts.value
+              : this.totalDiscounts,
+      vatableSales:
+          data.vatableSales.present
+              ? data.vatableSales.value
+              : this.vatableSales,
+      vatAmount: data.vatAmount.present ? data.vatAmount.value : this.vatAmount,
+      vatExemptSales:
+          data.vatExemptSales.present
+              ? data.vatExemptSales.value
+              : this.vatExemptSales,
+      averageSale:
+          data.averageSale.present ? data.averageSale.value : this.averageSale,
+      highestSale:
+          data.highestSale.present ? data.highestSale.value : this.highestSale,
+      lowestSale:
+          data.lowestSale.present ? data.lowestSale.value : this.lowestSale,
+      cashCollected:
+          data.cashCollected.present
+              ? data.cashCollected.value
+              : this.cashCollected,
+      paymentLedgersJson:
+          data.paymentLedgersJson.present
+              ? data.paymentLedgersJson.value
+              : this.paymentLedgersJson,
     );
   }
 
@@ -6665,13 +7042,23 @@ class XReadingsTableData extends DataClass
           ..write('voidedCount: $voidedCount, ')
           ..write('refundedCount: $refundedCount, ')
           ..write('paymentBreakdownJson: $paymentBreakdownJson, ')
-          ..write('topProductsJson: $topProductsJson')
+          ..write('topProductsJson: $topProductsJson, ')
+          ..write('discountsJson: $discountsJson, ')
+          ..write('totalDiscounts: $totalDiscounts, ')
+          ..write('vatableSales: $vatableSales, ')
+          ..write('vatAmount: $vatAmount, ')
+          ..write('vatExemptSales: $vatExemptSales, ')
+          ..write('averageSale: $averageSale, ')
+          ..write('highestSale: $highestSale, ')
+          ..write('lowestSale: $lowestSale, ')
+          ..write('cashCollected: $cashCollected, ')
+          ..write('paymentLedgersJson: $paymentLedgersJson')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     cashierId,
     cashierName,
@@ -6684,7 +7071,17 @@ class XReadingsTableData extends DataClass
     refundedCount,
     paymentBreakdownJson,
     topProductsJson,
-  );
+    discountsJson,
+    totalDiscounts,
+    vatableSales,
+    vatAmount,
+    vatExemptSales,
+    averageSale,
+    highestSale,
+    lowestSale,
+    cashCollected,
+    paymentLedgersJson,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -6700,7 +7097,17 @@ class XReadingsTableData extends DataClass
           other.voidedCount == this.voidedCount &&
           other.refundedCount == this.refundedCount &&
           other.paymentBreakdownJson == this.paymentBreakdownJson &&
-          other.topProductsJson == this.topProductsJson);
+          other.topProductsJson == this.topProductsJson &&
+          other.discountsJson == this.discountsJson &&
+          other.totalDiscounts == this.totalDiscounts &&
+          other.vatableSales == this.vatableSales &&
+          other.vatAmount == this.vatAmount &&
+          other.vatExemptSales == this.vatExemptSales &&
+          other.averageSale == this.averageSale &&
+          other.highestSale == this.highestSale &&
+          other.lowestSale == this.lowestSale &&
+          other.cashCollected == this.cashCollected &&
+          other.paymentLedgersJson == this.paymentLedgersJson);
 }
 
 class XReadingsTableCompanion extends UpdateCompanion<XReadingsTableData> {
@@ -6716,6 +7123,16 @@ class XReadingsTableCompanion extends UpdateCompanion<XReadingsTableData> {
   final Value<int> refundedCount;
   final Value<String> paymentBreakdownJson;
   final Value<String> topProductsJson;
+  final Value<String> discountsJson;
+  final Value<double> totalDiscounts;
+  final Value<double> vatableSales;
+  final Value<double> vatAmount;
+  final Value<double> vatExemptSales;
+  final Value<double> averageSale;
+  final Value<double> highestSale;
+  final Value<double> lowestSale;
+  final Value<double> cashCollected;
+  final Value<String> paymentLedgersJson;
   const XReadingsTableCompanion({
     this.id = const Value.absent(),
     this.cashierId = const Value.absent(),
@@ -6729,6 +7146,16 @@ class XReadingsTableCompanion extends UpdateCompanion<XReadingsTableData> {
     this.refundedCount = const Value.absent(),
     this.paymentBreakdownJson = const Value.absent(),
     this.topProductsJson = const Value.absent(),
+    this.discountsJson = const Value.absent(),
+    this.totalDiscounts = const Value.absent(),
+    this.vatableSales = const Value.absent(),
+    this.vatAmount = const Value.absent(),
+    this.vatExemptSales = const Value.absent(),
+    this.averageSale = const Value.absent(),
+    this.highestSale = const Value.absent(),
+    this.lowestSale = const Value.absent(),
+    this.cashCollected = const Value.absent(),
+    this.paymentLedgersJson = const Value.absent(),
   });
   XReadingsTableCompanion.insert({
     this.id = const Value.absent(),
@@ -6743,6 +7170,16 @@ class XReadingsTableCompanion extends UpdateCompanion<XReadingsTableData> {
     required int refundedCount,
     required String paymentBreakdownJson,
     required String topProductsJson,
+    this.discountsJson = const Value.absent(),
+    this.totalDiscounts = const Value.absent(),
+    this.vatableSales = const Value.absent(),
+    this.vatAmount = const Value.absent(),
+    this.vatExemptSales = const Value.absent(),
+    this.averageSale = const Value.absent(),
+    this.highestSale = const Value.absent(),
+    this.lowestSale = const Value.absent(),
+    this.cashCollected = const Value.absent(),
+    this.paymentLedgersJson = const Value.absent(),
   }) : cashierId = Value(cashierId),
        cashierName = Value(cashierName),
        periodStart = Value(periodStart),
@@ -6767,6 +7204,16 @@ class XReadingsTableCompanion extends UpdateCompanion<XReadingsTableData> {
     Expression<int>? refundedCount,
     Expression<String>? paymentBreakdownJson,
     Expression<String>? topProductsJson,
+    Expression<String>? discountsJson,
+    Expression<double>? totalDiscounts,
+    Expression<double>? vatableSales,
+    Expression<double>? vatAmount,
+    Expression<double>? vatExemptSales,
+    Expression<double>? averageSale,
+    Expression<double>? highestSale,
+    Expression<double>? lowestSale,
+    Expression<double>? cashCollected,
+    Expression<String>? paymentLedgersJson,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -6782,6 +7229,17 @@ class XReadingsTableCompanion extends UpdateCompanion<XReadingsTableData> {
       if (paymentBreakdownJson != null)
         'payment_breakdown_json': paymentBreakdownJson,
       if (topProductsJson != null) 'top_products_json': topProductsJson,
+      if (discountsJson != null) 'discounts_json': discountsJson,
+      if (totalDiscounts != null) 'total_discounts': totalDiscounts,
+      if (vatableSales != null) 'vatable_sales': vatableSales,
+      if (vatAmount != null) 'vat_amount': vatAmount,
+      if (vatExemptSales != null) 'vat_exempt_sales': vatExemptSales,
+      if (averageSale != null) 'average_sale': averageSale,
+      if (highestSale != null) 'highest_sale': highestSale,
+      if (lowestSale != null) 'lowest_sale': lowestSale,
+      if (cashCollected != null) 'cash_collected': cashCollected,
+      if (paymentLedgersJson != null)
+        'payment_ledgers_json': paymentLedgersJson,
     });
   }
 
@@ -6798,6 +7256,16 @@ class XReadingsTableCompanion extends UpdateCompanion<XReadingsTableData> {
     Value<int>? refundedCount,
     Value<String>? paymentBreakdownJson,
     Value<String>? topProductsJson,
+    Value<String>? discountsJson,
+    Value<double>? totalDiscounts,
+    Value<double>? vatableSales,
+    Value<double>? vatAmount,
+    Value<double>? vatExemptSales,
+    Value<double>? averageSale,
+    Value<double>? highestSale,
+    Value<double>? lowestSale,
+    Value<double>? cashCollected,
+    Value<String>? paymentLedgersJson,
   }) {
     return XReadingsTableCompanion(
       id: id ?? this.id,
@@ -6812,6 +7280,16 @@ class XReadingsTableCompanion extends UpdateCompanion<XReadingsTableData> {
       refundedCount: refundedCount ?? this.refundedCount,
       paymentBreakdownJson: paymentBreakdownJson ?? this.paymentBreakdownJson,
       topProductsJson: topProductsJson ?? this.topProductsJson,
+      discountsJson: discountsJson ?? this.discountsJson,
+      totalDiscounts: totalDiscounts ?? this.totalDiscounts,
+      vatableSales: vatableSales ?? this.vatableSales,
+      vatAmount: vatAmount ?? this.vatAmount,
+      vatExemptSales: vatExemptSales ?? this.vatExemptSales,
+      averageSale: averageSale ?? this.averageSale,
+      highestSale: highestSale ?? this.highestSale,
+      lowestSale: lowestSale ?? this.lowestSale,
+      cashCollected: cashCollected ?? this.cashCollected,
+      paymentLedgersJson: paymentLedgersJson ?? this.paymentLedgersJson,
     );
   }
 
@@ -6856,6 +7334,36 @@ class XReadingsTableCompanion extends UpdateCompanion<XReadingsTableData> {
     if (topProductsJson.present) {
       map['top_products_json'] = Variable<String>(topProductsJson.value);
     }
+    if (discountsJson.present) {
+      map['discounts_json'] = Variable<String>(discountsJson.value);
+    }
+    if (totalDiscounts.present) {
+      map['total_discounts'] = Variable<double>(totalDiscounts.value);
+    }
+    if (vatableSales.present) {
+      map['vatable_sales'] = Variable<double>(vatableSales.value);
+    }
+    if (vatAmount.present) {
+      map['vat_amount'] = Variable<double>(vatAmount.value);
+    }
+    if (vatExemptSales.present) {
+      map['vat_exempt_sales'] = Variable<double>(vatExemptSales.value);
+    }
+    if (averageSale.present) {
+      map['average_sale'] = Variable<double>(averageSale.value);
+    }
+    if (highestSale.present) {
+      map['highest_sale'] = Variable<double>(highestSale.value);
+    }
+    if (lowestSale.present) {
+      map['lowest_sale'] = Variable<double>(lowestSale.value);
+    }
+    if (cashCollected.present) {
+      map['cash_collected'] = Variable<double>(cashCollected.value);
+    }
+    if (paymentLedgersJson.present) {
+      map['payment_ledgers_json'] = Variable<String>(paymentLedgersJson.value);
+    }
     return map;
   }
 
@@ -6873,7 +7381,17 @@ class XReadingsTableCompanion extends UpdateCompanion<XReadingsTableData> {
           ..write('voidedCount: $voidedCount, ')
           ..write('refundedCount: $refundedCount, ')
           ..write('paymentBreakdownJson: $paymentBreakdownJson, ')
-          ..write('topProductsJson: $topProductsJson')
+          ..write('topProductsJson: $topProductsJson, ')
+          ..write('discountsJson: $discountsJson, ')
+          ..write('totalDiscounts: $totalDiscounts, ')
+          ..write('vatableSales: $vatableSales, ')
+          ..write('vatAmount: $vatAmount, ')
+          ..write('vatExemptSales: $vatExemptSales, ')
+          ..write('averageSale: $averageSale, ')
+          ..write('highestSale: $highestSale, ')
+          ..write('lowestSale: $lowestSale, ')
+          ..write('cashCollected: $cashCollected, ')
+          ..write('paymentLedgersJson: $paymentLedgersJson')
           ..write(')'))
         .toString();
   }
@@ -8167,6 +8685,30 @@ class $ZReadingsTableTable extends ZReadingsTable
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       );
+  static const VerificationMeta _discountsJsonMeta = const VerificationMeta(
+    'discountsJson',
+  );
+  @override
+  late final GeneratedColumn<String> discountsJson = GeneratedColumn<String>(
+    'discounts_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _paymentLedgersJsonMeta =
+      const VerificationMeta('paymentLedgersJson');
+  @override
+  late final GeneratedColumn<String> paymentLedgersJson =
+      GeneratedColumn<String>(
+        'payment_ledgers_json',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('[]'),
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -8193,6 +8735,8 @@ class $ZReadingsTableTable extends ZReadingsTable
     totalQtySold,
     paymentBreakdownJson,
     salesByCashierJson,
+    discountsJson,
+    paymentLedgersJson,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -8450,6 +8994,24 @@ class $ZReadingsTableTable extends ZReadingsTable
     } else if (isInserting) {
       context.missing(_salesByCashierJsonMeta);
     }
+    if (data.containsKey('discounts_json')) {
+      context.handle(
+        _discountsJsonMeta,
+        discountsJson.isAcceptableOrUnknown(
+          data['discounts_json']!,
+          _discountsJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payment_ledgers_json')) {
+      context.handle(
+        _paymentLedgersJsonMeta,
+        paymentLedgersJson.isAcceptableOrUnknown(
+          data['payment_ledgers_json']!,
+          _paymentLedgersJsonMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -8579,6 +9141,16 @@ class $ZReadingsTableTable extends ZReadingsTable
             DriftSqlType.string,
             data['${effectivePrefix}sales_by_cashier_json'],
           )!,
+      discountsJson:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}discounts_json'],
+          )!,
+      paymentLedgersJson:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}payment_ledgers_json'],
+          )!,
     );
   }
 
@@ -8614,6 +9186,8 @@ class ZReadingsTableData extends DataClass
   final int totalQtySold;
   final String paymentBreakdownJson;
   final String salesByCashierJson;
+  final String discountsJson;
+  final String paymentLedgersJson;
   const ZReadingsTableData({
     required this.id,
     required this.zCounter,
@@ -8639,6 +9213,8 @@ class ZReadingsTableData extends DataClass
     required this.totalQtySold,
     required this.paymentBreakdownJson,
     required this.salesByCashierJson,
+    required this.discountsJson,
+    required this.paymentLedgersJson,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -8667,6 +9243,8 @@ class ZReadingsTableData extends DataClass
     map['total_qty_sold'] = Variable<int>(totalQtySold);
     map['payment_breakdown_json'] = Variable<String>(paymentBreakdownJson);
     map['sales_by_cashier_json'] = Variable<String>(salesByCashierJson);
+    map['discounts_json'] = Variable<String>(discountsJson);
+    map['payment_ledgers_json'] = Variable<String>(paymentLedgersJson);
     return map;
   }
 
@@ -8696,6 +9274,8 @@ class ZReadingsTableData extends DataClass
       totalQtySold: Value(totalQtySold),
       paymentBreakdownJson: Value(paymentBreakdownJson),
       salesByCashierJson: Value(salesByCashierJson),
+      discountsJson: Value(discountsJson),
+      paymentLedgersJson: Value(paymentLedgersJson),
     );
   }
 
@@ -8733,6 +9313,10 @@ class ZReadingsTableData extends DataClass
       salesByCashierJson: serializer.fromJson<String>(
         json['salesByCashierJson'],
       ),
+      discountsJson: serializer.fromJson<String>(json['discountsJson']),
+      paymentLedgersJson: serializer.fromJson<String>(
+        json['paymentLedgersJson'],
+      ),
     );
   }
   @override
@@ -8763,6 +9347,8 @@ class ZReadingsTableData extends DataClass
       'totalQtySold': serializer.toJson<int>(totalQtySold),
       'paymentBreakdownJson': serializer.toJson<String>(paymentBreakdownJson),
       'salesByCashierJson': serializer.toJson<String>(salesByCashierJson),
+      'discountsJson': serializer.toJson<String>(discountsJson),
+      'paymentLedgersJson': serializer.toJson<String>(paymentLedgersJson),
     };
   }
 
@@ -8791,6 +9377,8 @@ class ZReadingsTableData extends DataClass
     int? totalQtySold,
     String? paymentBreakdownJson,
     String? salesByCashierJson,
+    String? discountsJson,
+    String? paymentLedgersJson,
   }) => ZReadingsTableData(
     id: id ?? this.id,
     zCounter: zCounter ?? this.zCounter,
@@ -8816,6 +9404,8 @@ class ZReadingsTableData extends DataClass
     totalQtySold: totalQtySold ?? this.totalQtySold,
     paymentBreakdownJson: paymentBreakdownJson ?? this.paymentBreakdownJson,
     salesByCashierJson: salesByCashierJson ?? this.salesByCashierJson,
+    discountsJson: discountsJson ?? this.discountsJson,
+    paymentLedgersJson: paymentLedgersJson ?? this.paymentLedgersJson,
   );
   ZReadingsTableData copyWithCompanion(ZReadingsTableCompanion data) {
     return ZReadingsTableData(
@@ -8895,6 +9485,14 @@ class ZReadingsTableData extends DataClass
           data.salesByCashierJson.present
               ? data.salesByCashierJson.value
               : this.salesByCashierJson,
+      discountsJson:
+          data.discountsJson.present
+              ? data.discountsJson.value
+              : this.discountsJson,
+      paymentLedgersJson:
+          data.paymentLedgersJson.present
+              ? data.paymentLedgersJson.value
+              : this.paymentLedgersJson,
     );
   }
 
@@ -8924,7 +9522,9 @@ class ZReadingsTableData extends DataClass
           ..write('cashCollected: $cashCollected, ')
           ..write('totalQtySold: $totalQtySold, ')
           ..write('paymentBreakdownJson: $paymentBreakdownJson, ')
-          ..write('salesByCashierJson: $salesByCashierJson')
+          ..write('salesByCashierJson: $salesByCashierJson, ')
+          ..write('discountsJson: $discountsJson, ')
+          ..write('paymentLedgersJson: $paymentLedgersJson')
           ..write(')'))
         .toString();
   }
@@ -8955,6 +9555,8 @@ class ZReadingsTableData extends DataClass
     totalQtySold,
     paymentBreakdownJson,
     salesByCashierJson,
+    discountsJson,
+    paymentLedgersJson,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -8983,7 +9585,9 @@ class ZReadingsTableData extends DataClass
           other.cashCollected == this.cashCollected &&
           other.totalQtySold == this.totalQtySold &&
           other.paymentBreakdownJson == this.paymentBreakdownJson &&
-          other.salesByCashierJson == this.salesByCashierJson);
+          other.salesByCashierJson == this.salesByCashierJson &&
+          other.discountsJson == this.discountsJson &&
+          other.paymentLedgersJson == this.paymentLedgersJson);
 }
 
 class ZReadingsTableCompanion extends UpdateCompanion<ZReadingsTableData> {
@@ -9011,6 +9615,8 @@ class ZReadingsTableCompanion extends UpdateCompanion<ZReadingsTableData> {
   final Value<int> totalQtySold;
   final Value<String> paymentBreakdownJson;
   final Value<String> salesByCashierJson;
+  final Value<String> discountsJson;
+  final Value<String> paymentLedgersJson;
   const ZReadingsTableCompanion({
     this.id = const Value.absent(),
     this.zCounter = const Value.absent(),
@@ -9036,6 +9642,8 @@ class ZReadingsTableCompanion extends UpdateCompanion<ZReadingsTableData> {
     this.totalQtySold = const Value.absent(),
     this.paymentBreakdownJson = const Value.absent(),
     this.salesByCashierJson = const Value.absent(),
+    this.discountsJson = const Value.absent(),
+    this.paymentLedgersJson = const Value.absent(),
   });
   ZReadingsTableCompanion.insert({
     this.id = const Value.absent(),
@@ -9062,6 +9670,8 @@ class ZReadingsTableCompanion extends UpdateCompanion<ZReadingsTableData> {
     required int totalQtySold,
     required String paymentBreakdownJson,
     required String salesByCashierJson,
+    this.discountsJson = const Value.absent(),
+    this.paymentLedgersJson = const Value.absent(),
   }) : zCounter = Value(zCounter),
        periodStart = Value(periodStart),
        periodEnd = Value(periodEnd),
@@ -9110,6 +9720,8 @@ class ZReadingsTableCompanion extends UpdateCompanion<ZReadingsTableData> {
     Expression<int>? totalQtySold,
     Expression<String>? paymentBreakdownJson,
     Expression<String>? salesByCashierJson,
+    Expression<String>? discountsJson,
+    Expression<String>? paymentLedgersJson,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -9139,6 +9751,9 @@ class ZReadingsTableCompanion extends UpdateCompanion<ZReadingsTableData> {
         'payment_breakdown_json': paymentBreakdownJson,
       if (salesByCashierJson != null)
         'sales_by_cashier_json': salesByCashierJson,
+      if (discountsJson != null) 'discounts_json': discountsJson,
+      if (paymentLedgersJson != null)
+        'payment_ledgers_json': paymentLedgersJson,
     });
   }
 
@@ -9167,6 +9782,8 @@ class ZReadingsTableCompanion extends UpdateCompanion<ZReadingsTableData> {
     Value<int>? totalQtySold,
     Value<String>? paymentBreakdownJson,
     Value<String>? salesByCashierJson,
+    Value<String>? discountsJson,
+    Value<String>? paymentLedgersJson,
   }) {
     return ZReadingsTableCompanion(
       id: id ?? this.id,
@@ -9193,6 +9810,8 @@ class ZReadingsTableCompanion extends UpdateCompanion<ZReadingsTableData> {
       totalQtySold: totalQtySold ?? this.totalQtySold,
       paymentBreakdownJson: paymentBreakdownJson ?? this.paymentBreakdownJson,
       salesByCashierJson: salesByCashierJson ?? this.salesByCashierJson,
+      discountsJson: discountsJson ?? this.discountsJson,
+      paymentLedgersJson: paymentLedgersJson ?? this.paymentLedgersJson,
     );
   }
 
@@ -9273,6 +9892,12 @@ class ZReadingsTableCompanion extends UpdateCompanion<ZReadingsTableData> {
     if (salesByCashierJson.present) {
       map['sales_by_cashier_json'] = Variable<String>(salesByCashierJson.value);
     }
+    if (discountsJson.present) {
+      map['discounts_json'] = Variable<String>(discountsJson.value);
+    }
+    if (paymentLedgersJson.present) {
+      map['payment_ledgers_json'] = Variable<String>(paymentLedgersJson.value);
+    }
     return map;
   }
 
@@ -9302,7 +9927,9 @@ class ZReadingsTableCompanion extends UpdateCompanion<ZReadingsTableData> {
           ..write('cashCollected: $cashCollected, ')
           ..write('totalQtySold: $totalQtySold, ')
           ..write('paymentBreakdownJson: $paymentBreakdownJson, ')
-          ..write('salesByCashierJson: $salesByCashierJson')
+          ..write('salesByCashierJson: $salesByCashierJson, ')
+          ..write('discountsJson: $discountsJson, ')
+          ..write('paymentLedgersJson: $paymentLedgersJson')
           ..write(')'))
         .toString();
   }
@@ -15963,6 +16590,16 @@ typedef $$XReadingsTableTableCreateCompanionBuilder =
       required int refundedCount,
       required String paymentBreakdownJson,
       required String topProductsJson,
+      Value<String> discountsJson,
+      Value<double> totalDiscounts,
+      Value<double> vatableSales,
+      Value<double> vatAmount,
+      Value<double> vatExemptSales,
+      Value<double> averageSale,
+      Value<double> highestSale,
+      Value<double> lowestSale,
+      Value<double> cashCollected,
+      Value<String> paymentLedgersJson,
     });
 typedef $$XReadingsTableTableUpdateCompanionBuilder =
     XReadingsTableCompanion Function({
@@ -15978,6 +16615,16 @@ typedef $$XReadingsTableTableUpdateCompanionBuilder =
       Value<int> refundedCount,
       Value<String> paymentBreakdownJson,
       Value<String> topProductsJson,
+      Value<String> discountsJson,
+      Value<double> totalDiscounts,
+      Value<double> vatableSales,
+      Value<double> vatAmount,
+      Value<double> vatExemptSales,
+      Value<double> averageSale,
+      Value<double> highestSale,
+      Value<double> lowestSale,
+      Value<double> cashCollected,
+      Value<String> paymentLedgersJson,
     });
 
 class $$XReadingsTableTableFilterComposer
@@ -16046,6 +16693,56 @@ class $$XReadingsTableTableFilterComposer
 
   ColumnFilters<String> get topProductsJson => $composableBuilder(
     column: $table.topProductsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get discountsJson => $composableBuilder(
+    column: $table.discountsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get totalDiscounts => $composableBuilder(
+    column: $table.totalDiscounts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get vatableSales => $composableBuilder(
+    column: $table.vatableSales,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get vatAmount => $composableBuilder(
+    column: $table.vatAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get vatExemptSales => $composableBuilder(
+    column: $table.vatExemptSales,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get averageSale => $composableBuilder(
+    column: $table.averageSale,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get highestSale => $composableBuilder(
+    column: $table.highestSale,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get lowestSale => $composableBuilder(
+    column: $table.lowestSale,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get cashCollected => $composableBuilder(
+    column: $table.cashCollected,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get paymentLedgersJson => $composableBuilder(
+    column: $table.paymentLedgersJson,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -16118,6 +16815,56 @@ class $$XReadingsTableTableOrderingComposer
     column: $table.topProductsJson,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get discountsJson => $composableBuilder(
+    column: $table.discountsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get totalDiscounts => $composableBuilder(
+    column: $table.totalDiscounts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get vatableSales => $composableBuilder(
+    column: $table.vatableSales,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get vatAmount => $composableBuilder(
+    column: $table.vatAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get vatExemptSales => $composableBuilder(
+    column: $table.vatExemptSales,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get averageSale => $composableBuilder(
+    column: $table.averageSale,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get highestSale => $composableBuilder(
+    column: $table.highestSale,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get lowestSale => $composableBuilder(
+    column: $table.lowestSale,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get cashCollected => $composableBuilder(
+    column: $table.cashCollected,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get paymentLedgersJson => $composableBuilder(
+    column: $table.paymentLedgersJson,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$XReadingsTableTableAnnotationComposer
@@ -16182,6 +16929,54 @@ class $$XReadingsTableTableAnnotationComposer
     column: $table.topProductsJson,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get discountsJson => $composableBuilder(
+    column: $table.discountsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get totalDiscounts => $composableBuilder(
+    column: $table.totalDiscounts,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get vatableSales => $composableBuilder(
+    column: $table.vatableSales,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get vatAmount =>
+      $composableBuilder(column: $table.vatAmount, builder: (column) => column);
+
+  GeneratedColumn<double> get vatExemptSales => $composableBuilder(
+    column: $table.vatExemptSales,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get averageSale => $composableBuilder(
+    column: $table.averageSale,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get highestSale => $composableBuilder(
+    column: $table.highestSale,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get lowestSale => $composableBuilder(
+    column: $table.lowestSale,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get cashCollected => $composableBuilder(
+    column: $table.cashCollected,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get paymentLedgersJson => $composableBuilder(
+    column: $table.paymentLedgersJson,
+    builder: (column) => column,
+  );
 }
 
 class $$XReadingsTableTableTableManager
@@ -16237,6 +17032,16 @@ class $$XReadingsTableTableTableManager
                 Value<int> refundedCount = const Value.absent(),
                 Value<String> paymentBreakdownJson = const Value.absent(),
                 Value<String> topProductsJson = const Value.absent(),
+                Value<String> discountsJson = const Value.absent(),
+                Value<double> totalDiscounts = const Value.absent(),
+                Value<double> vatableSales = const Value.absent(),
+                Value<double> vatAmount = const Value.absent(),
+                Value<double> vatExemptSales = const Value.absent(),
+                Value<double> averageSale = const Value.absent(),
+                Value<double> highestSale = const Value.absent(),
+                Value<double> lowestSale = const Value.absent(),
+                Value<double> cashCollected = const Value.absent(),
+                Value<String> paymentLedgersJson = const Value.absent(),
               }) => XReadingsTableCompanion(
                 id: id,
                 cashierId: cashierId,
@@ -16250,6 +17055,16 @@ class $$XReadingsTableTableTableManager
                 refundedCount: refundedCount,
                 paymentBreakdownJson: paymentBreakdownJson,
                 topProductsJson: topProductsJson,
+                discountsJson: discountsJson,
+                totalDiscounts: totalDiscounts,
+                vatableSales: vatableSales,
+                vatAmount: vatAmount,
+                vatExemptSales: vatExemptSales,
+                averageSale: averageSale,
+                highestSale: highestSale,
+                lowestSale: lowestSale,
+                cashCollected: cashCollected,
+                paymentLedgersJson: paymentLedgersJson,
               ),
           createCompanionCallback:
               ({
@@ -16265,6 +17080,16 @@ class $$XReadingsTableTableTableManager
                 required int refundedCount,
                 required String paymentBreakdownJson,
                 required String topProductsJson,
+                Value<String> discountsJson = const Value.absent(),
+                Value<double> totalDiscounts = const Value.absent(),
+                Value<double> vatableSales = const Value.absent(),
+                Value<double> vatAmount = const Value.absent(),
+                Value<double> vatExemptSales = const Value.absent(),
+                Value<double> averageSale = const Value.absent(),
+                Value<double> highestSale = const Value.absent(),
+                Value<double> lowestSale = const Value.absent(),
+                Value<double> cashCollected = const Value.absent(),
+                Value<String> paymentLedgersJson = const Value.absent(),
               }) => XReadingsTableCompanion.insert(
                 id: id,
                 cashierId: cashierId,
@@ -16278,6 +17103,16 @@ class $$XReadingsTableTableTableManager
                 refundedCount: refundedCount,
                 paymentBreakdownJson: paymentBreakdownJson,
                 topProductsJson: topProductsJson,
+                discountsJson: discountsJson,
+                totalDiscounts: totalDiscounts,
+                vatableSales: vatableSales,
+                vatAmount: vatAmount,
+                vatExemptSales: vatExemptSales,
+                averageSale: averageSale,
+                highestSale: highestSale,
+                lowestSale: lowestSale,
+                cashCollected: cashCollected,
+                paymentLedgersJson: paymentLedgersJson,
               ),
           withReferenceMapper:
               (p0) =>
@@ -16809,6 +17644,8 @@ typedef $$ZReadingsTableTableCreateCompanionBuilder =
       required int totalQtySold,
       required String paymentBreakdownJson,
       required String salesByCashierJson,
+      Value<String> discountsJson,
+      Value<String> paymentLedgersJson,
     });
 typedef $$ZReadingsTableTableUpdateCompanionBuilder =
     ZReadingsTableCompanion Function({
@@ -16836,6 +17673,8 @@ typedef $$ZReadingsTableTableUpdateCompanionBuilder =
       Value<int> totalQtySold,
       Value<String> paymentBreakdownJson,
       Value<String> salesByCashierJson,
+      Value<String> discountsJson,
+      Value<String> paymentLedgersJson,
     });
 
 class $$ZReadingsTableTableFilterComposer
@@ -16964,6 +17803,16 @@ class $$ZReadingsTableTableFilterComposer
 
   ColumnFilters<String> get salesByCashierJson => $composableBuilder(
     column: $table.salesByCashierJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get discountsJson => $composableBuilder(
+    column: $table.discountsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get paymentLedgersJson => $composableBuilder(
+    column: $table.paymentLedgersJson,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -17096,6 +17945,16 @@ class $$ZReadingsTableTableOrderingComposer
     column: $table.salesByCashierJson,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get discountsJson => $composableBuilder(
+    column: $table.discountsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get paymentLedgersJson => $composableBuilder(
+    column: $table.paymentLedgersJson,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ZReadingsTableTableAnnotationComposer
@@ -17218,6 +18077,16 @@ class $$ZReadingsTableTableAnnotationComposer
     column: $table.salesByCashierJson,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get discountsJson => $composableBuilder(
+    column: $table.discountsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get paymentLedgersJson => $composableBuilder(
+    column: $table.paymentLedgersJson,
+    builder: (column) => column,
+  );
 }
 
 class $$ZReadingsTableTableTableManager
@@ -17285,6 +18154,8 @@ class $$ZReadingsTableTableTableManager
                 Value<int> totalQtySold = const Value.absent(),
                 Value<String> paymentBreakdownJson = const Value.absent(),
                 Value<String> salesByCashierJson = const Value.absent(),
+                Value<String> discountsJson = const Value.absent(),
+                Value<String> paymentLedgersJson = const Value.absent(),
               }) => ZReadingsTableCompanion(
                 id: id,
                 zCounter: zCounter,
@@ -17310,6 +18181,8 @@ class $$ZReadingsTableTableTableManager
                 totalQtySold: totalQtySold,
                 paymentBreakdownJson: paymentBreakdownJson,
                 salesByCashierJson: salesByCashierJson,
+                discountsJson: discountsJson,
+                paymentLedgersJson: paymentLedgersJson,
               ),
           createCompanionCallback:
               ({
@@ -17337,6 +18210,8 @@ class $$ZReadingsTableTableTableManager
                 required int totalQtySold,
                 required String paymentBreakdownJson,
                 required String salesByCashierJson,
+                Value<String> discountsJson = const Value.absent(),
+                Value<String> paymentLedgersJson = const Value.absent(),
               }) => ZReadingsTableCompanion.insert(
                 id: id,
                 zCounter: zCounter,
@@ -17362,6 +18237,8 @@ class $$ZReadingsTableTableTableManager
                 totalQtySold: totalQtySold,
                 paymentBreakdownJson: paymentBreakdownJson,
                 salesByCashierJson: salesByCashierJson,
+                discountsJson: discountsJson,
+                paymentLedgersJson: paymentLedgersJson,
               ),
           withReferenceMapper:
               (p0) =>

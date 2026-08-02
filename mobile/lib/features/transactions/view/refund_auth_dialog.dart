@@ -5,6 +5,14 @@ import '../../../core/widgets/popup_menu_form_field.dart';
 import '../../auth/entities/user_entity.dart';
 import '../../auth/state/auth_providers.dart';
 
+/// Result of a successful [RefundAuthDialog] authorization — identifies which
+/// supervisor/admin actually authorized the action.
+class RefundAuthResult {
+  final int authorizerId;
+  final String authorizerName;
+  const RefundAuthResult({required this.authorizerId, required this.authorizerName});
+}
+
 class RefundAuthDialog extends ConsumerStatefulWidget {
   const RefundAuthDialog({super.key});
 
@@ -41,7 +49,9 @@ class _RefundAuthDialogState extends ConsumerState<RefundAuthDialog> {
     if (!mounted) return;
     setState(() => _checking = false);
     if (ok) {
-      Navigator.of(context).pop(true);
+      Navigator.of(context).pop(
+        RefundAuthResult(authorizerId: authorizer.id, authorizerName: authorizer.name),
+      );
     } else {
       setState(() => _error = 'Invalid PIN or insufficient permissions');
     }

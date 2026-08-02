@@ -46,13 +46,14 @@ class DailyReportNotifier extends AsyncNotifier<DailyReportData> {
     final topProductRows =
         await db.salesDao.getTopProductsForCashier(periodStart, periodEnd, cashierId, limit: 1000);
     final ledgerRows =
-        await db.salesDao.getCashLedgerForDateRangeAndCashier(periodStart, periodEnd, cashierId);
+        await db.salesDao.getCashLedgerEntriesForCashier(periodStart, periodEnd, cashierId);
+    final vatBreakdown = await db.salesDao.getVatBreakdownForCashier(periodStart, periodEnd, cashierId);
 
     final storeInfo = await db.storeInfoDao.getStoreInfo();
     final taxRate = storeInfo?.taxRate ?? 0.0;
     final vatableSales = grossSales / (1 + taxRate);
     final vatAmount = grossSales - vatableSales;
-    const vatExemptSales = 0.0;
+    final vatExemptSales = vatBreakdown.vatExemptSales;
     final netOfTax = grossSales - vatAmount;
 
     final salesByProduct = topProductRows
@@ -64,7 +65,7 @@ class DailyReportNotifier extends AsyncNotifier<DailyReportData> {
         .toList();
 
     final cashLedger = ledgerRows
-        .map((r) => CashLedgerEntry(date: r.date, total: r.total))
+        .map((r) => CashLedgerEntry(time: r.time, reference: r.reference, amount: r.amount))
         .toList();
 
     return DailyReportData(
@@ -108,7 +109,11 @@ class DailyReportNotifier extends AsyncNotifier<DailyReportData> {
         .map((p) => {'name': p.name, 'quantity': p.quantity, 'total': p.total})
         .toList());
     final cashLedgerJson = jsonEncode(data.cashLedger
-        .map((e) => {'date': e.date.toIso8601String(), 'total': e.total})
+        .map((e) => {
+              'time': e.time.toIso8601String(),
+              'reference': e.reference,
+              'amount': e.amount,
+            })
         .toList());
 
     await db.cashierAccountingDao.closeDailyReport(
@@ -128,6 +133,8 @@ class DailyReportNotifier extends AsyncNotifier<DailyReportData> {
       salesByProductJson: salesByProductJson,
       cashLedgerJson: cashLedgerJson,
     );
+
+    ref.invalidate(dailyReportHistoryProvider);
 
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(_load);

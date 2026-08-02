@@ -32,6 +32,16 @@ class CashierAccountingDao extends DatabaseAccessor<AppDatabase> with _$CashierA
     required int refundedCount,
     required String paymentBreakdownJson,
     required String topProductsJson,
+    required String discountsJson,
+    required double totalDiscounts,
+    required double vatableSales,
+    required double vatAmount,
+    required double vatExemptSales,
+    required double averageSale,
+    required double highestSale,
+    required double lowestSale,
+    required double cashCollected,
+    required String paymentLedgersJson,
   }) =>
       into(xReadingsTable).insert(XReadingsTableCompanion.insert(
         cashierId: cashierId,
@@ -45,6 +55,16 @@ class CashierAccountingDao extends DatabaseAccessor<AppDatabase> with _$CashierA
         refundedCount: refundedCount,
         paymentBreakdownJson: paymentBreakdownJson,
         topProductsJson: topProductsJson,
+        discountsJson: Value(discountsJson),
+        totalDiscounts: Value(totalDiscounts),
+        vatableSales: Value(vatableSales),
+        vatAmount: Value(vatAmount),
+        vatExemptSales: Value(vatExemptSales),
+        averageSale: Value(averageSale),
+        highestSale: Value(highestSale),
+        lowestSale: Value(lowestSale),
+        cashCollected: Value(cashCollected),
+        paymentLedgersJson: Value(paymentLedgersJson),
       ));
 
   Future<List<XReadingsTableData>> getXReadingHistory({required int limit, required int offset}) =>
@@ -118,6 +138,18 @@ class CashierAccountingDao extends DatabaseAccessor<AppDatabase> with _$CashierA
     return last?.periodEnd ?? _epoch;
   }
 
+  /// The running cumulative balance carried forward from the last closed
+  /// Z-Reading (its endingBalance), or 0 if none has been closed yet. Mirrors
+  /// kiosk's backend, where beginningBalance is always the prior Z-Reading's
+  /// endingBalance rather than a manually-counted cash drawer amount.
+  Future<double> getLastZReadingEndingBalance() async {
+    final last = await (select(zReadingsTable)
+          ..orderBy([(t) => OrderingTerm.desc(t.zCounter)])
+          ..limit(1))
+        .getSingleOrNull();
+    return last?.endingBalance ?? 0;
+  }
+
   Future<int> getNextZCounter() async {
     final last = await (select(zReadingsTable)
           ..orderBy([(t) => OrderingTerm.desc(t.zCounter)])
@@ -149,6 +181,8 @@ class CashierAccountingDao extends DatabaseAccessor<AppDatabase> with _$CashierA
     required int totalQtySold,
     required String paymentBreakdownJson,
     required String salesByCashierJson,
+    required String discountsJson,
+    required String paymentLedgersJson,
   }) =>
       into(zReadingsTable).insert(ZReadingsTableCompanion.insert(
         zCounter: zCounter,
@@ -174,6 +208,8 @@ class CashierAccountingDao extends DatabaseAccessor<AppDatabase> with _$CashierA
         totalQtySold: totalQtySold,
         paymentBreakdownJson: paymentBreakdownJson,
         salesByCashierJson: salesByCashierJson,
+        discountsJson: Value(discountsJson),
+        paymentLedgersJson: Value(paymentLedgersJson),
       ));
 
   Future<List<ZReadingsTableData>> getZReadingHistory({required int limit, required int offset}) =>

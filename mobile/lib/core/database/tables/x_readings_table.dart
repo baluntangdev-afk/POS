@@ -16,4 +16,14 @@ class XReadingsTable extends Table {
   IntColumn get refundedCount => integer()();
   TextColumn get paymentBreakdownJson => text()();
   TextColumn get topProductsJson => text()();
+  TextColumn get discountsJson => text().withDefault(const Constant('[]'))();
+  RealColumn get totalDiscounts => real().withDefault(const Constant(0.0))();
+  RealColumn get vatableSales => real().withDefault(const Constant(0.0))();
+  RealColumn get vatAmount => real().withDefault(const Constant(0.0))();
+  RealColumn get vatExemptSales => real().withDefault(const Constant(0.0))();
+  RealColumn get averageSale => real().withDefault(const Constant(0.0))();
+  RealColumn get highestSale => real().withDefault(const Constant(0.0))();
+  RealColumn get lowestSale => real().withDefault(const Constant(0.0))();
+  RealColumn get cashCollected => real().withDefault(const Constant(0.0))();
+  TextColumn get paymentLedgersJson => text().withDefault(const Constant('[]'))();
 }

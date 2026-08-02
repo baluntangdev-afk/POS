@@ -138,13 +138,24 @@ class DailyReportReprintScreen extends ConsumerWidget {
               ),
             )
             .toList();
+    // Rows closed before the per-entry ledger upgrade store {date, total}
+    // instead of {time, reference, amount}; fall back gracefully so old
+    // history entries still render (as a single entry for that date).
     final cashLedger =
         (jsonDecode(row.cashLedgerJson) as List)
+            .map((e) => e as Map<String, dynamic>)
             .map(
-              (e) => CashLedgerEntry(
-                date: DateTime.parse(e['date'] as String),
-                total: (e['total'] as num).toDouble(),
-              ),
+              (e) => e.containsKey('time')
+                  ? CashLedgerEntry(
+                      time: DateTime.parse(e['time'] as String),
+                      reference: e['reference'] as String?,
+                      amount: (e['amount'] as num).toDouble(),
+                    )
+                  : CashLedgerEntry(
+                      time: DateTime.parse(e['date'] as String),
+                      reference: null,
+                      amount: (e['total'] as num).toDouble(),
+                    ),
             )
             .toList();
 

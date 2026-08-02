@@ -36,6 +36,16 @@ void main() {
       refundedCount: 0,
       paymentBreakdownJson: '[]',
       topProductsJson: '[]',
+      discountsJson: '[]',
+      totalDiscounts: 0,
+      vatableSales: 0,
+      vatAmount: 0,
+      vatExemptSales: 0,
+      averageSale: 0,
+      highestSale: 0,
+      lowestSale: 0,
+      cashCollected: 0,
+      paymentLedgersJson: '[]',
     );
 
     final nextStart = await db.cashierAccountingDao.getXReadingPeriodStart(cashierId);
@@ -76,6 +86,8 @@ void main() {
       totalQtySold: 10,
       paymentBreakdownJson: '[]',
       salesByCashierJson: '[]',
+      discountsJson: '[]',
+      paymentLedgersJson: '[]',
     );
 
     final nextZCounter = await db.cashierAccountingDao.getNextZCounter();

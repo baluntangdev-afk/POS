@@ -37,7 +37,9 @@ class ZReadingData {
   final double cashCollected;
   final int totalQtySold;
   final List<PaymentBreakdown> paymentBreakdown;
+  final List<PaymentLedger> paymentLedgers;
   final List<CashierSalesBreakdown> salesByCashier;
+  final List<NameAmount> discounts;
 
   const ZReadingData({
     required this.id,
@@ -61,6 +63,8 @@ class ZReadingData {
     required this.cashCollected,
     required this.totalQtySold,
     required this.paymentBreakdown,
+    required this.paymentLedgers,
     required this.salesByCashier,
+    required this.discounts,
   });
 }

@@ -6,6 +6,7 @@ import '../../features/cashier_accounting/daily_report/entities/daily_report_dat
 import '../../features/cashier_accounting/x_reading/entities/x_reading_data.dart';
 import '../../features/cashier_accounting/z_reading/entities/z_reading_data.dart';
 import '../../features/ordering/entities/receipt.dart';
+import '../../features/reports/entities/report_data.dart';
 import 'built_in_printer.dart';
 import 'receipt_print_document.dart';
 
@@ -171,6 +172,10 @@ abstract final class PrintService {
         }
       }
 
+      for (final ledger in data.paymentLedgers) {
+        bytes += _paymentLedgerBytes(generator, ledger, currency: currency);
+      }
+
       if (data.topProducts.isNotEmpty) {
         bytes += _sectionHeader(generator, 'TOP PRODUCTS');
         for (final p in data.topProducts) {
@@ -182,6 +187,25 @@ abstract final class PrintService {
       bytes += _countRow(generator, 'Completed', data.transactionCount);
       bytes += _countRow(generator, 'Voided', data.voidedCount);
       bytes += _countRow(generator, 'Refunded', data.refundedCount);
+
+      bytes += _sectionHeader(generator, 'DISCOUNT SUMMARY');
+      for (final d in data.discounts) {
+        bytes += _amountRow(generator, d.name, d.amount, currency: currency);
+      }
+      bytes += _amountRow(generator, 'Total Discounts', data.totalDiscounts, currency: currency);
+
+      bytes += _sectionHeader(generator, 'TAX SUMMARY');
+      bytes += _amountRow(generator, 'VAT Sales', data.vatableSales, currency: currency);
+      bytes += _amountRow(generator, 'VAT Amount', data.vatAmount, currency: currency);
+      bytes += _amountRow(generator, 'VAT-Exempt Sales', data.vatExemptSales, currency: currency);
+
+      bytes += _sectionHeader(generator, 'CASH COLLECTED');
+      bytes += _amountRow(generator, 'Cash Collected', data.cashCollected, currency: currency);
+
+      bytes += _sectionHeader(generator, 'OTHER SUMMARY');
+      bytes += _amountRow(generator, 'Average Sale', data.averageSale, currency: currency);
+      bytes += _amountRow(generator, 'Highest Sale', data.highestSale, currency: currency);
+      bytes += _amountRow(generator, 'Lowest Sale', data.lowestSale, currency: currency);
 
       bytes += generator.hr();
       bytes += generator.feed(3);
@@ -257,8 +281,17 @@ abstract final class PrintService {
 
       if (data.cashLedger.isNotEmpty) {
         bytes += _sectionHeader(generator, 'CASH LEDGER');
-        for (final e in data.cashLedger) {
-          bytes += _amountRow(generator, _fmtDay(e.date), e.total, currency: currency);
+        for (final group in data.cashLedgerSummariesByDate) {
+          bytes += generator.text(_fmtDay(group.date), styles: const PosStyles(bold: true));
+          for (final entry in group.entries) {
+            bytes += _amountRow(
+              generator,
+              '${_fmtTime(entry.time)}${entry.reference != null ? ' #${entry.reference}' : ''}',
+              entry.amount,
+              currency: currency,
+            );
+          }
+          bytes += _amountRow(generator, 'Total', group.total, currency: currency);
         }
       }
 
@@ -324,12 +357,19 @@ abstract final class PrintService {
         }
       }
 
+      for (final ledger in data.paymentLedgers) {
+        bytes += _paymentLedgerBytes(generator, ledger, currency: currency);
+      }
+
       bytes += _sectionHeader(generator, 'TRANSACTION SUMMARY');
       bytes += _countRow(generator, 'Completed', data.completedCount);
       bytes += _countRow(generator, 'Voided', data.voidedCount);
       bytes += _countRow(generator, 'Refunded', data.refundedCount);
 
       bytes += _sectionHeader(generator, 'DISCOUNT SUMMARY');
+      for (final d in data.discounts) {
+        bytes += _amountRow(generator, d.name, d.amount, currency: currency);
+      }
       bytes += _amountRow(generator, 'Total Discounts', data.discountTotal, currency: currency);
 
       bytes += _sectionHeader(generator, 'TAX SUMMARY (VAT)');
@@ -362,6 +402,11 @@ abstract final class PrintService {
 
   static String _fmtDay(DateTime dt) =>
       '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+
+  static String _fmtTime(DateTime dt) {
+    final local = dt.toLocal();
+    return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+  }
 
   static String _fmtDate(DateTime dt) =>
       '${dt.year}-${dt.month.toString().padLeft(2, '0')}-'
@@ -403,4 +448,31 @@ List<int> _countRow(Generator g, String label, int count) {
       styles: const PosStyles(align: PosAlign.right),
     ),
   ]);
+}
+
+/// Itemized per-payment-method ledger, grouped by date, followed by a total
+/// row — the printed counterpart of `PaymentLedgerSection` on screen.
+List<int> _paymentLedgerBytes(Generator g, PaymentLedger ledger, {String currency = 'PHP'}) {
+  final nameUpper = ledger.displayName.toUpperCase();
+  var bytes = <int>[];
+  bytes += _sectionHeader(g, '$nameUpper LEDGER');
+  for (final group in ledger.entriesByDate) {
+    bytes += g.text(
+      '${group.date.year}-${group.date.month.toString().padLeft(2, '0')}-'
+      '${group.date.day.toString().padLeft(2, '0')}',
+      styles: const PosStyles(bold: true),
+    );
+    for (final entry in group.entries) {
+      final local = entry.time.toLocal();
+      final time = '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+      bytes += _amountRow(
+        g,
+        '$time  $nameUpper${entry.reference != null ? ' #${entry.reference}' : ''}',
+        entry.amount,
+        currency: currency,
+      );
+    }
+  }
+  bytes += _amountRow(g, 'Total $nameUpper [${ledger.count}]', ledger.total, currency: currency);
+  return bytes;
 }

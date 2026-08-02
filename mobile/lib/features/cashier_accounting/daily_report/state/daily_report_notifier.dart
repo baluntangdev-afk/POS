@@ -145,12 +145,20 @@ final dailyReportProvider =
     AsyncNotifierProvider<DailyReportNotifier, DailyReportData>(DailyReportNotifier.new);
 
 final dailyReportHistoryRowProvider =
-    FutureProvider.family<DailyReportsTableData?, int>((ref, id) {
+    FutureProvider.family<DailyReportsTableData?, int>((ref, id) async {
   final db = ref.watch(databaseProvider);
-  return db.cashierAccountingDao.getDailyReportById(id);
+  final authState = ref.watch(authNotifierProvider);
+  final user = authState is AuthAuthenticated ? authState.user : null;
+  final row = await db.cashierAccountingDao.getDailyReportById(id);
+  if (row == null) return null;
+  if (user != null && !user.isAdminOrSupervisor && row.cashierId != user.id) return null;
+  return row;
 });
 
 final dailyReportHistoryProvider = FutureProvider<List<DailyReportsTableData>>((ref) {
   final db = ref.watch(databaseProvider);
-  return db.cashierAccountingDao.getDailyReportHistory(limit: 50, offset: 0);
+  final authState = ref.watch(authNotifierProvider);
+  final user = authState is AuthAuthenticated ? authState.user : null;
+  final cashierId = (user == null || user.isAdminOrSupervisor) ? null : user.id;
+  return db.cashierAccountingDao.getDailyReportHistory(limit: 50, offset: 0, cashierId: cashierId);
 });

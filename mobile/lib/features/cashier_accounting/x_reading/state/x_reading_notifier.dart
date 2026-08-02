@@ -151,12 +151,20 @@ final xReadingProvider =
     AsyncNotifierProvider<XReadingNotifier, XReadingData>(XReadingNotifier.new);
 
 final xReadingHistoryRowProvider =
-    FutureProvider.family<XReadingsTableData?, int>((ref, id) {
+    FutureProvider.family<XReadingsTableData?, int>((ref, id) async {
   final db = ref.watch(databaseProvider);
-  return db.cashierAccountingDao.getXReadingById(id);
+  final authState = ref.watch(authNotifierProvider);
+  final user = authState is AuthAuthenticated ? authState.user : null;
+  final row = await db.cashierAccountingDao.getXReadingById(id);
+  if (row == null) return null;
+  if (user != null && !user.isAdminOrSupervisor && row.cashierId != user.id) return null;
+  return row;
 });
 
 final xReadingHistoryProvider = FutureProvider<List<XReadingsTableData>>((ref) {
   final db = ref.watch(databaseProvider);
-  return db.cashierAccountingDao.getXReadingHistory(limit: 50, offset: 0);
+  final authState = ref.watch(authNotifierProvider);
+  final user = authState is AuthAuthenticated ? authState.user : null;
+  final cashierId = (user == null || user.isAdminOrSupervisor) ? null : user.id;
+  return db.cashierAccountingDao.getXReadingHistory(limit: 50, offset: 0, cashierId: cashierId);
 });

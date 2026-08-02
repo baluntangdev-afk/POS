@@ -67,8 +67,13 @@ class CashierAccountingDao extends DatabaseAccessor<AppDatabase> with _$CashierA
         paymentLedgersJson: Value(paymentLedgersJson),
       ));
 
-  Future<List<XReadingsTableData>> getXReadingHistory({required int limit, required int offset}) =>
+  Future<List<XReadingsTableData>> getXReadingHistory({
+    required int limit,
+    required int offset,
+    int? cashierId,
+  }) =>
       (select(xReadingsTable)
+            ..where((t) => cashierId == null ? const Constant(true) : t.cashierId.equals(cashierId))
             ..orderBy([(t) => OrderingTerm.desc(t.generatedAt)])
             ..limit(limit, offset: offset))
           .get();
@@ -121,8 +126,13 @@ class CashierAccountingDao extends DatabaseAccessor<AppDatabase> with _$CashierA
         cashLedgerJson: cashLedgerJson,
       ));
 
-  Future<List<DailyReportsTableData>> getDailyReportHistory({required int limit, required int offset}) =>
+  Future<List<DailyReportsTableData>> getDailyReportHistory({
+    required int limit,
+    required int offset,
+    int? cashierId,
+  }) =>
       (select(dailyReportsTable)
+            ..where((t) => cashierId == null ? const Constant(true) : t.cashierId.equals(cashierId))
             ..orderBy([(t) => OrderingTerm.desc(t.generatedAt)])
             ..limit(limit, offset: offset))
           .get();

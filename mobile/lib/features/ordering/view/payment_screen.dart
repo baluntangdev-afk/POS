@@ -12,6 +12,9 @@ import '../../../core/database/app_database.dart';
 import '../../auth/state/auth_providers.dart';
 import '../../auth/state/auth_state.dart';
 import '../../settings/state/store_info_notifier.dart';
+import '../../cashier_accounting/daily_report/state/daily_report_notifier.dart';
+import '../../cashier_accounting/x_reading/state/x_reading_notifier.dart';
+import '../../cashier_accounting/z_reading/state/z_reading_notifier.dart';
 import '../../transactions/state/transactions_notifier.dart';
 import '../entities/sale.dart';
 import '../state/ordering_notifier.dart';
@@ -133,6 +136,9 @@ class PaymentScreen extends HookConsumerWidget {
             );
 
         ref.invalidate(transactionsProvider);
+        ref.invalidate(xReadingProvider);
+        ref.invalidate(zReadingProvider);
+        ref.invalidate(dailyReportProvider);
 
         if (context.mounted) {
           context.go('/order/receipt/${receipt.id}');

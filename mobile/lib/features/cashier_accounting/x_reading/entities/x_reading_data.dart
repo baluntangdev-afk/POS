@@ -12,6 +12,16 @@ class XReadingData {
   final int refundedCount;
   final List<PaymentBreakdown> paymentBreakdown;
   final List<TopProductData> topProducts;
+  final List<PaymentLedger> paymentLedgers;
+  final List<NameAmount> discounts;
+  final double totalDiscounts;
+  final double vatableSales;
+  final double vatAmount;
+  final double vatExemptSales;
+  final double averageSale;
+  final double highestSale;
+  final double lowestSale;
+  final double cashCollected;
 
   const XReadingData({
     required this.id,
@@ -25,5 +35,15 @@ class XReadingData {
     required this.refundedCount,
     required this.paymentBreakdown,
     required this.topProducts,
+    required this.paymentLedgers,
+    required this.discounts,
+    required this.totalDiscounts,
+    required this.vatableSales,
+    required this.vatAmount,
+    required this.vatExemptSales,
+    required this.averageSale,
+    required this.highestSale,
+    required this.lowestSale,
+    required this.cashCollected,
   });
 }

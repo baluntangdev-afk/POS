@@ -55,7 +55,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'mobile_pos'));
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -199,6 +199,46 @@ class AppDatabase extends _$AppDatabase {
             }
             if (!await _hasColumn('sale_items', 'vat_exempt_amount')) {
               await m.addColumn(saleItemsTable, saleItemsTable.vatExemptAmount);
+            }
+          }
+          if (from < 9) {
+            if (!await _hasColumn('x_readings', 'discounts_json')) {
+              await m.addColumn(xReadingsTable, xReadingsTable.discountsJson);
+            }
+            if (!await _hasColumn('x_readings', 'total_discounts')) {
+              await m.addColumn(xReadingsTable, xReadingsTable.totalDiscounts);
+            }
+            if (!await _hasColumn('x_readings', 'vatable_sales')) {
+              await m.addColumn(xReadingsTable, xReadingsTable.vatableSales);
+            }
+            if (!await _hasColumn('x_readings', 'vat_amount')) {
+              await m.addColumn(xReadingsTable, xReadingsTable.vatAmount);
+            }
+            if (!await _hasColumn('x_readings', 'vat_exempt_sales')) {
+              await m.addColumn(xReadingsTable, xReadingsTable.vatExemptSales);
+            }
+            if (!await _hasColumn('x_readings', 'average_sale')) {
+              await m.addColumn(xReadingsTable, xReadingsTable.averageSale);
+            }
+            if (!await _hasColumn('x_readings', 'highest_sale')) {
+              await m.addColumn(xReadingsTable, xReadingsTable.highestSale);
+            }
+            if (!await _hasColumn('x_readings', 'lowest_sale')) {
+              await m.addColumn(xReadingsTable, xReadingsTable.lowestSale);
+            }
+            if (!await _hasColumn('x_readings', 'cash_collected')) {
+              await m.addColumn(xReadingsTable, xReadingsTable.cashCollected);
+            }
+            if (!await _hasColumn('z_readings', 'discounts_json')) {
+              await m.addColumn(zReadingsTable, zReadingsTable.discountsJson);
+            }
+          }
+          if (from < 10) {
+            if (!await _hasColumn('x_readings', 'payment_ledgers_json')) {
+              await m.addColumn(xReadingsTable, xReadingsTable.paymentLedgersJson);
+            }
+            if (!await _hasColumn('z_readings', 'payment_ledgers_json')) {
+              await m.addColumn(zReadingsTable, zReadingsTable.paymentLedgersJson);
             }
           }
         },

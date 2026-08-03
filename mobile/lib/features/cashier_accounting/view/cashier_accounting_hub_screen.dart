@@ -4,6 +4,7 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 
@@ -112,9 +113,7 @@ class _HubCard extends HookWidget {
             color: isPressed.value ? tile.accent.withValues(alpha: 0.5) : AppColors.border,
             width: 1.5,
           ),
-          boxShadow: [
-            BoxShadow(color: AppColors.shadow.withValues(alpha: 0.07), blurRadius: 12, offset: const Offset(0, 2)),
-          ],
+          boxShadow: AppShadows.card,
         ),
         child: Row(
           children: [
@@ -132,9 +131,19 @@ class _HubCard extends HookWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(tile.label, style: AppTextStyles.headingSm),
+                  Text(
+                    tile.label,
+                    style: AppTextStyles.headingSm,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const Gap(2),
-                  Text(tile.description, style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
+                  Text(
+                    tile.description,
+                    style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),

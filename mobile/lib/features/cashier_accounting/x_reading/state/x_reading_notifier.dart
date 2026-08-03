@@ -43,6 +43,11 @@ class XReadingNotifier extends AsyncNotifier<XReadingData> {
     final statusCounts = await db.salesDao.getStatusCountsForDateRangeAndCashier(periodStart, periodEnd, cashierId);
     final paymentRows = await db.salesDao.getPaymentBreakdownForCashier(periodStart, periodEnd, cashierId);
     final topProductRows = await db.salesDao.getTopProductsForCashier(periodStart, periodEnd, cashierId, limit: 5);
+    final discounts = await db.salesDao.getDiscountBreakdownForCashier(periodStart, periodEnd, cashierId);
+    final vatBreakdown = await db.salesDao.getVatBreakdownForCashier(periodStart, periodEnd, cashierId);
+    final saleStats = await db.salesDao.getSaleStatsForCashier(periodStart, periodEnd, cashierId);
+    final cashSales = await db.salesDao.getCashSalesForDateRangeAndCashier(periodStart, periodEnd, cashierId);
+    final paymentLedgers = await db.salesDao.getPaymentLedgerForCashier(periodStart, periodEnd, cashierId);
 
     final totalPaid = paymentRows.fold(0.0, (s, r) => s + (r['total'] as double? ?? 0));
     final paymentBreakdown = paymentRows.map((r) {
@@ -72,6 +77,16 @@ class XReadingNotifier extends AsyncNotifier<XReadingData> {
       refundedCount: statusCounts.refunded,
       paymentBreakdown: paymentBreakdown,
       topProducts: topProducts,
+      paymentLedgers: paymentLedgers,
+      discounts: discounts,
+      totalDiscounts: discounts.fold(0.0, (s, d) => s + d.amount),
+      vatableSales: vatBreakdown.vatableSales,
+      vatAmount: vatBreakdown.vatAmount,
+      vatExemptSales: vatBreakdown.vatExemptSales,
+      averageSale: saleStats.average,
+      highestSale: saleStats.highest,
+      lowestSale: saleStats.lowest,
+      cashCollected: cashSales.total,
     );
   }
 
@@ -98,6 +113,9 @@ class XReadingNotifier extends AsyncNotifier<XReadingData> {
     final topProductsJson = jsonEncode(data.topProducts
         .map((p) => {'name': p.name, 'quantity': p.quantity, 'total': p.total})
         .toList());
+    final discountsJson =
+        jsonEncode(data.discounts.map((d) => {'name': d.name, 'amount': d.amount}).toList());
+    final paymentLedgersJson = PaymentLedger.encodeList(data.paymentLedgers);
 
     await db.cashierAccountingDao.closeXReading(
       cashierId: cashierId,
@@ -110,7 +128,19 @@ class XReadingNotifier extends AsyncNotifier<XReadingData> {
       refundedCount: data.refundedCount,
       paymentBreakdownJson: paymentBreakdownJson,
       topProductsJson: topProductsJson,
+      discountsJson: discountsJson,
+      totalDiscounts: data.totalDiscounts,
+      vatableSales: data.vatableSales,
+      vatAmount: data.vatAmount,
+      vatExemptSales: data.vatExemptSales,
+      averageSale: data.averageSale,
+      highestSale: data.highestSale,
+      lowestSale: data.lowestSale,
+      cashCollected: data.cashCollected,
+      paymentLedgersJson: paymentLedgersJson,
     );
+
+    ref.invalidate(xReadingHistoryProvider);
 
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(_load);
@@ -121,12 +151,20 @@ final xReadingProvider =
     AsyncNotifierProvider<XReadingNotifier, XReadingData>(XReadingNotifier.new);
 
 final xReadingHistoryRowProvider =
-    FutureProvider.family<XReadingsTableData?, int>((ref, id) {
+    FutureProvider.family<XReadingsTableData?, int>((ref, id) async {
   final db = ref.watch(databaseProvider);
-  return db.cashierAccountingDao.getXReadingById(id);
+  final authState = ref.watch(authNotifierProvider);
+  final user = authState is AuthAuthenticated ? authState.user : null;
+  final row = await db.cashierAccountingDao.getXReadingById(id);
+  if (row == null) return null;
+  if (user != null && !user.isAdminOrSupervisor && row.cashierId != user.id) return null;
+  return row;
 });
 
 final xReadingHistoryProvider = FutureProvider<List<XReadingsTableData>>((ref) {
   final db = ref.watch(databaseProvider);
-  return db.cashierAccountingDao.getXReadingHistory(limit: 50, offset: 0);
+  final authState = ref.watch(authNotifierProvider);
+  final user = authState is AuthAuthenticated ? authState.user : null;
+  final cashierId = (user == null || user.isAdminOrSupervisor) ? null : user.id;
+  return db.cashierAccountingDao.getXReadingHistory(limit: 50, offset: 0, cashierId: cashierId);
 });

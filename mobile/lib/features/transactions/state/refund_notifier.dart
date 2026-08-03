@@ -1,9 +1,13 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../cashier_accounting/daily_report/state/daily_report_notifier.dart';
+import '../../cashier_accounting/x_reading/state/x_reading_notifier.dart';
+import '../../cashier_accounting/z_reading/state/z_reading_notifier.dart';
 import '../../ordering/entities/receipt.dart';
 import '../../ordering/entities/receipt_item.dart';
 import '../../ordering/repositories/receipt_repository.dart';
 import '../../ordering/use_cases/process_refund.dart';
+import 'transactions_notifier.dart';
 
 final refundProvider =
     AsyncNotifierProvider.autoDispose.family<RefundNotifier, RefundData, int>(
@@ -122,6 +126,10 @@ class RefundNotifier extends AsyncNotifier<RefundData> {
       refundMethod: data.form.refundMethod,
     );
     ref.invalidateSelf();
+    ref.invalidate(transactionsProvider);
+    ref.invalidate(xReadingProvider);
+    ref.invalidate(zReadingProvider);
+    ref.invalidate(dailyReportProvider);
     await future;
   }
 }

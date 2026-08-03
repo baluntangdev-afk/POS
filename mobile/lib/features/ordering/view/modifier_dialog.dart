@@ -5,8 +5,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/gradient_filled_button.dart';
 import '../entities/line_item.dart';
 import '../state/ordering_notifier.dart';
 
@@ -263,6 +265,7 @@ class _ModifierSheet extends HookConsumerWidget {
                 AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.lg),
             decoration: BoxDecoration(
               color: AppColors.surface,
+              boxShadow: AppShadows.elevated,
               border: const Border(
                   top: BorderSide(color: AppColors.divider)),
             ),
@@ -277,15 +280,8 @@ class _ModifierSheet extends HookConsumerWidget {
                 ),
                 const Gap(AppSpacing.md),
                 Expanded(
-                  child: FilledButton(
+                  child: GradientFilledButton(
                     onPressed: canConfirm() ? confirm : null,
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, AppSpacing.touchMin),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.radiusMd),
-                      ),
-                    ),
                     child: Text(
                       'Add to Cart · PHP ${(totalPrice * quantity.value).toStringAsFixed(2)}',
                       style: const TextStyle(fontWeight: FontWeight.w700),
@@ -419,7 +415,14 @@ class _ModifierGroupSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(data.group.name, style: AppTextStyles.headingSm),
+              Flexible(
+                child: Text(
+                  data.group.name,
+                  style: AppTextStyles.headingSm,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               const Gap(AppSpacing.sm),
               if (data.group.isRequired)
                 Container(

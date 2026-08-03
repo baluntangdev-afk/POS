@@ -9,6 +9,7 @@ import '../../../../core/services/print_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../reports/view/report_preview_widgets.dart';
 import '../entities/daily_report_data.dart';
 import '../state/daily_report_notifier.dart';
 
@@ -19,6 +20,7 @@ class DailyReportScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dataAsync = ref.watch(dailyReportProvider);
     final isClosing = useState(false);
+    final canClose = (dataAsync.value?.transactionCount ?? 0) > 0;
 
     Future<void> handleClose() async {
       final data = dataAsync.value;
@@ -82,19 +84,19 @@ class DailyReportScreen extends HookConsumerWidget {
       ),
       body: dataAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Failed to load Daily Report: $e')),
+        error: (e, _) => ReportErrorView(message: 'Failed to load Daily Report: $e'),
         data: (data) => Column(
           children: [
             Expanded(child: DailyReportBody(data: data)),
             SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
                 child: SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: FilledButton.icon(
-                    onPressed: isClosing.value ? null : handleClose,
+                    onPressed: isClosing.value || !canClose ? null : handleClose,
                     icon: isClosing.value
                         ? const SizedBox(
                             width: 18,
@@ -114,309 +116,98 @@ class DailyReportScreen extends HookConsumerWidget {
   }
 }
 
-/// Shared rendering of a [DailyReportData] snapshot, used by both the live
-/// [DailyReportScreen] and the read-only history reprint view.
+/// Shared receipt-style rendering of a [DailyReportData] snapshot, used by
+/// both the live [DailyReportScreen] and the read-only history reprint view.
 class DailyReportBody extends StatelessWidget {
   final DailyReportData data;
   const DailyReportBody({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
-    final dateFmt = DateFormat('MMM d, y  h:mm a');
-    final dayFmt = DateFormat('MMM d, y');
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+    return ReportReceiptCard(
       children: [
-        _HeaderCard(data: data, dateFmt: dateFmt),
-        const Gap(AppSpacing.lg),
-        _SectionHeader('Gross Sales'),
-        const Gap(AppSpacing.sm),
-        _GrossSalesCard(data: data),
-        const Gap(AppSpacing.lg),
-        _SectionHeader('VAT Summary'),
-        const Gap(AppSpacing.sm),
-        _VatSummaryCard(data: data),
-        const Gap(AppSpacing.lg),
-        _SectionHeader('Others'),
-        const Gap(AppSpacing.sm),
-        _OthersCard(data: data),
-        const Gap(AppSpacing.lg),
-        _SectionHeader('Cash Sales'),
-        const Gap(AppSpacing.sm),
-        _CashSalesCard(data: data),
-        const Gap(AppSpacing.lg),
-        if (data.salesByProduct.isNotEmpty) ...[
-          _SectionHeader('Sales By Product'),
-          const Gap(AppSpacing.sm),
-          _SalesByProductCard(data: data),
-          const Gap(AppSpacing.lg),
-        ],
-        if (data.cashLedger.isNotEmpty) ...[
-          _SectionHeader('Cash Ledger'),
-          const Gap(AppSpacing.sm),
-          _CashLedgerCard(data: data, dayFmt: dayFmt),
-        ],
-      ],
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  const _SectionHeader(this.title);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title.toUpperCase(),
-      style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary, letterSpacing: 0.8),
-    );
-  }
-}
-
-Widget _card({required Widget child}) => Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        boxShadow: [
-          BoxShadow(color: AppColors.shadow.withValues(alpha: 0.07), blurRadius: 12, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: child,
-    );
-
-class _HeaderCard extends StatelessWidget {
-  final DailyReportData data;
-  final DateFormat dateFmt;
-  const _HeaderCard({required this.data, required this.dateFmt});
-
-  @override
-  Widget build(BuildContext context) {
-    return _card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text('Daily Report', style: AppTextStyles.headingMd),
+        const ReportStoreHeader(),
+        const Gap(12),
+        Text(
+          'CASHIER REPORT',
+          textAlign: TextAlign.center,
+          style: AppTextStyles.headingSm.copyWith(color: AppColors.primary, fontWeight: FontWeight.w800),
+        ),
+        const Gap(4),
+        ReportStatusBadge(isClosed: data.id != null, closedLabel: 'CLOSED #${data.id}'),
+        const Gap(8),
+        const ReportDivider(),
+        const Gap(6),
+        ReportKeyValueRow('Cashier', data.cashierName),
+        ReportPeriodRow(formatReportPeriod(data.periodStart, data.periodEnd)),
+        ReportKeyValueRow('Generated', DateFormat.yMd().add_jm().format(data.generatedAt.toLocal())),
+        const Gap(6),
+        const ReportDivider(),
+        const Gap(6),
+        ReportAmountRow('Gross Sales', data.grossSales, bold: true),
+        const Gap(6),
+        const ReportDivider(),
+        const Gap(6),
+        ReportSection(
+          title: 'SUMMARY',
+          rows: [
+            ReportAmountRow('Vatable Sales', data.vatableSales),
+            ReportAmountRow('VAT Amount', data.vatAmount),
+            ReportAmountRow('VAT Exempt Sales', data.vatExemptSales),
+            // No zero-rated concept exists in mobile's local discount model
+            // (see SeniorPwdDiscount/PromoDiscount) — shown as 0 to match
+            // kiosk's report shape rather than omitting the row entirely.
+            const ReportAmountRow('Zero Rated Sales', 0),
+          ],
+        ),
+        ReportSection(
+          title: 'OTHERS',
+          rows: [
+            ReportAmountRow('Net of Tax', data.netOfTax),
+            ReportCountRow('No. Transactions', data.transactionCount),
+            ReportCountRow('Total Quantity', data.totalQtySold),
+          ],
+        ),
+        ReportSection(
+          title: 'CASH SALES',
+          rows: [
+            ReportAmountRow('Total Cash Sales', data.cashSalesTotal),
+            ReportCountRow('No. Cash Sales', data.cashSalesCount),
+          ],
+        ),
+        ReportSection(
+          title: 'SALES BY PRODUCT',
+          rows: [
+            const ReportKeyValueRow('QTY x PRODUCT', 'AMOUNT'),
+            const Gap(2),
+            if (data.salesByProduct.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text('No products sold today',
+                    style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
+              )
+            else
+              for (final p in data.salesByProduct) ReportAmountRow('${p.quantity} ${p.name}', p.total),
+            const Gap(4),
+            ReportAmountRow('TOTAL', data.grossSales, bold: true),
+          ],
+        ),
+        ReportSection(
+          title: 'CASH LEDGER',
+          showDividerAfter: false,
+          rows: [
+            for (final group in data.cashLedgerSummariesByDate) ...[
+              ReportDateGroupHeader(group.date),
+              ReportAmountRow(
+                '${DateFormat.jm().format(group.entries.first.time.toLocal())}'
+                ' - ${DateFormat.jm().format(group.entries.last.time.toLocal())}  CASH',
+                group.total,
               ),
-              if (data.id != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                  ),
-                  child: Text('CLOSED #${data.id}',
-                      style: AppTextStyles.bodySm.copyWith(color: AppColors.success, fontWeight: FontWeight.w700)),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.warning.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                  ),
-                  child: Text('LIVE',
-                      style: AppTextStyles.bodySm.copyWith(color: AppColors.warning, fontWeight: FontWeight.w700)),
-                ),
             ],
-          ),
-          const Gap(AppSpacing.sm),
-          Text('Cashier: ${data.cashierName}', style: AppTextStyles.bodyMd),
-          const Gap(4),
-          Text('Period: ${dateFmt.format(data.periodStart)} — ${dateFmt.format(data.periodEnd)}',
-              style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
-          const Gap(4),
-          Text('Generated: ${dateFmt.format(data.generatedAt)}',
-              style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
-        ],
-      ),
-    );
-  }
-}
-
-class _GrossSalesCard extends StatelessWidget {
-  final DailyReportData data;
-  const _GrossSalesCard({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return _card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Gross Sales', style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
-          const Gap(2),
-          Text('PHP ${data.grossSales.toStringAsFixed(2)}',
-              style: AppTextStyles.headingMd.copyWith(color: AppColors.primary)),
-        ],
-      ),
-    );
-  }
-}
-
-class _VatSummaryCard extends StatelessWidget {
-  final DailyReportData data;
-  const _VatSummaryCard({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return _card(
-      child: Column(
-        children: [
-          _row('Vatable Sales', data.vatableSales),
-          const Gap(AppSpacing.sm),
-          _row('VAT Amount', data.vatAmount),
-          const Gap(AppSpacing.sm),
-          _row('VAT-Exempt Sales', data.vatExemptSales),
-        ],
-      ),
-    );
-  }
-
-  Widget _row(String label, double amount) => Row(
-        children: [
-          Expanded(child: Text(label, style: AppTextStyles.bodyMd)),
-          Text('PHP ${amount.toStringAsFixed(2)}',
-              style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600)),
-        ],
-      );
-}
-
-class _OthersCard extends StatelessWidget {
-  final DailyReportData data;
-  const _OthersCard({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return _card(
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Net of Tax', style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
-                const Gap(2),
-                Text('PHP ${data.netOfTax.toStringAsFixed(2)}', style: AppTextStyles.headingSm),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Transactions', style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
-                const Gap(2),
-                Text('${data.transactionCount}', style: AppTextStyles.headingSm),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Qty Sold', style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
-                const Gap(2),
-                Text('${data.totalQtySold}', style: AppTextStyles.headingSm),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CashSalesCard extends StatelessWidget {
-  final DailyReportData data;
-  const _CashSalesCard({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return _card(
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Cash Sales Total', style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
-                const Gap(2),
-                Text('PHP ${data.cashSalesTotal.toStringAsFixed(2)}',
-                    style: AppTextStyles.headingSm.copyWith(color: AppColors.primary)),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Cash Sales Count', style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
-                const Gap(2),
-                Text('${data.cashSalesCount}', style: AppTextStyles.headingSm),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SalesByProductCard extends StatelessWidget {
-  final DailyReportData data;
-  const _SalesByProductCard({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return _card(
-      child: Column(
-        children: data.salesByProduct.map((p) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: Row(
-              children: [
-                Expanded(child: Text(p.name, style: AppTextStyles.bodyMd, overflow: TextOverflow.ellipsis)),
-                Text('x${p.quantity}', style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
-                const Gap(AppSpacing.sm),
-                Text('PHP ${p.total.toStringAsFixed(2)}',
-                    style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600)),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-class _CashLedgerCard extends StatelessWidget {
-  final DailyReportData data;
-  final DateFormat dayFmt;
-  const _CashLedgerCard({required this.data, required this.dayFmt});
-
-  @override
-  Widget build(BuildContext context) {
-    return _card(
-      child: Column(
-        children: data.cashLedger.map((e) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: Row(
-              children: [
-                Expanded(child: Text(dayFmt.format(e.date), style: AppTextStyles.bodyMd)),
-                Text('PHP ${e.total.toStringAsFixed(2)}',
-                    style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600)),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
+            ReportAmountRow('***** TOTAL CASH', data.cashSalesTotal, bold: true),
+          ],
+        ),
+      ],
     );
   }
 }

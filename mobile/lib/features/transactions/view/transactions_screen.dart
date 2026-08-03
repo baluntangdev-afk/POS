@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../entities/transaction_summary.dart';
@@ -156,25 +157,26 @@ class _TransactionTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 1),
-          ),
-        ],
+        boxShadow: AppShadows.card,
       ),
       clipBehavior: Clip.antiAlias,
       child: Material(
         color: Colors.transparent,
         child: ListTile(
           onTap: onTap,
-          title: Text(tx.invoiceNumber, style: AppTextStyles.headingSm),
+          title: Text(
+            tx.invoiceNumber,
+            style: AppTextStyles.headingSm,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           subtitle: Text(
             '${tx.displayType} • ${tx.cashierName} • ${DateFormat('MMM d, h:mm a').format(tx.createdAt)}',
             style: AppTextStyles.bodySm.copyWith(
               color: AppColors.textSecondary,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
@@ -187,9 +189,23 @@ class _TransactionTile extends StatelessWidget {
                     '₱${tx.netTotal.toStringAsFixed(2)}',
                     style: AppTextStyles.headingSm,
                   ),
-                  Text(
-                    statusLabel,
-                    style: AppTextStyles.bodySm.copyWith(color: statusColor),
+                  const SizedBox(height: 2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                    ),
+                    child: Text(
+                      statusLabel,
+                      style: AppTextStyles.bodySm.copyWith(
+                        color: statusColor,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),

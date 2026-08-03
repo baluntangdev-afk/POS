@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/empty_state_widget.dart';
@@ -89,15 +91,28 @@ class _ProductsTabFab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(inventoryNotifierProvider);
     return state.maybeWhen(
-      data: (s) => FloatingActionButton.extended(
-        onPressed: () => showDialog(
-          context: context,
-          builder: (_) => ProductFormDialog(
-            groupId: s.selectedGroupId ?? (s.groups.isNotEmpty ? s.groups.first.id : null),
-          ),
+      data: (s) => Ink(
+        decoration: BoxDecoration(
+          gradient: AppGradients.primary,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+          boxShadow: AppShadows.card,
         ),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add Product'),
+        child: FloatingActionButton.extended(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          focusElevation: 0,
+          hoverElevation: 0,
+          highlightElevation: 0,
+          onPressed: () => showDialog(
+            context: context,
+            builder: (_) => ProductFormDialog(
+              groupId: s.selectedGroupId ?? (s.groups.isNotEmpty ? s.groups.first.id : null),
+            ),
+          ),
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('Add Product'),
+        ),
       ),
       orElse: () => const SizedBox.shrink(),
     );
@@ -149,13 +164,7 @@ class _InventoryBody extends HookConsumerWidget {
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.shadow.withValues(alpha: 0.08),
-                  blurRadius: 12,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              boxShadow: AppShadows.card,
             ),
             child: TextField(
               controller: searchController,
@@ -323,13 +332,7 @@ class _ProductCard extends ConsumerWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadow.withValues(alpha: 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          boxShadow: AppShadows.card,
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(AppSpacing.radiusXl),

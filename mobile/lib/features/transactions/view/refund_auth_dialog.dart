@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/widgets/popup_menu_form_field.dart';
 import '../../auth/entities/user_entity.dart';
 import '../../auth/state/auth_providers.dart';
+
+/// Result of a successful [RefundAuthDialog] authorization — identifies which
+/// supervisor/admin actually authorized the action.
+class RefundAuthResult {
+  final int authorizerId;
+  final String authorizerName;
+  const RefundAuthResult({required this.authorizerId, required this.authorizerName});
+}
 
 class RefundAuthDialog extends ConsumerStatefulWidget {
   const RefundAuthDialog({super.key});
@@ -40,7 +50,9 @@ class _RefundAuthDialogState extends ConsumerState<RefundAuthDialog> {
     if (!mounted) return;
     setState(() => _checking = false);
     if (ok) {
-      Navigator.of(context).pop(true);
+      Navigator.of(context).pop(
+        RefundAuthResult(authorizerId: authorizer.id, authorizerName: authorizer.name),
+      );
     } else {
       setState(() => _error = 'Invalid PIN or insufficient permissions');
     }
@@ -51,6 +63,7 @@ class _RefundAuthDialogState extends ConsumerState<RefundAuthDialog> {
     final authorizersAsync = ref.watch(authorizersProvider);
 
     return AlertDialog(
+      scrollable: true,
       title: const Text('Supervisor Authorization Required'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -61,11 +74,11 @@ class _RefundAuthDialogState extends ConsumerState<RefundAuthDialog> {
               child: CircularProgressIndicator(),
             ),
             error: (e, _) => Text('Failed to load authorizers: $e'),
-            data: (authorizers) => DropdownButtonFormField<UserEntity>(
+            data: (authorizers) => PopupMenuFormField<UserEntity>(
               initialValue: _selectedAuthorizer,
               decoration: const InputDecoration(labelText: 'Authorizer'),
               items: authorizers
-                  .map((u) => DropdownMenuItem(value: u, child: Text('${u.name} (${u.role})')))
+                  .map((u) => PopupMenuFormFieldItem(value: u, child: Text('${u.name} (${u.role})')))
                   .toList(),
               onChanged: (u) => setState(() {
                 _selectedAuthorizer = u;
@@ -79,9 +92,11 @@ class _RefundAuthDialogState extends ConsumerState<RefundAuthDialog> {
             keyboardType: TextInputType.number,
             obscureText: true,
             maxLength: 6,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: InputDecoration(
               labelText: 'Supervisor / Admin PIN',
               errorText: _error,
+              counterText: '',
             ),
             onSubmitted: (_) => _submit(),
           ),
@@ -89,7 +104,7 @@ class _RefundAuthDialogState extends ConsumerState<RefundAuthDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context, false),
+          onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
         FilledButton(

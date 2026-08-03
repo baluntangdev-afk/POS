@@ -1,11 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/database/app_database.dart';
+import '../../../../core/services/print_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -99,13 +101,30 @@ class _HistoryTile extends StatelessWidget {
 }
 
 /// Read-only reprint view for a single closed Daily Report history row.
-class DailyReportReprintScreen extends ConsumerWidget {
+class DailyReportReprintScreen extends HookConsumerWidget {
   final int historyId;
   const DailyReportReprintScreen({super.key, required this.historyId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final rowAsync = ref.watch(dailyReportHistoryRowProvider(historyId));
+    final isPrinting = useState(false);
+
+    Future<void> handlePrint(DailyReportData data) async {
+      if (isPrinting.value) return;
+      isPrinting.value = true;
+      try {
+        final printed = await PrintService.printDailyReport(data);
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(printed ? 'Daily Report sent to printer' : 'Printing failed (check printer connection).'),
+          ),
+        );
+      } finally {
+        isPrinting.value = false;
+      }
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -113,6 +132,21 @@ class DailyReportReprintScreen extends ConsumerWidget {
         title: Text('Daily Report #$historyId'),
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
+        actions: [
+          IconButton(
+            icon: isPrinting.value
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.print_rounded),
+            tooltip: 'Reprint',
+            onPressed: rowAsync.value == null || isPrinting.value
+                ? null
+                : () => handlePrint(_toDailyReportData(rowAsync.value!)),
+          ),
+        ],
       ),
       body: rowAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -138,13 +172,24 @@ class DailyReportReprintScreen extends ConsumerWidget {
               ),
             )
             .toList();
+    // Rows closed before the per-entry ledger upgrade store {date, total}
+    // instead of {time, reference, amount}; fall back gracefully so old
+    // history entries still render (as a single entry for that date).
     final cashLedger =
         (jsonDecode(row.cashLedgerJson) as List)
+            .map((e) => e as Map<String, dynamic>)
             .map(
-              (e) => CashLedgerEntry(
-                date: DateTime.parse(e['date'] as String),
-                total: (e['total'] as num).toDouble(),
-              ),
+              (e) => e.containsKey('time')
+                  ? CashLedgerEntry(
+                      time: DateTime.parse(e['time'] as String),
+                      reference: e['reference'] as String?,
+                      amount: (e['amount'] as num).toDouble(),
+                    )
+                  : CashLedgerEntry(
+                      time: DateTime.parse(e['date'] as String),
+                      reference: null,
+                      amount: (e['total'] as num).toDouble(),
+                    ),
             )
             .toList();
 

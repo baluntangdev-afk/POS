@@ -9,6 +9,7 @@ import '../../../../core/services/print_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../reports/view/report_preview_widgets.dart';
 import '../entities/x_reading_data.dart';
 import '../state/x_reading_notifier.dart';
 
@@ -19,6 +20,7 @@ class XReadingScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dataAsync = ref.watch(xReadingProvider);
     final isClosing = useState(false);
+    final canClose = (dataAsync.value?.transactionCount ?? 0) > 0;
 
     Future<void> handleClose() async {
       final data = dataAsync.value;
@@ -82,19 +84,19 @@ class XReadingScreen extends HookConsumerWidget {
       ),
       body: dataAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Failed to load X-Reading: $e')),
+        error: (e, _) => ReportErrorView(message: 'Failed to load X-Reading: $e'),
         data: (data) => Column(
           children: [
             Expanded(child: XReadingReportBody(data: data)),
             SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
                 child: SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: FilledButton.icon(
-                    onPressed: isClosing.value ? null : handleClose,
+                    onPressed: isClosing.value || !canClose ? null : handleClose,
                     icon: isClosing.value
                         ? const SizedBox(
                             width: 18,
@@ -114,251 +116,79 @@ class XReadingScreen extends HookConsumerWidget {
   }
 }
 
-/// Shared rendering of an [XReadingData] snapshot, used by both the live
-/// [XReadingScreen] and the read-only history reprint view.
+/// Shared receipt-style rendering of an [XReadingData] snapshot, used by both
+/// the live [XReadingScreen] and the read-only history reprint view.
 class XReadingReportBody extends StatelessWidget {
   final XReadingData data;
   const XReadingReportBody({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
-    final dateFmt = DateFormat('MMM d, y  h:mm a');
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+    return ReportReceiptCard(
       children: [
-        _HeaderCard(data: data, dateFmt: dateFmt),
-        const Gap(AppSpacing.lg),
-        _SectionHeader('Sales Summary'),
-        const Gap(AppSpacing.sm),
-        _SalesSummaryCard(data: data),
-        const Gap(AppSpacing.lg),
-        if (data.paymentBreakdown.isNotEmpty) ...[
-          _SectionHeader('Payment Breakdown'),
-          const Gap(AppSpacing.sm),
-          _PaymentBreakdownCard(data: data),
-          const Gap(AppSpacing.lg),
-        ],
-        if (data.topProducts.isNotEmpty) ...[
-          _SectionHeader('Top Products'),
-          const Gap(AppSpacing.sm),
-          _TopProductsCard(data: data),
-          const Gap(AppSpacing.lg),
-        ],
-        _SectionHeader('Transaction Summary'),
-        const Gap(AppSpacing.sm),
-        _TransactionSummaryCard(data: data),
+        const ReportStoreHeader(),
+        const Gap(12),
+        Text(
+          'X-READING',
+          textAlign: TextAlign.center,
+          style: AppTextStyles.headingSm.copyWith(color: AppColors.primary, fontWeight: FontWeight.w800),
+        ),
+        const Gap(4),
+        ReportStatusBadge(isClosed: data.id != null, closedLabel: 'CLOSED #${data.id}'),
+        const Gap(8),
+        const ReportDivider(),
+        const Gap(6),
+        ReportKeyValueRow('Cashier', data.cashierName),
+        ReportPeriodRow(formatReportPeriod(data.periodStart, data.periodEnd)),
+        ReportKeyValueRow('Generated', DateFormat.yMd().add_jm().format(data.generatedAt.toLocal())),
+        const Gap(6),
+        const ReportDivider(),
+        const Gap(6),
+        ReportSection(
+          title: 'SALES SUMMARY',
+          rows: [
+            for (final p in data.paymentBreakdown) ReportAmountRow(p.displayName, p.total),
+            ReportAmountRow('Total Sales', data.totalSales, bold: true),
+          ],
+        ),
+        for (final ledger in data.paymentLedgers) PaymentLedgerSection(ledger: ledger),
+        ReportSection(
+          title: 'TRANSACTION SUMMARY',
+          rows: [
+            ReportCountRow('Completed', data.transactionCount),
+            ReportCountRow('Voided', data.voidedCount),
+            ReportCountRow('Refunded', data.refundedCount),
+          ],
+        ),
+        ReportSection(
+          title: 'DISCOUNT SUMMARY',
+          rows: [
+            for (final d in data.discounts) ReportAmountRow(d.name, d.amount),
+            ReportAmountRow('Total Discounts', data.totalDiscounts, bold: true),
+          ],
+        ),
+        ReportSection(
+          title: 'TAX SUMMARY',
+          rows: [
+            ReportAmountRow('VAT Sales', data.vatableSales),
+            ReportAmountRow('VAT Amount', data.vatAmount),
+            ReportAmountRow('VAT-Exempt Sales', data.vatExemptSales),
+          ],
+        ),
+        ReportSection(
+          title: 'CASH COLLECTED',
+          rows: [ReportAmountRow('Cash Collected', data.cashCollected, bold: true)],
+        ),
+        ReportSection(
+          title: 'OTHER SUMMARY',
+          rows: [
+            ReportAmountRow('Average Sale', data.averageSale),
+            ReportAmountRow('Highest Sale', data.highestSale),
+            ReportAmountRow('Lowest Sale', data.lowestSale),
+          ],
+          showDividerAfter: false,
+        ),
       ],
     );
   }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  const _SectionHeader(this.title);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title.toUpperCase(),
-      style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary, letterSpacing: 0.8),
-    );
-  }
-}
-
-Widget _card({required Widget child}) => Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        boxShadow: [
-          BoxShadow(color: AppColors.shadow.withValues(alpha: 0.07), blurRadius: 12, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: child,
-    );
-
-class _HeaderCard extends StatelessWidget {
-  final XReadingData data;
-  final DateFormat dateFmt;
-  const _HeaderCard({required this.data, required this.dateFmt});
-
-  @override
-  Widget build(BuildContext context) {
-    return _card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text('X-Reading Report', style: AppTextStyles.headingMd),
-              ),
-              if (data.id != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                  ),
-                  child: Text('CLOSED #${data.id}',
-                      style: AppTextStyles.bodySm.copyWith(color: AppColors.success, fontWeight: FontWeight.w700)),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.warning.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                  ),
-                  child: Text('LIVE',
-                      style: AppTextStyles.bodySm.copyWith(color: AppColors.warning, fontWeight: FontWeight.w700)),
-                ),
-            ],
-          ),
-          const Gap(AppSpacing.sm),
-          Text('Cashier: ${data.cashierName}', style: AppTextStyles.bodyMd),
-          const Gap(4),
-          Text('Period: ${dateFmt.format(data.periodStart)} — ${dateFmt.format(data.periodEnd)}',
-              style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
-          const Gap(4),
-          Text('Generated: ${dateFmt.format(data.generatedAt)}',
-              style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
-        ],
-      ),
-    );
-  }
-}
-
-class _SalesSummaryCard extends StatelessWidget {
-  final XReadingData data;
-  const _SalesSummaryCard({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return _card(
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Total Sales', style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
-                const Gap(2),
-                Text('PHP ${data.totalSales.toStringAsFixed(2)}',
-                    style: AppTextStyles.headingMd.copyWith(color: AppColors.primary)),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Transactions', style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
-                const Gap(2),
-                Text('${data.transactionCount}', style: AppTextStyles.headingMd),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PaymentBreakdownCard extends StatelessWidget {
-  final XReadingData data;
-  const _PaymentBreakdownCard({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return _card(
-      child: Column(
-        children: data.paymentBreakdown.map((p) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: Row(
-              children: [
-                Expanded(child: Text(p.displayName, style: AppTextStyles.bodyMd)),
-                Text('PHP ${p.total.toStringAsFixed(2)}',
-                    style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600)),
-                const Gap(AppSpacing.sm),
-                SizedBox(
-                  width: 44,
-                  child: Text('${p.percentage.toStringAsFixed(0)}%',
-                      textAlign: TextAlign.right,
-                      style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-class _TopProductsCard extends StatelessWidget {
-  final XReadingData data;
-  const _TopProductsCard({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return _card(
-      child: Column(
-        children: data.topProducts.asMap().entries.map((entry) {
-          final i = entry.key;
-          final p = entry.value;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: Row(
-              children: [
-                Text('${i + 1}.', style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSecondary)),
-                const Gap(AppSpacing.sm),
-                Expanded(child: Text(p.name, style: AppTextStyles.bodyMd, overflow: TextOverflow.ellipsis)),
-                Text('${p.quantity} sold',
-                    style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
-                const Gap(AppSpacing.sm),
-                Text('PHP ${p.total.toStringAsFixed(2)}',
-                    style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600)),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-class _TransactionSummaryCard extends StatelessWidget {
-  final XReadingData data;
-  const _TransactionSummaryCard({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return _card(
-      child: Row(
-        children: [
-          Expanded(
-            child: _countTile('Completed', data.transactionCount, AppColors.success),
-          ),
-          Expanded(
-            child: _countTile('Voided', data.voidedCount, AppColors.error),
-          ),
-          Expanded(
-            child: _countTile('Refunded', data.refundedCount, AppColors.warning),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _countTile(String label, int count, Color color) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
-          const Gap(2),
-          Text('$count', style: AppTextStyles.headingMd.copyWith(color: color)),
-        ],
-      );
 }

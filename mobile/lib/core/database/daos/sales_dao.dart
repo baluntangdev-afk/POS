@@ -10,6 +10,7 @@ import '../tables/users_table.dart';
 import '../tables/products_table.dart';
 import '../tables/product_groups_table.dart';
 import '../../../features/transactions/entities/transaction_summary.dart';
+import '../../../features/reports/entities/report_data.dart';
 import '../../../features/ordering/entities/discount.dart';
 import '../../../features/ordering/entities/receipt.dart';
 import '../../../features/ordering/entities/receipt_item.dart';
@@ -38,6 +39,13 @@ class CashLedgerRow {
   final DateTime date;
   final double total;
   const CashLedgerRow({required this.date, required this.total});
+}
+
+class CashLedgerEntryRow {
+  final DateTime time;
+  final String? reference;
+  final double amount;
+  const CashLedgerEntryRow({required this.time, required this.reference, required this.amount});
 }
 
 class ProductGroupSales {
@@ -925,5 +933,191 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       result.add((saleItemId: item.id, qty: available));
     }
     return result;
+  }
+
+  Future<List<NameAmount>> _getDiscountBreakdown(
+    DateTime from,
+    DateTime to, {
+    int? cashierId,
+  }) async {
+    final rows = await customSelect(
+      'SELECT si.discount_type as name, COALESCE(SUM(si.discount_amount), 0) as amount '
+      'FROM sale_items si JOIN sales s ON s.id = si.sale_id '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? '
+      'AND si.discount_type IS NOT NULL'
+      '${cashierId != null ? ' AND s.cashier_id = ?' : ''} '
+      'GROUP BY si.discount_type',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+        if (cashierId != null) Variable.withInt(cashierId),
+      ],
+      readsFrom: {salesTable, saleItemsTable},
+    ).get();
+    return rows
+        .map((r) => NameAmount(name: r.read<String>('name'), amount: r.read<double>('amount')))
+        .toList();
+  }
+
+  Future<List<NameAmount>> getDiscountBreakdownForCashier(DateTime from, DateTime to, int cashierId) =>
+      _getDiscountBreakdown(from, to, cashierId: cashierId);
+
+  Future<List<NameAmount>> getDiscountBreakdownForDateRange(DateTime from, DateTime to) =>
+      _getDiscountBreakdown(from, to);
+
+  Future<({double vatableSales, double vatAmount, double vatExemptSales})> _getVatBreakdown(
+    DateTime from,
+    DateTime to, {
+    int? cashierId,
+  }) async {
+    final cashierFilter = cashierId != null ? ' AND s.cashier_id = ?' : '';
+    final taxRow = await customSelect(
+      'SELECT '
+      "COALESCE(SUM(CASE WHEN si.vat_exempt_amount IS NULL OR si.vat_exempt_amount = 0 "
+      'THEN (si.qty * si.unit_price - COALESCE(si.discount_amount, 0)) / 1.12 ELSE 0 END), 0) as vatable_sales, '
+      "COALESCE(SUM(CASE WHEN si.vat_exempt_amount IS NULL OR si.vat_exempt_amount = 0 "
+      'THEN (si.qty * si.unit_price - COALESCE(si.discount_amount, 0)) '
+      '- (si.qty * si.unit_price - COALESCE(si.discount_amount, 0)) / 1.12 ELSE 0 END), 0) as vat_amount '
+      'FROM sale_items si JOIN sales s ON s.id = si.sale_id '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$cashierFilter',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+        if (cashierId != null) Variable.withInt(cashierId),
+      ],
+      readsFrom: {salesTable, saleItemsTable},
+    ).getSingle();
+
+    final exemptRow = await customSelect(
+      'SELECT COALESCE(SUM(s.total), 0) as vat_exempt_sales FROM sales s '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$cashierFilter '
+      'AND s.id IN (SELECT DISTINCT sale_id FROM sale_items '
+      'WHERE vat_exempt_amount IS NOT NULL AND vat_exempt_amount > 0)',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+        if (cashierId != null) Variable.withInt(cashierId),
+      ],
+      readsFrom: {salesTable, saleItemsTable},
+    ).getSingle();
+
+    return (
+      vatableSales: taxRow.read<double>('vatable_sales'),
+      vatAmount: taxRow.read<double>('vat_amount'),
+      vatExemptSales: exemptRow.read<double>('vat_exempt_sales'),
+    );
+  }
+
+  Future<({double vatableSales, double vatAmount, double vatExemptSales})> getVatBreakdownForCashier(
+    DateTime from,
+    DateTime to,
+    int cashierId,
+  ) =>
+      _getVatBreakdown(from, to, cashierId: cashierId);
+
+  Future<({double vatableSales, double vatAmount, double vatExemptSales})> getVatBreakdownForDateRange(
+    DateTime from,
+    DateTime to,
+  ) =>
+      _getVatBreakdown(from, to);
+
+  Future<({double average, double highest, double lowest})> getSaleStatsForCashier(
+    DateTime from,
+    DateTime to,
+    int cashierId,
+  ) async {
+    final result = await customSelect(
+      'SELECT COALESCE(AVG(total), 0) as avg_sale, COALESCE(MAX(total), 0) as max_sale, '
+      'COALESCE(MIN(total), 0) as min_sale FROM sales '
+      'WHERE created_at BETWEEN ? AND ? AND status = ? AND cashier_id = ?',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+        Variable.withInt(cashierId),
+      ],
+      readsFrom: {salesTable},
+    ).getSingle();
+    return (
+      average: result.read<double>('avg_sale'),
+      highest: result.read<double>('max_sale'),
+      lowest: result.read<double>('min_sale'),
+    );
+  }
+
+  Future<List<PaymentLedger>> _getPaymentLedger(
+    DateTime from,
+    DateTime to, {
+    int? cashierId,
+  }) async {
+    final cashierFilter = cashierId != null ? ' AND s.cashier_id = ?' : '';
+    final rows = await customSelect(
+      'SELECT p.method, p.created_at as time, p.reference as reference, p.amount as amount '
+      'FROM payments p JOIN sales s ON s.id = p.sale_id '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$cashierFilter '
+      'ORDER BY p.method, p.created_at',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+        if (cashierId != null) Variable.withInt(cashierId),
+      ],
+      readsFrom: {salesTable, paymentsTable},
+    ).get();
+
+    final byMethod = <String, List<PaymentLedgerEntry>>{};
+    for (final r in rows) {
+      final method = r.read<String>('method');
+      byMethod.putIfAbsent(method, () => []).add(PaymentLedgerEntry(
+            time: r.read<DateTime>('time'),
+            reference: r.read<String?>('reference'),
+            amount: r.read<double>('amount'),
+          ));
+    }
+    return byMethod.entries
+        .map((e) => PaymentLedger(
+              method: e.key,
+              entries: e.value,
+              total: e.value.fold(0.0, (s, entry) => s + entry.amount),
+              count: e.value.length,
+            ))
+        .toList();
+  }
+
+  Future<List<PaymentLedger>> getPaymentLedgerForCashier(DateTime from, DateTime to, int cashierId) =>
+      _getPaymentLedger(from, to, cashierId: cashierId);
+
+  Future<List<PaymentLedger>> getPaymentLedgerForDateRange(DateTime from, DateTime to) =>
+      _getPaymentLedger(from, to);
+
+  Future<List<CashLedgerEntryRow>> getCashLedgerEntriesForCashier(
+    DateTime from,
+    DateTime to,
+    int cashierId,
+  ) async {
+    final rows = await customSelect(
+      'SELECT p.created_at as time, p.reference as reference, p.amount as amount '
+      'FROM payments p JOIN sales s ON s.id = p.sale_id '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ? AND p.method = ? '
+      'ORDER BY p.created_at',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withString('completed'),
+        Variable.withInt(cashierId),
+        Variable.withString('cash'),
+      ],
+      readsFrom: {salesTable, paymentsTable},
+    ).get();
+    return rows
+        .map((r) => CashLedgerEntryRow(
+              time: r.read<DateTime>('time'),
+              reference: r.read<String?>('reference'),
+              amount: r.read<double>('amount'),
+            ))
+        .toList();
   }
 }

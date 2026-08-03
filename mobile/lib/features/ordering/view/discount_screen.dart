@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/gradient_filled_button.dart';
 import '../entities/discount.dart';
 import '../entities/line_item.dart';
 import '../state/ordering_notifier.dart';
@@ -450,6 +452,7 @@ class _DiscountControls extends StatelessWidget {
                   color: AppColors.surfaceVariant,
                   borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                   border: Border.all(color: AppColors.border),
+                  boxShadow: AppShadows.card,
                 ),
                 child: Column(
                   children: [
@@ -462,9 +465,9 @@ class _DiscountControls extends StatelessWidget {
               ),
             ],
             const Gap(AppSpacing.md),
-            FilledButton(
+            GradientFilledButton(
               onPressed: onApply,
-              style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
+              minHeight: 52,
               child: const Text('Apply Discount'),
             ),
           ],
@@ -488,12 +491,17 @@ class _SummaryRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: AppTextStyles.bodySm.copyWith(
-              color: isDeduction ? AppColors.error : AppColors.textSecondary,
+          Flexible(
+            child: Text(
+              label,
+              style: AppTextStyles.bodySm.copyWith(
+                color: isDeduction ? AppColors.error : AppColors.textSecondary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+          const Gap(AppSpacing.sm),
           Text(
             '${amount < 0 ? '-' : ''}PHP ${amount.abs().toStringAsFixed(2)}',
             style: AppTextStyles.bodySm.copyWith(

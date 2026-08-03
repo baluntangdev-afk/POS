@@ -47,6 +47,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/dashboard';
       }
       if (isAuthenticated && isOnLogin) return '/dashboard';
+
+      const cashierRestrictedPrefixes = ['/inventory', '/settings', '/users'];
+      if (isAuthenticated &&
+          !authState.user.isAdminOrSupervisor &&
+          cashierRestrictedPrefixes
+              .any((prefix) => state.matchedLocation.startsWith(prefix))) {
+        return '/dashboard';
+      }
+
       return null;
     },
     refreshListenable: _AuthStateListenable(ref),

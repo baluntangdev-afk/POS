@@ -9,6 +9,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/services/image_storage_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../auth/state/auth_providers.dart';
@@ -305,13 +306,7 @@ class _UserCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadow.withValues(alpha: 0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 1),
-            ),
-          ],
+          boxShadow: AppShadows.card,
         ),
         clipBehavior: Clip.antiAlias,
         child: Material(
@@ -321,8 +316,31 @@ class _UserCard extends StatelessWidget {
               horizontal: AppSpacing.lg,
               vertical: AppSpacing.sm,
             ),
-            leading: _UserAvatar(user: user),
-            title: Text(user.name, style: AppTextStyles.headingSm),
+            leading: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _UserAvatar(user: user),
+                Positioned(
+                  right: -1,
+                  bottom: -1,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: user.isActive ? AppColors.success : AppColors.textDisabled,
+                      border: Border.all(color: AppColors.surface, width: 2),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            title: Text(
+              user.name,
+              style: AppTextStyles.headingSm,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Wrap(

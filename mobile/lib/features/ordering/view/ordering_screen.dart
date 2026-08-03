@@ -6,9 +6,12 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/providers/database_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/breakpoints.dart';
+import '../../../core/widgets/gradient_filled_button.dart';
 import '../entities/line_item.dart';
 import '../entities/sale.dart';
 import '../state/ordering_notifier.dart';
@@ -331,26 +334,32 @@ class _ProductCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Material(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-      child: InkWell(
+    return Container(
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        onTap: () async {
-          final db = ref.read(databaseProvider);
-          final item = await showModifierDialog(
-            context,
-            product: product,
-            groupName: groupName,
-            db: db,
-          );
-          if (item != null) {
-            ref.read(orderingProvider.notifier).addItem(item);
-          }
-        },
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+        boxShadow: AppShadows.card,
+      ),
+      child: Material(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+          onTap: () async {
+            final db = ref.read(databaseProvider);
+            final item = await showModifierDialog(
+              context,
+              product: product,
+              groupName: groupName,
+              db: db,
+            );
+            if (item != null) {
+              ref.read(orderingProvider.notifier).addItem(item);
+            }
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             Expanded(
               flex: 5,
               child: ClipRRect(
@@ -418,6 +427,7 @@ class _ProductCard extends ConsumerWidget {
               ),
             ),
           ],
+          ),
         ),
       ),
     );
@@ -481,7 +491,7 @@ class _CartBar extends StatelessWidget {
           vertical: AppSpacing.md,
         ),
         decoration: BoxDecoration(
-          color: AppColors.primary,
+          gradient: AppGradients.primary,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
           boxShadow: [
             BoxShadow(
@@ -509,17 +519,26 @@ class _CartBar extends StatelessWidget {
               ),
             ),
             const Gap(AppSpacing.sm),
-            Text(
-              'View Cart',
-              style: AppTextStyles.bodyMd.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+            Flexible(
+              child: Text(
+                'View Cart',
+                style: AppTextStyles.bodyMd.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             const Spacer(),
-            Text(
-              'PHP ${total.toStringAsFixed(2)}',
-              style: AppTextStyles.headingSm.copyWith(color: Colors.white),
+            Flexible(
+              child: Text(
+                'PHP ${total.toStringAsFixed(2)}',
+                style: AppTextStyles.headingSm.copyWith(color: Colors.white),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+              ),
             ),
             const Gap(AppSpacing.sm),
             const Icon(
@@ -611,26 +630,27 @@ class _CartPanel extends HookConsumerWidget {
             ),
           ),
 
-          // Items
+          // Items + footer (scroll together so the footer never overflows
+          // when the panel is short, e.g. a phone bottom sheet in landscape)
           Expanded(
             child:
                 items.isEmpty
                     ? const _EmptyCartState()
-                    : ListView.separated(
+                    : SingleChildScrollView(
                       controller: scrollController,
                       padding: const EdgeInsets.all(AppSpacing.md),
-                      itemCount: items.length,
-                      separatorBuilder: (ctx, i2) => const Gap(AppSpacing.sm),
-                      itemBuilder:
-                          (_, i) => _CartItemRow(
-                            key: ValueKey(items[i].id),
-                            item: items[i],
-                          ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (final item in items) ...[
+                            _CartItemRow(key: ValueKey(item.id), item: item),
+                            const Gap(AppSpacing.sm),
+                          ],
+                          _CartFooter(sale: state!.sale),
+                        ],
+                      ),
                     ),
           ),
-
-          // Footer
-          if (items.isNotEmpty) _CartFooter(sale: state!.sale),
         ],
       ),
     );
@@ -1104,17 +1124,13 @@ class _CartFooter extends ConsumerWidget {
           ),
           const Gap(AppSpacing.sm),
           // Checkout button
-          FilledButton(
+          GradientFilledButton(
             onPressed: () {
               if (Navigator.of(context).canPop()) Navigator.of(context).pop();
               context.push('/order/payment');
             },
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(0, 52),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-              ),
-            ),
+            minHeight: 52,
+            borderRadius: AppSpacing.radiusLg,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -1218,15 +1234,20 @@ class _TotalRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style:
-                large
-                    ? AppTextStyles.headingSm
-                    : AppTextStyles.bodyMd.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+          Flexible(
+            child: Text(
+              label,
+              style:
+                  large
+                      ? AppTextStyles.headingSm
+                      : AppTextStyles.bodyMd.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
+          const Gap(AppSpacing.sm),
           Text(
             amount < 0
                 ? '-PHP ${(-amount).toStringAsFixed(2)}'

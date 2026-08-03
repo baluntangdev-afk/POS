@@ -41,12 +41,16 @@ class ZReadingNotifier extends AsyncNotifier<ZReadingData> {
     final cashSales = await db.salesDao.getCashSalesForDateRange(periodStart, periodEnd);
     final paymentRows = await db.salesDao.getPaymentBreakdown(periodStart, periodEnd);
     final cashierRows = await db.salesDao.getSalesByCashier(periodStart, periodEnd);
+    final discounts = await db.salesDao.getDiscountBreakdownForDateRange(periodStart, periodEnd);
+    final vatBreakdown = await db.salesDao.getVatBreakdownForDateRange(periodStart, periodEnd);
+    final beginningBalance = await db.cashierAccountingDao.getLastZReadingEndingBalance();
+    final paymentLedgers = await db.salesDao.getPaymentLedgerForDateRange(periodStart, periodEnd);
 
     final storeInfo = await db.storeInfoDao.getStoreInfo();
     final taxRate = storeInfo?.taxRate ?? 0.0;
     final vatableSales = totalSales / (1 + taxRate);
     final vatAmount = totalSales - vatableSales;
-    const vatExemptSales = 0.0;
+    final vatExemptSales = vatBreakdown.vatExemptSales;
 
     final totalPaid = paymentRows.fold(0.0, (s, r) => s + (r['total'] as double? ?? 0));
     final paymentBreakdown = paymentRows.map((r) {
@@ -74,8 +78,8 @@ class ZReadingNotifier extends AsyncNotifier<ZReadingData> {
       generatedAt: DateTime.now(),
       closedByName: closedByName,
       authorizedByName: '',
-      beginningBalance: 0,
-      endingBalance: 0,
+      beginningBalance: beginningBalance,
+      endingBalance: beginningBalance + totalSales,
       totalSales: totalSales,
       vatableSales: vatableSales,
       vatAmount: vatAmount,
@@ -88,7 +92,9 @@ class ZReadingNotifier extends AsyncNotifier<ZReadingData> {
       cashCollected: cashSales.total,
       totalQtySold: totalQtySold,
       paymentBreakdown: paymentBreakdown,
+      paymentLedgers: paymentLedgers,
       salesByCashier: salesByCashier,
+      discounts: discounts,
     );
   }
 
@@ -99,19 +105,14 @@ class ZReadingNotifier extends AsyncNotifier<ZReadingData> {
 
   /// Closes the current live period. The supervisor PIN must already have
   /// been verified by the caller (UI layer, via [RefundAuthDialog]) — this
-  /// method performs no PIN re-check.
-  ///
-  /// KNOWN SIMPLIFICATION: `AuthNotifier.verifySupervisorPin` only returns a
-  /// bool, not which admin/supervisor matched the PIN. Rather than modifying
-  /// Phase-1 auth code, the UI passes a generic `authorizedByName:
-  /// 'Supervisor'` and `authorizedByUserId: 0` (sentinel) here.
+  /// method performs no PIN re-check. `beginningBalance`/`endingBalance` are
+  /// not passed in — they're the running cumulative totals already computed
+  /// in [_load] (mirrors kiosk's backend, which derives them the same way).
   Future<void> close({
     required int closedByUserId,
     required String closedByName,
     required int authorizedByUserId,
     required String authorizedByName,
-    required double beginningBalance,
-    required double endingBalance,
   }) async {
     final data = state.value;
     if (data == null) {
@@ -134,6 +135,9 @@ class ZReadingNotifier extends AsyncNotifier<ZReadingData> {
               'transactionCount': c.transactionCount,
             })
         .toList());
+    final discountsJson =
+        jsonEncode(data.discounts.map((d) => {'name': d.name, 'amount': d.amount}).toList());
+    final paymentLedgersJson = PaymentLedger.encodeList(data.paymentLedgers);
 
     await db.cashierAccountingDao.closeZReading(
       zCounter: zCounter,
@@ -143,8 +147,8 @@ class ZReadingNotifier extends AsyncNotifier<ZReadingData> {
       closedByName: closedByName,
       authorizedByUserId: authorizedByUserId,
       authorizedByName: authorizedByName,
-      beginningBalance: beginningBalance,
-      endingBalance: endingBalance,
+      beginningBalance: data.beginningBalance,
+      endingBalance: data.endingBalance,
       totalSales: data.totalSales,
       vatableSales: data.vatableSales,
       vatAmount: data.vatAmount,
@@ -158,7 +162,11 @@ class ZReadingNotifier extends AsyncNotifier<ZReadingData> {
       totalQtySold: data.totalQtySold,
       paymentBreakdownJson: paymentBreakdownJson,
       salesByCashierJson: salesByCashierJson,
+      discountsJson: discountsJson,
+      paymentLedgersJson: paymentLedgersJson,
     );
+
+    ref.invalidate(zReadingHistoryProvider);
 
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(_load);

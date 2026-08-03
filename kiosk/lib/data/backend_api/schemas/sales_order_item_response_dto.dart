@@ -25,6 +25,9 @@ class SalesOrderItemResponseDto with SalesOrderItemResponseDtoMappable {
     this.saleType,
     this.note,
     this.category,
+    this.discountName,
+    this.discountBeneficiaryIdNumber,
+    this.discountBeneficiaryName,
   });
 
   final String id;
@@ -47,6 +50,9 @@ class SalesOrderItemResponseDto with SalesOrderItemResponseDtoMappable {
   final String? saleType;
   final String? note;
   final String? category;
+  final String? discountName;
+  final String? discountBeneficiaryIdNumber;
+  final String? discountBeneficiaryName;
 
   static const fromJson = SalesOrderItemResponseDtoMapper.fromJson;
 }

@@ -4,9 +4,17 @@ function makeRaw(overrides: Partial<ZReadingRawInputs> = {}): ZReadingRawInputs 
   return {
     terminalName: 'POS-01',
     paymentRows: [{ name: 'Cash', amount: '19050.00' }],
-    categoryRows: [
-      { name: 'Beverages', amount: '12000.00', quantity: '84' },
-      { name: 'Food', amount: '7050.00', quantity: '35' },
+    paymentLedgerRows: [
+      {
+        name: 'Cash',
+        paymentDate: new Date('2026-07-15T10:00:00.000Z'),
+        transactionReference: null,
+        amount: '19050.00',
+      },
+    ],
+    itemRows: [
+      { name: 'Iced Latte', amount: '12000.00', quantity: '84' },
+      { name: 'Burger', amount: '7050.00', quantity: '35' },
     ],
     discountRows: [{ name: 'Senior Citizen / PWD', amount: '665.00' }],
     salesTotals: {
@@ -82,12 +90,27 @@ describe('ZReadingReportMapper', () => {
     expect(dto.totalQuantitySold).toBe(187);
   });
 
-  it('maps sales by category from category rows', () => {
+  it('maps sales by item from item rows', () => {
     const dto = ZReadingReportMapper.toDto(makeRaw());
 
-    expect(dto.salesByCategory).toEqual([
-      { name: 'Beverages', amount: 12000, quantity: 84 },
-      { name: 'Food', amount: 7050, quantity: 35 },
+    expect(dto.salesByItem).toEqual([
+      { name: 'Iced Latte', amount: 12000, quantity: 84 },
+      { name: 'Burger', amount: 7050, quantity: 35 },
+    ]);
+  });
+
+  it('groups payment ledger rows by payment method', () => {
+    const dto = ZReadingReportMapper.toDto(makeRaw());
+
+    expect(dto.paymentLedgers).toEqual([
+      {
+        name: 'Cash',
+        total: 19050,
+        count: 1,
+        entries: [
+          { time: '2026-07-15T10:00:00.000Z', reference: null, amount: 19050 },
+        ],
+      },
     ]);
   });
 
@@ -104,7 +127,8 @@ describe('ZReadingReportMapper', () => {
     const dto = ZReadingReportMapper.toDto(
       makeRaw({
         paymentRows: [],
-        categoryRows: [],
+        paymentLedgerRows: [],
+        itemRows: [],
         discountRows: [],
         salesTotals: undefined,
         voided: undefined,

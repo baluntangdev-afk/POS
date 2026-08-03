@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/experimental/mutation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../data/backend_api/sources/pos_terminals_api.dart';
+import '../../../services/device/device_serial_number.dart';
 import '../../../services/printer/win32_printer.dart';
 import '../entities/z_reading.dart';
 import '../repositories/cashier_report_repository.dart';
@@ -53,8 +54,9 @@ class ZReadingNotifier extends Notifier<AsyncValue<ZReading?>> {
     if (kIsWeb || !Platform.isWindows) return;
 
     final terminal = await ref.read(posTerminalsApiProvider).getMyTerminal();
+    final serialNumber = await ref.read(deviceSerialNumberProvider.future);
     final encode = ref.read(encodeEscPosZReadingProvider);
-    final data = await encode(report: report, terminal: terminal);
+    final data = await encode(report: report, terminal: terminal, serialNumber: serialNumber);
 
     final printerTransport = ref.read(win32PrinterTransportProvider);
     await printerTransport.sendData(data);

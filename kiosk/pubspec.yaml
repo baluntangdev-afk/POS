@@ -18,8 +18,7 @@ dependencies:
   esc_pos_utils_plus: ^2.0.4
   fast_immutable_collections: ^11.1.0
   ffi: ^2.1.5
-  excel:
-    path: packages/excel
+  file_picker: ^8.1.7
   fl_chart: ^0.69.2
   flutter:
     sdk: flutter

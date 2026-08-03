@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { parseCsvFile } from './csv-parser';
+import { parseCsvFile, parseCsvContent } from './csv-parser';
 
 function writeTempCsv(content: string): string {
   const file = path.join(os.tmpdir(), `test-${Date.now()}-${Math.random()}.csv`);
@@ -62,5 +62,27 @@ describe('parseCsvFile', () => {
 
   it('throws if file does not exist', () => {
     expect(() => parseCsvFile('/no/such/file.csv')).toThrow();
+  });
+});
+
+describe('parseCsvContent', () => {
+  it('parses headers and rows from a raw string, same as parseCsvFile', () => {
+    const result = parseCsvContent('A,B,C\n1,2,3\n4,5,6\n');
+    expect(result.headers).toEqual(['A', 'B', 'C']);
+    expect(result.rows).toEqual([
+      ['1', '2', '3'],
+      ['4', '5', '6'],
+    ]);
+  });
+
+  it('strips a UTF-8 BOM from raw content', () => {
+    const bom = '﻿';
+    const result = parseCsvContent(`${bom}A,B\n1,2\n`);
+    expect(result.headers[0]).toBe('A');
+  });
+
+  it('returns empty headers/rows for blank content', () => {
+    const result = parseCsvContent('   \n\n');
+    expect(result).toEqual({ headers: [], rows: [] });
   });
 });

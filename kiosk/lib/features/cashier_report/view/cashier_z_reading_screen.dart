@@ -125,11 +125,13 @@ class _ReportPreview extends ConsumerWidget {
                   ReportAmountRow('Total Sales', report.totalSales, bold: true),
                 ],
               ),
+              for (final ledger in report.paymentLedgers) PaymentLedgerSection(ledger: ledger),
               ReportSection(
-                title: 'SALES BY CATEGORY',
+                title: 'QTY x PRODUCT',
+                trailingTitle: 'AMOUNT',
                 rows: [
-                  for (final entry in report.salesByCategory)
-                    ReportAmountRow('${entry.name} [${entry.quantity}]', entry.amount),
+                  for (final entry in report.salesByItem)
+                    ReportAmountRow('${entry.quantity} ${entry.name}', entry.amount),
                 ],
               ),
               ReportSection(
@@ -159,6 +161,10 @@ class _ReportPreview extends ConsumerWidget {
               ReportSection(
                 title: 'CASH COLLECTED',
                 rows: [ReportAmountRow('Cash Collected', report.cashCollected, bold: true)],
+              ),
+              ReportSection(
+                title: 'OTHER SUMMARY',
+                rows: [ReportCountRow('Total Qty Sold', report.totalQuantitySold)],
               ),
               ReportSection(
                 title: 'SALES BY CASHIER',

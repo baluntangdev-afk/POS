@@ -13,6 +13,11 @@ import { FindProductService } from './services/find-product.service';
 import { FindProductVariantsService } from './services/find-product-variants.service';
 import { UpdateProductService } from './services/update-product.service';
 import { FindProductDetailsService } from './services/find-product-details.service';
+import {
+  ImportProductsCsvMode,
+  ImportProductsCsvService,
+} from './services/import-products-csv.service';
+import { ProductsCsvSeedSummary } from '../database/seeders/csv/products-csv.seeder';
 
 @Injectable()
 export class ProductsService {
@@ -23,6 +28,7 @@ export class ProductsService {
     private readonly findProductVariantsService: FindProductVariantsService,
     private readonly updateProductService: UpdateProductService,
     private readonly findProductDetailsService: FindProductDetailsService,
+    private readonly importProductsCsvService: ImportProductsCsvService,
   ) {}
 
   async create(
@@ -55,5 +61,12 @@ export class ProductsService {
   ): Promise<ProductDetailsDto> {
     await this.updateProductService.execute(id, updateProductDto, image, causer, baseUrl);
     return this.findProductDetailsService.execute(id);
+  }
+
+  async importCsv(
+    fileContent: string,
+    mode: ImportProductsCsvMode,
+  ): Promise<ProductsCsvSeedSummary> {
+    return this.importProductsCsvService.execute(fileContent, mode);
   }
 }

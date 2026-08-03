@@ -64,10 +64,10 @@ Write-Host "`nBuilding version: $currentVersion" -ForegroundColor Yellow
 # ── Flutter pre-build setup (must run before jobs) ───────────────────────────
 Write-Step "Preparing Flutter environment..."
 Push-Location $KioskDir
-fvm flutter config --enable-native-assets | Out-Null
-fvm flutter pub get
+flutter config --enable-native-assets | Out-Null
+flutter pub get
 if ($LASTEXITCODE -ne 0) { Write-Fail "flutter pub get failed."; exit 1 }
-fvm dart run build_runner build --delete-conflicting-outputs
+dart run build_runner build --delete-conflicting-outputs
 if ($LASTEXITCODE -ne 0) { Write-Fail "build_runner failed."; exit 1 }
 Pop-Location
 Write-Ok "Flutter code generation done."
@@ -84,7 +84,7 @@ $beJob = Start-Job -Name "Backend" -ScriptBlock {
 $flutterJob = Start-Job -Name "Flutter" -ScriptBlock {
     param($dir)
     Set-Location $dir
-    fvm flutter build windows 2>&1
+    flutter build windows 2>&1
 } -ArgumentList $KioskDir
 
 # Stream progress while waiting

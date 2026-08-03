@@ -31,16 +31,47 @@ function Wait-ServiceRunning {
     return ($svc -and $svc.Status -eq 'Running')
 }
 
-# -- 1. Start the PostgreSQL service --------------------------------------
-if (Get-Service "POSPostgres" -ErrorAction SilentlyContinue) {
-    Write-Host "Starting POSPostgres..."
-    & sc.exe start POSPostgres 2>&1 | Write-Host
-    if (Wait-ServiceRunning "POSPostgres" 30) {
-        Write-Host "POSPostgres is running."
-    } else {
-        Write-Error "POSPostgres did not reach Running state within 30s. See $logs\start-services.log."
+# -- 1. Auto-recover missing data directory before starting PostgreSQL ----
+# C:\posdata is deleted on uninstall. If the service exists but the data dir
+# is gone (e.g. reinstall over a previous version), postgres exits instantly
+# and the 30s wait loop below times out with a confusing error. Detect this
+# early and re-run setup-postgres.ps1 to reinitialize cleanly.
+$pgData = "C:\posdata"
+if ((Get-Service "POSPostgres" -ErrorAction SilentlyContinue) -and
+    !(Test-Path "$pgData\PG_VERSION")) {
+    Write-Host "PostgreSQL data directory missing at $pgData — running setup-postgres.ps1 to reinitialize..."
+    $setupScript = "$AppDir\scripts\setup-postgres.ps1"
+    if (!(Test-Path $setupScript)) {
+        Write-Error "setup-postgres.ps1 not found at $setupScript. Run recover-services.bat as Administrator to repair."
         try { Stop-Transcript | Out-Null } catch { }
         exit 1
+    }
+    & powershell.exe -ExecutionPolicy Bypass -NonInteractive -File $setupScript -AppDir $AppDir
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "setup-postgres.ps1 failed (exit $LASTEXITCODE). See $logs\setup-postgres-install.log."
+        try { Stop-Transcript | Out-Null } catch { }
+        exit 1
+    }
+    # setup-postgres.ps1 already started and verified the service — skip the
+    # duplicate start attempt below by jumping straight to the backend section.
+    Write-Host "PostgreSQL reinitialized and running."
+}
+
+# -- 2. Start the PostgreSQL service --------------------------------------
+if (Get-Service "POSPostgres" -ErrorAction SilentlyContinue) {
+    $pgSvc = Get-Service "POSPostgres"
+    if ($pgSvc.Status -ne 'Running') {
+        Write-Host "Starting POSPostgres..."
+        & sc.exe start POSPostgres 2>&1 | Write-Host
+        if (Wait-ServiceRunning "POSPostgres" 30) {
+            Write-Host "POSPostgres is running."
+        } else {
+            Write-Error "POSPostgres did not reach Running state within 30s. See $logs\start-services.log."
+            try { Stop-Transcript | Out-Null } catch { }
+            exit 1
+        }
+    } else {
+        Write-Host "POSPostgres is already running."
     }
 } else {
     Write-Error "POSPostgres service is not installed. Run recover-services.bat to (re)install it."
@@ -48,7 +79,7 @@ if (Get-Service "POSPostgres" -ErrorAction SilentlyContinue) {
     exit 1
 }
 
-# -- 2. Wait for PostgreSQL to accept connections -------------------------
+# -- 3. Wait for PostgreSQL to accept connections -------------------------
 # The service reaching "Running" does not mean it is accepting TCP connections
 # yet; start the backend only once pg_isready confirms it is reachable, so the
 # backend connects on its first attempt instead of failing/retrying.
@@ -69,7 +100,7 @@ if (Test-Path "$pgBin\pg_isready.exe") {
     Write-Host "PostgreSQL is ready."
 }
 
-# -- 3. Start the NestJS backend service ----------------------------------
+# -- 4. Start the NestJS backend service ----------------------------------
 if (Get-Service "POSBackendService" -ErrorAction SilentlyContinue) {
     Write-Host "Starting POSBackendService..."
     if (Test-Path $nssm) {
@@ -88,7 +119,7 @@ if (Get-Service "POSBackendService" -ErrorAction SilentlyContinue) {
     exit 1
 }
 
-# -- 4. Report final state ------------------------------------------------
+# -- 5. Report final state ------------------------------------------------
 $pg = Get-Service "POSPostgres"       -ErrorAction SilentlyContinue
 $be = Get-Service "POSBackendService" -ErrorAction SilentlyContinue
 Write-Host ("POSPostgres       : " + $(if ($pg) { $pg.Status } else { 'not installed' }))

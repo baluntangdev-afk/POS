@@ -7,10 +7,11 @@ import '../entities/z_reading.dart';
 import '../repositories/cashier_report_repository.dart';
 
 final cashierXReadingHistoryNotifierProvider =
-    AsyncNotifierProvider<CashierXReadingHistoryNotifier, PaginatedData<CashierXReadingHistoryItem>>(
-      CashierXReadingHistoryNotifier.new,
-      name: 'cashierXReadingHistoryNotifierProvider',
-    );
+AsyncNotifierProvider<CashierXReadingHistoryNotifier,
+    PaginatedData<CashierXReadingHistoryItem>>(
+  CashierXReadingHistoryNotifier.new,
+  name: 'cashierXReadingHistoryNotifierProvider',
+);
 
 class CashierXReadingHistoryNotifier
     extends AsyncNotifier<PaginatedData<CashierXReadingHistoryItem>> {
@@ -30,9 +31,10 @@ class CashierXReadingHistoryNotifier
 }
 
 final cashierDailyReportHistoryNotifierProvider = AsyncNotifierProvider<
-  CashierDailyReportHistoryNotifier,
-  PaginatedData<CashierDailyReportHistoryItem>
->(CashierDailyReportHistoryNotifier.new, name: 'cashierDailyReportHistoryNotifierProvider');
+    CashierDailyReportHistoryNotifier,
+    PaginatedData<CashierDailyReportHistoryItem>
+>(CashierDailyReportHistoryNotifier.new,
+    name: 'cashierDailyReportHistoryNotifierProvider');
 
 class CashierDailyReportHistoryNotifier
     extends AsyncNotifier<PaginatedData<CashierDailyReportHistoryItem>> {
@@ -51,25 +53,29 @@ class CashierDailyReportHistoryNotifier
   }
 }
 
-final cashierXReadingHistoryDetailProvider = FutureProvider.autoDispose.family<CashierXReading, String>((
-  ref,
-  id,
-) {
-  return ref.watch(cashierReportRepositoryProvider).getXReadingHistoryDetail(id);
+final cashierXReadingHistoryDetailProvider = FutureProvider.autoDispose.family<
+    CashierXReading,
+    String>((ref,
+    id,) {
+  return ref.watch(cashierReportRepositoryProvider).getXReadingHistoryDetail(
+      id);
 }, name: 'cashierXReadingHistoryDetailProvider');
 
 final cashierDailyReportHistoryDetailProvider = FutureProvider.autoDispose
     .family<CashierDailyReport, String>((ref, id) {
-      return ref.watch(cashierReportRepositoryProvider).getDailyReportHistoryDetail(id);
-    }, name: 'cashierDailyReportHistoryDetailProvider');
+  return ref.watch(cashierReportRepositoryProvider).getDailyReportHistoryDetail(
+      id);
+}, name: 'cashierDailyReportHistoryDetailProvider');
 
 final zReadingHistoryNotifierProvider =
-    AsyncNotifierProvider<ZReadingHistoryNotifier, PaginatedData<ZReadingHistoryItem>>(
-      ZReadingHistoryNotifier.new,
-      name: 'zReadingHistoryNotifierProvider',
-    );
+AsyncNotifierProvider<ZReadingHistoryNotifier,
+    PaginatedData<ZReadingHistoryItem>>(
+  ZReadingHistoryNotifier.new,
+  name: 'zReadingHistoryNotifierProvider',
+);
 
-class ZReadingHistoryNotifier extends AsyncNotifier<PaginatedData<ZReadingHistoryItem>> {
+class ZReadingHistoryNotifier
+    extends AsyncNotifier<PaginatedData<ZReadingHistoryItem>> {
   @override
   Future<PaginatedData<ZReadingHistoryItem>> build() async {
     final repository = ref.watch(cashierReportRepositoryProvider);
@@ -85,9 +91,10 @@ class ZReadingHistoryNotifier extends AsyncNotifier<PaginatedData<ZReadingHistor
   }
 }
 
-final zReadingHistoryDetailProvider = FutureProvider.autoDispose.family<ZReading, String>((
-  ref,
-  id,
-) {
-  return ref.watch(cashierReportRepositoryProvider).getZReadingHistoryDetail(id);
+final zReadingHistoryDetailProvider = FutureProvider.autoDispose.family<
+    ZReading,
+    String>((ref,
+    id,) {
+  return ref.watch(cashierReportRepositoryProvider).getZReadingHistoryDetail(
+      id);
 }, name: 'zReadingHistoryDetailProvider');

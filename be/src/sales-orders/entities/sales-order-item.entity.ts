@@ -104,6 +104,22 @@ export class SalesOrderItem extends UuidIdEntity {
   itemDiscountedPrice: string | null;
 
   @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    name: 'discount_beneficiary_id_number',
+  })
+  discountBeneficiaryIdNumber: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    name: 'discount_beneficiary_name',
+  })
+  discountBeneficiaryName: string | null;
+
+  @Column({
     type: 'decimal',
     precision: 18,
     scale: 6,

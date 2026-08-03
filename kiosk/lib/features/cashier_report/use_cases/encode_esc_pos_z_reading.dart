@@ -2,13 +2,10 @@ import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
-import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart';
 
 import '../../../data/backend_api/schemas/pos_terminal_dto.dart';
-import '../../../gen/assets.gen.dart';
 import '../../../utils/printer_text_sanitizer.dart';
 import '../entities/z_reading.dart';
 
@@ -19,21 +16,17 @@ final encodeEscPosZReadingProvider = Provider<EncodeEscPosZReading>((ref) {
 class EncodeEscPosZReading {
   static final _moneyFormat = NumberFormat('#,##0.00');
 
-  Future<Uint8List> call({required ZReading report, required PosTerminalDto terminal}) async {
+  Future<Uint8List> call({
+    required ZReading report,
+    required PosTerminalDto terminal,
+    String? serialNumber,
+  }) async {
     final profile = await CapabilityProfile.load();
-    final logoData = await rootBundle.load(Assets.images.cartivoLogo.path);
-    final logoBytes = logoData.buffer.asUint8List();
 
     return Isolate.run(() async {
       var bytes = <int>[];
       final generator = Generator(PaperSize.mm80, profile);
 
-      final logo = img.decodeImage(logoBytes);
-      if (logo != null) {
-        final resized = img.copyResize(logo, width: 380);
-        final grayscale = img.grayscale(resized);
-        bytes += generator.image(grayscale);
-      }
       bytes += generator.reset();
       bytes += generator.feed(1);
 
@@ -53,6 +46,12 @@ class EncodeEscPosZReading {
         'TIN: ${sanitizeForPrinter(terminal.tinNumber)}',
         styles: const PosStyles(align: PosAlign.center),
       );
+      if (serialNumber != null) {
+        bytes += generator.text(
+          'S/N: ${sanitizeForPrinter(serialNumber)}',
+          styles: const PosStyles(align: PosAlign.center),
+        );
+      }
       bytes += generator.feed(1);
 
       bytes += generator.text(
@@ -102,9 +101,30 @@ class EncodeEscPosZReading {
       bytes += _amountRow(generator, 'Total Sales', report.totalSales, bold: true);
       bytes += _divider(generator);
 
-      bytes += _sectionHeader(generator, 'SALES BY CATEGORY');
-      for (final row in report.salesByCategory) {
-        bytes += _amountRow(generator, '${row.name} [${row.quantity}]', row.amount);
+      for (final ledger in report.paymentLedgers) {
+        final nameUpper = ledger.name.toUpperCase();
+        final timeFormat = DateFormat.jm();
+        bytes += _sectionHeader(generator, '$nameUpper LEDGER');
+        for (final group in ledger.entriesByDate) {
+          bytes += generator.text(
+            DateFormat.yMd().format(group.date),
+            styles: const PosStyles(bold: true),
+          );
+          for (final entry in group.entries) {
+            final label = sanitizeForPrinter(
+              '${timeFormat.format(entry.time.toLocal())}  $nameUpper'
+              '${entry.reference != null ? '#${entry.reference}' : ''}',
+            );
+            bytes += _amountRow(generator, label, entry.amount);
+          }
+        }
+        bytes += _amountRow(generator, 'Total $nameUpper [${ledger.count}]', ledger.total, bold: true);
+        bytes += _divider(generator);
+      }
+
+      bytes += _twoColumnHeader(generator, 'QTY x PRODUCT', 'AMOUNT');
+      for (final row in report.salesByItem) {
+        bytes += _amountRow(generator, '${row.quantity} ${row.name}', row.amount);
       }
       bytes += _divider(generator);
 
@@ -154,6 +174,17 @@ class EncodeEscPosZReading {
 
   List<int> _sectionHeader(Generator generator, String title) {
     return generator.text(sanitizeForPrinter(title), styles: const PosStyles(bold: true));
+  }
+
+  List<int> _twoColumnHeader(Generator generator, String label, String trailingLabel) {
+    return generator.row([
+      PosColumn(text: sanitizeForPrinter(label), width: 8, styles: const PosStyles(bold: true)),
+      PosColumn(
+        text: sanitizeForPrinter(trailingLabel),
+        width: 4,
+        styles: const PosStyles(align: PosAlign.right, bold: true),
+      ),
+    ]);
   }
 
   List<int> _divider(Generator generator) {

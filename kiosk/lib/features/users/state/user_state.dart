@@ -43,7 +43,7 @@ class UserSuccessDelete extends UserState with UserSuccessDeleteMappable {
 }
 
 @MappableClass()
-class UserSuccessReset extends UserState with UserSuccessDeleteMappable {
+class UserSuccessReset extends UserState with UserSuccessResetMappable {
   const UserSuccessReset(this.userId);
 
   final String userId;

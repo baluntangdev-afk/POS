@@ -24,6 +24,8 @@ class ReceiptItem with ReceiptItemMappable {
     this.saleType,
     this.note,
     this.category,
+    this.discountBeneficiaryIdNumber,
+    this.discountBeneficiaryName,
   });
 
   final String id;
@@ -42,4 +44,6 @@ class ReceiptItem with ReceiptItemMappable {
   final SaleType? saleType;
   final String? note;
   final String? category;
+  final String? discountBeneficiaryIdNumber;
+  final String? discountBeneficiaryName;
 }

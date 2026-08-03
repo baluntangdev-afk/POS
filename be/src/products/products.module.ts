@@ -21,6 +21,7 @@ import { UpdateProductVariantService } from './services/update-product-variant.s
 import { FindProductDetailsService } from './services/find-product-details.service';
 import { RecomputeProductPriceService } from './services/recompute-product-price.service';
 import { FindDistinctVariantNamesService } from './services/find-distinct-variant-names.service';
+import { ImportProductsCsvService } from './services/import-products-csv.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Product, ProductVariant, ProductGroup]), CurrenciesModule],
@@ -41,6 +42,7 @@ import { FindDistinctVariantNamesService } from './services/find-distinct-varian
     UpdateProductVariantService,
     RecomputeProductPriceService,
     FindDistinctVariantNamesService,
+    ImportProductsCsvService,
   ],
   exports: [ProductsService, ProductVariantsService],
 })

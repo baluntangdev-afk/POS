@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../features/reports/state/sales_report_state.dart';
 import '../api_clients.dart';
 import '../schemas/cashier_daily_report_dto.dart';
 import '../schemas/cashier_x_reading_dto.dart';
@@ -24,32 +23,19 @@ class ReportsApi {
 
   final Dio _httpClient;
 
-  Future<SalesSummaryDto> getSalesReports({DateTime? startDate, DateTime? endDate}) async {
+  Future<SalesSummaryDto> getSalesReports(
+      {DateTime? startDate, DateTime? endDate}) async {
     final response = await _httpClient.get<dynamic>(
       '/api/v1/reports',
       queryParameters: {
-        'startDate': startDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
-        'endDate': endDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
+        'startDate': startDate?.toIso8601String() ??
+            DateTime.now().toIso8601String(),
+        'endDate': endDate?.toIso8601String() ??
+            DateTime.now().toIso8601String(),
       },
     );
     final json = jsonEncode(response.data);
     return SalesSummaryDto.fromJson(json);
-  }
-
-  Future<List<SalesReportTypeDto>> getSalesReportType({
-    required SalesReportPeriod type,
-    DateTime? startDate,
-    DateTime? endDate,
-  }) async {
-    final response = await _httpClient.get<dynamic>(
-      '/api/v1/reports/type/${type.name}',
-      queryParameters: {
-        'startDate': startDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
-        'endDate': endDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
-      },
-    );
-    final dataList = response.data as List<dynamic>;
-    return dataList.map((item) => SalesReportTypeDto.fromJson(jsonEncode(item))).toList();
   }
 
   Future<List<SalesDataItemDto>> getSalesByProductGroups({
@@ -59,12 +45,16 @@ class ReportsApi {
     final response = await _httpClient.get<dynamic>(
       '/api/v1/reports/product-group',
       queryParameters: {
-        'startDate': startDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
-        'endDate': endDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
+        'startDate': startDate?.toIso8601String() ??
+            DateTime.now().toIso8601String(),
+        'endDate': endDate?.toIso8601String() ??
+            DateTime.now().toIso8601String(),
       },
     );
     final dataList = response.data as List<dynamic>;
-    return dataList.map((item) => SalesDataItemDto.fromJson(jsonEncode(item))).toList();
+    return dataList
+        .map((item) => SalesDataItemDto.fromJson(jsonEncode(item)))
+        .toList();
   }
 
   Future<List<SalesDataItemDto>> getSalesByProducts({
@@ -74,36 +64,50 @@ class ReportsApi {
     final response = await _httpClient.get<dynamic>(
       '/api/v1/reports/product',
       queryParameters: {
-        'startDate': startDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
-        'endDate': endDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
+        'startDate': startDate?.toIso8601String() ??
+            DateTime.now().toIso8601String(),
+        'endDate': endDate?.toIso8601String() ??
+            DateTime.now().toIso8601String(),
       },
     );
     final dataList = response.data as List<dynamic>;
-    return dataList.map((item) => SalesDataItemDto.fromJson(jsonEncode(item))).toList();
+    return dataList
+        .map((item) => SalesDataItemDto.fromJson(jsonEncode(item)))
+        .toList();
   }
 
-  Future<List<SalesDataItemDto>> getSalesByUser({DateTime? startDate, DateTime? endDate}) async {
+  Future<List<SalesDataItemDto>> getSalesByUser(
+      {DateTime? startDate, DateTime? endDate}) async {
     final response = await _httpClient.get<dynamic>(
       '/api/v1/reports/user',
       queryParameters: {
-        'startDate': startDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
-        'endDate': endDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
+        'startDate': startDate?.toIso8601String() ??
+            DateTime.now().toIso8601String(),
+        'endDate': endDate?.toIso8601String() ??
+            DateTime.now().toIso8601String(),
       },
     );
     final dataList = response.data as List<dynamic>;
-    return dataList.map((item) => SalesDataItemDto.fromJson(jsonEncode(item))).toList();
+    return dataList
+        .map((item) => SalesDataItemDto.fromJson(jsonEncode(item)))
+        .toList();
   }
 
-  Future<List<SalesDataItemDto>> getSalesByPayment({DateTime? startDate, DateTime? endDate}) async {
+  Future<List<SalesDataItemDto>> getSalesByPayment(
+      {DateTime? startDate, DateTime? endDate}) async {
     final response = await _httpClient.get<dynamic>(
       '/api/v1/reports/payment',
       queryParameters: {
-        'startDate': startDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
-        'endDate': endDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
+        'startDate': startDate?.toIso8601String() ??
+            DateTime.now().toIso8601String(),
+        'endDate': endDate?.toIso8601String() ??
+            DateTime.now().toIso8601String(),
       },
     );
     final dataList = response.data as List<dynamic>;
-    return dataList.map((item) => SalesDataItemDto.fromJson(jsonEncode(item))).toList();
+    return dataList
+        .map((item) => SalesDataItemDto.fromJson(jsonEncode(item)))
+        .toList();
   }
 
   Future<ExportableReportDto> getExportable({required DateTime date}) async {
@@ -128,21 +132,25 @@ class ReportsApi {
   }
 
   Future<CashierXReadingDto> getCashierXReading() async {
-    final response = await _httpClient.get<dynamic>('/api/v1/reports/cashier-x-reading');
+    final response = await _httpClient.get<dynamic>(
+        '/api/v1/reports/cashier-x-reading');
     return CashierXReadingDto.fromJson(jsonEncode(response.data));
   }
 
   Future<CashierDailyReportDto> getCashierDailyReport() async {
-    final response = await _httpClient.get<dynamic>('/api/v1/reports/cashier-daily-report');
+    final response = await _httpClient.get<dynamic>(
+        '/api/v1/reports/cashier-daily-report');
     return CashierDailyReportDto.fromJson(jsonEncode(response.data));
   }
 
   Future<CashierXReadingDto> closeCashierXReading() async {
-    final response = await _httpClient.post<dynamic>('/api/v1/reports/cashier-x-reading/close');
+    final response = await _httpClient.post<dynamic>(
+        '/api/v1/reports/cashier-x-reading/close');
     return CashierXReadingDto.fromJson(jsonEncode(response.data));
   }
 
-  Future<PaginatedResponseDto<CashierXReadingHistoryItemDto>> getCashierXReadingHistory({
+  Future<PaginatedResponseDto<
+      CashierXReadingHistoryItemDto>> getCashierXReadingHistory({
     required int page,
     required int limit,
   }) async {
@@ -164,11 +172,13 @@ class ReportsApi {
   }
 
   Future<CashierDailyReportDto> closeCashierDailyReport() async {
-    final response = await _httpClient.post<dynamic>('/api/v1/reports/cashier-daily-report/close');
+    final response = await _httpClient.post<dynamic>(
+        '/api/v1/reports/cashier-daily-report/close');
     return CashierDailyReportDto.fromJson(jsonEncode(response.data));
   }
 
-  Future<PaginatedResponseDto<CashierDailyReportHistoryItemDto>> getCashierDailyReportHistory({
+  Future<PaginatedResponseDto<
+      CashierDailyReportHistoryItemDto>> getCashierDailyReportHistory({
     required int page,
     required int limit,
   }) async {
@@ -177,12 +187,14 @@ class ReportsApi {
       queryParameters: {'page': page, 'limit': limit},
     );
     CashierDailyReportHistoryItemDtoMapper.ensureInitialized();
-    return PaginatedResponseDtoMapper.fromJson<CashierDailyReportHistoryItemDto>(
+    return PaginatedResponseDtoMapper.fromJson<
+        CashierDailyReportHistoryItemDto>(
       jsonEncode(response.data),
     );
   }
 
-  Future<CashierDailyReportDto> getCashierDailyReportHistoryDetail(String id) async {
+  Future<CashierDailyReportDto> getCashierDailyReportHistoryDetail(
+      String id) async {
     final response = await _httpClient.get<dynamic>(
       '/api/v1/reports/cashier-daily-report/history/$id',
     );
@@ -190,11 +202,13 @@ class ReportsApi {
   }
 
   Future<ZReadingDto> getZReading() async {
-    final response = await _httpClient.get<dynamic>('/api/v1/reports/z-reading');
+    final response = await _httpClient.get<dynamic>(
+        '/api/v1/reports/z-reading');
     return ZReadingDto.fromJson(jsonEncode(response.data));
   }
 
-  Future<ZReadingDto> closeZReading({required String authorizerId, required String pin}) async {
+  Future<ZReadingDto> closeZReading(
+      {required String authorizerId, required String pin}) async {
     final response = await _httpClient.post<dynamic>(
       '/api/v1/reports/z-reading/close',
       data: {'authorizerId': authorizerId, 'pin': pin},
@@ -211,11 +225,13 @@ class ReportsApi {
       queryParameters: {'page': page, 'limit': limit},
     );
     ZReadingHistoryItemDtoMapper.ensureInitialized();
-    return PaginatedResponseDtoMapper.fromJson<ZReadingHistoryItemDto>(jsonEncode(response.data));
+    return PaginatedResponseDtoMapper.fromJson<ZReadingHistoryItemDto>(
+        jsonEncode(response.data));
   }
 
   Future<ZReadingDto> getZReadingHistoryDetail(String id) async {
-    final response = await _httpClient.get<dynamic>('/api/v1/reports/z-reading/history/$id');
+    final response = await _httpClient.get<dynamic>(
+        '/api/v1/reports/z-reading/history/$id');
     return ZReadingDto.fromJson(jsonEncode(response.data));
   }
 }

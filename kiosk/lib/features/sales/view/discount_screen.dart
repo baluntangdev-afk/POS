@@ -39,7 +39,7 @@ class DiscountScreen extends HookConsumerWidget {
     final selectedQuantities = useState<Map<String, int>>(initialSelected);
     final isAndroid = context.breakpoint.isAndroid;
 
-    void onApplyDiscount(String? idNumber) {
+    void onApplyDiscount(String? idNumber, String? beneficiaryName) {
       if (selectedQuantities.value.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please select items to discount.')),
@@ -50,7 +50,10 @@ class DiscountScreen extends HookConsumerWidget {
       if (selectedDiscountType.value == 'Senior/PWD') {
         ref.read(orderingProvider.notifier).applyDiscount(
           selectedQuantities.value,
-          (item, quantity) => SeniorPwdDiscount(beneficiaryId: idNumber ?? ''),
+          (item, quantity) => SeniorPwdDiscount(
+            beneficiaryId: idNumber ?? '',
+            beneficiaryName: beneficiaryName ?? '',
+          ),
         );
       } else {
         ref.read(orderingProvider.notifier).applyDiscount(
@@ -190,7 +193,7 @@ class _LandscapeLayout extends StatelessWidget {
   final List<String> discountTypes;
   final String selectedDiscountType;
   final ValueChanged<String> onDiscountTypeChanged;
-  final ValueChanged<String?> onApplyDiscount;
+  final void Function(String? idNumber, String? beneficiaryName) onApplyDiscount;
 
   @override
   Widget build(BuildContext context) {
@@ -233,7 +236,7 @@ class _PortraitLayout extends StatelessWidget {
   final List<String> discountTypes;
   final String selectedDiscountType;
   final ValueChanged<String> onDiscountTypeChanged;
-  final ValueChanged<String?> onApplyDiscount;
+  final void Function(String? idNumber, String? beneficiaryName) onApplyDiscount;
 
   @override
   Widget build(BuildContext context) {
@@ -627,17 +630,18 @@ class _DiscountControlsView extends HookWidget {
   final String selectedDiscountType;
   final ValueChanged<String> onDiscountTypeChanged;
   final Map<String, int> selectedQuantities;
-  final ValueChanged<String?> onApplyDiscount;
+  final void Function(String? idNumber, String? beneficiaryName) onApplyDiscount;
 
   @override
   Widget build(BuildContext context) {
     final r = context.responsive;
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final idNumberController = useTextEditingController();
+    final nameController = useTextEditingController();
 
     void validateAndSubmit() {
       if (formKey.currentState?.validate() ?? false) {
-        onApplyDiscount(idNumberController.text);
+        onApplyDiscount(idNumberController.text, nameController.text);
       }
     }
 
@@ -743,10 +747,22 @@ class _DiscountControlsView extends HookWidget {
                       SizedBox(height: r.value<double>(kiosk: 20, tablet: 16, phone: 14)),
 
                       // ID / Promo field
-                      if (selectedDiscountType == 'Senior/PWD')
+                      if (selectedDiscountType == 'Senior/PWD') ...[
                         TextBoxFormField(
                           controller: idNumberController,
                           label: 'ID Number',
+                          maxLines: 1,
+                          keyboardType: TextInputType.text,
+                          textInputAction: TextInputAction.next,
+                          validator: Validate(rules: [isRequired()]).call,
+                          style: TextStyle(
+                            fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13),
+                          ),
+                        ),
+                        SizedBox(height: r.value<double>(kiosk: 14, tablet: 12, phone: 10)),
+                        TextBoxFormField(
+                          controller: nameController,
+                          label: 'Name of ID Holder',
                           maxLines: 1,
                           keyboardType: TextInputType.text,
                           textInputAction: TextInputAction.done,
@@ -754,8 +770,8 @@ class _DiscountControlsView extends HookWidget {
                           style: TextStyle(
                             fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13),
                           ),
-                        )
-                      else
+                        ),
+                      ] else
                         TextBoxFormField(
                           controller: idNumberController,
                           label: 'Promo Code',
@@ -826,7 +842,7 @@ class _SummarySection extends ConsumerWidget {
     var discountAmount = Decimal.zero;
 
     if (selectedDiscountType == 'Senior/PWD') {
-      const discount = SeniorPwdDiscount(beneficiaryId: 'for_calculator_use_only');
+      const discount = SeniorPwdDiscount(beneficiaryId: 'for_calculator_use_only', beneficiaryName: '');
       vatExempt = grossAmount.vatAmount;
       discountAmount = discount.calculateAmount(grossAmount);
     }
@@ -983,6 +999,7 @@ class _DiscountDialogContent extends HookConsumerWidget {
     final selectedQuantities = useState<Map<String, int>>({});
     final formKey = useMemoized(GlobalKey<FormState>.new);
     final codeController = useTextEditingController();
+    final nameController = useTextEditingController();
 
     final selectableItems = useMemoized(
       () => items.where((e) => e.discount == null).toIList(),
@@ -992,6 +1009,7 @@ class _DiscountDialogContent extends HookConsumerWidget {
     void onTypeChanged(String v) {
       selectedDiscountType.value = v;
       codeController.clear();
+      nameController.clear();
       formKey.currentState?.reset();
     }
 
@@ -1006,7 +1024,10 @@ class _DiscountDialogContent extends HookConsumerWidget {
       if (selectedDiscountType.value == 'Senior/PWD') {
         ref.read(orderingProvider.notifier).applyDiscount(
           selectedQuantities.value,
-          (item, quantity) => SeniorPwdDiscount(beneficiaryId: codeController.text),
+          (item, quantity) => SeniorPwdDiscount(
+            beneficiaryId: codeController.text,
+            beneficiaryName: nameController.text,
+          ),
         );
       }
       if (context.mounted) Navigator.of(context).pop();
@@ -1116,6 +1137,7 @@ class _DiscountDialogContent extends HookConsumerWidget {
                           onTypeChanged: onTypeChanged,
                           selectedQuantities: selectedQuantities.value,
                           codeController: codeController,
+                          nameController: nameController,
                           onApply: applyDiscount,
                         ),
                       ),
@@ -1140,6 +1162,7 @@ class _DiscountDialogContent extends HookConsumerWidget {
                         onTypeChanged: onTypeChanged,
                         selectedQuantities: selectedQuantities.value,
                         codeController: codeController,
+                        nameController: nameController,
                         onApply: applyDiscount,
                       ),
                     ),
@@ -1156,7 +1179,7 @@ class _DiscountDialogContent extends HookConsumerWidget {
 
 // ── Item selection panel ──────────────────────────────────────────────────────
 
-class _DlgItemPanel extends StatelessWidget {
+class _DlgItemPanel extends ConsumerWidget {
   const _DlgItemPanel({
     required this.items,
     required this.selectableItems,
@@ -1170,10 +1193,11 @@ class _DlgItemPanel extends StatelessWidget {
   final ValueChanged<Map<String, int>> onChanged;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final r = context.responsive;
     final allSelected = selectableItems.isNotEmpty &&
         selectableItems.every((e) => selectedQuantities.containsKey(e.id));
+    final beneficiaryGroups = _groupDiscountedItemsByBeneficiary(items);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1232,6 +1256,67 @@ class _DlgItemPanel extends StatelessWidget {
           ),
         ),
         const Divider(height: 1, color: POSColors.borderDefault),
+        if (beneficiaryGroups.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.all(r.value<double>(kiosk: 10, tablet: 8, phone: 8)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final group in beneficiaryGroups)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF8EC),
+                        borderRadius: BorderRadius.circular(POSRadius.sm),
+                        border: Border.all(color: const Color(0xFFD97706).withValues(alpha: 0.4)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.badge_rounded, size: 14, color: Color(0xFFD97706)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${group.beneficiaryName} (${group.beneficiaryId})',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF92400E),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  '${group.itemIds.length} item${group.itemIds.length == 1 ? "" : "s"} · ${group.totalQuantity} qty',
+                                  style: const TextStyle(fontSize: 10, color: Color(0xFFD97706)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => _removeBeneficiaryDiscount(context, ref, group),
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFFB91C1C),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text(
+                              'Remove',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         Expanded(
           child: ListView.builder(
             // shrinkWrap: true,
@@ -1505,6 +1590,7 @@ class _DlgDiscountPanel extends StatelessWidget {
     required this.onTypeChanged,
     required this.selectedQuantities,
     required this.codeController,
+    required this.nameController,
     required this.onApply,
   });
 
@@ -1513,6 +1599,7 @@ class _DlgDiscountPanel extends StatelessWidget {
   final ValueChanged<String> onTypeChanged;
   final Map<String, int> selectedQuantities;
   final TextEditingController codeController;
+  final TextEditingController nameController;
   final VoidCallback onApply;
 
   @override
@@ -1636,6 +1723,70 @@ class _DlgDiscountPanel extends StatelessWidget {
                       ),
                     ),
                   ),
+
+                  if (isSenior) ...[
+                    SizedBox(height: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+                    Text(
+                      'NAME OF ID HOLDER',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: POSColors.textTertiary,
+                        letterSpacing: 0.7,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: nameController,
+                      keyboardType: TextInputType.text,
+                      textInputAction: TextInputAction.done,
+                      style: TextStyle(
+                        fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13),
+                        color: POSColors.textPrimary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      validator: (val) =>
+                          (val == null || val.trim().isEmpty) ? 'Name of ID Holder is required' : null,
+                      decoration: InputDecoration(
+                        hintText: 'e.g. Juan Dela Cruz',
+                        hintStyle: const TextStyle(
+                          color: POSColors.textDisabled,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        prefixIcon: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: Icon(Icons.person_outline_rounded, size: 18, color: POSColors.textTertiary),
+                        ),
+                        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: r.value<double>(kiosk: 14, tablet: 12, phone: 10),
+                          vertical: r.value<double>(kiosk: 14, tablet: 12, phone: 12),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(POSRadius.md),
+                          borderSide: const BorderSide(color: POSColors.borderDefault),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(POSRadius.md),
+                          borderSide: const BorderSide(color: POSColors.borderDefault),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(POSRadius.md),
+                          borderSide: const BorderSide(color: ColorSet.primary, width: 1.5),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(POSRadius.md),
+                          borderSide: BorderSide(color: ColorSet.danger),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(POSRadius.md),
+                          borderSide: BorderSide(color: ColorSet.danger, width: 1.5),
+                        ),
+                      ),
+                    ),
+                  ],
 
                   SizedBox(height: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
 
@@ -1871,7 +2022,7 @@ class _DlgSummary extends ConsumerWidget {
     var discountAmount = Decimal.zero;
 
     if (selectedType == 'Senior/PWD') {
-      const discount = SeniorPwdDiscount(beneficiaryId: '');
+      const discount = SeniorPwdDiscount(beneficiaryId: '', beneficiaryName: '');
       vatExempt = grossAmount.vatAmount;
       discountAmount = discount.calculateAmount(grossAmount);
     }
@@ -1980,5 +2131,69 @@ class _DlgSummaryRow extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Groups items already carrying a Senior/PWD discount by beneficiary (name + id number).
+List<_BeneficiaryGroup> _groupDiscountedItemsByBeneficiary(IList<LineItem> items) {
+  final groups = <String, _BeneficiaryGroup>{};
+
+  for (final item in items) {
+    final discount = item.discount;
+    if (discount is! SeniorPwdDiscount) continue;
+
+    final key = '${discount.beneficiaryName}|${discount.beneficiaryId}';
+    final existing = groups[key];
+    if (existing == null) {
+      groups[key] = _BeneficiaryGroup(
+        beneficiaryName: discount.beneficiaryName,
+        beneficiaryId: discount.beneficiaryId,
+        itemIds: [item.id],
+        totalQuantity: item.quantity,
+      );
+    } else {
+      groups[key] = existing.copyWith(
+        itemIds: [...existing.itemIds, item.id],
+        totalQuantity: existing.totalQuantity + item.quantity,
+      );
+    }
+  }
+
+  return groups.values.toList();
+}
+
+class _BeneficiaryGroup {
+  const _BeneficiaryGroup({
+    required this.beneficiaryName,
+    required this.beneficiaryId,
+    required this.itemIds,
+    required this.totalQuantity,
+  });
+
+  final String beneficiaryName;
+  final String beneficiaryId;
+  final List<String> itemIds;
+  final int totalQuantity;
+
+  _BeneficiaryGroup copyWith({List<String>? itemIds, int? totalQuantity}) => _BeneficiaryGroup(
+    beneficiaryName: beneficiaryName,
+    beneficiaryId: beneficiaryId,
+    itemIds: itemIds ?? this.itemIds,
+    totalQuantity: totalQuantity ?? this.totalQuantity,
+  );
+}
+
+/// Unlocks every item in [group] by resolving each item id to its current index in the sale and
+/// clearing the discount there. Clears from the highest index down so earlier removals don't
+/// shift the indices of items still pending removal.
+void _removeBeneficiaryDiscount(BuildContext context, WidgetRef ref, _BeneficiaryGroup group) {
+  final items = ref.read(orderingProvider).value?.sale.items ?? const IList.empty();
+  final indexes = [
+    for (final itemId in group.itemIds) items.indexWhere((e) => e.id == itemId),
+  ]..sort((a, b) => b.compareTo(a));
+
+  for (final index in indexes) {
+    if (index == -1) continue;
+    ref.read(orderingProvider.notifier).clearDiscount(index: index);
   }
 }

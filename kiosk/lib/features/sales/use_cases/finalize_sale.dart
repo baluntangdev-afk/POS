@@ -79,6 +79,15 @@ class FinalizeSale {
     };
     final discountAmount = lineItem.discount?.calculateAmount(grossAmount) ?? Decimal.zero;
 
+    final beneficiaryIdNumber = switch (lineItem.discount) {
+      final SeniorPwdDiscount discount => discount.beneficiaryId,
+      _ => null,
+    };
+    final beneficiaryName = switch (lineItem.discount) {
+      final SeniorPwdDiscount discount => discount.beneficiaryName,
+      _ => null,
+    };
+
     final isVatExempt = lineItem.isVatExempt;
     final vatExclusiveAmount = grossAmount.vatableAmount;
     final vatAmount = isVatExempt ? Decimal.zero : grossAmount.vatAmount;
@@ -99,6 +108,8 @@ class FinalizeSale {
       vatAmount: vatAmount,
       totalAmount: totalAmount,
       isMain: true,
+      discountBeneficiaryIdNumber: beneficiaryIdNumber,
+      discountBeneficiaryName: beneficiaryName,
     );
   }
 
@@ -112,6 +123,14 @@ class FinalizeSale {
       final PercentageDiscount discount => discount.rate,
       final SeniorPwdDiscount discount => discount.rate,
       _ => Decimal.zero,
+    };
+    final beneficiaryIdNumber = switch (lineItem.discount) {
+      final SeniorPwdDiscount discount => discount.beneficiaryId,
+      _ => null,
+    };
+    final beneficiaryName = switch (lineItem.discount) {
+      final SeniorPwdDiscount discount => discount.beneficiaryName,
+      _ => null,
     };
 
     return modifier.options.map((option) {
@@ -147,6 +166,8 @@ class FinalizeSale {
         vatAmount: vatAmount,
         totalAmount: totalAmount,
         isMain: false,
+        discountBeneficiaryIdNumber: beneficiaryIdNumber,
+        discountBeneficiaryName: beneficiaryName,
       );
     }).toIList();
   }

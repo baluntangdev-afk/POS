@@ -6,6 +6,7 @@ import { FindProductService } from './services/find-product.service';
 import { FindProductVariantsService } from './services/find-product-variants.service';
 import { UpdateProductService } from './services/update-product.service';
 import { FindProductDetailsService } from './services/find-product-details.service';
+import { ImportProductsCsvService } from './services/import-products-csv.service';
 
 describe('ProductsService', () => {
   let service: ProductsService;
@@ -20,6 +21,7 @@ describe('ProductsService', () => {
         { provide: FindProductVariantsService, useValue: {} },
         { provide: UpdateProductService, useValue: {} },
         { provide: FindProductDetailsService, useValue: {} },
+        { provide: ImportProductsCsvService, useValue: {} },
       ],
     }).compile();
 

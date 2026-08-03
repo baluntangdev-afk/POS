@@ -1,4 +1,12 @@
-import { groupRows } from './products-csv.seeder';
+import {
+  groupRows,
+  categoriesToSoftDelete,
+  productsToSoftDelete,
+  variantsToSoftDelete,
+} from './products-csv.seeder';
+import { ProductGroup } from '../../../product-groups/entities/product-group.entity';
+import { Product } from '../../../products/entities/product.entity';
+import { ProductVariant } from '../../../products/entities/product-variant.entity';
 
 // Column order: Category, Category Desc, Product Name, Product Desc,
 // Base Price, Variant Name, Variant Price, [Product Image URL]
@@ -85,5 +93,92 @@ describe('groupRows', () => {
 
     expect(products).toHaveLength(1);
     expect(products[0].imageUrl).toBe('https://cdn.example/latte.png');
+  });
+});
+
+describe('categoriesToSoftDelete', () => {
+  it('should select existing categories absent from the CSV', () => {
+    const tea = { id: 1, name: 'Tea', deletedAt: null } as ProductGroup;
+    const coffee = { id: 2, name: 'Coffee', deletedAt: null } as ProductGroup;
+
+    const result = categoriesToSoftDelete([tea, coffee], new Set(['Coffee']));
+
+    expect(result).toEqual([tea]);
+  });
+
+  it('should not re-select a category that is already soft-deleted', () => {
+    const tea = { id: 1, name: 'Tea', deletedAt: new Date() } as ProductGroup;
+
+    const result = categoriesToSoftDelete([tea], new Set(['Coffee']));
+
+    expect(result).toEqual([]);
+  });
+
+  it('should select nothing when every existing category is present in the CSV', () => {
+    const coffee = { id: 2, name: 'Coffee', deletedAt: null } as ProductGroup;
+
+    const result = categoriesToSoftDelete([coffee], new Set(['Coffee']));
+
+    expect(result).toEqual([]);
+  });
+});
+
+describe('productsToSoftDelete', () => {
+  const coffeeGroup = { id: 2, name: 'Coffee' } as ProductGroup;
+
+  it('should select existing products whose category+name key is absent from the CSV', () => {
+    const latte = { id: 10, name: 'Latte', productGroup: coffeeGroup, deletedAt: null } as Product;
+    const mocha = { id: 11, name: 'Mocha', productGroup: coffeeGroup, deletedAt: null } as Product;
+
+    const result = productsToSoftDelete([latte, mocha], new Set(['Coffee::Mocha']));
+
+    expect(result).toEqual([latte]);
+  });
+
+  it('should ignore products with no productGroup relation loaded', () => {
+    const orphan = { id: 12, name: 'Orphan', productGroup: null, deletedAt: null } as unknown as Product;
+
+    const result = productsToSoftDelete([orphan], new Set());
+
+    expect(result).toEqual([]);
+  });
+
+  it('should not re-select an already soft-deleted product', () => {
+    const latte = {
+      id: 10,
+      name: 'Latte',
+      productGroup: coffeeGroup,
+      deletedAt: new Date(),
+    } as Product;
+
+    const result = productsToSoftDelete([latte], new Set());
+
+    expect(result).toEqual([]);
+  });
+});
+
+describe('variantsToSoftDelete', () => {
+  const product = { id: 20 } as Product;
+
+  it('should select existing variants whose product+name key is absent from the CSV', () => {
+    const regular = { id: 30, name: 'Regular', product, deletedAt: null } as ProductVariant;
+    const large = { id: 31, name: 'Large', product, deletedAt: null } as ProductVariant;
+
+    const result = variantsToSoftDelete([regular, large], new Set(['20:Large']));
+
+    expect(result).toEqual([regular]);
+  });
+
+  it('should not re-select an already soft-deleted variant', () => {
+    const regular = {
+      id: 30,
+      name: 'Regular',
+      product,
+      deletedAt: new Date(),
+    } as ProductVariant;
+
+    const result = variantsToSoftDelete([regular], new Set());
+
+    expect(result).toEqual([]);
   });
 });

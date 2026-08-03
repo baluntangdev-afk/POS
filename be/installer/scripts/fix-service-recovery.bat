@@ -38,18 +38,9 @@ if %errorlevel% neq 0 ( echo [WARN] Could not set failure recovery on POSBackend
 
 echo.
 echo ── Starting services ────────────────────────────────────────────────────
-echo Starting POSPostgres...
-sc.exe start POSPostgres
-timeout /t 8 /nobreak >nul
+echo Delegating to start-services.bat (handles missing data dir auto-recovery)...
+call "%~dp0start-services.bat"
 
-echo Starting POSBackendService...
-sc.exe start POSBackendService
-timeout /t 5 /nobreak >nul
-
-echo.
-echo ── Current status ───────────────────────────────────────────────────────
-sc.exe query POSPostgres       | findstr /C:"STATE"
-sc.exe query POSBackendService | findstr /C:"STATE"
 echo.
 echo Done. Both services now have auto-restart on failure and auto start.
 echo.

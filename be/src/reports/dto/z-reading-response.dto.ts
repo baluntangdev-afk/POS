@@ -1,15 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { NameAmountDto } from './cashier-x-reading-response.dto';
+import { NameAmountDto, PaymentLedgerDto } from './cashier-x-reading-response.dto';
 
-export class CategorySalesDto {
-  @ApiProperty({ description: 'Product category (product group) name', example: 'Beverages' })
+export class ItemSalesDto {
+  @ApiProperty({ description: 'Product name', example: 'Iced Latte' })
   name: string;
 
-  @ApiProperty({ description: 'Sales total for this category', example: 12000.0 })
-  amount: number;
-
-  @ApiProperty({ description: 'Quantity of items sold in this category', example: 84 })
+  @ApiProperty({ description: 'Quantity of this item sold', example: 84 })
   quantity: number;
+
+  @ApiProperty({ description: 'Sales total for this item', example: 12000.0 })
+  amount: number;
 }
 
 export class ZReadingCashierBreakdownDto {
@@ -98,11 +98,19 @@ export class ZReadingResponseDto {
   salesByPaymentMethod: NameAmountDto[];
 
   @ApiProperty({
-    description: 'Sales grouped by product category (product group), store-wide',
-    type: CategorySalesDto,
+    description: 'Sales grouped by product (item), store-wide',
+    type: ItemSalesDto,
     isArray: true,
   })
-  salesByCategory: CategorySalesDto[];
+  salesByItem: ItemSalesDto[];
+
+  @ApiProperty({
+    description:
+      'Itemized payment ledgers, one per payment method, store-wide, sorted by total descending',
+    type: PaymentLedgerDto,
+    isArray: true,
+  })
+  paymentLedgers: PaymentLedgerDto[];
 
   @ApiProperty({
     description: 'Total sales, net of refunds, excludes voided orders',

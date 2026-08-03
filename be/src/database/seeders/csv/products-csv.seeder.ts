@@ -21,6 +21,18 @@ const DEFAULT_RECIPE_YIELD_QTY = '5';
  */
 const DEFAULT_VARIANT_NAME = 'Regular';
 
+export interface ProductsCsvSeedSummary {
+  categoriesInserted: number;
+  categoriesUpdated: number;
+  categoriesDeleted: number;
+  productsInserted: number;
+  productsUpdated: number;
+  productsDeleted: number;
+  variantsInserted: number;
+  variantsUpdated: number;
+  variantsDeleted: number;
+}
+
 interface CategoryData {
   name: string;
   description: string;
@@ -129,11 +141,45 @@ function productKey(categoryName: string, productName: string): string {
   return `${categoryName}::${productName}`;
 }
 
+/** Existing categories absent from the imported CSV and not already soft-deleted. */
+export function categoriesToSoftDelete(
+  existingGroups: ProductGroup[],
+  csvCategoryNames: Set<string>,
+): ProductGroup[] {
+  return existingGroups.filter((group) => !csvCategoryNames.has(group.name) && !group.deletedAt);
+}
+
+/** Existing products (with their category relation loaded) absent from the imported CSV. */
+export function productsToSoftDelete(
+  existingProducts: Product[],
+  csvProductKeys: Set<string>,
+): Product[] {
+  return existingProducts.filter((product) => {
+    if (!product.productGroup) return false;
+    const key = productKey(product.productGroup.name, product.name);
+    return !csvProductKeys.has(key) && !product.deletedAt;
+  });
+}
+
+/** Existing variants (with their product relation loaded) absent from the imported CSV. */
+export function variantsToSoftDelete(
+  existingVariants: ProductVariant[],
+  csvVariantKeys: Set<string>,
+): ProductVariant[] {
+  return existingVariants.filter((variant) => {
+    const key = `${variant.product.id}:${variant.name}`;
+    return !csvVariantKeys.has(key) && !variant.deletedAt;
+  });
+}
+
 /**
  * Seeds categories, products, and variants from validated CSV rows in four
- * upsert passes, then makes the CSV authoritative: any category, product, or
- * variant NOT present in the CSV is soft-deleted. This guarantees the store's
- * catalog matches the CSV exactly.
+ * upsert passes. By default (`authoritative: true`) the CSV is treated as the
+ * full catalog: any category, product, or variant NOT present in the CSV is
+ * soft-deleted, guaranteeing the store's catalog matches the CSV exactly. This
+ * is used by the CLI/recovery path. Passing `authoritative: false` (used by the
+ * in-app import endpoint) skips all soft-deletes — rows are only upserted, so
+ * importing a partial catalog never removes products added elsewhere.
  *
  * Pass 4 creates one ACTIVE recipe per variant. A recipe is mandatory for a
  * variant to be orderable — `SalesOrderItemBuildService.enrichProduct` throws
@@ -142,11 +188,16 @@ function productKey(categoryName: string, productName: string): string {
  * so the CSV seeder must produce a fully orderable catalog itself.
  *
  * Idempotent — re-running upserts by category+name (undeleting matches), re-applies the
- * soft-deletes, and creates recipes only for variants that lack one, so it is
- * safe to run on every install and recovery.
+ * soft-deletes when authoritative, and creates recipes only for variants that
+ * lack one, so it is safe to run on every install and recovery.
  */
 export class ProductsCsvSeeder {
-  async run(dataSource: DataSource, rows: string[][]): Promise<void> {
+  async run(
+    dataSource: DataSource,
+    rows: string[][],
+    options?: { authoritative?: boolean },
+  ): Promise<ProductsCsvSeedSummary> {
+    const authoritative = options?.authoritative ?? true;
     const seederHelper = new SeederHelper(dataSource);
     const adminUser = await seederHelper.getAdminUser();
     const groupRepo = dataSource.getRepository(ProductGroup);
@@ -184,10 +235,10 @@ export class ProductsCsvSeeder {
       }
     }
 
-    // Soft-delete categories not present in the CSV (CSV is authoritative)
+    // Soft-delete categories not present in the CSV (only when authoritative)
     let categoriesDeleted = 0;
-    for (const group of existingGroups) {
-      if (!csvCategoryNames.has(group.name) && !group.deletedAt) {
+    if (authoritative) {
+      for (const group of categoriesToSoftDelete(existingGroups, csvCategoryNames)) {
         group.deletedAt = new Date();
         group.deletedBy = adminUser;
         groupsToUpdate.push(group);
@@ -253,12 +304,10 @@ export class ProductsCsvSeeder {
       }
     }
 
-    // Soft-delete products not present in the CSV (CSV is authoritative)
+    // Soft-delete products not present in the CSV (only when authoritative)
     let productsDeleted = 0;
-    for (const product of existingProducts) {
-      if (!product.productGroup) continue;
-      const key = productKey(product.productGroup.name, product.name);
-      if (!csvProductKeys.has(key) && !product.deletedAt) {
+    if (authoritative) {
+      for (const product of productsToSoftDelete(existingProducts, csvProductKeys)) {
         product.deletedAt = new Date();
         product.deletedBy = adminUser;
         productsToUpdate.push(product);
@@ -328,11 +377,10 @@ export class ProductsCsvSeeder {
       });
     }
 
-    // Soft-delete variants not present in the CSV (CSV is authoritative)
+    // Soft-delete variants not present in the CSV (only when authoritative)
     let variantsDeleted = 0;
-    for (const variant of existingVariants) {
-      const key = `${variant.product.id}:${variant.name}`;
-      if (!csvVariantKeys.has(key) && !variant.deletedAt) {
+    if (authoritative) {
+      for (const variant of variantsToSoftDelete(existingVariants, csvVariantKeys)) {
         variant.deletedAt = new Date();
         variant.deletedBy = adminUser;
         variantsToUpdate.push(variant);
@@ -348,6 +396,18 @@ export class ProductsCsvSeeder {
 
     // ── Pass 4: Recipes (one per variant — required for orders) ───────────
     await this.ensureRecipesForVariants(dataSource, adminUser, csvProductKeys);
+
+    return {
+      categoriesInserted: groupsToInsert.length,
+      categoriesUpdated: groupsToUpdate.length - categoriesDeleted,
+      categoriesDeleted,
+      productsInserted: productsToInsert.length,
+      productsUpdated: productsToUpdate.length - productsDeleted,
+      productsDeleted,
+      variantsInserted: variantsToInsert.length,
+      variantsUpdated: variantsToUpdate.length - variantsDeleted,
+      variantsDeleted,
+    };
   }
 
   /**
@@ -384,7 +444,9 @@ export class ProductsCsvSeeder {
       relations: { productVariant: true },
       select: { id: true, productVariant: { id: true } },
     });
-    const variantIdsWithRecipe = new Set(existingRecipes.map((r) => r.productVariant.id));
+    const variantIdsWithRecipe = new Set(
+      existingRecipes.filter((r) => r.productVariant != null).map((r) => r.productVariant.id),
+    );
 
     const recipesToInsert: Partial<Recipe>[] = relevantVariants
       .filter((v) => !variantIdsWithRecipe.has(v.id))

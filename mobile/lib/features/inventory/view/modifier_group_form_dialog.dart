@@ -80,6 +80,7 @@ class _ModifierGroupFormDialogState extends ConsumerState<ModifierGroupFormDialo
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      scrollable: true,
       title: Text(_isEditing ? 'Edit Modifier Group' : 'Add Modifier Group'),
       content: SizedBox(
         width: 360,

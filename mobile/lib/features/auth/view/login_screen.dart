@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../entities/user_entity.dart';
@@ -89,10 +91,11 @@ class LoginScreen extends HookConsumerWidget {
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(AppSpacing.xl),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const SizedBox(height: AppSpacing.xxxl),
                   AnimatedSwitcher(
@@ -202,18 +205,23 @@ class _UserGrid extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              border: Border.all(color: AppColors.divider),
+              boxShadow: AppShadows.card,
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: AppGradients.primary,
+                  ),
+                  alignment: Alignment.center,
                   child: Text(
                     user.name[0].toUpperCase(),
                     style: AppTextStyles.headingLg.copyWith(
-                      color: AppColors.primary,
+                      color: AppColors.textOnPrimary,
                     ),
                   ),
                 ),

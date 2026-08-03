@@ -13,6 +13,7 @@ import '../../../core/csv/store_info_csv_importer.dart';
 import '../../../core/csv/users_csv_importer.dart';
 import '../../../core/providers/database_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../inventory/state/inventory_notifier.dart';
@@ -145,13 +146,7 @@ class _ImportCard extends HookConsumerWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow.withValues(alpha: 0.07),
-            blurRadius: 12,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: AppShadows.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -298,7 +293,12 @@ class _ResultBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (fileName != null)
-                  Text(fileName!, style: AppTextStyles.labelMd.copyWith(color: AppColors.textSecondary)),
+                  Text(
+                    fileName!,
+                    style: AppTextStyles.labelMd.copyWith(color: AppColors.textSecondary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 const Gap(2),
                 Text(
                   '${result.successCount} imported'

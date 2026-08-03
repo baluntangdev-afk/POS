@@ -74,6 +74,7 @@ class _CategoryFormDialogState extends ConsumerState<CategoryFormDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      scrollable: true,
       title: Text(_isEditing ? 'Edit Category' : 'Add Category'),
       content: SizedBox(
         width: 360,

@@ -124,7 +124,11 @@ class ReportSection extends StatelessWidget {
             ? Text(title, style: style)
             : Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [Text(title, style: style), Text(trailingTitle!, style: style)],
+                children: [
+                  Flexible(child: Text(title, style: style, overflow: TextOverflow.ellipsis)),
+                  const Gap(AppSpacing.sm),
+                  Flexible(child: Text(trailingTitle!, style: style, overflow: TextOverflow.ellipsis)),
+                ],
               ),
         const Gap(4),
         ...rows,
@@ -166,7 +170,19 @@ class ReportKeyValueRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 1),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [Text(label, style: AppTextStyles.bodySm), Text(value, style: AppTextStyles.bodySm)],
+        children: [
+          Text(label, style: AppTextStyles.bodySm),
+          const Gap(AppSpacing.sm),
+          Flexible(
+            child: Text(
+              value,
+              style: AppTextStyles.bodySm,
+              textAlign: TextAlign.end,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -245,7 +261,10 @@ class ReportCountRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 1),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [Text(label, style: AppTextStyles.bodySm), Text('$value', style: AppTextStyles.bodySm)],
+        children: [
+          Flexible(child: Text(label, style: AppTextStyles.bodySm, overflow: TextOverflow.ellipsis)),
+          Text('$value', style: AppTextStyles.bodySm),
+        ],
       ),
     );
   }

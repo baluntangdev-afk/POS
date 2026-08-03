@@ -198,10 +198,10 @@ class DashboardScreen extends HookConsumerWidget {
     final tiles = [
       _kTileNew,
       _kTileTransactions,
-      _kTileInventory,
+      if (isAdmin) _kTileInventory,
       // _kTileReports hidden for now
       _kTileCashierAccounting,
-      _kTileSettings,
+      if (isAdmin) _kTileSettings,
       if (isAdmin) _kTileUsers,
     ];
 
@@ -292,14 +292,14 @@ class _Header extends StatelessWidget {
                 const SizedBox(width: 16),
                 Container(width: 1, height: 28, color: const Color(0xFFE8E6E1)),
                 const SizedBox(width: 16),
-                _Clock(now: now),
+                Flexible(child: _Clock(now: now)),
               ],
 
               const Spacer(),
 
               // User pill
               if (userName.isNotEmpty) ...[
-                _UserPill(name: userName, role: userRole),
+                Flexible(child: _UserPill(name: userName, role: userRole)),
                 const SizedBox(width: 10),
               ],
 
@@ -448,6 +448,8 @@ class _Clock extends StatelessWidget {
             letterSpacing: -0.3,
             height: 1.2,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         Text(
           '$dayStr, $monStr ${now.day}',
@@ -457,6 +459,8 @@ class _Clock extends StatelessWidget {
             color: Color(0xFF9CA3AF),
             fontWeight: FontWeight.w400,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );

@@ -3,6 +3,7 @@ import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../ordering/entities/receipt_item.dart';
@@ -142,6 +143,7 @@ class _RefundItemRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: isRefunded ? AppColors.surface.withValues(alpha: 0.5) : AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        boxShadow: isRefunded ? null : AppShadows.card,
       ),
       child: Row(
         children: [

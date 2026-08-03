@@ -4,8 +4,10 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/gradient_filled_button.dart';
 
 /// Shows the cash payment bottom sheet. Returns the cash amount tendered,
 /// or null if the user cancelled.
@@ -93,6 +95,7 @@ class _CashPaymentSheet extends HookWidget {
                     color: AppColors.surfaceVariant,
                     borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                     border: Border.all(color: AppColors.border),
+                    boxShadow: AppShadows.card,
                   ),
                   child: Column(
                     children: [
@@ -172,9 +175,14 @@ class _CashPaymentSheet extends HookWidget {
                           'Change',
                           style: AppTextStyles.headingSm.copyWith(color: AppColors.success),
                         ),
-                        Text(
-                          'PHP ${change.toStringAsFixed(2)}',
-                          style: AppTextStyles.priceLg.copyWith(color: AppColors.success),
+                        Flexible(
+                          child: Text(
+                            'PHP ${change.toStringAsFixed(2)}',
+                            style: AppTextStyles.priceLg.copyWith(color: AppColors.success),
+                            textAlign: TextAlign.right,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
@@ -197,17 +205,11 @@ class _CashPaymentSheet extends HookWidget {
                     ),
                     const Gap(AppSpacing.md),
                     Expanded(
-                      child: FilledButton(
+                      child: GradientFilledButton(
                         onPressed: () {
                           if (!formKey.currentState!.validate()) return;
                           Navigator.of(context).pop(cashReceived);
                         },
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, AppSpacing.touchMin),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                          ),
-                        ),
                         child: const Text('Confirm'),
                       ),
                     ),

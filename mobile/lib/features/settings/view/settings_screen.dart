@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 
@@ -101,13 +102,7 @@ class _SettingsTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 1),
-          ),
-        ],
+        boxShadow: AppShadows.card,
       ),
       clipBehavior: Clip.antiAlias,
       child: Material(

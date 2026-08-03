@@ -82,6 +82,7 @@ class PaymentMethodFormDialog extends HookConsumerWidget {
     }
 
     return AlertDialog(
+      scrollable: true,
       title: Text(existing == null ? 'Add Payment Method' : 'Edit Payment Method'),
       content: Form(
         key: formKey,

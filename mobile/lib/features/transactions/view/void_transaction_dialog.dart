@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/popup_menu_form_field.dart';
@@ -45,32 +47,23 @@ class VoidTransactionDialog extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final reasonCtrl = useTextEditingController();
+    final pinCtrl = useTextEditingController();
     final selectedAuthorizer = useState<UserEntity?>(null);
-    final pin = useState('');
     final isLoading = useState(false);
     final error = useState<String?>(null);
     final authorizersAsync = ref.watch(authorizersProvider);
-
-    void appendDigit(String digit) {
-      if (pin.value.length < _maxPinLength) pin.value += digit;
-    }
-
-    void deleteDigit() {
-      if (pin.value.isNotEmpty) {
-        pin.value = pin.value.substring(0, pin.value.length - 1);
-      }
-    }
 
     Future<void> confirmVoid() async {
       if (isLoading.value) return;
 
       final reason = reasonCtrl.text.trim();
       final authorizer = selectedAuthorizer.value;
+      final pin = pinCtrl.text.trim();
 
       final missing = <String>[];
       if (reason.isEmpty) missing.add('void reason');
       if (authorizer == null) missing.add('authorizer');
-      if (pin.value.length < 4) missing.add('PIN (min. 4 digits)');
+      if (pin.length < 4) missing.add('PIN (min. 4 digits)');
 
       if (missing.isNotEmpty) {
         error.value = 'Please provide: ${missing.join(', ')}.';
@@ -82,11 +75,11 @@ class VoidTransactionDialog extends HookConsumerWidget {
 
       final authorized = await ref
           .read(authNotifierProvider.notifier)
-          .verifyPinForUser(authorizer!.id, pin.value);
+          .verifyPinForUser(authorizer!.id, pin);
 
       if (!authorized) {
         isLoading.value = false;
-        pin.value = '';
+        pinCtrl.clear();
         error.value = 'Invalid PIN or insufficient permissions';
         return;
       }
@@ -119,6 +112,7 @@ class VoidTransactionDialog extends HookConsumerWidget {
                     decoration: BoxDecoration(
                       color: AppColors.error.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                      boxShadow: AppShadows.card,
                     ),
                     child: const Icon(Icons.block_rounded, color: AppColors.error, size: 20),
                   ),
@@ -132,6 +126,8 @@ class VoidTransactionDialog extends HookConsumerWidget {
                         Text(
                           '$invoiceNumber  ·  ₱${totalAmount.toStringAsFixed(2)}',
                           style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -200,9 +196,21 @@ class VoidTransactionDialog extends HookConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
-                    _PinDisplay(pin: pin.value, maxLength: _maxPinLength),
-                    const SizedBox(height: AppSpacing.md),
-                    _PinPad(onDigit: appendDigit, onDelete: deleteDigit),
+                    Text('SUPERVISOR PIN',
+                        style: AppTextStyles.labelMd.copyWith(color: AppColors.textSecondary)),
+                    const SizedBox(height: AppSpacing.sm),
+                    TextField(
+                      controller: pinCtrl,
+                      keyboardType: TextInputType.number,
+                      obscureText: true,
+                      maxLength: _maxPinLength,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: const InputDecoration(
+                        hintText: 'Enter PIN',
+                        counterText: '',
+                      ),
+                      onSubmitted: (_) => confirmVoid(),
+                    ),
                     if (error.value != null) ...[
                       const SizedBox(height: AppSpacing.md),
                       Text(error.value!,
@@ -247,141 +255,6 @@ class VoidTransactionDialog extends HookConsumerWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PinDisplay extends StatelessWidget {
-  const _PinDisplay({required this.pin, required this.maxLength});
-
-  final String pin;
-  final int maxLength;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: List.generate(maxLength, (index) {
-          final isFilled = index < pin.length;
-          return Container(
-            margin: const EdgeInsets.symmetric(horizontal: 5),
-            width: 14,
-            height: 14,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isFilled ? AppColors.error : Colors.transparent,
-              border: Border.all(
-                color: isFilled ? AppColors.error : AppColors.border,
-                width: 2,
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-}
-
-class _PinPad extends StatelessWidget {
-  const _PinPad({required this.onDigit, required this.onDelete});
-
-  final ValueChanged<String> onDigit;
-  final VoidCallback onDelete;
-
-  static const _rows = [
-    ['1', '2', '3'],
-    ['4', '5', '6'],
-    ['7', '8', '9'],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    const btnSize = AppSpacing.touchPreferred;
-
-    return Column(
-      children: [
-        for (final row in _rows)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (final digit in row)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: _PinButton(label: digit, size: btnSize, onTap: () => onDigit(digit)),
-                  ),
-              ],
-            ),
-          ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(width: btnSize + 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: _PinButton(label: '0', size: btnSize, onTap: () => onDigit('0')),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: _PinDeleteButton(size: btnSize, onTap: onDelete),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _PinButton extends StatelessWidget {
-  const _PinButton({required this.label, required this.size, required this.onTap});
-
-  final String label;
-  final double size;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Material(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(size / 2),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(size / 2),
-          onTap: onTap,
-          child: Center(
-            child: Text(label,
-                style: AppTextStyles.headingSm.copyWith(fontSize: size * 0.35)),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PinDeleteButton extends StatelessWidget {
-  const _PinDeleteButton({required this.size, required this.onTap});
-
-  final double size;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Material(
-        color: AppColors.error.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(size / 2),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(size / 2),
-          onTap: onTap,
-          child: Icon(Icons.backspace_outlined, color: AppColors.error, size: size * 0.38),
         ),
       ),
     );

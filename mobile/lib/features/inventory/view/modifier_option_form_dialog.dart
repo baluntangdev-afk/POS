@@ -77,6 +77,7 @@ class _ModifierOptionFormDialogState extends ConsumerState<ModifierOptionFormDia
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      scrollable: true,
       title: Text(_isEditing ? 'Edit Option' : 'Add Option'),
       content: SizedBox(
         width: 360,

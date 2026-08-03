@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/widgets/popup_menu_form_field.dart';
@@ -62,6 +63,7 @@ class _RefundAuthDialogState extends ConsumerState<RefundAuthDialog> {
     final authorizersAsync = ref.watch(authorizersProvider);
 
     return AlertDialog(
+      scrollable: true,
       title: const Text('Supervisor Authorization Required'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -90,9 +92,11 @@ class _RefundAuthDialogState extends ConsumerState<RefundAuthDialog> {
             keyboardType: TextInputType.number,
             obscureText: true,
             maxLength: 6,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: InputDecoration(
               labelText: 'Supervisor / Admin PIN',
               errorText: _error,
+              counterText: '',
             ),
             onSubmitted: (_) => _submit(),
           ),
@@ -100,7 +104,7 @@ class _RefundAuthDialogState extends ConsumerState<RefundAuthDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context, false),
+          onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
         FilledButton(

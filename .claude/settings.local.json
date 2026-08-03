@@ -421,7 +421,9 @@
       "Bash(grep -n 'class\\\\|updateProduct\\\\|import' 'C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS\\\\kiosk\\\\lib\\\\data\\\\backend_api\\\\sources\" -r 2>/dev/null *)",
       "Bash(jq --version)",
       "Bash(dart format *)",
-      "Bash(xargs grep -l \"addItem\\\\|vat\\\\|VAT\" -i)"
+      "Bash(xargs grep -l \"addItem\\\\|vat\\\\|VAT\" -i)",
+      "Artifact",
+      "Bash(xargs grep -l \"ordering_screen\\\\|cash_payment_sheet\\\\|modifier_dialog\\\\|discount_screen\\\\|transactions_screen\\\\|void_transaction_dialog\\\\|refund_screen\\\\|cashier_accounting_hub_screen\\\\|dashboard_screen\\\\|inventory_screen\\\\|users_screen\\\\|csv_import_screen\\\\|settings_screen\\\\|section_card\\\\|login_screen\\\\|report_preview_widgets\")"
     ]
   }
 }

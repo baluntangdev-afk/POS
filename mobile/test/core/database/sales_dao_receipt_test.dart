@@ -60,6 +60,7 @@ void main() {
     expect(items, hasLength(1));
     final payments = await db.salesDao.getPaymentsForSale(saleId);
     expect(payments.single.amount, 60);
+    expect(payments.single.cashReceived, 100);
   });
 
   test('completeSale flips status to completed and getReceiptById builds a full Receipt', () async {
@@ -99,6 +100,33 @@ void main() {
     expect(receipt.items.where((i) => i.isMain).single.description, 'Burger');
     expect(receipt.items.where((i) => !i.isMain).single.id, isNegative);
     expect(receipt.docNumber, 'SO-${saleId.toString().padLeft(6, '0')}');
+  });
+
+  test('getReceiptById reports the actual cash tendered and change, not just the total', () async {
+    final sale = Sale(
+      type: 'dine_in',
+      createdAt: DateTime(2026, 7, 30),
+      payment: const SalePayment(method: 'cash', amountPaid: 60, cashReceived: 100),
+      items: [
+        LineItem(
+          id: 'a',
+          productId: 1,
+          productName: 'Burger',
+          groupName: 'Mains',
+          imageUrl: null,
+          basePrice: 60,
+          quantity: 1,
+          modifiers: const [],
+        ),
+      ],
+    );
+    final saleId = await db.salesDao.insertPendingSale(cashierId: cashierId, sale: sale);
+    await db.salesDao.completeSale(saleId);
+
+    final receipt = await db.salesDao.getReceiptById(saleId);
+
+    expect(receipt!.payment.cashReceived, 100);
+    expect(receipt.payment.change, 40);
   });
 
   test('voidSale records reason and voidedAt', () async {

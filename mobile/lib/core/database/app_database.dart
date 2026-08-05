@@ -55,7 +55,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'mobile_pos'));
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -239,6 +239,11 @@ class AppDatabase extends _$AppDatabase {
             }
             if (!await _hasColumn('z_readings', 'payment_ledgers_json')) {
               await m.addColumn(zReadingsTable, zReadingsTable.paymentLedgersJson);
+            }
+          }
+          if (from < 11) {
+            if (!await _hasColumn('payments', 'cash_received')) {
+              await m.addColumn(paymentsTable, paymentsTable.cashReceived);
             }
           }
         },

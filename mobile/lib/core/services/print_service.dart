@@ -8,6 +8,7 @@ import '../../features/cashier_accounting/z_reading/entities/z_reading_data.dart
 import '../../features/ordering/entities/receipt.dart';
 import '../../features/reports/entities/report_data.dart';
 import 'built_in_printer.dart';
+import 'print_row_layout.dart';
 import 'receipt_print_document.dart';
 
 const _prefMacKey = 'printer_mac';
@@ -38,8 +39,7 @@ abstract final class PrintService {
 
   static Future<bool> printReceipt(
     Receipt receipt, {
-    String currency = 'PHP',
-    String storeFooter = 'Thank you!',
+    String storeFooter = 'Thank You!',
     String? storeName,
     String? storeAddress,
     String? storeTin,
@@ -47,7 +47,6 @@ abstract final class PrintService {
   }) async {
     final document = ReceiptPrintDocument.build(
       receipt,
-      currency: currency,
       storeName: storeName,
       storeAddress: storeAddress,
       storeTin: storeTin,
@@ -102,21 +101,45 @@ abstract final class PrintService {
             width: sizeMultiplier >= 2 ? PosTextSize.size2 : PosTextSize.size1,
           ),
         ),
-      PrintRow(:final columns, :final weights, :final lastColumnAlign, :final bold) => generator
-          .row([
-            for (var i = 0; i < columns.length; i++)
-              PosColumn(
-                text: columns[i],
-                width: weights[i],
-                styles: PosStyles(
-                  align: i == columns.length - 1 ? _posAlign(lastColumnAlign) : PosAlign.left,
-                  bold: bold,
-                ),
-              ),
-          ]),
+      PrintRow(:final columns, :final resolvedWeights, :final minGap) =>
+        _generateRowBytes(generator, columns, resolvedWeights, minGap),
       PrintDivider() => generator.hr(),
       PrintFeed(:final lines) => generator.feed(lines),
     };
+  }
+
+  // esc_pos_utils_plus (PaperSize.mm80, font A) prints 48 chars/line — see
+  // Generator._getMaxCharsPerLine, which isn't exposed publicly.
+  static const int _lineWidthChars = 48;
+
+  // Columns are laid out in fixed-width slots sized proportionally to
+  // [weights], spanning the full [_lineWidthChars] edge-to-edge — like a
+  // real receipt table rather than a two-item spaceBetween row. Each column
+  // is aligned per its own [PrintText.align] within its slot, so a
+  // right-aligned column lands flush against the right edge of that slot.
+  // A row is only joined into one physical line when every column shares
+  // the same [PrintText.bold]; otherwise each column is printed with its
+  // own style on its own line. Matches the built-in Nyx printer path
+  // (NyxPrinterPlugin.kt).
+  static List<int> _generateRowBytes(
+    Generator generator,
+    List<PrintText> columns,
+    List<int> weights,
+    int minGap,
+  ) {
+    final line = buildPrintRowLine(columns, weights, _lineWidthChars, minGap);
+    if (line != null) {
+      return generator.text(line, styles: PosStyles(bold: columns.first.bold));
+    }
+
+    var bytes = <int>[];
+    for (final column in columns) {
+      bytes += generator.text(
+        column.text,
+        styles: PosStyles(align: _posAlign(column.align), bold: column.bold),
+      );
+    }
+    return bytes;
   }
 
   static PosAlign _posAlign(PrintAlign align) => switch (align) {

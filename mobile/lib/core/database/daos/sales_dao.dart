@@ -142,6 +142,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
           saleId: saleId,
           method: sale.payment!.method,
           amount: sale.payment!.amountPaid,
+          cashReceived: Value(sale.payment!.cashReceived),
           reference: Value(sale.payment!.reference),
           createdAt: sale.createdAt,
         ));
@@ -293,7 +294,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     final payment = SalePayment(
       method: paymentRow?.method ?? 'cash',
       amountPaid: paymentRow?.amount ?? sale.total,
-      cashReceived: paymentRow?.amount ?? sale.total,
+      cashReceived: paymentRow?.cashReceived ?? paymentRow?.amount ?? sale.total,
       reference: paymentRow?.reference,
     );
 

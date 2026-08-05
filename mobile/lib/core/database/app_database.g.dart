@@ -4449,6 +4449,17 @@ class $PaymentsTableTable extends PaymentsTable
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _cashReceivedMeta = const VerificationMeta(
+    'cashReceived',
+  );
+  @override
+  late final GeneratedColumn<double> cashReceived = GeneratedColumn<double>(
+    'cash_received',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _referenceMeta = const VerificationMeta(
     'reference',
   );
@@ -4477,6 +4488,7 @@ class $PaymentsTableTable extends PaymentsTable
     saleId,
     method,
     amount,
+    cashReceived,
     reference,
     createdAt,
   ];
@@ -4518,6 +4530,15 @@ class $PaymentsTableTable extends PaymentsTable
       );
     } else if (isInserting) {
       context.missing(_amountMeta);
+    }
+    if (data.containsKey('cash_received')) {
+      context.handle(
+        _cashReceivedMeta,
+        cashReceived.isAcceptableOrUnknown(
+          data['cash_received']!,
+          _cashReceivedMeta,
+        ),
+      );
     }
     if (data.containsKey('reference')) {
       context.handle(
@@ -4562,6 +4583,10 @@ class $PaymentsTableTable extends PaymentsTable
             DriftSqlType.double,
             data['${effectivePrefix}amount'],
           )!,
+      cashReceived: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}cash_received'],
+      ),
       reference: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}reference'],
@@ -4586,6 +4611,7 @@ class PaymentsTableData extends DataClass
   final int saleId;
   final String method;
   final double amount;
+  final double? cashReceived;
   final String? reference;
   final DateTime createdAt;
   const PaymentsTableData({
@@ -4593,6 +4619,7 @@ class PaymentsTableData extends DataClass
     required this.saleId,
     required this.method,
     required this.amount,
+    this.cashReceived,
     this.reference,
     required this.createdAt,
   });
@@ -4603,6 +4630,9 @@ class PaymentsTableData extends DataClass
     map['sale_id'] = Variable<int>(saleId);
     map['method'] = Variable<String>(method);
     map['amount'] = Variable<double>(amount);
+    if (!nullToAbsent || cashReceived != null) {
+      map['cash_received'] = Variable<double>(cashReceived);
+    }
     if (!nullToAbsent || reference != null) {
       map['reference'] = Variable<String>(reference);
     }
@@ -4616,6 +4646,10 @@ class PaymentsTableData extends DataClass
       saleId: Value(saleId),
       method: Value(method),
       amount: Value(amount),
+      cashReceived:
+          cashReceived == null && nullToAbsent
+              ? const Value.absent()
+              : Value(cashReceived),
       reference:
           reference == null && nullToAbsent
               ? const Value.absent()
@@ -4634,6 +4668,7 @@ class PaymentsTableData extends DataClass
       saleId: serializer.fromJson<int>(json['saleId']),
       method: serializer.fromJson<String>(json['method']),
       amount: serializer.fromJson<double>(json['amount']),
+      cashReceived: serializer.fromJson<double?>(json['cashReceived']),
       reference: serializer.fromJson<String?>(json['reference']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -4646,6 +4681,7 @@ class PaymentsTableData extends DataClass
       'saleId': serializer.toJson<int>(saleId),
       'method': serializer.toJson<String>(method),
       'amount': serializer.toJson<double>(amount),
+      'cashReceived': serializer.toJson<double?>(cashReceived),
       'reference': serializer.toJson<String?>(reference),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -4656,6 +4692,7 @@ class PaymentsTableData extends DataClass
     int? saleId,
     String? method,
     double? amount,
+    Value<double?> cashReceived = const Value.absent(),
     Value<String?> reference = const Value.absent(),
     DateTime? createdAt,
   }) => PaymentsTableData(
@@ -4663,6 +4700,7 @@ class PaymentsTableData extends DataClass
     saleId: saleId ?? this.saleId,
     method: method ?? this.method,
     amount: amount ?? this.amount,
+    cashReceived: cashReceived.present ? cashReceived.value : this.cashReceived,
     reference: reference.present ? reference.value : this.reference,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -4672,6 +4710,10 @@ class PaymentsTableData extends DataClass
       saleId: data.saleId.present ? data.saleId.value : this.saleId,
       method: data.method.present ? data.method.value : this.method,
       amount: data.amount.present ? data.amount.value : this.amount,
+      cashReceived:
+          data.cashReceived.present
+              ? data.cashReceived.value
+              : this.cashReceived,
       reference: data.reference.present ? data.reference.value : this.reference,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
@@ -4684,6 +4726,7 @@ class PaymentsTableData extends DataClass
           ..write('saleId: $saleId, ')
           ..write('method: $method, ')
           ..write('amount: $amount, ')
+          ..write('cashReceived: $cashReceived, ')
           ..write('reference: $reference, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -4691,8 +4734,15 @@ class PaymentsTableData extends DataClass
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, saleId, method, amount, reference, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    saleId,
+    method,
+    amount,
+    cashReceived,
+    reference,
+    createdAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -4701,6 +4751,7 @@ class PaymentsTableData extends DataClass
           other.saleId == this.saleId &&
           other.method == this.method &&
           other.amount == this.amount &&
+          other.cashReceived == this.cashReceived &&
           other.reference == this.reference &&
           other.createdAt == this.createdAt);
 }
@@ -4710,6 +4761,7 @@ class PaymentsTableCompanion extends UpdateCompanion<PaymentsTableData> {
   final Value<int> saleId;
   final Value<String> method;
   final Value<double> amount;
+  final Value<double?> cashReceived;
   final Value<String?> reference;
   final Value<DateTime> createdAt;
   const PaymentsTableCompanion({
@@ -4717,6 +4769,7 @@ class PaymentsTableCompanion extends UpdateCompanion<PaymentsTableData> {
     this.saleId = const Value.absent(),
     this.method = const Value.absent(),
     this.amount = const Value.absent(),
+    this.cashReceived = const Value.absent(),
     this.reference = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
@@ -4725,6 +4778,7 @@ class PaymentsTableCompanion extends UpdateCompanion<PaymentsTableData> {
     required int saleId,
     required String method,
     required double amount,
+    this.cashReceived = const Value.absent(),
     this.reference = const Value.absent(),
     required DateTime createdAt,
   }) : saleId = Value(saleId),
@@ -4736,6 +4790,7 @@ class PaymentsTableCompanion extends UpdateCompanion<PaymentsTableData> {
     Expression<int>? saleId,
     Expression<String>? method,
     Expression<double>? amount,
+    Expression<double>? cashReceived,
     Expression<String>? reference,
     Expression<DateTime>? createdAt,
   }) {
@@ -4744,6 +4799,7 @@ class PaymentsTableCompanion extends UpdateCompanion<PaymentsTableData> {
       if (saleId != null) 'sale_id': saleId,
       if (method != null) 'method': method,
       if (amount != null) 'amount': amount,
+      if (cashReceived != null) 'cash_received': cashReceived,
       if (reference != null) 'reference': reference,
       if (createdAt != null) 'created_at': createdAt,
     });
@@ -4754,6 +4810,7 @@ class PaymentsTableCompanion extends UpdateCompanion<PaymentsTableData> {
     Value<int>? saleId,
     Value<String>? method,
     Value<double>? amount,
+    Value<double?>? cashReceived,
     Value<String?>? reference,
     Value<DateTime>? createdAt,
   }) {
@@ -4762,6 +4819,7 @@ class PaymentsTableCompanion extends UpdateCompanion<PaymentsTableData> {
       saleId: saleId ?? this.saleId,
       method: method ?? this.method,
       amount: amount ?? this.amount,
+      cashReceived: cashReceived ?? this.cashReceived,
       reference: reference ?? this.reference,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -4782,6 +4840,9 @@ class PaymentsTableCompanion extends UpdateCompanion<PaymentsTableData> {
     if (amount.present) {
       map['amount'] = Variable<double>(amount.value);
     }
+    if (cashReceived.present) {
+      map['cash_received'] = Variable<double>(cashReceived.value);
+    }
     if (reference.present) {
       map['reference'] = Variable<String>(reference.value);
     }
@@ -4798,6 +4859,7 @@ class PaymentsTableCompanion extends UpdateCompanion<PaymentsTableData> {
           ..write('saleId: $saleId, ')
           ..write('method: $method, ')
           ..write('amount: $amount, ')
+          ..write('cashReceived: $cashReceived, ')
           ..write('reference: $reference, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -15084,6 +15146,7 @@ typedef $$PaymentsTableTableCreateCompanionBuilder =
       required int saleId,
       required String method,
       required double amount,
+      Value<double?> cashReceived,
       Value<String?> reference,
       required DateTime createdAt,
     });
@@ -15093,6 +15156,7 @@ typedef $$PaymentsTableTableUpdateCompanionBuilder =
       Value<int> saleId,
       Value<String> method,
       Value<double> amount,
+      Value<double?> cashReceived,
       Value<String?> reference,
       Value<DateTime> createdAt,
     });
@@ -15147,6 +15211,11 @@ class $$PaymentsTableTableFilterComposer
 
   ColumnFilters<double> get amount => $composableBuilder(
     column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get cashReceived => $composableBuilder(
+    column: $table.cashReceived,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -15208,6 +15277,11 @@ class $$PaymentsTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get cashReceived => $composableBuilder(
+    column: $table.cashReceived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get reference => $composableBuilder(
     column: $table.reference,
     builder: (column) => ColumnOrderings(column),
@@ -15259,6 +15333,11 @@ class $$PaymentsTableTableAnnotationComposer
 
   GeneratedColumn<double> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<double> get cashReceived => $composableBuilder(
+    column: $table.cashReceived,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get reference =>
       $composableBuilder(column: $table.reference, builder: (column) => column);
@@ -15326,6 +15405,7 @@ class $$PaymentsTableTableTableManager
                 Value<int> saleId = const Value.absent(),
                 Value<String> method = const Value.absent(),
                 Value<double> amount = const Value.absent(),
+                Value<double?> cashReceived = const Value.absent(),
                 Value<String?> reference = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => PaymentsTableCompanion(
@@ -15333,6 +15413,7 @@ class $$PaymentsTableTableTableManager
                 saleId: saleId,
                 method: method,
                 amount: amount,
+                cashReceived: cashReceived,
                 reference: reference,
                 createdAt: createdAt,
               ),
@@ -15342,6 +15423,7 @@ class $$PaymentsTableTableTableManager
                 required int saleId,
                 required String method,
                 required double amount,
+                Value<double?> cashReceived = const Value.absent(),
                 Value<String?> reference = const Value.absent(),
                 required DateTime createdAt,
               }) => PaymentsTableCompanion.insert(
@@ -15349,6 +15431,7 @@ class $$PaymentsTableTableTableManager
                 saleId: saleId,
                 method: method,
                 amount: amount,
+                cashReceived: cashReceived,
                 reference: reference,
                 createdAt: createdAt,
               ),

@@ -36,9 +36,8 @@ class ReceiptNotifier extends AsyncNotifier<Receipt> {
     final storeInfo = await db.storeInfoDao.getStoreInfo();
     return PrintService.printReceipt(
       state.requireValue,
-      currency: (storeInfo?.currency.isNotEmpty ?? false) ? storeInfo!.currency : 'PHP',
       storeFooter:
-          (storeInfo?.receiptFooter.isNotEmpty ?? false) ? storeInfo!.receiptFooter : 'Thank you!',
+          (storeInfo?.receiptFooter.isNotEmpty ?? false) ? storeInfo!.receiptFooter : 'Thank You!',
       storeName: storeInfo?.storeName,
       storeAddress: storeInfo?.address,
       storeTin: storeInfo?.tin,

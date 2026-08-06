@@ -150,7 +150,7 @@ class ReceiptScreen extends HookConsumerWidget {
                         //     ),
                         //   ),
                         // ],
-                        if (!receipt.isVoided) ...[
+                        if (!receipt.isVoided && !receipt.voidLocked) ...[
                           const Gap(AppSpacing.md),
                           OutlinedButton.icon(
                             onPressed: () => _voidReceipt(context, ref),
@@ -163,6 +163,17 @@ class ReceiptScreen extends HookConsumerWidget {
                                 AppSpacing.touchMin,
                               ),
                               side: const BorderSide(color: AppColors.error),
+                            ),
+                          ),
+                        ] else if (receipt.voidLocked) ...[
+                          const Gap(AppSpacing.md),
+                          Text(
+                            'This transaction can no longer be voided — it is '
+                            'already included in a closed X-Reading, Daily '
+                            'Report, or Z-Reading.',
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.bodySm.copyWith(
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ],

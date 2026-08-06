@@ -67,6 +67,7 @@ dev_dependencies:
   dart_mappable_builder: ^4.6.3
   path_provider_platform_interface: ^2.1.2
   plugin_platform_interface: ^2.1.8
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
@@ -74,3 +75,9 @@ flutter:
   assets:
     - assets/images/
     - assets/fonts/
+    - assets/icon/
+
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21

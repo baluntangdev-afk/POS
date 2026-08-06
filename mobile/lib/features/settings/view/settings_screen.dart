@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../auth/state/auth_providers.dart';
+import '../../auth/state/auth_state.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authNotifierProvider);
+    final user = authState is AuthAuthenticated ? authState.user : null;
+    final isAdmin = user?.isAdminOrSupervisor ?? false;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -31,23 +38,25 @@ class SettingsScreen extends StatelessWidget {
         body: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            _SectionHeader('Data'),
-            _SettingsTile(
-              icon: Icons.upload_file_rounded,
-              title: 'Import CSV',
-              subtitle:
-                  'Import products, modifiers, users, or store info from CSV files',
-              onTap: () => context.push('/settings/csv-import'),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            _SectionHeader('Store'),
-            _SettingsTile(
-              icon: Icons.store_outlined,
-              title: 'Store Information',
-              subtitle: 'Name, address, payment methods',
-              onTap: () => context.push('/settings/store-info'),
-            ),
-            const SizedBox(height: AppSpacing.lg),
+            if (isAdmin) ...[
+              _SectionHeader('Data'),
+              _SettingsTile(
+                icon: Icons.upload_file_rounded,
+                title: 'Import CSV',
+                subtitle:
+                    'Import products, modifiers, users, or store info from CSV files',
+                onTap: () => context.push('/settings/csv-import'),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              _SectionHeader('Store'),
+              _SettingsTile(
+                icon: Icons.store_outlined,
+                title: 'Store Information',
+                subtitle: 'Name, address, payment methods',
+                onTap: () => context.push('/settings/store-info'),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
             _SectionHeader('Printer'),
             _SettingsTile(
               icon: Icons.print_outlined,

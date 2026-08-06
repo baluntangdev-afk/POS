@@ -7,6 +7,7 @@ import 'package:mobile/features/ordering/entities/sale_payment.dart';
 
 Receipt _receipt({List<ReceiptItem>? items, List<Refund>? refunds}) => Receipt(
       id: 1,
+      cashierId: 1,
       storeName: 'Store',
       cashierName: 'Cashier',
       docNumber: 'SO-000001',

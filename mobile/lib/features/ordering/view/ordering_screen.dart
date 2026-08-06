@@ -535,9 +535,9 @@ class _CartBar extends StatelessWidget {
               child: Text(
                 'PHP ${total.toStringAsFixed(2)}',
                 style: AppTextStyles.headingSm.copyWith(color: Colors.white),
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.right,
+                textAlign: TextAlign.center,
               ),
             ),
             const Gap(AppSpacing.sm),

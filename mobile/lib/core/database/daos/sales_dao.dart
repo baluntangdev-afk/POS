@@ -340,8 +340,11 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       ));
     }
 
+    final voidCutoff = await attachedDatabase.cashierAccountingDao.getVoidLockCutoff(sale.cashierId);
+
     return Receipt(
       id: sale.id,
+      cashierId: sale.cashierId,
       storeName: '',
       cashierName: user?.name ?? 'Unknown',
       docNumber: sale.soNumber ?? 'SO-${sale.id.toString().padLeft(6, '0')}',
@@ -352,6 +355,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       refunds: refunds,
       isVoided: sale.status == 'voided',
       voidReason: sale.voidReason,
+      voidLocked: sale.status != 'voided' && sale.createdAt.isBefore(voidCutoff),
     );
   }
 

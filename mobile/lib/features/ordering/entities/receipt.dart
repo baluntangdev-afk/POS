@@ -4,6 +4,7 @@ import 'sale_payment.dart';
 
 class Receipt {
   final int id;
+  final int cashierId;
   final String storeName;
   final String cashierName;
   final String docNumber;
@@ -14,9 +15,11 @@ class Receipt {
   final List<Refund> refunds;
   final bool isVoided;
   final String? voidReason;
+  final bool voidLocked;
 
   const Receipt({
     required this.id,
+    required this.cashierId,
     required this.storeName,
     required this.cashierName,
     required this.docNumber,
@@ -27,6 +30,7 @@ class Receipt {
     this.refunds = const [],
     this.isVoided = false,
     this.voidReason,
+    this.voidLocked = false,
   });
 
   double get grossAmount => items.fold(0.0, (s, i) => s + i.grossAmount);

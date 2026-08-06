@@ -89,6 +89,48 @@ class PrinterSetupScreen extends HookWidget {
       savedName.value = null;
     }
 
+    final calibrating = useState<String?>(null);
+
+    Future<void> printCalibration({required bool forceBluetooth}) async {
+      calibrating.value = forceBluetooth ? 'bluetooth' : 'auto';
+      try {
+        final ok =
+            forceBluetooth
+                ? await PrintService.printCalibrationBluetooth()
+                : await PrintService.printCalibration();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(ok ? 'Calibration ruler sent' : 'Print failed'),
+              backgroundColor: ok ? null : AppColors.error,
+            ),
+          );
+        }
+      } finally {
+        calibrating.value = null;
+      }
+    }
+
+    Future<void> printWidthProbe({required bool forceBluetooth}) async {
+      calibrating.value = forceBluetooth ? 'probe-bluetooth' : 'probe-auto';
+      try {
+        final ok =
+            forceBluetooth
+                ? await PrintService.printWidthProbeBluetooth()
+                : await PrintService.printWidthProbe();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(ok ? 'Width probe sent' : 'Print failed'),
+              backgroundColor: ok ? null : AppColors.error,
+            ),
+          );
+        }
+      } finally {
+        calibrating.value = null;
+      }
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -155,6 +197,132 @@ class PrinterSetupScreen extends HookWidget {
                         ),
                       ],
                     ),
+          ),
+          const Gap(AppSpacing.lg),
+
+          // ── Calibration ────────────────────────────────────────────────
+          _SectionCard(
+            title: 'Calibration',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Prints a numbered ruler. Read off the last full column '
+                  'printed before the paper edge (or where it wraps) and '
+                  'report it back so the row width can be corrected.',
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const Gap(AppSpacing.md),
+                OutlinedButton.icon(
+                  onPressed:
+                      calibrating.value != null
+                          ? null
+                          : () => printCalibration(forceBluetooth: false),
+                  icon: const Icon(Icons.straighten_rounded, size: 18),
+                  label: Text(
+                    calibrating.value == 'auto'
+                        ? 'Printing...'
+                        : 'Print Calibration Ruler',
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(
+                      double.infinity,
+                      AppSpacing.touchPreferred,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                    ),
+                  ),
+                ),
+                if (savedMac.value != null) ...[
+                  const Gap(AppSpacing.sm),
+                  OutlinedButton.icon(
+                    onPressed:
+                        calibrating.value != null
+                            ? null
+                            : () => printCalibration(forceBluetooth: true),
+                    icon: const Icon(Icons.bluetooth_rounded, size: 18),
+                    label: Text(
+                      calibrating.value == 'bluetooth'
+                          ? 'Printing...'
+                          : 'Print Calibration Ruler (Bluetooth)',
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(
+                        double.infinity,
+                        AppSpacing.touchPreferred,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusLg,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                const Gap(AppSpacing.lg),
+                Text(
+                  'Width probe: prints W=50..59, each a line of that exact '
+                  'length ending in "|". Find the highest W whose "|" is '
+                  'still attached at the end of its line (not wrapped alone '
+                  'onto the next line) — that\'s the printer\'s real '
+                  'character capacity.',
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const Gap(AppSpacing.md),
+                OutlinedButton.icon(
+                  onPressed:
+                      calibrating.value != null
+                          ? null
+                          : () => printWidthProbe(forceBluetooth: false),
+                  icon: const Icon(Icons.rule_rounded, size: 18),
+                  label: Text(
+                    calibrating.value == 'probe-auto'
+                        ? 'Printing...'
+                        : 'Print Width Probe',
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(
+                      double.infinity,
+                      AppSpacing.touchPreferred,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                    ),
+                  ),
+                ),
+                if (savedMac.value != null) ...[
+                  const Gap(AppSpacing.sm),
+                  OutlinedButton.icon(
+                    onPressed:
+                        calibrating.value != null
+                            ? null
+                            : () => printWidthProbe(forceBluetooth: true),
+                    icon: const Icon(Icons.bluetooth_rounded, size: 18),
+                    label: Text(
+                      calibrating.value == 'probe-bluetooth'
+                          ? 'Printing...'
+                          : 'Print Width Probe (Bluetooth)',
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(
+                        double.infinity,
+                        AppSpacing.touchPreferred,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusLg,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
           const Gap(AppSpacing.lg),
 

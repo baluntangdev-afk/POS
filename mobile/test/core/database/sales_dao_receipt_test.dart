@@ -143,6 +143,68 @@ void main() {
     expect(receipt.voidReason, 'Customer changed mind');
   });
 
+  test('getReceiptById reports cashierId and voidLocked false when no report has closed', () async {
+    final saleId = await db.salesDao.insertSale(SalesTableCompanion.insert(
+      cashierId: cashierId,
+      total: 50,
+      status: 'completed',
+      type: 'dine_in',
+      createdAt: DateTime(2026, 1, 1, 10),
+    ));
+
+    final receipt = await db.salesDao.getReceiptById(saleId);
+
+    expect(receipt!.cashierId, cashierId);
+    expect(receipt.voidLocked, isFalse);
+  });
+
+  test('getReceiptById marks voidLocked once the cashier has closed an X-Reading covering it',
+      () async {
+    final saleId = await db.salesDao.insertSale(SalesTableCompanion.insert(
+      cashierId: cashierId,
+      total: 50,
+      status: 'completed',
+      type: 'dine_in',
+      createdAt: DateTime(2026, 1, 1, 10),
+    ));
+
+    await db.cashierAccountingDao.closeXReading(
+      cashierId: cashierId,
+      cashierName: 'Cashier',
+      periodStart: DateTime.utc(1970),
+      periodEnd: DateTime(2026, 1, 1, 12),
+      totalSales: 50,
+      transactionCount: 1,
+      voidedCount: 0,
+      refundedCount: 0,
+      paymentBreakdownJson: '[]',
+      topProductsJson: '[]',
+      discountsJson: '[]',
+      totalDiscounts: 0,
+      vatableSales: 0,
+      vatAmount: 0,
+      vatExemptSales: 0,
+      averageSale: 0,
+      highestSale: 0,
+      lowestSale: 0,
+      cashCollected: 0,
+      paymentLedgersJson: '[]',
+    );
+
+    final lockedReceipt = await db.salesDao.getReceiptById(saleId);
+    expect(lockedReceipt!.voidLocked, isTrue);
+
+    final laterSaleId = await db.salesDao.insertSale(SalesTableCompanion.insert(
+      cashierId: cashierId,
+      total: 50,
+      status: 'completed',
+      type: 'dine_in',
+      createdAt: DateTime(2026, 1, 1, 13),
+    ));
+    final unlockedReceipt = await db.salesDao.getReceiptById(laterSaleId);
+    expect(unlockedReceipt!.voidLocked, isFalse);
+  });
+
   test('insertRefundRecord assigns a refund_number and records items', () async {
     final saleId = await db.salesDao.insertSale(SalesTableCompanion.insert(
       cashierId: cashierId,

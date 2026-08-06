@@ -225,10 +225,16 @@ class NyxPrinterPlugin : FlutterPlugin {
             return printText(binder, line, textFormatFor(columns.first()))
         }
 
+        // Pad each column out to the full line width ourselves instead of
+        // relying on PrintTextFormat.ali — the joined-line path above never
+        // depends on native alignment (it space-pads the string directly),
+        // and that's the only path confirmed to align correctly on-device.
         var status = PRINTER_STATUS_SUCCESS
         for (column in columns) {
             val text = column["text"] as? String ?: ""
-            val columnStatus = printText(binder, text, textFormatFor(column))
+            val align = column["align"] as? String ?: "left"
+            val paddedText = alignWithin(text, LINE_WIDTH_CHARS, align)
+            val columnStatus = printText(binder, paddedText, textFormatFor(column))
             if (status == PRINTER_STATUS_SUCCESS) status = columnStatus
         }
         return status

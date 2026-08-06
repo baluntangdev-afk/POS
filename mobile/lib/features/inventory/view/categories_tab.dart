@@ -84,7 +84,8 @@ class _CategoriesTabState extends ConsumerState<CategoriesTab> {
             );
           }
           return ListView.separated(
-            padding: const EdgeInsets.all(AppSpacing.lg),
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xxxl + AppSpacing.xl),
             itemCount: groups.length,
             separatorBuilder: (context, index) => const Gap(AppSpacing.sm),
             itemBuilder: (_, i) {

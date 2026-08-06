@@ -48,7 +48,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
       if (isAuthenticated && isOnLogin) return '/dashboard';
 
-      const cashierRestrictedPrefixes = ['/inventory', '/settings', '/users'];
+      const cashierRestrictedPrefixes = [
+        '/inventory',
+        '/users',
+        '/settings/csv-import',
+        '/settings/store-info',
+      ];
       if (isAuthenticated &&
           !authState.user.isAdminOrSupervisor &&
           cashierRestrictedPrefixes

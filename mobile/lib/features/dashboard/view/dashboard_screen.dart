@@ -201,7 +201,7 @@ class DashboardScreen extends HookConsumerWidget {
       if (isAdmin) _kTileInventory,
       // _kTileReports hidden for now
       _kTileCashierAccounting,
-      if (isAdmin) _kTileSettings,
+      _kTileSettings,
       if (isAdmin) _kTileUsers,
     ];
 

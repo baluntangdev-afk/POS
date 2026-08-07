@@ -258,12 +258,14 @@ abstract final class ZReadingPrintDocument {
 /// at 48 chars/line, so — unlike a left-aligned continuation line — it
 /// doesn't need to wrap.
 void _addPeriodLines(List<PrintInstruction> instructions,
-    DateTime periodStart,
+    DateTime? periodStart,
     DateTime periodEnd,
     DateTime generatedAt,) {
   instructions.add(
     PrintText(
-      'Period: ${_fmtDate(periodStart)} - ${_fmtDate(periodEnd)}',
+      periodStart == null
+          ? 'No transactions yet'
+          : 'Period: ${_fmtDate(periodStart)} - ${_fmtDate(periodEnd)}',
       align: PrintAlign.center,
     ),
   );

@@ -11,6 +11,9 @@ import '../../../core/theme/app_text_styles.dart';
 import '../entities/user_entity.dart';
 import '../state/auth_providers.dart';
 import '../state/auth_state.dart';
+import 'widgets/auth_card.dart';
+import 'widgets/pin_dots.dart';
+import 'widgets/pin_keypad.dart';
 
 class LoginScreen extends HookConsumerWidget {
   const LoginScreen({super.key});
@@ -73,99 +76,118 @@ class LoginScreen extends HookConsumerWidget {
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          centerTitle: true,
-          title: Text(
-            'Mobile POS',
-            style: AppTextStyles.displayMd.copyWith(color: AppColors.primary),
-          ),
-          leading:
-          selectedUser.value != null
-              ? IconButton(
-            onPressed: backToUserSelection,
-            icon: const Icon(Icons.arrow_back),
-            tooltip: 'Back',
-          )
-              : null,
-        ),
-        body: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: AppSpacing.xxxl),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  switchInCurve: Curves.easeOut,
-                  switchOutCurve: Curves.easeIn,
-                  transitionBuilder: (child, animation) {
-                    final offsetAnimation = Tween<Offset>(
-                      begin: Offset(
-                        child.key == const ValueKey('user-selection')
-                            ? -0.08
-                            : 0.08,
-                        0,
-                      ),
-                      end: Offset.zero,
-                    ).animate(animation);
-                    return FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: offsetAnimation,
-                        child: child,
-                      ),
-                    );
-                  },
-                  child:
-                  selectedUser.value == null
-                      ? Column(
-                    key: const ValueKey('user-selection'),
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: AuthCard(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        'Select your account',
-                        style: AppTextStyles.headingMd,
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      _UserGrid(
-                        users: users.value,
-                        onSelect: (u) {
-                          selectedUser.value = u;
-                          errorMsg.value = null;
-                          pinDigits.value = '';
-                        },
-                      ),
-                    ],
-                  )
-                      : Column(
-                    key: const ValueKey('pin-input'),
-                    children: [
-                      Text(
-                        selectedUser.value!.name,
-                        style: AppTextStyles.headingLg,
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      _PinDots(length: pinDigits.value.length),
-                      const SizedBox(height: AppSpacing.sm),
-                      if (errorMsg.value != null)
-                        Text(
-                          errorMsg.value!,
-                          style: AppTextStyles.bodyMd.copyWith(
-                            color: AppColors.error,
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 40,
+                            child:
+                                selectedUser.value != null
+                                    ? IconButton(
+                                      padding: EdgeInsets.zero,
+                                      onPressed: backToUserSelection,
+                                      icon: const Icon(
+                                        Icons.arrow_back,
+                                        size: 20,
+                                      ),
+                                      tooltip: 'Back',
+                                    )
+                                    : null,
                           ),
-                        ),
+                          Expanded(
+                            child: Text(
+                              'Mobile POS',
+                              textAlign: TextAlign.center,
+                              style: AppTextStyles.headingLg.copyWith(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 40),
+                        ],
+                      ),
                       const SizedBox(height: AppSpacing.lg),
-                      _PinPad(
-                        onDigit: appendDigit,
-                        onDelete: deleteDigit,
-                        disabled: isLoading.value,
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        switchInCurve: Curves.easeOut,
+                        switchOutCurve: Curves.easeIn,
+                        transitionBuilder: (child, animation) {
+                          final offsetAnimation = Tween<Offset>(
+                            begin: Offset(
+                              child.key == const ValueKey('user-selection')
+                                  ? -0.08
+                                  : 0.08,
+                              0,
+                            ),
+                            end: Offset.zero,
+                          ).animate(animation);
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: offsetAnimation,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child:
+                            selectedUser.value == null
+                                ? Column(
+                                  key: const ValueKey('user-selection'),
+                                  children: [
+                                    Text(
+                                      'Select your account',
+                                      style: AppTextStyles.headingMd,
+                                    ),
+                                    const SizedBox(height: AppSpacing.lg),
+                                    _UserGrid(
+                                      users: users.value,
+                                      onSelect: (u) {
+                                        selectedUser.value = u;
+                                        errorMsg.value = null;
+                                        pinDigits.value = '';
+                                      },
+                                    ),
+                                  ],
+                                )
+                                : Column(
+                                  key: const ValueKey('pin-input'),
+                                  children: [
+                                    Text(
+                                      selectedUser.value!.name,
+                                      style: AppTextStyles.headingLg,
+                                    ),
+                                    const SizedBox(height: AppSpacing.lg),
+                                    PinDots(length: pinDigits.value.length),
+                                    const SizedBox(height: AppSpacing.sm),
+                                    if (errorMsg.value != null)
+                                      Text(
+                                        errorMsg.value!,
+                                        style: AppTextStyles.bodyMd.copyWith(
+                                          color: AppColors.error,
+                                        ),
+                                      ),
+                                    const SizedBox(height: AppSpacing.lg),
+                                    PinKeypad(
+                                      onDigit: appendDigit,
+                                      onDelete: deleteDigit,
+                                      disabled: isLoading.value,
+                                    ),
+                                  ],
+                                ),
                       ),
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -201,7 +223,7 @@ class _UserGrid extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           child: Container(
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: AppColors.background,
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               boxShadow: AppShadows.card,
             ),
@@ -240,90 +262,6 @@ class _UserGrid extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _PinDots extends StatelessWidget {
-  final int length;
-
-  const _PinDots({required this.length});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(6, (i) {
-        final filled = i < length;
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 6),
-          width: 16,
-          height: 16,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: filled ? AppColors.primary : AppColors.divider,
-          ),
-        );
-      }),
-    );
-  }
-}
-
-class _PinPad extends StatelessWidget {
-  final ValueChanged<String> onDigit;
-  final VoidCallback onDelete;
-  final bool disabled;
-
-  const _PinPad({
-    required this.onDigit,
-    required this.onDelete,
-    this.disabled = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    const digits = [
-      ['1', '2', '3'],
-      ['4', '5', '6'],
-      ['7', '8', '9'],
-      ['', '0', 'del'],
-    ];
-
-    return Column(
-      children:
-      digits.map((row) {
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children:
-          row.map((key) {
-            if (key.isEmpty)
-              return const SizedBox(width: AppSpacing.touchPreferred);
-            return Padding(
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              child: SizedBox(
-                width: AppSpacing.touchPreferred,
-                height: AppSpacing.touchPreferred,
-                child: FilledButton.tonal(
-                  onPressed:
-                  disabled
-                      ? null
-                      : key == 'del'
-                      ? onDelete
-                      : () => onDigit(key),
-                  style: FilledButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    shape: const CircleBorder(),
-                  ),
-                  child:
-                  key == 'del'
-                      ? const Icon(Icons.backspace_outlined)
-                      : Text(key, style: AppTextStyles.headingMd),
-                ),
-              ),
-            );
-          }).toList(),
-        );
-      }).toList(),
     );
   }
 }

@@ -17,7 +17,7 @@ class CashLedgerSummary {
 class DailyReportData {
   final int? id; // null = live/unclosed preview, set once closed
   final String cashierName;
-  final DateTime periodStart;
+  final DateTime? periodStart; // null when no transaction has happened yet
   final DateTime periodEnd;
   final DateTime generatedAt;
   final double grossSales;

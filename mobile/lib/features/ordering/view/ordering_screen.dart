@@ -12,6 +12,9 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/breakpoints.dart';
 import '../../../core/widgets/gradient_filled_button.dart';
+import '../../auth/state/auth_providers.dart';
+import '../../auth/state/auth_state.dart';
+import '../../settings/state/store_info_notifier.dart';
 import '../entities/line_item.dart';
 import '../entities/sale.dart';
 import '../state/ordering_notifier.dart';
@@ -139,8 +142,92 @@ class _ProductSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [_CategoryChipRow(), Expanded(child: _ProductGrid())],
+      children: [
+        _StoreHeader(),
+        _CategoryChipRow(),
+        Expanded(child: _ProductGrid()),
+      ],
     );
+  }
+}
+
+// ── Store branding header ───────────────────────────────────────────────────────
+
+class _StoreHeader extends ConsumerWidget {
+  const _StoreHeader();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final storeName = ref.watch(
+      storeInfoProvider.select((s) => s.value?.storeName),
+    );
+    final authState = ref.watch(authNotifierProvider);
+    final cashierName =
+        authState is AuthAuthenticated ? authState.user.name : null;
+    final displayName = storeName?.isNotEmpty == true ? storeName! : 'New Order';
+
+    return Container(
+      color: AppColors.surface,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.sm,
+        AppSpacing.lg,
+        AppSpacing.md,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: AppGradients.primary,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            ),
+            child: Text(
+              _initialsOf(displayName),
+              style: AppTextStyles.labelLg.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const Gap(AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  displayName,
+                  style: AppTextStyles.headingSm,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (cashierName != null && cashierName.isNotEmpty)
+                  Text(
+                    'Cashier: $cashierName',
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _initialsOf(String name) {
+    final parts =
+        name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return (parts.first.substring(0, 1) + parts.last.substring(0, 1))
+        .toUpperCase();
   }
 }
 
@@ -374,14 +461,18 @@ class _ProductCard extends ConsumerWidget {
                       bottom: 8,
                       right: 8,
                       child: Container(
-                        width: 32,
-                        height: 32,
+                        width: 34,
+                        height: 34,
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          gradient: AppGradients.primary,
                           shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.surface,
+                            width: 2.5,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.35),
+                              color: AppColors.primary.withValues(alpha: 0.4),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -577,53 +668,67 @@ class _CartPanel extends HookConsumerWidget {
               AppSpacing.lg,
               AppSpacing.md,
               AppSpacing.md,
-              AppSpacing.md,
+              AppSpacing.sm,
             ),
             decoration: const BoxDecoration(
               border: Border(bottom: BorderSide(color: AppColors.divider)),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(
-                  Icons.receipt_long_rounded,
-                  size: 20,
-                  color: AppColors.primary,
-                ),
-                const Gap(AppSpacing.sm),
-                Text('Order', style: AppTextStyles.headingSm),
-                const Spacer(),
-                if (items.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.receipt_long_rounded,
+                      size: 20,
                       color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(
-                        AppSpacing.radiusFull,
-                      ),
                     ),
-                    child: Text(
-                      '${state!.sale.totalQuantity}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                    const Gap(AppSpacing.sm),
+                    Text('Current Order', style: AppTextStyles.headingSm),
+                    const Spacer(),
+                    if (items.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusFull,
+                          ),
+                        ),
+                        child: Text(
+                          '${state!.sale.totalQuantity}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                if (items.isNotEmpty) ...[
+                    if (items.isNotEmpty) ...[
+                      const Gap(AppSpacing.sm),
+                      TextButton(
+                        onPressed: () {
+                          ref.read(orderingProvider.notifier).clearCart();
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                        child: const Text('Clear'),
+                      ),
+                    ],
+                  ],
+                ),
+                if (state != null) ...[
                   const Gap(AppSpacing.sm),
-                  TextButton(
-                    onPressed: () {
-                      ref.read(orderingProvider.notifier).clearCart();
-                    },
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                    ),
-                    child: const Text('Clear'),
+                  _SaleTypeSelector(
+                    selected: state.sale.type,
+                    onChanged:
+                        (t) =>
+                            ref.read(orderingProvider.notifier).setSaleType(t),
                   ),
                 ],
               ],
@@ -1082,21 +1187,6 @@ class _CartFooter extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Order type
-          Text(
-            'ORDER TYPE',
-            style: AppTextStyles.labelMd.copyWith(
-              color: AppColors.textSecondary,
-              letterSpacing: 0.8,
-            ),
-          ),
-          const Gap(AppSpacing.sm),
-          _SaleTypeSelector(
-            selected: sale.type,
-            onChanged:
-                (t) => ref.read(orderingProvider.notifier).setSaleType(t),
-          ),
-          const Gap(AppSpacing.md),
           // Totals
           _TotalRow('Subtotal', sale.subtotal, secondary: true),
           if (sale.totalDiscount > 0)
@@ -1129,7 +1219,7 @@ class _CartFooter extends ConsumerWidget {
               if (Navigator.of(context).canPop()) Navigator.of(context).pop();
               context.push('/order/payment');
             },
-            minHeight: 52,
+            minHeight: AppSpacing.touchPreferred,
             borderRadius: AppSpacing.radiusLg,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,

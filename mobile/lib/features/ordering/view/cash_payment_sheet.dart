@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 
@@ -47,12 +46,51 @@ class _CashPaymentSheet extends HookWidget {
     final cashReceived = double.tryParse(controller.text) ?? 0.0;
     final change = (cashReceived - totalDue).clamp(0.0, double.infinity);
 
-    void addDenomination(int amount) {
-      final current = double.tryParse(controller.text) ?? 0.0;
-      final text = (current + amount).toStringAsFixed(2);
+    // Whether the field currently holds a value built from quick-amount
+    // taps (or is fresh) — the next keypad digit should replace it rather
+    // than append, since appending onto e.g. "120.00" would be nonsensical.
+    final replaceOnNextDigit = useState(true);
+
+    void setAmount(double amount) {
+      final text = amount.toStringAsFixed(2);
       controller.value = TextEditingValue(
         text: text,
         selection: TextSelection.collapsed(offset: text.length),
+      );
+      replaceOnNextDigit.value = true;
+    }
+
+    void addQuickAmount(double amount) {
+      setAmount(cashReceived + amount);
+    }
+
+    void appendDigit(String digit) {
+      final current = controller.text;
+      if (replaceOnNextDigit.value) {
+        replaceOnNextDigit.value = false;
+        final next = digit == '.' ? '0.' : digit;
+        controller.value = TextEditingValue(
+          text: next,
+          selection: TextSelection.collapsed(offset: next.length),
+        );
+        return;
+      }
+      if (digit == '.' && current.contains('.')) return;
+      final next = current + digit;
+      controller.value = TextEditingValue(
+        text: next,
+        selection: TextSelection.collapsed(offset: next.length),
+      );
+    }
+
+    void backspace() {
+      final current = controller.text;
+      if (current.isEmpty) return;
+      replaceOnNextDigit.value = false;
+      final next = current.substring(0, current.length - 1);
+      controller.value = TextEditingValue(
+        text: next,
+        selection: TextSelection.collapsed(offset: next.length),
       );
     }
 
@@ -118,11 +156,34 @@ class _CashPaymentSheet extends HookWidget {
                       .copyWith(color: AppColors.textSecondary, letterSpacing: 0.8),
                 ),
                 const Gap(AppSpacing.sm),
+                _QuickAmountChip(
+                  label: 'Exact',
+                  amount: totalDue,
+                  isSelected: cashReceived == totalDue,
+                  onTap: () => setAmount(totalDue),
+                ),
+                const Gap(AppSpacing.sm),
+                GridView.count(
+                  crossAxisCount: 3,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: AppSpacing.sm,
+                  crossAxisSpacing: AppSpacing.sm,
+                  childAspectRatio: 2.1,
+                  children: [
+                    for (final amount in _quickAmountValues)
+                      _QuickAmountGridButton(
+                        amount: amount,
+                        onTap: () => addQuickAmount(amount),
+                      ),
+                  ],
+                ),
+                const Gap(AppSpacing.md),
                 TextFormField(
                   controller: controller,
-                  autofocus: true,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                  readOnly: true,
+                  showCursor: true,
+                  textAlign: TextAlign.center,
                   style: AppTextStyles.priceLg.copyWith(color: AppColors.primary),
                   decoration: InputDecoration(
                     prefixText: 'PHP ',
@@ -143,23 +204,7 @@ class _CashPaymentSheet extends HookWidget {
                   },
                 ),
                 const Gap(AppSpacing.md),
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
-                  children: [20, 50, 100, 200, 500, 1000].map((d) {
-                    return OutlinedButton(
-                      onPressed: () => addDenomination(d),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.border),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                        ),
-                        minimumSize: const Size(84, AppSpacing.touchMin - 8),
-                      ),
-                      child: Text('$d', style: AppTextStyles.headingSm),
-                    );
-                  }).toList(),
-                ),
+                _Keypad(onDigit: appendDigit, onBackspace: backspace),
                 if (cashReceived >= totalDue) ...[
                   const Gap(AppSpacing.md),
                   Container(
@@ -220,6 +265,136 @@ class _CashPaymentSheet extends HookWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Static cash denominations offered as one-tap add-ons — tapping a value
+/// adds it to whatever is currently in the cash received field (e.g.
+/// tapping 20 then 100 results in 120), modeling handing over multiple bills.
+const _quickAmountValues = [20.0, 50.0, 100.0, 200.0, 500.0, 1000.0];
+
+class _QuickAmountChip extends StatelessWidget {
+  final String label;
+  final double amount;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _QuickAmountChip({
+    required this.label,
+    required this.amount,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        constraints: const BoxConstraints(minWidth: 72, minHeight: AppSpacing.touchMin - 8),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : AppColors.surface,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+            width: 1.5,
+          ),
+        ),
+        child: Text(
+          label,
+          style: AppTextStyles.labelLg.copyWith(
+            fontWeight: FontWeight.w700,
+            color: isSelected ? Colors.white : AppColors.textPrimary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Grid cell for a static quick-amount denomination — tapping adds the
+/// amount to the current cash received total.
+class _QuickAmountGridButton extends StatelessWidget {
+  final double amount;
+  final VoidCallback onTap;
+
+  const _QuickAmountGridButton({required this.amount, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            border: Border.all(color: AppColors.border, width: 1.5),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            'PHP ${amount.toStringAsFixed(0)}',
+            style: AppTextStyles.labelLg.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// On-screen numeric keypad for cash entry — avoids relying on the OS
+/// keyboard, matching the kiosk's touch-first input pattern.
+class _Keypad extends StatelessWidget {
+  final ValueChanged<String> onDigit;
+  final VoidCallback onBackspace;
+
+  const _Keypad({required this.onDigit, required this.onBackspace});
+
+  static const _keys = [
+    '1', '2', '3',
+    '4', '5', '6',
+    '7', '8', '9',
+    '.', '0', '⌫',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 3,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: AppSpacing.sm,
+      crossAxisSpacing: AppSpacing.sm,
+      childAspectRatio: 2.1,
+      children: _keys.map((k) {
+        final isBackspace = k == '⌫';
+        return Material(
+          color: AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            onTap: isBackspace ? onBackspace : () => onDigit(k),
+            child: Center(
+              child: isBackspace
+                  ? const Icon(
+                      Icons.backspace_outlined,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    )
+                  : Text(k, style: AppTextStyles.headingSm),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

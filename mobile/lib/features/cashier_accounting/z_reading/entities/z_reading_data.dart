@@ -18,7 +18,7 @@ class CashierSalesBreakdown {
 class ZReadingData {
   final int? id; // null = live/unclosed preview, set once closed
   final int zCounter;
-  final DateTime periodStart;
+  final DateTime? periodStart; // null when no transaction has happened yet
   final DateTime periodEnd;
   final DateTime generatedAt;
   final String closedByName;

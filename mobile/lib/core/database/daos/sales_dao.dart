@@ -546,6 +546,33 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     return result.read<double>('sum');
   }
 
+  /// The earliest transaction (any status) within [from, to] store-wide, or
+  /// null if none exists — used to display the true start of a report period
+  /// instead of the internal query lower bound (which may be a synthetic
+  /// epoch/last-close boundary with no transaction actually at that time).
+  Future<DateTime?> getEarliestTransactionDate(DateTime from, DateTime to) async {
+    final result = await customSelect(
+      'SELECT MIN(created_at) as min_date FROM sales WHERE created_at BETWEEN ? AND ?',
+      variables: [Variable.withDateTime(from), Variable.withDateTime(to)],
+      readsFrom: {salesTable},
+    ).getSingle();
+    return result.read<DateTime?>('min_date');
+  }
+
+  /// Same as [getEarliestTransactionDate], scoped to a single cashier.
+  Future<DateTime?> getEarliestTransactionDateForCashier(DateTime from, DateTime to, int cashierId) async {
+    final result = await customSelect(
+      'SELECT MIN(created_at) as min_date FROM sales WHERE created_at BETWEEN ? AND ? AND cashier_id = ?',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withInt(cashierId),
+      ],
+      readsFrom: {salesTable},
+    ).getSingle();
+    return result.read<DateTime?>('min_date');
+  }
+
   Future<int> getTransactionCountForDateRangeAndCashier(DateTime from, DateTime to, int cashierId) async {
     final result = await customSelect(
       'SELECT COUNT(*) as cnt FROM sales WHERE created_at BETWEEN ? AND ? AND status = ? AND cashier_id = ?',

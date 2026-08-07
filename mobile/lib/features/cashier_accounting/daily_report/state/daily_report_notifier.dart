@@ -34,20 +34,25 @@ class DailyReportNotifier extends AsyncNotifier<DailyReportData> {
     final cashierId = _currentUserId;
     final cashierName = _currentUserName;
 
-    final periodStart = await db.cashierAccountingDao.getDailyReportPeriodStart(cashierId);
+    // Lower bound for "unreported since" — may be a synthetic epoch/last-close
+    // boundary with no transaction actually at that time, so it's only used
+    // to scope the queries below, never shown directly to the user.
+    final queryStart = await db.cashierAccountingDao.getDailyReportPeriodStart(cashierId);
     final periodEnd = DateTime.now();
+    final periodStart =
+        await db.salesDao.getEarliestTransactionDateForCashier(queryStart, periodEnd, cashierId);
 
-    final grossSales = await db.salesDao.getTotalSalesForDateRangeAndCashier(periodStart, periodEnd, cashierId);
+    final grossSales = await db.salesDao.getTotalSalesForDateRangeAndCashier(queryStart, periodEnd, cashierId);
     final transactionCount =
-        await db.salesDao.getTransactionCountForDateRangeAndCashier(periodStart, periodEnd, cashierId);
+        await db.salesDao.getTransactionCountForDateRangeAndCashier(queryStart, periodEnd, cashierId);
     final totalQtySold =
-        await db.salesDao.getTotalQtySoldForDateRangeAndCashier(periodStart, periodEnd, cashierId);
-    final cashSales = await db.salesDao.getCashSalesForDateRangeAndCashier(periodStart, periodEnd, cashierId);
+        await db.salesDao.getTotalQtySoldForDateRangeAndCashier(queryStart, periodEnd, cashierId);
+    final cashSales = await db.salesDao.getCashSalesForDateRangeAndCashier(queryStart, periodEnd, cashierId);
     final topProductRows =
-        await db.salesDao.getTopProductsForCashier(periodStart, periodEnd, cashierId, limit: 1000);
+        await db.salesDao.getTopProductsForCashier(queryStart, periodEnd, cashierId, limit: 1000);
     final ledgerRows =
-        await db.salesDao.getCashLedgerEntriesForCashier(periodStart, periodEnd, cashierId);
-    final vatBreakdown = await db.salesDao.getVatBreakdownForCashier(periodStart, periodEnd, cashierId);
+        await db.salesDao.getCashLedgerEntriesForCashier(queryStart, periodEnd, cashierId);
+    final vatBreakdown = await db.salesDao.getVatBreakdownForCashier(queryStart, periodEnd, cashierId);
 
     final storeInfo = await db.storeInfoDao.getStoreInfo();
     final taxRate = storeInfo?.taxRate ?? 0.0;
@@ -101,6 +106,10 @@ class DailyReportNotifier extends AsyncNotifier<DailyReportData> {
     if (data.id != null) {
       throw StateError('Cannot close an already-closed Daily Report');
     }
+    final periodStart = data.periodStart;
+    if (periodStart == null) {
+      throw StateError('Cannot close Daily Report with no transactions');
+    }
 
     final db = ref.read(databaseProvider);
     final cashierId = _currentUserId;
@@ -119,7 +128,7 @@ class DailyReportNotifier extends AsyncNotifier<DailyReportData> {
     await db.cashierAccountingDao.closeDailyReport(
       cashierId: cashierId,
       cashierName: data.cashierName,
-      periodStart: data.periodStart,
+      periodStart: periodStart,
       periodEnd: data.periodEnd,
       grossSales: data.grossSales,
       vatableSales: data.vatableSales,

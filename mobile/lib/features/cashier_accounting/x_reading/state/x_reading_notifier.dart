@@ -34,20 +34,25 @@ class XReadingNotifier extends AsyncNotifier<XReadingData> {
     final cashierId = _currentUserId;
     final cashierName = _currentUserName;
 
-    final periodStart = await db.cashierAccountingDao.getXReadingPeriodStart(cashierId);
+    // Lower bound for "unreported since" — may be a synthetic epoch/last-close
+    // boundary with no transaction actually at that time, so it's only used
+    // to scope the queries below, never shown directly to the user.
+    final queryStart = await db.cashierAccountingDao.getXReadingPeriodStart(cashierId);
     final periodEnd = DateTime.now();
+    final periodStart =
+        await db.salesDao.getEarliestTransactionDateForCashier(queryStart, periodEnd, cashierId);
 
-    final totalSales = await db.salesDao.getTotalSalesForDateRangeAndCashier(periodStart, periodEnd, cashierId);
+    final totalSales = await db.salesDao.getTotalSalesForDateRangeAndCashier(queryStart, periodEnd, cashierId);
     final transactionCount =
-        await db.salesDao.getTransactionCountForDateRangeAndCashier(periodStart, periodEnd, cashierId);
-    final statusCounts = await db.salesDao.getStatusCountsForDateRangeAndCashier(periodStart, periodEnd, cashierId);
-    final paymentRows = await db.salesDao.getPaymentBreakdownForCashier(periodStart, periodEnd, cashierId);
-    final topProductRows = await db.salesDao.getTopProductsForCashier(periodStart, periodEnd, cashierId, limit: 5);
-    final discounts = await db.salesDao.getDiscountBreakdownForCashier(periodStart, periodEnd, cashierId);
-    final vatBreakdown = await db.salesDao.getVatBreakdownForCashier(periodStart, periodEnd, cashierId);
-    final saleStats = await db.salesDao.getSaleStatsForCashier(periodStart, periodEnd, cashierId);
-    final cashSales = await db.salesDao.getCashSalesForDateRangeAndCashier(periodStart, periodEnd, cashierId);
-    final paymentLedgers = await db.salesDao.getPaymentLedgerForCashier(periodStart, periodEnd, cashierId);
+        await db.salesDao.getTransactionCountForDateRangeAndCashier(queryStart, periodEnd, cashierId);
+    final statusCounts = await db.salesDao.getStatusCountsForDateRangeAndCashier(queryStart, periodEnd, cashierId);
+    final paymentRows = await db.salesDao.getPaymentBreakdownForCashier(queryStart, periodEnd, cashierId);
+    final topProductRows = await db.salesDao.getTopProductsForCashier(queryStart, periodEnd, cashierId, limit: 5);
+    final discounts = await db.salesDao.getDiscountBreakdownForCashier(queryStart, periodEnd, cashierId);
+    final vatBreakdown = await db.salesDao.getVatBreakdownForCashier(queryStart, periodEnd, cashierId);
+    final saleStats = await db.salesDao.getSaleStatsForCashier(queryStart, periodEnd, cashierId);
+    final cashSales = await db.salesDao.getCashSalesForDateRangeAndCashier(queryStart, periodEnd, cashierId);
+    final paymentLedgers = await db.salesDao.getPaymentLedgerForCashier(queryStart, periodEnd, cashierId);
 
     final totalPaid = paymentRows.fold(0.0, (s, r) => s + (r['total'] as double? ?? 0));
     final paymentBreakdown = paymentRows.map((r) {
@@ -103,6 +108,10 @@ class XReadingNotifier extends AsyncNotifier<XReadingData> {
     if (data.id != null) {
       throw StateError('Cannot close an already-closed X-Reading');
     }
+    final periodStart = data.periodStart;
+    if (periodStart == null) {
+      throw StateError('Cannot close X-Reading with no transactions');
+    }
 
     final db = ref.read(databaseProvider);
     final cashierId = _currentUserId;
@@ -120,7 +129,7 @@ class XReadingNotifier extends AsyncNotifier<XReadingData> {
     await db.cashierAccountingDao.closeXReading(
       cashierId: cashierId,
       cashierName: data.cashierName,
-      periodStart: data.periodStart,
+      periodStart: periodStart,
       periodEnd: data.periodEnd,
       totalSales: data.totalSales,
       transactionCount: data.transactionCount,

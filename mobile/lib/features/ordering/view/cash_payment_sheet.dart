@@ -41,10 +41,6 @@ class _CashPaymentSheet extends HookWidget {
     final controller = useTextEditingController(
       text: (initialCashReceived ?? 0) > 0 ? initialCashReceived!.toStringAsFixed(2) : '',
     );
-    useListenable(controller);
-
-    final cashReceived = double.tryParse(controller.text) ?? 0.0;
-    final change = (cashReceived - totalDue).clamp(0.0, double.infinity);
 
     // Whether the field currently holds a value built from quick-amount
     // taps (or is fresh) — the next keypad digit should replace it rather
@@ -61,7 +57,8 @@ class _CashPaymentSheet extends HookWidget {
     }
 
     void addQuickAmount(double amount) {
-      setAmount(cashReceived + amount);
+      final current = double.tryParse(controller.text) ?? 0.0;
+      setAmount(current + amount);
     }
 
     void appendDigit(String digit) {
@@ -156,10 +153,9 @@ class _CashPaymentSheet extends HookWidget {
                       .copyWith(color: AppColors.textSecondary, letterSpacing: 0.8),
                 ),
                 const Gap(AppSpacing.sm),
-                _QuickAmountChip(
-                  label: 'Exact',
-                  amount: totalDue,
-                  isSelected: cashReceived == totalDue,
+                _ExactChip(
+                  controller: controller,
+                  totalDue: totalDue,
                   onTap: () => setAmount(totalDue),
                 ),
                 const Gap(AppSpacing.sm),
@@ -205,34 +201,7 @@ class _CashPaymentSheet extends HookWidget {
                 ),
                 const Gap(AppSpacing.md),
                 _Keypad(onDigit: appendDigit, onBackspace: backspace),
-                if (cashReceived >= totalDue) ...[
-                  const Gap(AppSpacing.md),
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: AppColors.successLight,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Change',
-                          style: AppTextStyles.headingSm.copyWith(color: AppColors.success),
-                        ),
-                        Flexible(
-                          child: Text(
-                            'PHP ${change.toStringAsFixed(2)}',
-                            style: AppTextStyles.priceLg.copyWith(color: AppColors.success),
-                            textAlign: TextAlign.right,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                _ChangeSection(controller: controller, totalDue: totalDue),
                 const Gap(AppSpacing.lg),
                 Row(
                   children: [
@@ -253,7 +222,8 @@ class _CashPaymentSheet extends HookWidget {
                       child: GradientFilledButton(
                         onPressed: () {
                           if (!formKey.currentState!.validate()) return;
-                          Navigator.of(context).pop(cashReceived);
+                          final amount = double.tryParse(controller.text) ?? 0.0;
+                          Navigator.of(context).pop(amount);
                         },
                         child: const Text('Confirm'),
                       ),
@@ -265,6 +235,89 @@ class _CashPaymentSheet extends HookWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Listens to [controller] on its own so a keypad digit tap only rebuilds
+/// this chip's selected state, not the whole sheet (quick-amount grid,
+/// keypad, etc).
+class _ExactChip extends StatelessWidget {
+  final TextEditingController controller;
+  final double totalDue;
+  final VoidCallback onTap;
+
+  const _ExactChip({
+    required this.controller,
+    required this.totalDue,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final cashReceived = double.tryParse(value.text) ?? 0.0;
+        return _QuickAmountChip(
+          label: 'Exact',
+          amount: totalDue,
+          isSelected: cashReceived == totalDue,
+          onTap: onTap,
+        );
+      },
+    );
+  }
+}
+
+/// Listens to [controller] on its own so typing doesn't rebuild the whole
+/// sheet just to keep this banner's change amount in sync.
+class _ChangeSection extends StatelessWidget {
+  final TextEditingController controller;
+  final double totalDue;
+
+  const _ChangeSection({required this.controller, required this.totalDue});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final cashReceived = double.tryParse(value.text) ?? 0.0;
+        if (cashReceived < totalDue) return const SizedBox.shrink();
+        final change = (cashReceived - totalDue).clamp(0.0, double.infinity);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Gap(AppSpacing.md),
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.successLight,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Change',
+                    style: AppTextStyles.headingSm.copyWith(color: AppColors.success),
+                  ),
+                  Flexible(
+                    child: Text(
+                      'PHP ${change.toStringAsFixed(2)}',
+                      style: AppTextStyles.priceLg.copyWith(color: AppColors.success),
+                      textAlign: TextAlign.right,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -1,12 +1,26 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 
+import '../../../core/services/bluetooth_discovery_service.dart';
+import '../../../core/services/bluetooth_printer_channel.dart';
 import '../../../core/services/print_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+
+/// Why the last scan attempt didn't reach live discovery — drives which inline
+/// prompt/action is shown below the scan button.
+enum _ScanBlocker {
+  none,
+  bluetoothOff,
+  permissionDenied,
+  permissionPermanentlyDenied,
+  locationServicesOff,
+}
 
 class PrinterSetupScreen extends HookWidget {
   const PrinterSetupScreen({super.key});
@@ -16,40 +30,148 @@ class PrinterSetupScreen extends HookWidget {
     final savedMac = useState<String?>(null);
     final savedName = useState<String?>(null);
     final devices = useState<List<BluetoothInfo>>([]);
+    final availableDevices = useState<List<BluetoothInfo>>([]);
     final scanning = useState(false);
+    final scanBlocker = useState(_ScanBlocker.none);
     final connectingMac = useState<String?>(null);
+    final pairingMac = useState<String?>(null);
+    final pairErrors = useState<Map<String, String>>({});
+
+    final discoverySub = useRef<StreamSubscription<BluetoothDiscoveryEvent>?>(
+      null,
+    );
+    final pendingFound = useRef<List<BluetoothInfo>>([]);
+    final flushTimer = useRef<Timer?>(null);
+    final appLifecycleState = useAppLifecycleState();
 
     useEffect(() {
       PrintService.getSavedMac().then((v) => savedMac.value = v);
       PrintService.getSavedName().then((v) => savedName.value = v);
-      return null;
+      return () {
+        flushTimer.value?.cancel();
+        discoverySub.value?.cancel();
+        BluetoothDiscoveryService.stopDiscovery();
+      };
     }, const []);
 
-    Future<void> scan() async {
-      scanning.value = true;
-      try {
-        devices.value = await PrintBluetoothThermal.pairedBluetooths;
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Scan failed: $e'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-      } finally {
-        scanning.value = false;
-      }
+    void stopScan() {
+      flushTimer.value?.cancel();
+      flushTimer.value = null;
+      discoverySub.value?.cancel();
+      discoverySub.value = null;
+      BluetoothDiscoveryService.stopDiscovery();
+      scanning.value = false;
     }
+
+    Future<void> scan() async {
+      scanBlocker.value = _ScanBlocker.none;
+      pairErrors.value = {};
+
+      // Permission must be requested BEFORE any print_bluetooth_thermal call
+      // (including isBluetoothEnabled below): on API 31+, that plugin's native
+      // handler silently never resolves its result callback when
+      // BLUETOOTH_CONNECT isn't granted yet, hanging this whole function
+      // forever instead of erroring — so checking Bluetooth's on/off state
+      // first would strand every fresh install with no permission prompt.
+      final permissionState = await BluetoothDiscoveryService.requestPermissions();
+      if (permissionState == BluetoothPermissionState.permanentlyDenied) {
+        scanBlocker.value = _ScanBlocker.permissionPermanentlyDenied;
+        return;
+      }
+      if (permissionState == BluetoothPermissionState.denied) {
+        scanBlocker.value = _ScanBlocker.permissionDenied;
+        return;
+      }
+
+      if (!await BluetoothDiscoveryService.isBluetoothEnabled()) {
+        scanBlocker.value = _ScanBlocker.bluetoothOff;
+        return;
+      }
+
+      if (await BluetoothDiscoveryService.needsLocationServices() &&
+          !await BluetoothDiscoveryService.isLocationServicesEnabled()) {
+        scanBlocker.value = _ScanBlocker.locationServicesOff;
+        return;
+      }
+
+      // Release any open connection before scanning: the native connect()
+      // refuses to reconnect while it still holds an open socket, which
+      // would otherwise make every connect/pair tap during this scan fail
+      // silently.
+      await BluetoothPrinterChannel.disconnect();
+
+      // The previously-connected device is no longer connected, so drop its
+      // "current" highlight/disabled state here so it can be tapped again to
+      // reconnect. This only resets this screen's display — the persisted
+      // saved printer (used for printing elsewhere) is untouched.
+      savedMac.value = null;
+      savedName.value = null;
+
+      devices.value = await PrintBluetoothThermal.pairedBluetooths;
+      availableDevices.value = [];
+      pendingFound.value = [];
+      scanning.value = true;
+
+      // Discovery events can arrive in a burst; flushing on a timer instead of
+      // one setState per event keeps the list from causing a rebuild storm.
+      flushTimer.value?.cancel();
+      flushTimer.value = Timer.periodic(const Duration(milliseconds: 300), (_) {
+        if (pendingFound.value.isEmpty) return;
+        availableDevices.value = [...availableDevices.value, ...pendingFound.value];
+        pendingFound.value = [];
+      });
+
+      discoverySub.value?.cancel();
+      discoverySub.value = BluetoothDiscoveryService.startDiscovery().listen((
+        event,
+      ) {
+        switch (event) {
+          case DeviceFoundEvent(:final name, :final mac):
+            final alreadyKnown =
+                devices.value.any((d) => d.macAdress == mac) ||
+                availableDevices.value.any((d) => d.macAdress == mac) ||
+                pendingFound.value.any((d) => d.macAdress == mac);
+            if (!alreadyKnown) {
+              pendingFound.value = [
+                ...pendingFound.value,
+                BluetoothInfo(name: name, macAdress: mac),
+              ];
+            }
+          case DiscoveryFinishedEvent():
+            stopScan();
+          case BondStateChangedEvent(:final mac, :final bonded):
+            if (bonded) {
+              availableDevices.value =
+                  availableDevices.value
+                      .where((d) => d.macAdress != mac)
+                      .toList();
+              PrintBluetoothThermal.pairedBluetooths.then(
+                (v) => devices.value = v,
+              );
+            }
+        }
+      });
+    }
+
+    useEffect(() {
+      if (appLifecycleState == AppLifecycleState.resumed &&
+          scanBlocker.value == _ScanBlocker.bluetoothOff) {
+        scan();
+      }
+      return null;
+    }, [appLifecycleState]);
 
     Future<void> connect(BluetoothInfo device) async {
       connectingMac.value = device.macAdress;
       try {
-        final ok = await PrintBluetoothThermal.connect(
-          macPrinterAddress: device.macAdress,
-        );
+        final ok = await BluetoothPrinterChannel.connect(device.macAdress);
         if (ok) {
+          // Only used here to verify the printer is reachable before saving
+          // it; printing opens its own connection per job (see
+          // PrintService._printViaBluetooth). Leaving this one open blocks
+          // every later connect() attempt because the native plugin refuses
+          // to reconnect while it still holds an open socket.
+          await BluetoothPrinterChannel.disconnect();
           await PrintService.savePrinter(device.macAdress, device.name);
           savedMac.value = device.macAdress;
           savedName.value = device.name;
@@ -82,8 +204,35 @@ class PrinterSetupScreen extends HookWidget {
       }
     }
 
+    Future<void> pairAndConnect(BluetoothInfo device) async {
+      pairingMac.value = device.macAdress;
+      pairErrors.value = {
+        ...pairErrors.value,
+      }..remove(device.macAdress);
+      try {
+        final bonded = await BluetoothDiscoveryService.pairAndWait(
+          device.macAdress,
+        );
+        if (!bonded) {
+          pairErrors.value = {
+            ...pairErrors.value,
+            device.macAdress: 'Pairing failed',
+          };
+          return;
+        }
+        availableDevices.value =
+            availableDevices.value
+                .where((d) => d.macAdress != device.macAdress)
+                .toList();
+        await connect(device);
+        devices.value = await PrintBluetoothThermal.pairedBluetooths;
+      } finally {
+        pairingMac.value = null;
+      }
+    }
+
     Future<void> removePrinter() async {
-      await PrintBluetoothThermal.disconnect;
+      await BluetoothPrinterChannel.disconnect();
       await PrintService.clearPrinter();
       savedMac.value = null;
       savedName.value = null;
@@ -340,22 +489,44 @@ class PrinterSetupScreen extends HookWidget {
             ),
             child:
                 scanning.value
-                    ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ? const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        Gap(AppSpacing.sm),
+                        Text('Scanning...'),
+                      ],
                     )
                     : const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.bluetooth_searching_rounded),
                         Gap(AppSpacing.sm),
-                        Text('Scan Paired Devices'),
+                        Text('Scan for Printers'),
                       ],
                     ),
           ),
 
-          // ── Device list ────────────────────────────────────────────────
+          // ── Scan blocker prompt ───────────────────────────────────────
+          if (scanBlocker.value != _ScanBlocker.none) ...[
+            const Gap(AppSpacing.md),
+            _ScanBlockerCard(
+              blocker: scanBlocker.value,
+              onTurnOnBluetooth: () async {
+                await BluetoothDiscoveryService.requestEnableBluetooth();
+              },
+              onGrantPermission: scan,
+              onOpenAppSettings: BluetoothDiscoveryService.openAppSettingsPage,
+              onOpenLocationSettings:
+                  BluetoothDiscoveryService.openLocationSettings,
+            ),
+          ],
+
+          // ── Paired devices ────────────────────────────────────────────
           if (devices.value.isNotEmpty) ...[
             const Gap(AppSpacing.lg),
             Text(
@@ -379,12 +550,38 @@ class PrinterSetupScreen extends HookWidget {
             }),
           ],
 
-          if (devices.value.isEmpty && !scanning.value) ...[
+          // ── Available (unpaired) devices ──────────────────────────────
+          if (availableDevices.value.isNotEmpty) ...[
+            const Gap(AppSpacing.lg),
+            Text(
+              'AVAILABLE DEVICES',
+              style: AppTextStyles.labelMd.copyWith(
+                color: AppColors.textSecondary,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const Gap(AppSpacing.sm),
+            ...availableDevices.value.map((device) {
+              final isPairing = pairingMac.value == device.macAdress;
+              return _DeviceTile(
+                device: device,
+                isCurrent: false,
+                isConnecting: isPairing,
+                errorText: pairErrors.value[device.macAdress],
+                onTap: isPairing ? null : () => pairAndConnect(device),
+              );
+            }),
+          ],
+
+          if (devices.value.isEmpty &&
+              availableDevices.value.isEmpty &&
+              !scanning.value &&
+              scanBlocker.value == _ScanBlocker.none) ...[
             const Gap(AppSpacing.xl),
             Center(
               child: Text(
-                'Tap "Scan Paired Devices" to see available printers.\n'
-                'Make sure Bluetooth is on and the printer is paired in system settings.',
+                'Tap "Scan for Printers" to find nearby printers.\n'
+                'Make sure Bluetooth is on and the printer is powered on.',
                 style: AppTextStyles.bodySm.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -392,6 +589,75 @@ class PrinterSetupScreen extends HookWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ScanBlockerCard extends StatelessWidget {
+  const _ScanBlockerCard({
+    required this.blocker,
+    required this.onTurnOnBluetooth,
+    required this.onGrantPermission,
+    required this.onOpenAppSettings,
+    required this.onOpenLocationSettings,
+  });
+
+  final _ScanBlocker blocker;
+  final VoidCallback onTurnOnBluetooth;
+  final VoidCallback onGrantPermission;
+  final VoidCallback onOpenAppSettings;
+  final VoidCallback onOpenLocationSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    final (String message, String actionLabel, VoidCallback action) =
+        switch (blocker) {
+          _ScanBlocker.bluetoothOff => (
+            'Bluetooth is off. Turn it on to scan for printers.',
+            'Turn On Bluetooth',
+            onTurnOnBluetooth,
+          ),
+          _ScanBlocker.permissionDenied => (
+            'Bluetooth permission is required to scan for printers.',
+            'Grant Permission',
+            onGrantPermission,
+          ),
+          _ScanBlocker.permissionPermanentlyDenied => (
+            'Bluetooth permission was denied. Enable it from app settings '
+                'to scan for printers.',
+            'Open App Settings',
+            onOpenAppSettings,
+          ),
+          _ScanBlocker.locationServicesOff => (
+            'This Android version needs Location Services on to discover '
+                'nearby Bluetooth printers.',
+            'Open Location Settings',
+            onOpenLocationSettings,
+          ),
+          _ScanBlocker.none => ('', '', onGrantPermission),
+        };
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline_rounded, color: AppColors.error),
+          const Gap(AppSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTextStyles.bodySm.copyWith(color: AppColors.error),
+            ),
+          ),
+          const Gap(AppSpacing.sm),
+          TextButton(onPressed: action, child: Text(actionLabel)),
         ],
       ),
     );
@@ -440,6 +706,7 @@ class _DeviceTile extends StatelessWidget {
   final BluetoothInfo device;
   final bool isCurrent;
   final bool isConnecting;
+  final String? errorText;
   final VoidCallback? onTap;
 
   const _DeviceTile({
@@ -447,6 +714,7 @@ class _DeviceTile extends StatelessWidget {
     required this.isCurrent,
     required this.isConnecting,
     required this.onTap,
+    this.errorText,
   });
 
   @override
@@ -461,7 +729,9 @@ class _DeviceTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         border: Border.all(
           color:
-              isCurrent
+              errorText != null
+                  ? AppColors.error.withValues(alpha: 0.4)
+                  : isCurrent
                   ? AppColors.primary.withValues(alpha: 0.3)
                   : AppColors.border,
         ),
@@ -486,9 +756,9 @@ class _DeviceTile extends StatelessWidget {
           ),
           title: Text(device.name, style: AppTextStyles.headingSm),
           subtitle: Text(
-            device.macAdress,
+            errorText ?? device.macAdress,
             style: AppTextStyles.bodySm.copyWith(
-              color: AppColors.textSecondary,
+              color: errorText != null ? AppColors.error : AppColors.textSecondary,
             ),
           ),
           trailing:

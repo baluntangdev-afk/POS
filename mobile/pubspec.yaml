@@ -40,6 +40,10 @@ dependencies:
   printing: ^5.13.2
   share_plus: ^10.0.0
 
+  # Bluetooth discovery/pairing
+  permission_handler: ^11.3.1
+  android_intent_plus: ^5.2.1
+
   # Charts
   fl_chart: ^0.69.2
 

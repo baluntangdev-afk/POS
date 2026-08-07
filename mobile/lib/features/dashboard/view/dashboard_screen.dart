@@ -207,14 +207,6 @@ class DashboardScreen extends HookConsumerWidget {
       return null;
     }, const []);
 
-    final now = useState(DateTime.now());
-    useEffect(() {
-      final timer = Timer.periodic(const Duration(seconds: 30), (_) {
-        now.value = DateTime.now();
-      });
-      return timer.cancel;
-    }, const []);
-
     // Runs once per screen mount so the tile grid animates in on arrival
     // without replaying every time the 30s clock tick rebuilds the screen.
     final entrance = useAnimationController(
@@ -243,13 +235,9 @@ class DashboardScreen extends HookConsumerWidget {
         child: Column(
           children: [
             _Header(
-              now: now.value,
               userName: user?.name ?? '',
               userRole: user?.role ?? '',
-              greeting:
-                  firstName.isEmpty
-                      ? ''
-                      : '${_greetingFor(now.value)}, $firstName',
+              firstName: firstName,
               onSignOut: () => ref.read(authNotifierProvider.notifier).logout(),
             ),
             Expanded(
@@ -296,23 +284,35 @@ class DashboardScreen extends HookConsumerWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  final DateTime now;
+// Owns its own 30s clock tick, scoped to just this subtree — keeps the
+// tile grid's entrance animation from being torn down and rebuilt every
+// tick when it only ever needs to run once per screen mount.
+class _Header extends HookWidget {
   final String userName;
   final String userRole;
-  final String greeting;
+  final String firstName;
   final VoidCallback onSignOut;
 
   const _Header({
-    required this.now,
     required this.userName,
     required this.userRole,
-    required this.greeting,
+    required this.firstName,
     required this.onSignOut,
   });
 
   @override
   Widget build(BuildContext context) {
+    final now = useState(DateTime.now());
+    useEffect(() {
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) {
+        now.value = DateTime.now();
+      });
+      return timer.cancel;
+    }, const []);
+
+    final greeting =
+        firstName.isEmpty ? '' : '${_greetingFor(now.value)}, $firstName';
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = constraints.maxWidth;
@@ -350,7 +350,7 @@ class _Header extends StatelessWidget {
                         color: const Color(0xFFE8E6E1),
                       ),
                       const SizedBox(width: 16),
-                      Flexible(child: _Clock(now: now)),
+                      Flexible(child: _Clock(now: now.value)),
                     ],
                   ],
                 ),

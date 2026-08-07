@@ -325,7 +325,21 @@ class _ProductGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(orderingProvider);
+    // Selects only the catalog fields (not `sale`), and `copyWith` reuses
+    // the same `allProducts`/`groups` list instances across cart-only
+    // updates — so this stays unchanged, and the grid doesn't rebuild,
+    // while the cart is edited (add item, qty +/-, notes, sale type, etc).
+    final state = ref.watch(
+      orderingProvider.select(
+        (s) => s.whenData(
+          (d) => (
+            allProducts: d.allProducts,
+            groups: d.groups,
+            selectedGroupId: d.selectedGroupId,
+          ),
+        ),
+      ),
+    );
 
     return state.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -355,8 +369,15 @@ class _ProductGrid extends ConsumerWidget {
               ],
             ),
           ),
-      data: (cartState) {
-        final products = cartState.filteredProducts;
+      data: (catalog) {
+        final products = catalog.allProducts.where((p) {
+          if (!p.isAvailable) return false;
+          if (catalog.selectedGroupId != null &&
+              p.groupId != catalog.selectedGroupId) {
+            return false;
+          }
+          return true;
+        }).toList();
         if (products.isEmpty) {
           return Center(
             child: Column(
@@ -379,7 +400,7 @@ class _ProductGrid extends ConsumerWidget {
           );
         }
 
-        final groupById = {for (final g in cartState.groups) g.id: g.name};
+        final groupById = {for (final g in catalog.groups) g.id: g.name};
 
         return LayoutBuilder(
           builder: (context, constraints) {

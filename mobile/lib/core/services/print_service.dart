@@ -1,11 +1,11 @@
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
-import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../features/cashier_accounting/daily_report/entities/daily_report_data.dart';
 import '../../features/cashier_accounting/x_reading/entities/x_reading_data.dart';
 import '../../features/cashier_accounting/z_reading/entities/z_reading_data.dart';
 import '../../features/ordering/entities/receipt.dart';
+import 'bluetooth_printer_channel.dart';
 import 'built_in_printer.dart';
 import 'print_row_layout.dart';
 import 'receipt_print_document.dart';
@@ -54,6 +54,44 @@ abstract final class PrintService {
       storeFooter: storeFooter,
     );
     return _printDocument(document);
+  }
+
+  static Future<bool> printReceiptBuiltIn(
+    Receipt receipt, {
+    String storeFooter = 'Thank You!',
+    String? storeName,
+    String? storeAddress,
+    String? storeTin,
+    String? terminalName,
+  }) {
+    final document = ReceiptPrintDocument.build(
+      receipt,
+      storeName: storeName,
+      storeAddress: storeAddress,
+      storeTin: storeTin,
+      terminalName: terminalName,
+      storeFooter: storeFooter,
+    );
+    return BuiltInPrinter.print(document);
+  }
+
+  static Future<bool> printReceiptBluetooth(
+    Receipt receipt, {
+    String storeFooter = 'Thank You!',
+    String? storeName,
+    String? storeAddress,
+    String? storeTin,
+    String? terminalName,
+  }) {
+    final document = ReceiptPrintDocument.build(
+      receipt,
+      storeName: storeName,
+      storeAddress: storeAddress,
+      storeTin: storeTin,
+      terminalName: terminalName,
+      storeFooter: storeFooter,
+    );
+    return _printViaBluetooth(document);
   }
 
   static Future<bool> printXReading(
@@ -166,9 +204,7 @@ abstract final class PrintService {
     final mac = await getSavedMac();
     if (mac == null) return false;
 
-    final connected = await PrintBluetoothThermal.connect(
-      macPrinterAddress: mac,
-    );
+    final connected = await BluetoothPrinterChannel.connect(mac);
     if (!connected) return false;
 
     try {
@@ -182,11 +218,11 @@ abstract final class PrintService {
       }
       bytes += generator.cut();
 
-      return await PrintBluetoothThermal.writeBytes(bytes);
+      return await BluetoothPrinterChannel.writeBytes(bytes);
     } catch (_) {
       return false;
     } finally {
-      await PrintBluetoothThermal.disconnect;
+      await BluetoothPrinterChannel.disconnect();
     }
   }
 

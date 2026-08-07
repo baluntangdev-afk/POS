@@ -31,6 +31,7 @@ import { UpdatePosTerminalDto } from './dto/update-pos-terminal.dto';
 import { AddPaymentMethodDto } from './dto/add-payment-method.dto';
 import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
 import { SystemAdminGuard } from '../auth/guards/system-admin.guard';
+import { AdminOrSupervisorGuard } from '../auth/guards/admin-or-supervisor.guard';
 
 @ApiTags('POS Terminals')
 @ApiBearerAuth()
@@ -70,11 +71,11 @@ export class PosTerminalsController {
   }
 
   @Post('my-terminal/payment-methods')
-  @UseGuards(SystemAdminGuard)
+  @UseGuards(AdminOrSupervisorGuard)
   @ApiOperation({ summary: 'Add a payment method to the current admin\'s POS terminal' })
   @ApiResponse({ status: 201, description: 'Payment method added successfully', type: PaymentMethodEntryDto })
   @ApiNotFoundResponse({ description: 'No POS terminal is assigned to your account' })
-  @ApiForbiddenResponse({ description: 'System admin access required' })
+  @ApiForbiddenResponse({ description: 'Admin or supervisor access required' })
   async addPaymentMethod(
     @CurrentUser() user: MeDto,
     @Body() dto: AddPaymentMethodDto,
@@ -84,11 +85,11 @@ export class PosTerminalsController {
   }
 
   @Patch('my-terminal/payment-methods/:id')
-  @UseGuards(SystemAdminGuard)
+  @UseGuards(AdminOrSupervisorGuard)
   @ApiOperation({ summary: 'Update a payment method on the current admin\'s POS terminal' })
   @ApiResponse({ status: 200, description: 'Payment method updated successfully', type: PaymentMethodEntryDto })
   @ApiNotFoundResponse({ description: 'Payment method not found for your terminal' })
-  @ApiForbiddenResponse({ description: 'System admin access required' })
+  @ApiForbiddenResponse({ description: 'Admin or supervisor access required' })
   async updatePaymentMethod(
     @CurrentUser() user: MeDto,
     @Param('id', ParseIntPipe) methodId: number,
@@ -99,12 +100,12 @@ export class PosTerminalsController {
   }
 
   @Delete('my-terminal/payment-methods/:id')
-  @UseGuards(SystemAdminGuard)
+  @UseGuards(AdminOrSupervisorGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove a payment method from the current admin\'s POS terminal' })
   @ApiNoContentResponse({ description: 'Payment method removed successfully' })
   @ApiNotFoundResponse({ description: 'Payment method not found for your terminal' })
-  @ApiForbiddenResponse({ description: 'System admin access required' })
+  @ApiForbiddenResponse({ description: 'Admin or supervisor access required' })
   async removePaymentMethod(
     @CurrentUser() user: MeDto,
     @Param('id', ParseIntPipe) methodId: number,

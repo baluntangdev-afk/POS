@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
@@ -5,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/providers/database_provider.dart';
+import '../../../core/services/image_storage_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -47,6 +50,9 @@ class OrderingScreen extends HookConsumerWidget {
             },
             icon: Icon(Icons.arrow_back),
           ),
+          actions: [
+            _StoreHeader(),
+          ],
         ),
         body: LayoutBuilder(
           builder: (context, constraints) {
@@ -143,7 +149,6 @@ class _ProductSection extends StatelessWidget {
     return const Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _StoreHeader(),
         _CategoryChipRow(),
         Expanded(child: _ProductGrid()),
       ],
@@ -166,57 +171,58 @@ class _StoreHeader extends ConsumerWidget {
         authState is AuthAuthenticated ? authState.user.name : null;
     final displayName = storeName?.isNotEmpty == true ? storeName! : 'New Order';
 
-    return Container(
-      color: AppColors.surface,
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.sm,
-        AppSpacing.lg,
-        AppSpacing.md,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              gradient: AppGradients.primary,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            ),
-            child: Text(
-              _initialsOf(displayName),
-              style: AppTextStyles.labelLg.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
+    // AppBar lays out `actions` with unbounded width, so an `Expanded` here
+    // would throw ("incoming width constraints are unbounded"). Bound the
+    // widget ourselves and use `Flexible` for the text column instead.
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 200),
+      child: Padding(
+        padding: const EdgeInsets.only(right: AppSpacing.md),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: AppGradients.primary,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              ),
+              child: Text(
+                _initialsOf(displayName),
+                style: AppTextStyles.labelMd.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
-          ),
-          const Gap(AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  displayName,
-                  style: AppTextStyles.headingSm,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (cashierName != null && cashierName.isNotEmpty)
+            const Gap(AppSpacing.sm),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   Text(
-                    'Cashier: $cashierName',
-                    style: AppTextStyles.bodySm.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                    displayName,
+                    style: AppTextStyles.headingSm,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-              ],
+                  if (cashierName != null && cashierName.isNotEmpty)
+                    Text(
+                      'Cashier: $cashierName',
+                      style: AppTextStyles.bodySm.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -553,12 +559,12 @@ class _ProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (imageUrl != null && imageUrl!.isNotEmpty) {
-      return Image.network(
-        imageUrl!,
-        fit: BoxFit.cover,
-        errorBuilder: (ctx, err, st) => _Placeholder(),
-      );
+    final url = imageUrl;
+    if (url != null && url.isNotEmpty) {
+      Widget errorBuilder(BuildContext ctx, Object err, StackTrace? st) => _Placeholder();
+      return ImageStorageService.isNetworkUrl(url)
+          ? Image.network(url, fit: BoxFit.cover, errorBuilder: errorBuilder)
+          : Image.file(File(url), fit: BoxFit.cover, errorBuilder: errorBuilder);
     }
     return _Placeholder();
   }

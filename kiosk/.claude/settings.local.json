@@ -52,7 +52,17 @@
       "Bash(tasklist)",
       "Bash(mkdir *)",
       "Bash(git mv *)",
-      "PowerShell(fvm dart *)"
+      "PowerShell(fvm dart *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(npm run *)",
+      "Bash(netstat -ano)",
+      "Bash(powershell -Command \"Get-Process -Id 5296 | Select-Object Id,ProcessName,Path,StartTime\")",
+      "Bash(powershell -Command \"Get-Service | Where-Object { \\\\$_.Name -like '*POSBackend*' -or \\\\$_.DisplayName -like '*POS*' } | Format-Table -AutoSize\")",
+      "PowerShell(Stop-Service *)",
+      "PowerShell(\\([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent\\(\\)\\).IsInRole\\([Security.Principal.WindowsBuiltInRole]::Administrator\\))",
+      "PowerShell(Get-Service *)",
+      "PowerShell(Start-Service *)"
     ]
   }
 }

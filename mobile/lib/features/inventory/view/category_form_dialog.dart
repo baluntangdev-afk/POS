@@ -3,7 +3,9 @@ import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/form_sheet_scaffold.dart';
 import '../state/inventory_notifier.dart';
 
 /// Create/edit dialog for a product category (a.k.a. "group").
@@ -17,6 +19,17 @@ class CategoryFormDialog extends ConsumerStatefulWidget {
   final ProductGroupsTableData? existing;
 
   const CategoryFormDialog({super.key, this.existing});
+
+  /// Opens the form as a bottom sheet, matching [ProductFormDialog.show]
+  /// rather than a centered dialog sized for desktop widths.
+  static Future<void> show(BuildContext context, {ProductGroupsTableData? existing}) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => CategoryFormDialog(existing: existing),
+    );
+  }
 
   @override
   ConsumerState<CategoryFormDialog> createState() => _CategoryFormDialogState();
@@ -73,59 +86,50 @@ class _CategoryFormDialogState extends ConsumerState<CategoryFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      scrollable: true,
-      title: Text(_isEditing ? 'Edit Category' : 'Add Category'),
-      content: SizedBox(
-        width: 360,
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: 'Name',
-                  errorText: _nameError,
-                ),
-                textInputAction: TextInputAction.done,
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Name is required' : null,
-                onChanged: (_) {
-                  if (_nameError != null) setState(() => _nameError = null);
-                },
+    return FormSheetScaffold(
+      title: _isEditing ? 'Edit Category' : 'Add Category',
+      confirmLabel: _isEditing ? 'Save' : 'Add',
+      isSaving: _isSaving,
+      onCancel: () => Navigator.pop(context),
+      onConfirm: _submit,
+      body: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextFormField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: 'Name',
+                errorText: _nameError,
               ),
-              if (_isEditing) ...[
-                const Gap(AppSpacing.md),
-                SwitchListTile(
+              textInputAction: TextInputAction.done,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+              onChanged: (_) {
+                if (_nameError != null) setState(() => _nameError = null);
+              },
+            ),
+            if (_isEditing) ...[
+              const Gap(AppSpacing.md),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                ),
+                child: SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Active'),
+                  title: const Text('Visible in POS'),
                   value: _isActive,
                   onChanged: (v) => setState(() => _isActive = v),
                 ),
-              ],
+              ),
             ],
-          ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _isSaving ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: _isSaving ? null : _submit,
-          child: _isSaving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                )
-              : Text(_isEditing ? 'Save' : 'Add'),
-        ),
-      ],
     );
   }
 }

@@ -4,12 +4,15 @@ import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/experimental/mutation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../data/backend_api/schemas/pos_terminal_dto.dart';
 import '../../../data/backend_api/sources/pos_terminals_api.dart';
 import '../../../services/device/device_serial_number.dart';
+import '../../../services/history/history_archive_service.dart';
 import '../../../services/printer/win32_printer.dart';
 import '../entities/z_reading.dart';
 import '../repositories/cashier_report_repository.dart';
 import '../use_cases/encode_esc_pos_z_reading.dart';
+import '../use_cases/render_z_reading_pdf.dart';
 
 final zReadingNotifierProvider =
     NotifierProvider.autoDispose<ZReadingNotifier, AsyncValue<ZReading?>>(
@@ -60,5 +63,31 @@ class ZReadingNotifier extends Notifier<AsyncValue<ZReading?>> {
 
     final printerTransport = ref.read(win32PrinterTransportProvider);
     await printerTransport.sendData(data);
+
+    await _saveToHistory(report: report, terminal: terminal, serialNumber: serialNumber);
+  }
+
+  // Archiving must never block printing -- a History write failure (disk full,
+  // permissions) is a nice-to-have lookup lost, not a reason to fail closing the report.
+  Future<void> _saveToHistory({
+    required ZReading report,
+    required PosTerminalDto terminal,
+    String? serialNumber,
+  }) async {
+    try {
+      final renderPdf = ref.read(renderZReadingPdfProvider);
+      final bytes = await renderPdf(report: report, terminal: terminal, serialNumber: serialNumber);
+      final timestamp = report.reportGeneratedAt.toLocal().toIso8601String().replaceAll(':', '-');
+      final counter = report.zCounter != null ? 'z${report.zCounter}_' : '';
+      await ref
+          .read(historyArchiveServiceProvider)
+          .save(
+            fileName: 'zreading_$counter$timestamp.pdf',
+            bytes: bytes,
+            at: report.reportGeneratedAt,
+          );
+    } catch (_) {
+      // Non-fatal, see comment above.
+    }
   }
 }

@@ -39,7 +39,9 @@
 ;   5. Runs TypeORM migrations
 ;   6. Seeds initial data (admin user + reference data; idempotent, always runs)
 ;   7. Installs NestJS backend as a Windows service via NSSM
-;   8. Creates desktop shortcut and offers to launch the kiosk
+;   8. Registers a daily 2 AM Scheduled Task that backs up pos_db + config to
+;      {app}\Backups (see backup-database.ps1 / register-backup-task.ps1)
+;   9. Creates desktop shortcut and offers to launch the kiosk
 ;
 ; â"€â"€ Install location â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 ;   App : C:\POSKiosk      (no spaces â€" required for pg_ctl service registration)
@@ -50,7 +52,7 @@
 ; â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 #define MyAppName    "POS Kiosk"
-#define MyAppVersion "1.1"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "Your Company"
 #define KioskExe     "pos_app.exe"
 #define BackendExe   "POSBackend.exe"
@@ -91,6 +93,10 @@ Name: "{app}\nssm"
 Name: "{app}\scripts"
 Name: "{app}\data\csv"
 Name: "{app}\backend\public"
+; Daily pos_db backups (backup-database.ps1) + kiosk transaction/report PDF archive.
+; Deliberately NOT listed in [UninstallDelete] -- see the note there.
+Name: "{app}\Backups\config"
+Name: "{app}\History"
 
 [Files]
 ; â"€â"€ Flutter kiosk app â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
@@ -141,6 +147,12 @@ Source: "scripts\stop-services.ps1";           DestDir: "{app}\scripts"; Flags: 
 Source: "scripts\stop-services.bat";           DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\start-services.ps1";          DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\start-services.bat";          DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\backup-database.ps1";         DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\backup-database.bat";         DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\register-backup-task.ps1";    DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\register-backup-task.bat";    DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\restore-database.ps1";        DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\restore-database.bat";        DestDir: "{app}\scripts"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}";                       Filename: "{app}\{#KioskExe}"
@@ -191,6 +203,11 @@ Filename: "{cmd}"; Parameters: "/c ""{app}\scripts\run-migrations.bat"" ""{app}"
 ;           Logs to: {app}\logs\install-backend-service-install.log
 Filename: "{cmd}"; Parameters: "/c ""{app}\scripts\install-backend-service.bat"" ""{app}"""; WorkingDir: "{app}"; Flags: runhidden waituntilterminated; StatusMsg: "Installing backend service..."
 
+; Step 3b — Register the daily database backup Scheduled Task
+;           (POSKioskDatabaseBackup, runs backup-database.bat at 2:00 AM as SYSTEM)
+;           Logs to: {app}\logs\register-backup-task-install.log
+Filename: "{cmd}"; Parameters: "/c ""{app}\scripts\register-backup-task.bat"" ""{app}"""; WorkingDir: "{app}"; Flags: runhidden waituntilterminated; StatusMsg: "Scheduling daily database backups..."
+
 ; Step 4 — Offer to launch the kiosk
 Filename: "{app}\{#KioskExe}"; Description: "Launch {#MyAppName} now"; Flags: nowait postinstall skipifsilent
 
@@ -207,6 +224,9 @@ Type: filesandordirs; Name: "C:\posdata"
 ; Remove CSV recovery files dropped into {app}\data\csv at runtime (not logged
 ; by Inno Setup since they're not part of [Files], so they'd otherwise linger)
 Type: filesandordirs; Name: "{app}\data"
+; Do NOT add {app}\Backups or {app}\History here. Uninstalling (e.g. for a "clean
+; reinstall" during troubleshooting) already wipes C:\posdata above -- the backups
+; and the transaction/report PDF archive are exactly what should survive that.
 
 [Code]
 var
@@ -342,6 +362,7 @@ function NeedRestart(): Boolean;
 begin
   Result := False;
 end;
+
 
 
 

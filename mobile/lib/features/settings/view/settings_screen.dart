@@ -47,6 +47,13 @@ class SettingsScreen extends ConsumerWidget {
                     'Import products, modifiers, users, or store info from CSV files',
                 onTap: () => context.push('/settings/csv-import'),
               ),
+              const SizedBox(height: AppSpacing.sm),
+              _SettingsTile(
+                icon: Icons.backup_rounded,
+                title: 'Backup & Restore',
+                subtitle: 'Back up device data or restore from a backup file',
+                onTap: () => context.push('/settings/backup'),
+              ),
               const SizedBox(height: AppSpacing.lg),
               _SectionHeader('Store'),
               _SettingsTile(

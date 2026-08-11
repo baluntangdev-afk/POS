@@ -21,6 +21,7 @@ import '../../features/ordering/view/ordering_screen.dart';
 import '../../features/ordering/view/payment_screen.dart';
 import '../../features/ordering/view/receipt_screen.dart';
 import '../../features/reports/view/reports_screen.dart';
+import '../../features/settings/view/backup_screen.dart';
 import '../../features/settings/view/csv_import_screen.dart';
 import '../../features/settings/view/printer_setup_screen.dart';
 import '../../features/settings/view/settings_screen.dart';
@@ -52,6 +53,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         '/inventory',
         '/users',
         '/settings/csv-import',
+        '/settings/backup',
         '/settings/store-info',
       ];
       if (isAuthenticated &&
@@ -209,6 +211,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'csv-import',
             builder: (context, state) => const CsvImportScreen(),
+          ),
+          GoRoute(
+            path: 'backup',
+            builder: (context, state) => const BackupScreen(),
           ),
           GoRoute(
             path: 'store-info',

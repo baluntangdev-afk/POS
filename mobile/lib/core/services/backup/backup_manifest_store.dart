@@ -7,18 +7,25 @@ import 'package:path_provider/path_provider.dart';
 class BackupManifestEntry {
   final String fileName;
   final DateTime createdAt;
+  final String? dataHash;
 
-  const BackupManifestEntry({required this.fileName, required this.createdAt});
+  const BackupManifestEntry({
+    required this.fileName,
+    required this.createdAt,
+    this.dataHash,
+  });
 
   Map<String, Object?> toJson() => {
         'fileName': fileName,
         'createdAt': createdAt.toIso8601String(),
+        if (dataHash != null) 'dataHash': dataHash,
       };
 
   factory BackupManifestEntry.fromJson(Map<String, Object?> json) =>
       BackupManifestEntry(
         fileName: json['fileName'] as String,
         createdAt: DateTime.parse(json['createdAt'] as String),
+        dataHash: json['dataHash'] as String?,
       );
 }
 
@@ -72,6 +79,16 @@ abstract final class BackupManifestStore {
     final entries = await all();
     if (entries.isEmpty) return null;
     return entries.map((e) => e.createdAt).reduce((a, b) => a.isAfter(b) ? a : b);
+  }
+
+  /// [dataHash] of the most recently created backup (regardless of what
+  /// triggered it — manual, automatic, or a pre-restore safety snapshot),
+  /// or null if there's no backup yet or the newest one predates hashing.
+  static Future<String?> lastBackupHash() async {
+    final entries = await all();
+    if (entries.isEmpty) return null;
+    final latest = entries.reduce((a, b) => a.createdAt.isAfter(b.createdAt) ? a : b);
+    return latest.dataHash;
   }
 
   static Future<void> _save(List<BackupManifestEntry> entries) async {

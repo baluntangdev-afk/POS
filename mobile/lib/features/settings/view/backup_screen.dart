@@ -3,7 +3,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../../core/providers/database_provider.dart';
 import '../../../core/services/backup/backup_service.dart';
@@ -26,9 +25,11 @@ class BackupScreen extends HookConsumerWidget {
       isWorking.value = true;
       try {
         final db = ref.read(databaseProvider);
-        final zip = await BackupService.createBackup(db);
+        await BackupService.createBackup(db);
         ref.invalidate(lastBackupAtProvider);
-        await Share.shareXFiles([XFile(zip.path)], text: 'POS data backup');
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Backup created successfully.')));
       } catch (e) {
         if (!context.mounted) return;
         ScaffoldMessenger.of(context)
@@ -58,7 +59,7 @@ class BackupScreen extends HookConsumerWidget {
           _ActionTile(
             icon: Icons.backup_rounded,
             title: 'Back Up Now',
-            subtitle: 'Create a backup and share it off this device',
+            subtitle: 'Create a backup and save it to Downloads',
             enabled: !isWorking.value,
             loading: isWorking.value,
             onTap: backUpNow,

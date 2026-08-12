@@ -11,7 +11,7 @@ void backupCallbackDispatcher() {
     if (task != kBackupTaskName) return Future.value(true);
     try {
       final db = AppDatabase();
-      await BackupService.createBackup(db);
+      await BackupService.createBackupIfChanged(db);
       await db.close();
     } catch (_) {
       // A background job failing silently is fine here — the app-open

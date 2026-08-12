@@ -69,4 +69,22 @@ void main() {
     expect(products, hasLength(1));
     expect(products.first.data['name'], 'Latte');
   });
+
+  test('hashData is stable for the same dump and changes when data changes', () async {
+    final groupId = await db.productsDao
+        .insertProductGroup(ProductGroupsTableCompanion.insert(name: 'Drinks'));
+    await db.productsDao
+        .insertProduct(ProductsTableCompanion.insert(groupId: groupId, name: 'Latte'));
+
+    final dump = await BackupDataSerializer.dumpAllTables(db);
+    final hashA = BackupDataSerializer.hashData(dump);
+    final hashB = BackupDataSerializer.hashData(await BackupDataSerializer.dumpAllTables(db));
+    expect(hashA, hashB);
+
+    await db.productsDao
+        .insertProduct(ProductsTableCompanion.insert(groupId: groupId, name: 'Mocha'));
+    final hashAfterChange =
+        BackupDataSerializer.hashData(await BackupDataSerializer.dumpAllTables(db));
+    expect(hashAfterChange, isNot(hashA));
+  });
 }

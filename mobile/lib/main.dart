@@ -45,7 +45,7 @@ Future<void> _runStartupBackupSafetyNet(AppDatabase db) async {
     final isStale = lastBackup == null ||
         DateTime.now().difference(lastBackup) > const Duration(hours: 1);
     if (isStale) {
-      await BackupService.createBackup(db);
+      await BackupService.createBackupIfChanged(db);
     }
   } catch (_) {
     // Best-effort — never block app startup on backup failure.

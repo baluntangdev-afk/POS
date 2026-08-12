@@ -87,4 +87,25 @@ void main() {
 
     expect(await BackupManifestStore.lastBackupAt(), DateTime(2026, 1, 5));
   });
+
+  test('lastBackupHash returns null when empty, otherwise the newest entry\'s hash', () async {
+    expect(await BackupManifestStore.lastBackupHash(), isNull);
+
+    await BackupManifestStore.add(
+      BackupManifestEntry(fileName: 'a.zip', createdAt: DateTime(2026, 1, 1), dataHash: 'hash-a'),
+    );
+    await BackupManifestStore.add(
+      BackupManifestEntry(fileName: 'b.zip', createdAt: DateTime(2026, 1, 5), dataHash: 'hash-b'),
+    );
+
+    expect(await BackupManifestStore.lastBackupHash(), 'hash-b');
+  });
+
+  test('lastBackupHash returns null when the newest entry predates hashing', () async {
+    await BackupManifestStore.add(
+      BackupManifestEntry(fileName: 'a.zip', createdAt: DateTime(2026, 1, 1)),
+    );
+
+    expect(await BackupManifestStore.lastBackupHash(), isNull);
+  });
 }

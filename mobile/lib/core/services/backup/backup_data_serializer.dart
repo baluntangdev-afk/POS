@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
+
 import '../../database/app_database.dart';
 
 /// All 18 tables, in an order that respects foreign-key dependencies
@@ -34,6 +38,14 @@ abstract final class BackupDataSerializer {
       result[table] = [for (final row in rows) Map<String, Object?>.from(row.data)];
     }
     return result;
+  }
+
+  /// Stable hash of a dump, used to detect whether the data has actually
+  /// changed since the last backup (row order from `SELECT *` is stable
+  /// absent concurrent writes, so this is safe for comparing consecutive
+  /// dumps).
+  static String hashData(Map<String, List<Map<String, Object?>>> data) {
+    return sha256.convert(utf8.encode(jsonEncode(data))).toString();
   }
 
   static Future<void> restoreAllTables(

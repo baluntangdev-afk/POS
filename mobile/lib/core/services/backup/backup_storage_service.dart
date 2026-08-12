@@ -14,7 +14,11 @@ abstract final class BackupStorageService {
   /// Writes [localZip] into the public Downloads/POS Backups folder,
   /// records it in the manifest, and deletes backups older than
   /// [retentionWindow].
-  static Future<void> writeAndRegister(File localZip, {required DateTime at}) async {
+  static Future<void> writeAndRegister(
+    File localZip, {
+    required DateTime at,
+    String? dataHash,
+  }) async {
     final mediaStore = MediaStore();
     final fileName = p.basename(localZip.path);
 
@@ -24,7 +28,7 @@ abstract final class BackupStorageService {
       dirName: DirName.download,
     );
     await BackupManifestStore.add(
-      BackupManifestEntry(fileName: fileName, createdAt: at),
+      BackupManifestEntry(fileName: fileName, createdAt: at, dataHash: dataHash),
     );
 
     final removed = await BackupManifestStore.removeOlderThan(retentionWindow);

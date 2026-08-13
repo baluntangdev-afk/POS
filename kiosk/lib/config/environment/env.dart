@@ -12,6 +12,10 @@ final class Env implements AppEnv {
   @override
   final String backendApiBaseUrl = _Env.backendApiBaseUrl;
 
+  @EnviedField()
+  @override
+  final String replenishmentApiBaseUrl = _Env.replenishmentApiBaseUrl;
+
   @EnviedField(obfuscate: true)
   @override
   final String secureStorageKey = _Env.secureStorageKey;

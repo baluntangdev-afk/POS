@@ -59,6 +59,10 @@ class MenuGrid extends StatelessWidget {
                         const TransactionsRoute().push<void>(context);
                         return;
                       }
+                      if (type == MenuType.replenishment) {
+                        const ReplenishmentRoute().push<void>(context);
+                        return;
+                      }
                     },
                   );
                 }).toList(),

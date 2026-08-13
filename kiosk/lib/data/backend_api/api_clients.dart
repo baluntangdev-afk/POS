@@ -21,3 +21,10 @@ final secureApiClientProvider = Provider<Dio>((ref) {
   final client = httpClientProvider(options);
   return ref.watch(client);
 });
+
+final replenishmentApiClientProvider = Provider<Dio>((ref) {
+  final env = ref.watch(appEnvProvider);
+  final options = (baseUrl: env.replenishmentApiBaseUrl, interceptors: <Interceptor>[]);
+  final client = httpClientProvider(options);
+  return ref.watch(client);
+});

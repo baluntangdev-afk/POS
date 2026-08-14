@@ -6,9 +6,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'config/environment/app_env.dart';
+import 'utils/windows_touch_keyboard.dart';
 
 Future<ProviderContainer> bootstrap(AppEnv env) async {
   WidgetsFlutterBinding.ensureInitialized();
+  WindowsTouchKeyboard.startGuard();
 
   final originalOnError = FlutterError.onError;
   FlutterError.onError = (details) {

@@ -6,6 +6,7 @@ import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
+import '../../../utils/windows_touch_keyboard.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
@@ -140,7 +141,16 @@ class _WindowsTabBar extends StatelessWidget {
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () => selectedTab.value = index,
+                onTap: () {
+                  // The Windows tab bar swaps children via IndexedStack, which
+                  // keeps both tabs mounted — switching tabs never disposes
+                  // the one being left, so a focused field on it (e.g. the
+                  // product search box) would otherwise stay focused and
+                  // invisible, keeping the OS keyboard tied to a tab the user
+                  // can no longer see.
+                  WindowsTouchKeyboard.dismiss();
+                  selectedTab.value = index;
+                },
                 child: AnimatedContainer(
                   duration: POSAnimation.fast,
                   padding: EdgeInsets.symmetric(vertical: r.spacingLg),

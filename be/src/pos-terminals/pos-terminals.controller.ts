@@ -49,11 +49,11 @@ export class PosTerminalsController {
   }
 
   @Patch('my-terminal')
-  @UseGuards(SystemAdminGuard)
+  @UseGuards(AdminOrSupervisorGuard)
   @ApiOperation({ summary: 'Update the POS terminal details for the current admin user' })
   @ApiResponse({ status: 200, description: 'POS terminal updated successfully', type: PosTerminalDto })
   @ApiNotFoundResponse({ description: 'No POS terminal is assigned to your account' })
-  @ApiForbiddenResponse({ description: 'System admin access required' })
+  @ApiForbiddenResponse({ description: 'Admin or supervisor access required' })
   async updateMyTerminal(@CurrentUser() user: MeDto, @Body() dto: UpdatePosTerminalDto): Promise<PosTerminalDto> {
     const terminal = await this.posTerminalsService.updateForUser(user.id, dto);
     return PosTerminalDto.from(terminal);

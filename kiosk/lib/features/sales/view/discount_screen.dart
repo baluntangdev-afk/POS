@@ -13,6 +13,9 @@ import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../utils/tax_calculator.dart';
+import '../../../utils/windows_touch_keyboard.dart';
+import '../../../widgets/onscreen_keyboard/keyboard_suppress.dart';
+import '../../../widgets/onscreen_keyboard/onscreen_keyboard.dart';
 import '../../../validation/rules/is_required.dart';
 import '../../../validation/validate.dart';
 import '../../../widgets/android_scaffold.dart';
@@ -1671,8 +1674,16 @@ class _DlgDiscountPanel extends StatelessWidget {
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: codeController,
-                    keyboardType: TextInputType.text,
+                    keyboardType: KeyboardSuppress.type(TextInputType.text),
                     textInputAction: TextInputAction.done,
+                    readOnly: KeyboardSuppress.readOnly,
+                    showCursor: KeyboardSuppress.showCursor,
+                    onTap: KeyboardSuppress.onTap,
+                    onTapOutside: (_) {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      OnScreenKeyboard.hide();
+                      WindowsTouchKeyboard.dismiss();
+                    },
                     style: TextStyle(
                       fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13),
                       color: POSColors.textPrimary,
@@ -1738,8 +1749,16 @@ class _DlgDiscountPanel extends StatelessWidget {
                     const SizedBox(height: 6),
                     TextFormField(
                       controller: nameController,
-                      keyboardType: TextInputType.text,
+                      keyboardType: KeyboardSuppress.type(TextInputType.text),
                       textInputAction: TextInputAction.done,
+                      readOnly: KeyboardSuppress.readOnly,
+                      showCursor: KeyboardSuppress.showCursor,
+                      onTap: KeyboardSuppress.onTap,
+                      onTapOutside: (_) {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        OnScreenKeyboard.hide();
+                        WindowsTouchKeyboard.dismiss();
+                      },
                       style: TextStyle(
                         fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13),
                         color: POSColors.textPrimary,

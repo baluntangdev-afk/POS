@@ -21,6 +21,7 @@ import '../features/sales/view/refund_screen.dart';
 import '../features/sales/view/transactions_screen.dart';
 import '../features/startup/startup_screen.dart';
 import '../features/users/view/user_management_screen.dart';
+import 'windows_touch_keyboard_observer.dart';
 
 part 'cashier_daily_report_route.dart';
 part 'cashier_report_route.dart';
@@ -38,6 +39,10 @@ part 'user_management_route.dart';
 part 'z_reading_route.dart';
 
 final routerProvider = Provider((ref) {
-  final router = GoRouter(initialLocation: const StartupRoute().location, routes: $appRoutes);
+  final router = GoRouter(
+    initialLocation: const StartupRoute().location,
+    routes: $appRoutes,
+    observers: [WindowsTouchKeyboardObserver()],
+  );
   return router;
 });

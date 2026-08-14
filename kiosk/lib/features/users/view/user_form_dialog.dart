@@ -9,6 +9,9 @@ import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
+import '../../../utils/windows_touch_keyboard.dart';
+import '../../../widgets/onscreen_keyboard/keyboard_suppress.dart';
+import '../../../widgets/onscreen_keyboard/onscreen_keyboard.dart';
 import '../../../validation/rules/is_phone.dart';
 import '../../../validation/rules/is_required.dart';
 import '../../../validation/validate.dart';
@@ -512,9 +515,17 @@ class UserFormDialog extends HookConsumerWidget {
                 style: TextStyle(fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13), color: POSColors.textPrimary),
                 focusNode: focusNode,
                 controller: controller,
-                keyboardType: keyboardType,
+                keyboardType: KeyboardSuppress.type(keyboardType),
                 inputFormatters: inputFormatters,
                 enabled: enabled,
+                readOnly: KeyboardSuppress.readOnly,
+                showCursor: KeyboardSuppress.showCursor,
+                onTap: KeyboardSuppress.onTap,
+                onTapOutside: (_) {
+                  focusNode.unfocus();
+                  OnScreenKeyboard.hide();
+                  WindowsTouchKeyboard.dismiss();
+                },
                 decoration: _inputDecoration(context, icon).copyWith(
                   errorText: field.hasError ? field.errorText : null,
                 ),

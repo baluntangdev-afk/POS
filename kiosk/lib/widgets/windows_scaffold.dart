@@ -76,7 +76,19 @@ class WindowsScaffold extends HookWidget {
       if (!Platform.isWindows) return null;
       WindowsTouchKeyboard.focusSink = focusNode;
       WindowsTouchKeyboard.dismiss();
-      return () => WindowsTouchKeyboard.unregisterFocusSink(focusNode);
+      return () {
+        // This screen is leaving the tree (navigated away from, replaced,
+        // popped) — drop any focused field on it now rather than leaving
+        // that to the next screen's own mount effect, which only runs
+        // after this one's dispose and races the OS keyboard's own
+        // show/hide animation in the meantime. Unregister the sink first:
+        // dismiss()'s post-frame callback re-focuses whatever sink is
+        // registered, and this screen's own [focusNode] is about to be
+        // disposed along with the rest of this widget, so it must not
+        // still be the registered sink by the time that callback runs.
+        WindowsTouchKeyboard.unregisterFocusSink(focusNode);
+        WindowsTouchKeyboard.dismiss();
+      };
     }, [focusNode]);
 
     final scaffoldBody =

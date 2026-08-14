@@ -65,23 +65,7 @@
       "PowerShell(Start-Service *)",
       "Bash(flutter test *)",
       "PowerShell(& \"$env:LOCALAPPDATA\\\\Programs\\\\Inno Setup 6\\\\ISCC.exe\" \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS_ENTERPRISE\\\\POS_KIOSK\\\\be\\\\installer\\\\installer.iss\")",
-      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts, null, 2\\)\\)\")",
-      "Bash(curl -s http://localhost:3100/api/)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3100/api/v1)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3100/api/docs)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3100/api/docs-json)",
-      "Bash(curl -s http://localhost:3100/api/v1/health)",
-      "Bash(curl -s -o /dev/null -w \"root: %{http_code}\\\\n\" http://localhost:3100/)",
-      "Bash(curl -s -o /dev/null -w \"api/docs no prefix issue?: %{http_code}\\\\n\" http://localhost:3100/api/docs/)",
-      "Bash(tasklist //FI \"PID eq 17116\" //FO LIST)",
-      "Bash(wmic process *)",
-      "Bash(powershell -NoProfile -Command \"Get-CimInstance Win32_Process -Filter 'ProcessId=17116' | Select-Object ProcessId,Name,ExecutablePath,CommandLine | Format-List\")",
-      "Bash(curl *)",
-      "Read(//c/Users/Jufiel/**)",
-      "Read(//c/Users/Jufiel/Documents/**)",
-      "Read(//c//**)",
-      "Bash(find /c -maxdepth 6 -iname \"fake-ecommerce-api\")",
-      "Bash(echo \"DONE $?\")"
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts, null, 2\\)\\)\")"
     ]
   }
 }

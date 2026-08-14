@@ -7,6 +7,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
+import '../../../utils/windows_touch_keyboard.dart';
+import '../../../widgets/onscreen_keyboard/keyboard_suppress.dart';
+import '../../../widgets/onscreen_keyboard/onscreen_keyboard.dart';
 import '../../../validation/rules/is_required.dart';
 import '../../../validation/rules/min_value.dart';
 import '../../../validation/validate.dart';
@@ -518,6 +521,15 @@ class _VariantRowField extends StatelessWidget {
               return TextFormField(
                 controller: controller,
                 focusNode: focusNode,
+                readOnly: KeyboardSuppress.readOnly,
+                showCursor: KeyboardSuppress.showCursor,
+                keyboardType: KeyboardSuppress.type(null),
+                onTap: KeyboardSuppress.onTap,
+                onTapOutside: (_) {
+                  focusNode.unfocus();
+                  OnScreenKeyboard.hide();
+                  WindowsTouchKeyboard.dismiss();
+                },
                 decoration: InputDecoration(
                   hintText: 'e.g. Regular, Venti',
                   filled: true,

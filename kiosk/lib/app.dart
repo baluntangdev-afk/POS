@@ -8,6 +8,8 @@ import 'package:window_manager/window_manager.dart';
 import 'navigation/router.dart';
 import 'styles/color_set.dart';
 import 'styles/fallback_theme.dart';
+import 'widgets/global_unfocus_on_tap_outside.dart';
+import 'widgets/onscreen_keyboard/onscreen_keyboard_scope.dart';
 
 class App extends ConsumerWidget {
   const App({super.key, required this.container});
@@ -22,13 +24,18 @@ class App extends ConsumerWidget {
       routerConfig: router,
       theme: fallbackTheme,
       builder: (context, child) {
+        // OnScreenKeyboardScope must sit OUTSIDE GlobalUnfocusOnTapOutside: the
+        // scope renders the keyboard panel as a sibling of the app content, so
+        // keeping the tap-outside Listener wrapped around the content alone
+        // means taps on a key never reach it and can't unfocus the field being
+        // typed into.
+        final content = OnScreenKeyboardScope(
+          child: GlobalUnfocusOnTapOutside(child: child ?? const SizedBox.shrink()),
+        );
         if (!kIsWeb && Platform.isWindows) {
-          return _WindowCloseGuard(
-            container: container,
-            child: child ?? const SizedBox.shrink(),
-          );
+          return _WindowCloseGuard(container: container, child: content);
         }
-        return child ?? const SizedBox.shrink();
+        return content;
       },
     );
   }

@@ -7,6 +7,9 @@ import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
+import '../../../utils/windows_touch_keyboard.dart';
+import '../../../widgets/onscreen_keyboard/keyboard_suppress.dart';
+import '../../../widgets/onscreen_keyboard/onscreen_keyboard.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/message_dialog.dart';
 import '../../../widgets/network_error_dialog.dart';
@@ -250,6 +253,15 @@ class UserManagementScreen extends HookConsumerWidget {
     return TextField(
       focusNode: searchFocusNode,
       controller: searchController,
+      readOnly: KeyboardSuppress.readOnly,
+      showCursor: KeyboardSuppress.showCursor,
+      keyboardType: KeyboardSuppress.type(null),
+      onTap: KeyboardSuppress.onTap,
+      onTapOutside: (_) {
+        searchFocusNode.unfocus();
+        OnScreenKeyboard.hide();
+        WindowsTouchKeyboard.dismiss();
+      },
       style: TextStyle(
         fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
         color: POSColors.textPrimary,

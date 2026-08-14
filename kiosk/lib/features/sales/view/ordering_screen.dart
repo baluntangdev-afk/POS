@@ -15,6 +15,9 @@ import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
+import '../../../utils/windows_touch_keyboard.dart';
+import '../../../widgets/onscreen_keyboard/keyboard_suppress.dart';
+import '../../../widgets/onscreen_keyboard/onscreen_keyboard.dart';
 import '../../../widgets/product_image_placeholder.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/line_item.dart';
@@ -1502,6 +1505,15 @@ class _OrderItemRow extends HookWidget {
                     controller: notesController,
                     focusNode: notesFocus,
                     onSubmitted: onNotesChanged,
+                    readOnly: KeyboardSuppress.readOnly,
+                    showCursor: KeyboardSuppress.showCursor,
+                    keyboardType: KeyboardSuppress.type(null),
+                    onTap: KeyboardSuppress.onTap,
+                    onTapOutside: (_) {
+                      notesFocus.unfocus();
+                      OnScreenKeyboard.hide();
+                      WindowsTouchKeyboard.dismiss();
+                    },
                     style: const TextStyle(fontSize: 12, color: POSColors.textPrimary),
                     decoration: InputDecoration(
                       hintText: 'e.g. no onions, extra rice...',

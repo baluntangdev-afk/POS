@@ -16,6 +16,7 @@ import '../../cashier_accounting/daily_report/state/daily_report_notifier.dart';
 import '../../cashier_accounting/x_reading/state/x_reading_notifier.dart';
 import '../../cashier_accounting/z_reading/state/z_reading_notifier.dart';
 import '../../transactions/state/transactions_notifier.dart';
+import '../entities/line_item.dart';
 import '../entities/sale.dart';
 import '../state/ordering_notifier.dart';
 import 'cash_payment_sheet.dart';
@@ -168,10 +169,8 @@ class PaymentScreen extends HookConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
-          // ── Order total ──────────────────────────────────────────────────
-          _OrderTotalCard(cartState: cartState),
-          const Gap(AppSpacing.md),
-          _VatSummaryCard(cartState: cartState),
+          // ── Order summary ────────────────────────────────────────────────
+          _OrderSummaryCard(cartState: cartState),
           const Gap(AppSpacing.lg),
 
           // ── Payment method ────────────────────────────────────────────────
@@ -245,16 +244,26 @@ class PaymentScreen extends HookConsumerWidget {
   }
 }
 
-// ── Order total card ─────────────────────────────────────────────────────────
+// ── Order summary card (line items + VAT breakdown + total) ────────────────────
 
-class _OrderTotalCard extends StatelessWidget {
+class _OrderSummaryCard extends StatelessWidget {
   final Sale cartState;
 
-  const _OrderTotalCard({required this.cartState});
+  const _OrderSummaryCard({required this.cartState});
 
   @override
   Widget build(BuildContext context) {
+    final vatRows = <({String label, double amount})>[
+      (label: 'VATable Sales', amount: cartState.vatableAmount),
+      if (cartState.vatExemptSales > 0)
+        (label: 'VAT-Exempt Sales', amount: cartState.vatExemptSales),
+      (label: 'VAT', amount: cartState.vatAmount),
+      if (cartState.totalDiscount > 0)
+        (label: 'Discount', amount: -cartState.totalDiscount),
+    ];
+
     return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
@@ -266,46 +275,41 @@ class _OrderTotalCard extends StatelessWidget {
           ),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            height: 4,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.primary, AppColors.secondary],
-              ),
-            ),
+          for (final item in cartState.items) _SummaryLineRow(item: item),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            child: Divider(height: 1, color: AppColors.divider),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: AppSpacing.lg,
-              horizontal: AppSpacing.xl,
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'Order Total',
-                  style: AppTextStyles.labelMd.copyWith(
-                    color: AppColors.textSecondary,
-                    letterSpacing: 0.5,
-                  ),
+          for (final r in vatRows) _VatRow(label: r.label, amount: r.amount),
+          const Gap(AppSpacing.sm),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                'Total Due',
+                style: AppTextStyles.labelLg.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
                 ),
-                const Gap(4),
-                FittedBox(
+              ),
+              Flexible(
+                child: FittedBox(
                   fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
                   child: Text(
                     'PHP ${cartState.total.toStringAsFixed(2)}',
-                    style: AppTextStyles.displayLg.copyWith(
-                      fontSize: 40,
-                      fontWeight: FontWeight.w900,
+                    style: AppTextStyles.displayMd.copyWith(
                       color: AppColors.primary,
-                      letterSpacing: -1,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -313,59 +317,67 @@ class _OrderTotalCard extends StatelessWidget {
   }
 }
 
-// ── VAT breakdown ─────────────────────────────────────────────────────────────
+class _SummaryLineRow extends StatelessWidget {
+  final LineItem item;
 
-class _VatSummaryCard extends StatelessWidget {
-  final Sale cartState;
-
-  const _VatSummaryCard({required this.cartState});
+  const _SummaryLineRow({required this.item});
 
   @override
   Widget build(BuildContext context) {
-    final rows = <({String label, double amount})>[
-      (label: 'VATable Sales', amount: cartState.vatableAmount),
-      if (cartState.vatExemptSales > 0)
-        (label: 'VAT-Exempt Sales', amount: cartState.vatExemptSales),
-      (label: 'VAT', amount: cartState.vatAmount),
-      if (cartState.totalDiscount > 0)
-        (label: 'Discount', amount: -cartState.totalDiscount),
-    ];
+    final name =
+        item.variantName.isEmpty
+            ? item.productName
+            : '${item.productName} (${item.variantName})';
 
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              '$name ×${item.quantity}',
+              style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const Gap(AppSpacing.sm),
+          Text(
+            'PHP ${item.lineTotal.toStringAsFixed(2)}',
+            style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ],
       ),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children:
-            rows.map((r) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      r.label,
-                      style: AppTextStyles.bodyMd.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    Text(
-                      'PHP ${r.amount.toStringAsFixed(2)}',
-                      style: AppTextStyles.bodyMd.copyWith(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
+    );
+  }
+}
+
+class _VatRow extends StatelessWidget {
+  final String label;
+  final double amount;
+
+  const _VatRow({required this.label, required this.amount});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
+          ),
+          Text(
+            'PHP ${amount.toStringAsFixed(2)}',
+            style: AppTextStyles.bodySm.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -392,20 +404,32 @@ class _PaymentMethodList extends StatelessWidget {
       return const _PaymentMethodsEmpty();
     }
 
-    return Column(
-      children: [
-        for (int i = 0; i < methods.length; i++) ...[
-          if (i > 0) const Gap(AppSpacing.sm),
-          _PaymentMethodCard(
-            method: _methodIdForLabel(methods[i].label),
-            label: methods[i].label,
-            icon: _iconForLabel(methods[i].label),
-            selection: selection,
-            total: total,
-            onTap: onTap,
-          ),
-        ],
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cols = constraints.maxWidth >= 760 ? 4 : 2;
+        const spacing = AppSpacing.sm;
+        final cardWidth =
+            (constraints.maxWidth - spacing * (cols - 1)) / cols;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final m in methods)
+              SizedBox(
+                width: cardWidth,
+                child: _PaymentMethodCard(
+                  method: _methodIdForLabel(m.label),
+                  label: m.label,
+                  icon: _iconForLabel(m.label),
+                  selection: selection,
+                  total: total,
+                  onTap: onTap,
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
@@ -508,6 +532,15 @@ class _PaymentMethodCard extends StatelessWidget {
     final isSelected = selection?.method == method;
     final isEnabled = selection == null || isSelected;
 
+    String? caption;
+    if (isSelected && method == 'cash') {
+      caption =
+          'PHP ${(selection!.cashReceived ?? 0).toStringAsFixed(2)} · '
+          'Change PHP ${selection!.change(total).toStringAsFixed(2)}';
+    } else if (isSelected) {
+      caption = 'Ref: ${selection!.reference}';
+    }
+
     return Opacity(
       opacity: isEnabled ? 1.0 : 0.45,
       child: AnimatedContainer(
@@ -517,7 +550,7 @@ class _PaymentMethodCard extends StatelessWidget {
               isSelected
                   ? AppColors.primary.withValues(alpha: 0.06)
                   : AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.border,
             width: isSelected ? 2 : 1.5,
@@ -541,101 +574,85 @@ class _PaymentMethodCard extends StatelessWidget {
         ),
         child: Material(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
           child: InkWell(
-            borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
             onTap: isEnabled ? () => onTap(method, label) : null,
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm + 2,
-              ),
-              child: Row(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Stack(
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color:
-                          isSelected
-                              ? AppColors.primary.withValues(alpha: 0.1)
-                              : AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                    ),
-                    child: Icon(
-                      icon,
-                      size: 22,
-                      color:
-                          isSelected
-                              ? AppColors.primary
-                              : AppColors.textSecondary,
-                    ),
-                  ),
-                  const Gap(AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color:
+                              isSelected
+                                  ? AppColors.primary.withValues(alpha: 0.12)
+                                  : AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusMd,
+                          ),
+                        ),
+                        child: Icon(
+                          icon,
+                          size: 20,
+                          color:
+                              isSelected
+                                  ? AppColors.primary
+                                  : AppColors.textSecondary,
+                        ),
+                      ),
+                      const Gap(AppSpacing.sm),
+                      Text(
+                        label,
+                        style: AppTextStyles.labelLg.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color:
+                              isSelected
+                                  ? AppColors.primary
+                                  : AppColors.textPrimary,
+                        ),
+                      ),
+                      if (caption != null) ...[
+                        const Gap(2),
                         Text(
-                          label,
-                          style: AppTextStyles.bodyLg.copyWith(
-                            fontWeight: FontWeight.w600,
+                          caption,
+                          style: AppTextStyles.bodySm.copyWith(
                             color:
                                 isSelected
                                     ? AppColors.primary
-                                    : AppColors.textPrimary,
+                                    : AppColors.textSecondary,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        if (isSelected && method == 'cash') ...[
-                          const Gap(2),
-                          Text(
-                            'PHP ${(selection!.cashReceived ?? 0).toStringAsFixed(2)}  ·  '
-                            'Change: PHP ${selection!.change(total).toStringAsFixed(2)}',
-                            style: AppTextStyles.bodySm.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                        if (isSelected && method != 'cash') ...[
-                          const Gap(2),
-                          Text(
-                            'Ref: ${selection!.reference}',
-                            style: AppTextStyles.bodySm.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
                       ],
-                    ),
+                    ],
                   ),
-                  const Gap(AppSpacing.md),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 120),
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color:
-                          isSelected ? AppColors.primary : Colors.transparent,
-                      border: Border.all(
-                        color:
-                            isSelected ? AppColors.primary : AppColors.border,
-                        width: 2,
+                  if (isSelected)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: const BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.check_rounded,
+                          color: Colors.white,
+                          size: 13,
+                        ),
                       ),
                     ),
-                    child:
-                        isSelected
-                            ? const Icon(
-                              Icons.check_rounded,
-                              color: Colors.white,
-                              size: 14,
-                            )
-                            : null,
-                  ),
                 ],
               ),
             ),

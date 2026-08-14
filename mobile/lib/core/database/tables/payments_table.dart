@@ -9,6 +9,7 @@ class PaymentsTable extends Table {
   IntColumn get saleId => integer().references(SalesTable, #id)();
   TextColumn get method => text()();
   RealColumn get amount => real()();
+  RealColumn get cashReceived => real().nullable()();
   TextColumn get reference => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
 }

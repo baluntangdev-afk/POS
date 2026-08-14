@@ -13,7 +13,7 @@ import '../theme/pos_design.dart';
 ///   1  2  3
 ///   4  5  6
 ///   7  8  9
-///   _  0  ⌫
+///   .  0  ⌫   (`.` only when [onDecimal] is set; otherwise empty)
 ///
 /// On Android, keys use Material [InkWell] for ripple feedback.
 /// On Windows, keys use a shadow-based pressed look consistent with the
@@ -22,20 +22,24 @@ import '../theme/pos_design.dart';
 /// [keyHeight] defaults to [ResponsiveValue.keypadKeySize]
 /// (88 px kiosk · 72 px tablet · 56 px phone).
 ///
-/// To prevent the Android system keyboard from appearing when this is used
-/// for PIN input, set `readOnly: true` on any backing [TextField] and drive
-/// all input through this widget.
+/// To prevent the system keyboard from appearing when this is used for
+/// PIN/cash input, set `readOnly: true` and `keyboardType: TextInputType.none`
+/// on any backing [TextField] and drive all input through this widget.
 class NumericKeypad extends StatelessWidget {
   const NumericKeypad({
     super.key,
     required this.onKeyPressed,
     required this.onBackspace,
+    this.onDecimal,
     this.keyHeight,
     this.keySpacing,
   });
 
   final void Function(String digit) onKeyPressed;
   final VoidCallback onBackspace;
+
+  /// When set, shows a `.` key in the bottom-left slot (for cash amounts).
+  final VoidCallback? onDecimal;
 
   /// Height (and width) of each square key.
   final double? keyHeight;
@@ -61,7 +65,14 @@ class NumericKeypad extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SizedBox(width: size), // intentional empty slot
+            if (onDecimal != null)
+              _KeyCell(
+                size: size,
+                label: '.',
+                onTap: onDecimal!,
+              )
+            else
+              SizedBox(width: size),
             Gap(gap),
             _KeyCell(
               size: size,

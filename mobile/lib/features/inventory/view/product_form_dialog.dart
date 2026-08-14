@@ -10,6 +10,7 @@ import '../../../core/services/image_storage_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/form_sheet_scaffold.dart';
 import '../../../core/widgets/popup_menu_form_field.dart';
 import '../entities/inventory_product.dart';
 import '../state/inventory_notifier.dart';
@@ -59,6 +60,17 @@ class ProductFormDialog extends ConsumerStatefulWidget {
   final int? groupId;
 
   const ProductFormDialog({super.key, this.existing, this.groupId});
+
+  /// Opens the form as a bottom sheet anchored to the keyboard, rather than
+  /// a centered dialog sized for desktop widths.
+  static Future<void> show(BuildContext context, {InventoryProduct? existing, int? groupId}) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ProductFormDialog(existing: existing, groupId: groupId),
+    );
+  }
 
   @override
   ConsumerState<ProductFormDialog> createState() => _ProductFormDialogState();
@@ -254,117 +266,100 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
     final inventoryState = ref.watch(inventoryNotifierProvider).value;
     final groups = inventoryState?.groups ?? const [];
 
-    return AlertDialog(
-      title: Text(_isEditing ? 'Edit Product' : 'Add Product'),
-      content: SizedBox(
-        width: 460,
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return FormSheetScaffold(
+      title: _isEditing ? 'Edit Product' : 'Add Product',
+      confirmLabel: _isEditing ? 'Save' : 'Add',
+      isSaving: _isSaving,
+      onCancel: () => Navigator.pop(context),
+      onConfirm: _submit,
+      body: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextFormField(
+              controller: _nameController,
+              decoration: InputDecoration(labelText: 'Name', errorText: _nameError),
+              textInputAction: TextInputAction.next,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+              onChanged: (_) {
+                if (_nameError != null) setState(() => _nameError = null);
+              },
+            ),
+            const Gap(AppSpacing.md),
+            PopupMenuFormField<int>(
+              initialValue: _selectedGroupId,
+              decoration: const InputDecoration(labelText: 'Category'),
+              items: groups
+                  .map((g) => PopupMenuFormFieldItem(value: g.id, child: Text(g.name)))
+                  .toList(),
+              onChanged: (v) => setState(() => _selectedGroupId = v),
+              validator: (v) => v == null ? 'Category is required' : null,
+            ),
+            const Gap(AppSpacing.lg),
+            Text('Image', style: AppTextStyles.labelLg.copyWith(color: AppColors.textSecondary)),
+            const Gap(AppSpacing.sm),
+            Row(
               children: [
-                TextFormField(
-                  controller: _nameController,
-                  decoration: InputDecoration(labelText: 'Name', errorText: _nameError),
-                  textInputAction: TextInputAction.next,
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Name is required' : null,
-                  onChanged: (_) {
-                    if (_nameError != null) setState(() => _nameError = null);
-                  },
-                ),
+                _ImageThumbnail(imageUrl: _imageUrl),
                 const Gap(AppSpacing.md),
-                PopupMenuFormField<int>(
-                  initialValue: _selectedGroupId,
-                  decoration: const InputDecoration(labelText: 'Category'),
-                  items: groups
-                      .map((g) => PopupMenuFormFieldItem(value: g.id, child: Text(g.name)))
-                      .toList(),
-                  onChanged: (v) => setState(() => _selectedGroupId = v),
-                  validator: (v) => v == null ? 'Category is required' : null,
-                ),
-                const Gap(AppSpacing.lg),
-                Text('Image', style: AppTextStyles.labelLg.copyWith(color: AppColors.textSecondary)),
-                const Gap(AppSpacing.sm),
-                Row(
-                  children: [
-                    _ImageThumbnail(imageUrl: _imageUrl),
-                    const Gap(AppSpacing.md),
-                    Expanded(
-                      child: Wrap(
-                        spacing: AppSpacing.sm,
-                        runSpacing: AppSpacing.sm,
-                        children: [
-                          OutlinedButton.icon(
-                            onPressed: _pickImage,
-                            icon: const Icon(Icons.image_outlined, size: 18),
-                            label: Text(_imageUrl == null ? 'Choose Image' : 'Change Image'),
-                          ),
-                          if (_imageUrl != null)
-                            TextButton.icon(
-                              onPressed: _removeImage,
-                              icon: const Icon(Icons.close, size: 18, color: AppColors.error),
-                              label: const Text('Remove', style: TextStyle(color: AppColors.error)),
-                            ),
-                        ],
+                Expanded(
+                  child: Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _pickImage,
+                        icon: const Icon(Icons.image_outlined, size: 18),
+                        label: Text(_imageUrl == null ? 'Choose Image' : 'Change Image'),
                       ),
-                    ),
-                  ],
+                      if (_imageUrl != null)
+                        TextButton.icon(
+                          onPressed: _removeImage,
+                          icon: const Icon(Icons.close, size: 18, color: AppColors.error),
+                          label: const Text('Remove', style: TextStyle(color: AppColors.error)),
+                        ),
+                    ],
+                  ),
                 ),
-                const Gap(AppSpacing.lg),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Variants', style: AppTextStyles.labelLg.copyWith(color: AppColors.textSecondary)),
-                    TextButton.icon(
-                      onPressed: _addVariant,
-                      icon: const Icon(Icons.add_rounded, size: 18),
-                      label: const Text('Add Variant'),
-                    ),
-                  ],
-                ),
-                if (_variantsError != null) ...[
-                  const Gap(4),
-                  Text(_variantsError!, style: AppTextStyles.bodySm.copyWith(color: AppColors.error)),
-                ],
-                const Gap(AppSpacing.sm),
-                if (!_variantsLoaded)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else
-                  for (var i = 0; i < _variants.length; i++)
-                    _VariantRowWidget(
-                      key: ValueKey(_variants[i]),
-                      row: _variants[i],
-                      onRemove: () => _removeVariant(i),
-                      onToggleActive: (v) => _setActive(i, v),
-                      onSetDefault: () => _setDefault(i),
-                    ),
               ],
             ),
-          ),
+            const Gap(AppSpacing.lg),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Variants', style: AppTextStyles.labelLg.copyWith(color: AppColors.textSecondary)),
+                TextButton.icon(
+                  onPressed: _addVariant,
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Add Variant'),
+                ),
+              ],
+            ),
+            if (_variantsError != null) ...[
+              const Gap(4),
+              Text(_variantsError!, style: AppTextStyles.bodySm.copyWith(color: AppColors.error)),
+            ],
+            const Gap(AppSpacing.sm),
+            if (!_variantsLoaded)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else
+              for (var i = 0; i < _variants.length; i++)
+                _VariantRowWidget(
+                  key: ValueKey(_variants[i]),
+                  row: _variants[i],
+                  onRemove: () => _removeVariant(i),
+                  onToggleActive: (v) => _setActive(i, v),
+                  onSetDefault: () => _setDefault(i),
+                ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _isSaving ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: _isSaving ? null : _submit,
-          child: _isSaving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                )
-              : Text(_isEditing ? 'Save' : 'Add'),
-        ),
-      ],
     );
   }
 }
@@ -386,48 +381,86 @@ class _VariantRowWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isNew = row.id == null;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+    // Two rows instead of one: name + price + star + remove/switch never fit
+    // side by side at phone width, so fields and actions get their own line
+    // inside a card that groups them visually.
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            flex: 3,
-            child: TextFormField(
-              controller: row.nameCtrl,
-              decoration: const InputDecoration(labelText: 'Variant name', isDense: true),
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 3,
+                child: TextFormField(
+                  controller: row.nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Variant name',
+                    isDense: true,
+                    filled: true,
+                    fillColor: AppColors.surface,
+                  ),
+                ),
+              ),
+              const Gap(AppSpacing.sm),
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  controller: row.priceCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Price',
+                    prefixText: 'PHP ',
+                    isDense: true,
+                    filled: true,
+                    fillColor: AppColors.surface,
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+                ),
+              ),
+            ],
           ),
-          const Gap(AppSpacing.sm),
-          Expanded(
-            flex: 2,
-            child: TextFormField(
-              controller: row.priceCtrl,
-              decoration: const InputDecoration(labelText: 'Price', prefixText: 'PHP ', isDense: true),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-            ),
+          const Gap(AppSpacing.xs),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextButton.icon(
+                onPressed: row.isActive ? onSetDefault : null,
+                icon: Icon(
+                  row.isDefault ? Icons.star_rounded : Icons.star_border_rounded,
+                  size: 18,
+                  color: row.isDefault ? AppColors.secondary : AppColors.textDisabled,
+                ),
+                label: Text(
+                  row.isDefault ? 'Default' : 'Make default',
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: row.isDefault ? AppColors.secondaryDark : AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              if (isNew)
+                TextButton.icon(
+                  onPressed: onRemove,
+                  icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
+                  label: const Text('Remove', style: TextStyle(color: AppColors.error)),
+                )
+              else
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Active', style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
+                    Switch(value: row.isActive, onChanged: onToggleActive),
+                  ],
+                ),
+            ],
           ),
-          const Gap(AppSpacing.sm),
-          IconButton(
-            tooltip: row.isDefault ? 'Default variant' : 'Make default',
-            icon: Icon(
-              row.isDefault ? Icons.star_rounded : Icons.star_border_rounded,
-              color: row.isDefault ? AppColors.secondary : AppColors.textDisabled,
-            ),
-            onPressed: row.isActive ? onSetDefault : null,
-          ),
-          if (isNew)
-            IconButton(
-              tooltip: 'Remove',
-              icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
-              onPressed: onRemove,
-            )
-          else
-            Switch(
-              value: row.isActive,
-              onChanged: onToggleActive,
-            ),
         ],
       ),
     );

@@ -93,6 +93,14 @@ if (Get-LocalUser -Name "POSKiosk" -ErrorAction SilentlyContinue) {
     Remove-LocalUser -Name "POSKiosk" -ErrorAction SilentlyContinue
 }
 
+# -- 3b. Remove the daily database backup Scheduled Task -------------------
+if (schtasks /Query /TN "POSKioskDatabaseBackup" 2>$null) {
+    Write-Host "Removing POSKioskDatabaseBackup scheduled task..."
+    schtasks /Delete /TN "POSKioskDatabaseBackup" /F 2>&1 | Write-Host
+} else {
+    Write-Host "POSKioskDatabaseBackup scheduled task not found, skipping."
+}
+
 # -- 4. Verify -----------------------------------------------------------
 $beLeft = Get-Service "POSBackendService" -ErrorAction SilentlyContinue
 $pgLeft = Get-Service "POSPostgres"       -ErrorAction SilentlyContinue

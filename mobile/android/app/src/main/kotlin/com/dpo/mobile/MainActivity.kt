@@ -7,5 +7,7 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         flutterEngine.plugins.add(NyxPrinterPlugin())
+        flutterEngine.plugins.add(BluetoothDiscoveryPlugin())
+        flutterEngine.plugins.add(BluetoothPrinterPlugin())
     }
 }

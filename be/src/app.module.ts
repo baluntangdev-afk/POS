@@ -33,6 +33,7 @@ import { CronJobsModule } from './cron-jobs/cron-jobs.module';
 import { ReportsModule } from './reports/reports.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { PosTerminalsModule } from './pos-terminals/pos-terminals.module';
+import { ErpSyncModule } from './erp-sync/erp-sync.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { PosTerminalsModule } from './pos-terminals/pos-terminals.module';
     ReportsModule,
     CatalogModule,
     PosTerminalsModule,
+    ErpSyncModule,
   ],
   providers: [AppConfigService],
 })

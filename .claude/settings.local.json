@@ -423,7 +423,15 @@
       "Bash(dart format *)",
       "Bash(xargs grep -l \"addItem\\\\|vat\\\\|VAT\" -i)",
       "Artifact",
-      "Bash(xargs grep -l \"ordering_screen\\\\|cash_payment_sheet\\\\|modifier_dialog\\\\|discount_screen\\\\|transactions_screen\\\\|void_transaction_dialog\\\\|refund_screen\\\\|cashier_accounting_hub_screen\\\\|dashboard_screen\\\\|inventory_screen\\\\|users_screen\\\\|csv_import_screen\\\\|settings_screen\\\\|section_card\\\\|login_screen\\\\|report_preview_widgets\")"
+      "Bash(xargs grep -l \"ordering_screen\\\\|cash_payment_sheet\\\\|modifier_dialog\\\\|discount_screen\\\\|transactions_screen\\\\|void_transaction_dialog\\\\|refund_screen\\\\|cashier_accounting_hub_screen\\\\|dashboard_screen\\\\|inventory_screen\\\\|users_screen\\\\|csv_import_screen\\\\|settings_screen\\\\|section_card\\\\|login_screen\\\\|report_preview_widgets\")",
+      "Bash(grep -iE \"^ios$|^windows$|^linux$|^macos$|^android$|^web$\")",
+      "mcp__plugin_context7-plugin_context7__resolve-library-id",
+      "WebFetch(domain:pub.dev)",
+      "WebFetch(domain:github.com)",
+      "Bash(flutter devices *)",
+      "Bash(adb -s NB552023120510 shell screencap -p /sdcard/screen1.png)",
+      "Bash(adb -s NB552023120510 pull /sdcard/screen1.png \"C:\\\\Users\\\\Jufiel\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Jufiel-Documents-POS-ENTERPRISE-POS-KIOSK\\\\d2905574-517a-48ca-8d5c-c1c0fa99555b\\\\scratchpad\\\\screen1.png\")",
+      "PowerShell($adb = \\(Get-Command adb -ErrorAction SilentlyContinue\\); if \\($adb\\) { $adb.Source } else { $env:ANDROID_HOME; $env:ANDROID_SDK_ROOT; Get-ChildItem -Path \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" -ErrorAction SilentlyContinue })"
     ]
   }
 }

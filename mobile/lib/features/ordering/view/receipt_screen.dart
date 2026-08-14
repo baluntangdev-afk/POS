@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/services/built_in_printer.dart';
+import '../../../core/services/print_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -27,8 +29,42 @@ class ReceiptScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final printing = useState(false);
+    final printingBuiltIn = useState(false);
+    final printingBluetooth = useState(false);
+    final builtInAvailable = useState(false);
+    final bluetoothConnected = useState(false);
     final receiptAsync = ref.watch(receiptProvider(saleId));
+
+    useEffect(() {
+      BuiltInPrinter.isAvailable().then((v) => builtInAvailable.value = v);
+      PrintService.getSavedMac().then((v) => bluetoothConnected.value = v != null);
+      return null;
+    }, const []);
+
+    Future<void> showPrintResult(bool ok) async {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ok ? 'Receipt printed' : 'Couldn\'t print — check your printer and try again',
+          ),
+        ),
+      );
+    }
+
+    Future<void> printBuiltIn() async {
+      printingBuiltIn.value = true;
+      final ok = await ref.read(receiptProvider(saleId).notifier).printBuiltIn();
+      printingBuiltIn.value = false;
+      await showPrintResult(ok);
+    }
+
+    Future<void> printBluetooth() async {
+      printingBluetooth.value = true;
+      final ok = await ref.read(receiptProvider(saleId).notifier).printBluetooth();
+      printingBluetooth.value = false;
+      await showPrintResult(ok);
+    }
 
     void handleBack() {
       switch (type) {
@@ -93,52 +129,67 @@ class ReceiptScreen extends HookConsumerWidget {
                         //     minimumSize: const Size(double.infinity, AppSpacing.touchPreferred),
                         //   ),
                         // ),
-                        const Gap(AppSpacing.md),
-                        OutlinedButton.icon(
-                          onPressed:
-                              printing.value
-                                  ? null
-                                  : () async {
-                                    printing.value = true;
-                                    final ok =
-                                        await ref
-                                            .read(
-                                              receiptProvider(saleId).notifier,
-                                            )
-                                            .print();
-                                    printing.value = false;
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            ok
-                                                ? 'Receipt printed'
-                                                : 'Couldn\'t print — check your printer and try again',
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  },
-                          icon:
-                              printing.value
-                                  ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                  : const Icon(Icons.print_outlined),
-                          label: const Text('Print Receipt'),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(
-                              double.infinity,
-                              AppSpacing.touchMin,
+                        if (builtInAvailable.value) ...[
+                          const Gap(AppSpacing.md),
+                          OutlinedButton.icon(
+                            onPressed:
+                                printingBuiltIn.value ? null : printBuiltIn,
+                            icon:
+                                printingBuiltIn.value
+                                    ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                    : const Icon(Icons.print_outlined),
+                            label: const Text('Print (Built-in)'),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(
+                                double.infinity,
+                                AppSpacing.touchMin,
+                              ),
                             ),
                           ),
-                        ),
+                        ],
+                        if (!builtInAvailable.value &&
+                            bluetoothConnected.value) ...[
+                          const Gap(AppSpacing.md),
+                          OutlinedButton.icon(
+                            onPressed:
+                                printingBluetooth.value ? null : printBluetooth,
+                            icon:
+                                printingBluetooth.value
+                                    ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                    : const Icon(Icons.bluetooth_rounded),
+                            label: const Text('Print (Bluetooth)'),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(
+                                double.infinity,
+                                AppSpacing.touchMin,
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (!builtInAvailable.value &&
+                            !bluetoothConnected.value) ...[
+                          const Gap(AppSpacing.md),
+                          Text(
+                            'No printer configured. Go to Settings → Printer '
+                            'Setup to connect one.',
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.bodySm.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
                         // if (!receipt.isVoided) ...[
                         //   const Gap(AppSpacing.md),
                         //   OutlinedButton.icon(
@@ -150,7 +201,7 @@ class ReceiptScreen extends HookConsumerWidget {
                         //     ),
                         //   ),
                         // ],
-                        if (!receipt.isVoided) ...[
+                        if (!receipt.isVoided && !receipt.voidLocked) ...[
                           const Gap(AppSpacing.md),
                           OutlinedButton.icon(
                             onPressed: () => _voidReceipt(context, ref),
@@ -163,6 +214,17 @@ class ReceiptScreen extends HookConsumerWidget {
                                 AppSpacing.touchMin,
                               ),
                               side: const BorderSide(color: AppColors.error),
+                            ),
+                          ),
+                        ] else if (receipt.voidLocked) ...[
+                          const Gap(AppSpacing.md),
+                          Text(
+                            'This transaction can no longer be voided — it is '
+                            'already included in a closed X-Reading, Daily '
+                            'Report, or Z-Reading.',
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.bodySm.copyWith(
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ],

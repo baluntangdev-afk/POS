@@ -151,36 +151,43 @@ class UserDataTable extends StatelessWidget {
     );
   }
 
+  /// The tap is handled by [DataColumn.onSort] rather than by an [InkWell]
+  /// around the label. Both would work, but nesting one inside the label breaks
+  /// the table's accessibility tree: [DataTable] tags the label with
+  /// `SemanticsRole.columnHeader`, and that annotation only merges into the
+  /// heading's own InkWell node while the label produces no semantics node of
+  /// its own. An InkWell in the label forces the columnHeader onto a separate
+  /// node nested under the heading InkWell, and Flutter then asserts
+  /// "A columnHeader must be a child or another cell" on every frame once a
+  /// screen reader (or any UI Automation client, which the Windows touch
+  /// keyboard is) turns semantics on. Letting DataTable own the tap also makes
+  /// the whole heading cell the touch target instead of just the label.
   DataColumn _sortableColumn(BuildContext context, String label, String column) {
     final isSorted = sortColumn == column;
     return DataColumn(
-      label: InkWell(
-        onTap: () => onSort(column),
-        borderRadius: BorderRadius.circular(POSRadius.xs),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: context.responsive.scale(14),
-                  color: isSorted ? ColorSet.primary : POSColors.textSecondary,
-                  letterSpacing: 0.2,
-                ),
+      label: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: context.responsive.scale(14),
+                color: isSorted ? ColorSet.primary : POSColors.textSecondary,
+                letterSpacing: 0.2,
               ),
-              const SizedBox(width: 4),
-              Icon(
-                isSorted
-                    ? (sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded)
-                    : Icons.unfold_more_rounded,
-                size: 14,
-                color: isSorted ? ColorSet.primary : POSColors.textDisabled,
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              isSorted
+                  ? (sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded)
+                  : Icons.unfold_more_rounded,
+              size: 14,
+              color: isSorted ? ColorSet.primary : POSColors.textDisabled,
+            ),
+          ],
         ),
       ),
       onSort: (_, _) => onSort(column),

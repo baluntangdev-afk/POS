@@ -1,5 +1,6 @@
+import 'package:intl/intl.dart';
+
 import '../../features/ordering/entities/receipt.dart';
-import '../../features/ordering/entities/receipt_item.dart';
 
 enum PrintAlign { left, center, right }
 
@@ -22,17 +23,26 @@ class PrintText extends PrintInstruction {
 }
 
 class PrintRow extends PrintInstruction {
-  const PrintRow({
-    required this.columns,
-    required this.weights,
-    this.lastColumnAlign = PrintAlign.right,
-    this.bold = false,
-  });
+  const PrintRow({required this.columns, this.weights, this.minGap = 1});
 
-  final List<String> columns;
-  final List<int> weights;
-  final PrintAlign lastColumnAlign;
-  final bool bold;
+  /// Each column carries its own [PrintText.align]/[PrintText.bold] — a
+  /// row is only rendered as a single physical line when every column
+  /// shares the same [PrintText.bold], since one printed line can only
+  /// carry one bold style.
+  final List<PrintText> columns;
+
+  /// Relative width of each column's slot. The slots always span the full
+  /// printer line width edge-to-edge regardless of this ratio — [weights]
+  /// only controls how that width is divided among [columns]. Omit it to
+  /// give every column an equal share of the line.
+  final List<int>? weights;
+
+  /// Minimum number of spaces required between the label and amount
+  /// columns. If the row's text is too long to leave at least this many
+  /// spaces, the label and amount are printed on separate lines instead.
+  final int minGap;
+
+  List<int> get resolvedWeights => weights ?? List.filled(columns.length, 1);
 }
 
 class PrintDivider extends PrintInstruction {
@@ -50,38 +60,52 @@ class PrintFeed extends PrintInstruction {
 abstract final class ReceiptPrintDocument {
   static List<PrintInstruction> build(
     Receipt receipt, {
-    required String currency,
     String? storeName,
     String? storeAddress,
     String? storeTin,
     String? terminalName,
-    String storeFooter = 'Thank you!',
+    String storeFooter = 'Thank You!',
   }) {
     final instructions = <PrintInstruction>[];
 
     _addStoreInfo(instructions, storeName, storeAddress, storeTin);
-    instructions.add(const PrintDivider(char: '*'));
+    instructions.add(
+      PrintText('********************', align: PrintAlign.center),
+    );
     _addDocumentInfo(instructions, receipt, terminalName);
-    instructions.add(const PrintDivider(char: '*'));
-    _addItems(instructions, receipt.items, currency);
-    instructions.add(const PrintDivider());
-    _addSummary(instructions, receipt, currency);
+    instructions.add(
+      PrintText('********************', align: PrintAlign.center),
+    );
+    _addItems(instructions, receipt);
+    instructions.add(
+      PrintText('********************', align: PrintAlign.center),
+    );
+    _addSummary(instructions, receipt);
 
     if (receipt.hasRefunds) {
       instructions.add(const PrintDivider());
-      _addRefunds(instructions, receipt, currency);
+      _addRefunds(instructions, receipt);
     }
 
     if (receipt.isVoided && receipt.voidReason != null) {
-      instructions.add(const PrintDivider());
-      instructions.add(const PrintText('VOID REASON:', bold: true));
-      instructions.add(PrintText(receipt.voidReason!));
+      instructions.add(
+        PrintText('********************', align: PrintAlign.center),
+      );
+      instructions.add(
+        const PrintText('VOID REASON:', bold: true, align: PrintAlign.center),
+      );
+      instructions.add(
+        PrintText(receipt.voidReason!, align: PrintAlign.center),
+      );
     }
 
-    _addPayment(instructions, receipt, currency);
+    _addPayment(instructions, receipt);
 
     instructions.add(
-      PrintText(storeFooter.isNotEmpty ? storeFooter : 'Thank you!', align: PrintAlign.center),
+      PrintText(
+        storeFooter.isNotEmpty ? storeFooter : 'Thank You!',
+        align: PrintAlign.center,
+      ),
     );
     instructions.add(const PrintFeed(1));
     instructions.add(const PrintFeed(3));
@@ -96,7 +120,9 @@ abstract final class ReceiptPrintDocument {
     String? storeTin,
   ) {
     if (storeName != null && storeName.isNotEmpty) {
-      instructions.add(PrintText(storeName, align: PrintAlign.center, bold: true));
+      instructions.add(
+        PrintText(storeName, align: PrintAlign.center, bold: true),
+      );
     }
     if (storeAddress != null && storeAddress.isNotEmpty) {
       instructions.add(PrintText(storeAddress, align: PrintAlign.center));
@@ -104,7 +130,9 @@ abstract final class ReceiptPrintDocument {
     if (storeTin != null && storeTin.isNotEmpty) {
       instructions.add(PrintText('TIN: $storeTin', align: PrintAlign.center));
     }
-    instructions.add(const PrintText('Sales Invoice', align: PrintAlign.center, bold: true));
+    instructions.add(
+      const PrintText('Sales Invoice', align: PrintAlign.center, bold: true),
+    );
   }
 
   static void _addDocumentInfo(
@@ -112,27 +140,36 @@ abstract final class ReceiptPrintDocument {
     Receipt receipt,
     String? terminalName,
   ) {
-    instructions.add(PrintText(_fmtDate(receipt.docDate)));
-    instructions.add(PrintText('SI# ${receipt.docNumber}'));
-    instructions.add(PrintText('Cashier: ${receipt.cashierName}'));
+    instructions.add(
+      PrintText('SI# ${receipt.docNumber}', align: PrintAlign.center),
+    );
+    instructions.add(
+      PrintText(_fmtDate(receipt.docDate), align: PrintAlign.center),
+    );
+    instructions.add(
+      PrintText('Cashier: ${receipt.cashierName}', align: PrintAlign.center),
+    );
     if (terminalName != null && terminalName.isNotEmpty) {
-      instructions.add(PrintText('Terminal: $terminalName'));
+      instructions.add(
+        PrintText('Terminal: $terminalName', align: PrintAlign.center),
+      );
     }
   }
 
-  static void _addItems(
-    List<PrintInstruction> instructions,
-    List<ReceiptItem> items,
-    String currency,
-  ) {
-    for (final item in items) {
+  static void _addItems(List<PrintInstruction> instructions, Receipt receipt) {
+    final refundedQuantities = receipt.refundedQuantities;
+    for (final item in receipt.items) {
       final prefix = item.isMain ? '' : '  ';
       instructions.add(
         PrintRow(
           columns: [
-            '$prefix${item.quantity} ${item.description}',
-            '$currency ${item.totalAmount.toStringAsFixed(2)}',
+            PrintText('$prefix${item.quantity} ${item.description}'),
+            PrintText(
+              item.totalAmount.toStringAsFixed(2),
+              align: PrintAlign.right,
+            ),
           ],
+          minGap: 10,
           weights: const [8, 4],
         ),
       );
@@ -146,28 +183,63 @@ abstract final class ReceiptPrintDocument {
           ),
         );
       }
+      if (item.isMain) {
+        final refundedQty = refundedQuantities[item.id] ?? 0;
+        if (refundedQty >= item.quantity && refundedQty > 0) {
+          instructions.add(const PrintText('  (Fully Refunded)'));
+        } else if (refundedQty > 0) {
+          instructions.add(
+            PrintText('  (Refunded: $refundedQty of ${item.quantity})'),
+          );
+        }
+      }
     }
   }
 
-  static void _addSummary(List<PrintInstruction> instructions, Receipt receipt, String currency) {
-    instructions.add(_amountRow('VATable Sales', receipt.vatableAmount, currency));
-    if (receipt.vatExemptSales > 0) {
-      instructions.add(_amountRow('VAT-Exempt Sales', receipt.vatExemptSales, currency));
-    }
-    instructions.add(_amountRow('VAT', receipt.vatAmount, currency));
-    if (receipt.discountAmount > 0) {
-      instructions.add(_amountRow('Discount', -receipt.discountAmount, currency));
-    }
+  static void _addSummary(
+    List<PrintInstruction> instructions,
+    Receipt receipt,
+  ) {
+    instructions.add(PrintText('VATable Sales'));
     instructions.add(
-      PrintRow(
-        columns: ['TOTAL', '$currency ${receipt.totalAmount.toStringAsFixed(2)}'],
-        weights: const [8, 4],
+      PrintText(
+        receipt.vatableAmount.toStringAsFixed(2),
+        align: PrintAlign.right,
+      ),
+    );
+    if (receipt.vatExemptSales > 0) {
+      instructions.add(PrintText('VAT-Exempt Sales'));
+      instructions.add(
+        PrintText(
+          receipt.vatExemptSales.toStringAsFixed(2),
+          align: PrintAlign.right,
+        ),
+      );
+    }
+    instructions.add(PrintText('VAT'));
+    instructions.add(
+      PrintText(receipt.vatAmount.toStringAsFixed(2), align: PrintAlign.right),
+    );
+    if (receipt.discountAmount > 0) {
+      instructions.add(PrintText('Discount'));
+      instructions.add(
+        PrintText('${-receipt.discountAmount}', align: PrintAlign.right),
+      );
+    }
+    instructions.add(PrintText('Total', bold: true));
+    instructions.add(
+      PrintText(
+        receipt.totalAmount.toStringAsFixed(2),
         bold: true,
+        align: PrintAlign.right,
       ),
     );
   }
 
-  static void _addRefunds(List<PrintInstruction> instructions, Receipt receipt, String currency) {
+  static void _addRefunds(
+    List<PrintInstruction> instructions,
+    Receipt receipt,
+  ) {
     instructions.add(const PrintText('REFUNDS', bold: true));
     var totalRefund = 0.0;
     for (final refund in receipt.refunds) {
@@ -176,8 +248,11 @@ abstract final class ReceiptPrintDocument {
         instructions.add(
           PrintRow(
             columns: [
-              '${ri.quantity} ${ri.description}',
-              '-$currency ${ri.refundAmount.toStringAsFixed(2)}',
+              PrintText('${ri.quantity} ${ri.description}'),
+              PrintText(
+                '-${ri.refundAmount.toStringAsFixed(2)}',
+                align: PrintAlign.right,
+              ),
             ],
             weights: const [8, 4],
           ),
@@ -187,51 +262,67 @@ abstract final class ReceiptPrintDocument {
     }
     instructions.add(
       PrintRow(
-        columns: ['Total Refund', '-$currency ${totalRefund.toStringAsFixed(2)}'],
+        columns: [
+          const PrintText('Total Refund', bold: true),
+          PrintText(
+            '-${totalRefund.toStringAsFixed(2)}',
+            align: PrintAlign.right,
+            bold: true,
+          ),
+        ],
         weights: const [8, 4],
-        bold: true,
       ),
     );
     instructions.add(const PrintDivider());
     final netTotal = receipt.totalAmount - totalRefund;
     instructions.add(
       PrintRow(
-        columns: ['Net Total', '$currency ${netTotal.toStringAsFixed(2)}'],
+        columns: [
+          const PrintText('Net Total', bold: true),
+          PrintText(
+            netTotal.toStringAsFixed(2),
+            align: PrintAlign.right,
+            bold: true,
+          ),
+        ],
         weights: const [8, 4],
-        bold: true,
       ),
     );
   }
 
-  static void _addPayment(List<PrintInstruction> instructions, Receipt receipt, String currency) {
+  static void _addPayment(
+    List<PrintInstruction> instructions,
+    Receipt receipt,
+  ) {
     final payment = receipt.payment;
     if (payment.method == 'cash') {
-      instructions.add(_amountRow('Tendered', payment.cashReceived, currency));
-      instructions.add(_amountRow('Change', payment.change, currency));
+      instructions.add(PrintText('Cash'));
+      instructions.add(
+        PrintText(
+          payment.cashReceived.toStringAsFixed(2),
+          align: PrintAlign.right,
+        ),
+      );
+      instructions.add(PrintText('Change'));
+      instructions.add(
+        PrintText(payment.change.toStringAsFixed(2), align: PrintAlign.right),
+      );
     } else {
-      instructions.add(_amountRow(_methodLabel(payment.method), payment.amountPaid, currency));
+      instructions.add(PrintText(payment.method));
+      instructions.add(
+        PrintText(
+          payment.amountPaid.toStringAsFixed(2),
+          align: PrintAlign.right,
+        ),
+      );
       if (payment.reference != null && payment.reference!.isNotEmpty) {
-        instructions.add(PrintText('Ref: ${payment.reference}'));
+        instructions.add(
+          PrintText('Ref: ${payment.reference}', align: PrintAlign.center),
+        );
       }
     }
   }
 
-  static PrintRow _amountRow(String label, double amount, String currency) {
-    return PrintRow(
-      columns: [label, '$currency ${amount.toStringAsFixed(2)}'],
-      weights: const [8, 4],
-    );
-  }
-
   static String _fmtDate(DateTime dt) =>
-      '${dt.year}-${dt.month.toString().padLeft(2, '0')}-'
-      '${dt.day.toString().padLeft(2, '0')} '
-      '${dt.hour.toString().padLeft(2, '0')}:'
-      '${dt.minute.toString().padLeft(2, '0')}';
-
-  static String _methodLabel(String method) => switch (method) {
-        'card' => 'Card',
-        'ewallet' => 'E-Wallet',
-        _ => method,
-      };
+      DateFormat.yMd().add_jm().format(dt.toLocal());
 }

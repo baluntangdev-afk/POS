@@ -8,6 +8,9 @@ import '../../../exceptions/exception_extension.dart';
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../theme/pos_design.dart';
+import '../../../utils/windows_touch_keyboard.dart';
+import '../../../widgets/onscreen_keyboard/keyboard_suppress.dart';
+import '../../../widgets/onscreen_keyboard/onscreen_keyboard.dart';
 import '../state/pos_terminal_notifier.dart';
 
 typedef _PendingMethod = ({PaymentMethod method, String? methodName, String? number});
@@ -484,6 +487,15 @@ class _PaymentMethodFormDialog extends HookWidget {
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: methodNameController,
+                    readOnly: KeyboardSuppress.readOnly,
+                    showCursor: KeyboardSuppress.showCursor,
+                    keyboardType: KeyboardSuppress.type(null),
+                    onTap: KeyboardSuppress.onTap,
+                    onTapOutside: (_) {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      OnScreenKeyboard.hide();
+                      WindowsTouchKeyboard.dismiss();
+                    },
                     decoration: _fieldDecoration(hint: 'e.g. PayMaya, Bitcoin'),
                     validator: (v) =>
                         (v == null || v.trim().isEmpty) ? 'Payment method name is required' : null,
@@ -503,6 +515,15 @@ class _PaymentMethodFormDialog extends HookWidget {
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: numberController,
+                    readOnly: KeyboardSuppress.readOnly,
+                    showCursor: KeyboardSuppress.showCursor,
+                    keyboardType: KeyboardSuppress.type(null),
+                    onTap: KeyboardSuppress.onTap,
+                    onTapOutside: (_) {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      OnScreenKeyboard.hide();
+                      WindowsTouchKeyboard.dismiss();
+                    },
                     decoration: _fieldDecoration(hint: 'e.g. 09171234567'),
                   ),
                 ],
@@ -657,6 +678,15 @@ class _PosFormField extends StatelessWidget {
         TextFormField(
           controller: controller,
           validator: validator,
+          readOnly: KeyboardSuppress.readOnly,
+          showCursor: KeyboardSuppress.showCursor,
+          keyboardType: KeyboardSuppress.type(null),
+          onTap: KeyboardSuppress.onTap,
+          onTapOutside: (_) {
+            FocusManager.instance.primaryFocus?.unfocus();
+            OnScreenKeyboard.hide();
+            WindowsTouchKeyboard.dismiss();
+          },
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: POSColors.textTertiary.withValues(alpha: 0.6)),

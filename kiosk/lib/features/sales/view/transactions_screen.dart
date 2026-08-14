@@ -592,107 +592,98 @@ class _TransactionsTable extends ConsumerWidget {
           Expanded(
             child: asyncState.when(
               loading:
-                  () => Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: CircularProgressIndicator(
-                            color: ColorSet.primary,
-                            strokeWidth: 3,
-                            strokeCap: StrokeCap.round,
-                          ),
+                  () => _CenteredState(
+                    children: [
+                      const SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: CircularProgressIndicator(
+                          color: ColorSet.primary,
+                          strokeWidth: 3,
+                          strokeCap: StrokeCap.round,
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Loading transactions...',
-                          style: TextStyle(
-                            fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
-                            color: POSColors.textTertiary,
-                          ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Loading transactions...',
+                        style: TextStyle(
+                          fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+                          color: POSColors.textTertiary,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
               error:
-                  (error, _) => Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(r.value<double>(kiosk: 32, tablet: 24, phone: 16)),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: ColorSet.danger.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.error_outline_rounded,
-                              color: ColorSet.danger,
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Failed to load transactions',
-                            style: TextStyle(
-                              fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
-                              fontWeight: FontWeight.w600,
-                              color: POSColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            '$error',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
-                              color: POSColors.textTertiary,
-                            ),
-                          ),
-                        ],
+                  (error, _) => _CenteredState(
+                    padding: EdgeInsets.all(r.value<double>(kiosk: 32, tablet: 24, phone: 16)),
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: ColorSet.danger.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.error_outline_rounded,
+                          color: ColorSet.danger,
+                          size: 28,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Failed to load transactions',
+                        style: TextStyle(
+                          fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
+                          fontWeight: FontWeight.w600,
+                          color: POSColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '$error',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
+                          color: POSColors.textTertiary,
+                        ),
+                      ),
+                    ],
                   ),
               data: (data) {
                 if (data.data.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 72,
-                          height: 72,
-                          decoration: const BoxDecoration(
+                  return const _CenteredState(
+                    children: [
+                      SizedBox(
+                        width: 72,
+                        height: 72,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
                             color: POSColors.surfaceSubtle,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.receipt_long_outlined,
                             size: 32,
                             color: POSColors.iconSubtle,
                           ),
                         ),
-                        const SizedBox(height: 14),
-                        const Text(
-                          'No transactions found',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: POSColors.textSecondary,
-                          ),
+                      ),
+                      SizedBox(height: 14),
+                      Text(
+                        'No transactions found',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: POSColors.textSecondary,
                         ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Try adjusting your filters',
-                          style: TextStyle(fontSize: 13, color: POSColors.textTertiary),
-                        ),
-                      ],
-                    ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'Try adjusting your filters',
+                        style: TextStyle(fontSize: 13, color: POSColors.textTertiary),
+                      ),
+                    ],
                   );
                 }
                 return ListView.builder(
@@ -1038,6 +1029,29 @@ class _TableActionBtn extends StatelessWidget {
   }
 }
 
+/// Centres a loading/error/empty state in the space left for the table body.
+///
+/// The children scroll instead of overflowing when that space gets short — the
+/// docked on-screen keyboard takes ~38% of the window height away from the app
+/// while a field is focused, which is exactly when the search-driven empty
+/// state is on screen.
+class _CenteredState extends StatelessWidget {
+  const _CenteredState({required this.children, this.padding = EdgeInsets.zero});
+
+  final List<Widget> children;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: padding,
+        child: Column(mainAxisSize: MainAxisSize.min, children: children),
+      ),
+    );
+  }
+}
+
 // ── Mobile card list ──────────────────────────────────────────────────────────
 class _TransactionsMobileList extends ConsumerWidget {
   const _TransactionsMobileList({required this.sort});
@@ -1069,31 +1083,30 @@ class _TransactionsMobileList extends ConsumerWidget {
           ),
       data: (data) {
         if (data.data.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: const BoxDecoration(color: POSColors.surfaceSubtle, shape: BoxShape.circle),
-                  child: const Icon(
+          return const _CenteredState(
+            children: [
+              SizedBox(
+                width: 72,
+                height: 72,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(color: POSColors.surfaceSubtle, shape: BoxShape.circle),
+                  child: Icon(
                     Icons.receipt_long_outlined,
                     size: 32,
                     color: POSColors.iconSubtle,
                   ),
                 ),
-                const SizedBox(height: 14),
-                const Text(
-                  'No transactions found',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: POSColors.textSecondary,
-                  ),
+              ),
+              SizedBox(height: 14),
+              Text(
+                'No transactions found',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: POSColors.textSecondary,
                 ),
-              ],
-            ),
+              ),
+            ],
           );
         }
         return ListView.builder(

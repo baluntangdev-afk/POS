@@ -142,6 +142,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
           saleId: saleId,
           method: sale.payment!.method,
           amount: sale.payment!.amountPaid,
+          cashReceived: Value(sale.payment!.cashReceived),
           reference: Value(sale.payment!.reference),
           createdAt: sale.createdAt,
         ));
@@ -293,7 +294,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     final payment = SalePayment(
       method: paymentRow?.method ?? 'cash',
       amountPaid: paymentRow?.amount ?? sale.total,
-      cashReceived: paymentRow?.amount ?? sale.total,
+      cashReceived: paymentRow?.cashReceived ?? paymentRow?.amount ?? sale.total,
       reference: paymentRow?.reference,
     );
 
@@ -339,8 +340,11 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       ));
     }
 
+    final voidCutoff = await attachedDatabase.cashierAccountingDao.getVoidLockCutoff(sale.cashierId);
+
     return Receipt(
       id: sale.id,
+      cashierId: sale.cashierId,
       storeName: '',
       cashierName: user?.name ?? 'Unknown',
       docNumber: sale.soNumber ?? 'SO-${sale.id.toString().padLeft(6, '0')}',
@@ -351,6 +355,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       refunds: refunds,
       isVoided: sale.status == 'voided',
       voidReason: sale.voidReason,
+      voidLocked: sale.status != 'voided' && sale.createdAt.isBefore(voidCutoff),
     );
   }
 
@@ -539,6 +544,33 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       readsFrom: {salesTable},
     ).getSingle();
     return result.read<double>('sum');
+  }
+
+  /// The earliest transaction (any status) within [from, to] store-wide, or
+  /// null if none exists — used to display the true start of a report period
+  /// instead of the internal query lower bound (which may be a synthetic
+  /// epoch/last-close boundary with no transaction actually at that time).
+  Future<DateTime?> getEarliestTransactionDate(DateTime from, DateTime to) async {
+    final result = await customSelect(
+      'SELECT MIN(created_at) as min_date FROM sales WHERE created_at BETWEEN ? AND ?',
+      variables: [Variable.withDateTime(from), Variable.withDateTime(to)],
+      readsFrom: {salesTable},
+    ).getSingle();
+    return result.read<DateTime?>('min_date');
+  }
+
+  /// Same as [getEarliestTransactionDate], scoped to a single cashier.
+  Future<DateTime?> getEarliestTransactionDateForCashier(DateTime from, DateTime to, int cashierId) async {
+    final result = await customSelect(
+      'SELECT MIN(created_at) as min_date FROM sales WHERE created_at BETWEEN ? AND ? AND cashier_id = ?',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        Variable.withInt(cashierId),
+      ],
+      readsFrom: {salesTable},
+    ).getSingle();
+    return result.read<DateTime?>('min_date');
   }
 
   Future<int> getTransactionCountForDateRangeAndCashier(DateTime from, DateTime to, int cashierId) async {

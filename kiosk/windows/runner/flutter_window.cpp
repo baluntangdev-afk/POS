@@ -2,7 +2,9 @@
 
 #include <optional>
 
+#include "desktop_multi_window/desktop_multi_window_plugin.h"
 #include "flutter/generated_plugin_registrant.h"
+#include "touch_keyboard_guard.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -25,6 +27,17 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+  // desktop_multi_window only registers itself on a new sub-window's engine
+  // (e.g. the customer display) — every other plugin (window_manager,
+  // screen_retriever, ...) needs this callback to get registered too,
+  // otherwise Dart-side calls into those plugins throw
+  // MissingPluginException on that window and it never renders.
+  DesktopMultiWindowSetWindowCreatedCallback([](void *controller) {
+    auto *flutter_view_controller =
+        reinterpret_cast<flutter::FlutterViewController *>(controller);
+    RegisterPlugins(flutter_view_controller->engine());
+  });
+  touch_keyboard_guard::RegisterChannel(flutter_controller_->engine()->messenger());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {

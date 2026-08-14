@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { SalesOrder } from '../../sales-orders/entities/sales-order.entity';
@@ -28,6 +29,7 @@ import type {
   CashierTaxRawRow,
   CashierVatExemptRawRow,
 } from '../reports.interface';
+import { ReportClosedEvent, ReportEvents } from '../events/report-closed.event';
 
 /**
  * Cashier daily report: the logged-in cashier's own completed transactions today, summarized
@@ -43,6 +45,7 @@ export class CashierDailyReportService extends BaseReportService<
     private readonly salesOrderRepository: Repository<SalesOrder>,
     @InjectRepository(CashierDailyReport)
     private readonly cashierDailyReportRepository: Repository<CashierDailyReport>,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     super();
   }
@@ -59,7 +62,7 @@ export class CashierDailyReportService extends BaseReportService<
    * always agree.
    */
   async closeReport(causer: User): Promise<CashierDailyReportResponseDto> {
-    return this.salesOrderRepository.manager.transaction(async (manager) => {
+    const result = await this.salesOrderRepository.manager.transaction(async (manager) => {
       const requestTime = new Date();
       const dto = await this.computeReport(causer.id, requestTime, manager);
 
@@ -87,6 +90,16 @@ export class CashierDailyReportService extends BaseReportService<
 
       return { ...dto, id: report.id };
     });
+
+    this.eventEmitter.emit(
+      ReportEvents.REPORT_CLOSED,
+      new ReportClosedEvent(
+        'cashier_daily',
+        String(result.id),
+        result as unknown as Record<string, unknown>,
+      ),
+    );
+    return result;
   }
 
   async getHistory(

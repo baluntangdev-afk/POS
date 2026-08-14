@@ -21,6 +21,7 @@ import '../../features/ordering/view/ordering_screen.dart';
 import '../../features/ordering/view/payment_screen.dart';
 import '../../features/ordering/view/receipt_screen.dart';
 import '../../features/reports/view/reports_screen.dart';
+import '../../features/settings/view/backup_screen.dart';
 import '../../features/settings/view/csv_import_screen.dart';
 import '../../features/settings/view/printer_setup_screen.dart';
 import '../../features/settings/view/settings_screen.dart';
@@ -48,7 +49,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
       if (isAuthenticated && isOnLogin) return '/dashboard';
 
-      const cashierRestrictedPrefixes = ['/inventory', '/settings', '/users'];
+      const cashierRestrictedPrefixes = [
+        '/inventory',
+        '/users',
+        '/settings/csv-import',
+        '/settings/backup',
+        '/settings/store-info',
+      ];
       if (isAuthenticated &&
           !authState.user.isAdminOrSupervisor &&
           cashierRestrictedPrefixes
@@ -67,7 +74,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/dashboard',
-        builder: (context, state) => const DashboardScreen(),
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const DashboardScreen(),
+          transitionDuration: const Duration(milliseconds: 220),
+          reverseTransitionDuration: const Duration(milliseconds: 180),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+              child: child,
+            );
+          },
+        ),
       ),
       GoRoute(
         path: '/order',
@@ -193,6 +211,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'csv-import',
             builder: (context, state) => const CsvImportScreen(),
+          ),
+          GoRoute(
+            path: 'backup',
+            builder: (context, state) => const BackupScreen(),
           ),
           GoRoute(
             path: 'store-info',

@@ -65,7 +65,6 @@ void main() {
     test('renders store info, sales invoice label, doc number, and total for a plain receipt', () {
       final instructions = ReceiptPrintDocument.build(
         _receipt(),
-        currency: 'PHP',
         storeName: 'Test Store',
         storeAddress: '123 Main St',
         storeTin: '123-456-789',
@@ -78,12 +77,21 @@ void main() {
         isTrue,
       );
       expect(texts.any((t) => t.text == 'Sales Invoice'), isTrue);
-      expect(texts.any((t) => t.text == 'SI# SI-0001'), isTrue);
+      expect(
+        texts.any((t) => t.text == 'SI# SI-0001' && t.align == PrintAlign.center),
+        isTrue,
+      );
       expect(texts.any((t) => t.text == 'Terminal: POS-1'), isTrue);
 
       final rows = instructions.whereType<PrintRow>().toList();
       expect(
-        rows.any((r) => r.columns[0] == 'TOTAL' && r.columns[1] == 'PHP 100.00' && r.bold),
+        rows.any(
+          (r) =>
+              r.columns[0].text == 'Total' &&
+              r.columns[1].text == '100.00' &&
+              r.columns[0].bold &&
+              r.columns[1].bold,
+        ),
         isTrue,
       );
 
@@ -102,7 +110,6 @@ void main() {
             ),
           ],
         ),
-        currency: 'PHP',
       );
 
       final texts = instructions.whereType<PrintText>().toList();
@@ -112,6 +119,35 @@ void main() {
         ),
         isTrue,
       );
+    });
+
+    test('annotates partially and fully refunded items', () {
+      final refund = Refund(
+        id: 1,
+        docNumber: 'RF-0001',
+        docDate: DateTime(2026, 8, 1, 15),
+        receiptId: 1,
+        reason: 'Customer changed mind',
+        method: 'cash',
+        items: const [
+          RefundItem(
+            id: 1,
+            receiptItemId: 1,
+            sequence: 1,
+            description: 'Burger',
+            quantity: 1,
+            refundAmount: 50,
+            isMain: true,
+          ),
+        ],
+      );
+
+      final instructions = ReceiptPrintDocument.build(
+        _receipt(items: [_item(quantity: 2, totalAmount: 200)], refunds: [refund]),
+      );
+
+      final texts = instructions.whereType<PrintText>().toList();
+      expect(texts.any((t) => t.text == '  (Refunded: 1 of 2)'), isTrue);
     });
 
     test('adds a REFUNDS section with reason, refunded items, and net total', () {
@@ -135,43 +171,51 @@ void main() {
         ],
       );
 
-      final instructions = ReceiptPrintDocument.build(
-        _receipt(refunds: [refund]),
-        currency: 'PHP',
-      );
+      final instructions = ReceiptPrintDocument.build(_receipt(refunds: [refund]));
 
       final texts = instructions.whereType<PrintText>().toList();
       expect(texts.any((t) => t.text == 'REFUNDS' && t.bold), isTrue);
       expect(texts.any((t) => t.text == 'Reason: Customer changed mind'), isTrue);
+      expect(texts.any((t) => t.text == '  (Fully Refunded)'), isTrue);
 
       final rows = instructions.whereType<PrintRow>().toList();
-      expect(rows.any((r) => r.columns[0] == 'Total Refund' && r.columns[1] == '-PHP 100.00'), isTrue);
-      expect(rows.any((r) => r.columns[0] == 'Net Total' && r.columns[1] == 'PHP 0.00'), isTrue);
+      expect(
+        rows.any((r) => r.columns[0].text == 'Total Refund' && r.columns[1].text == '-100.00'),
+        isTrue,
+      );
+      expect(
+        rows.any((r) => r.columns[0].text == 'Net Total' && r.columns[1].text == '0.00'),
+        isTrue,
+      );
     });
 
     test('adds a VOID REASON block when the receipt is voided', () {
       final instructions = ReceiptPrintDocument.build(
         _receipt(isVoided: true, voidReason: 'Wrong order'),
-        currency: 'PHP',
       );
 
       final texts = instructions.whereType<PrintText>().toList();
       expect(texts.any((t) => t.text == 'VOID REASON:' && t.bold), isTrue);
-      expect(texts.any((t) => t.text == 'Wrong order'), isTrue);
+      expect(
+        texts.any((t) => t.text == 'Wrong order' && t.align == PrintAlign.center),
+        isTrue,
+      );
     });
 
-    test('renders Tendered and Change rows for cash payments', () {
+    test('renders Cash and Change rows for cash payments', () {
       final instructions = ReceiptPrintDocument.build(
         _receipt(payment: const SalePayment(method: 'cash', amountPaid: 100, cashReceived: 150)),
-        currency: 'PHP',
       );
 
       final rows = instructions.whereType<PrintRow>().toList();
-      expect(rows.any((r) => r.columns[0] == 'Tendered' && r.columns[1] == 'PHP 150.00'), isTrue);
-      expect(rows.any((r) => r.columns[0] == 'Change' && r.columns[1] == 'PHP 50.00'), isTrue);
+      expect(rows.any((r) => r.columns[0].text == 'Cash' && r.columns[1].text == '150.00'), isTrue);
+      expect(
+        rows.any((r) => r.columns[0].text == 'Change' && r.columns[1].text == '50.00'),
+        isTrue,
+      );
     });
 
-    test('renders method + Ref row for non-cash payments with a reference', () {
+    test('renders method + centered Ref row for non-cash payments with a reference', () {
       final instructions = ReceiptPrintDocument.build(
         _receipt(
           payment: const SalePayment(
@@ -181,13 +225,15 @@ void main() {
             reference: 'REF-999',
           ),
         ),
-        currency: 'PHP',
       );
 
       final rows = instructions.whereType<PrintRow>().toList();
-      expect(rows.any((r) => r.columns[0] == 'Card' && r.columns[1] == 'PHP 100.00'), isTrue);
+      expect(rows.any((r) => r.columns[0].text == 'Card' && r.columns[1].text == '100.00'), isTrue);
       final texts = instructions.whereType<PrintText>().toList();
-      expect(texts.any((t) => t.text == 'Ref: REF-999'), isTrue);
+      expect(
+        texts.any((t) => t.text == 'Ref: REF-999' && t.align == PrintAlign.center),
+        isTrue,
+      );
     });
   });
 }

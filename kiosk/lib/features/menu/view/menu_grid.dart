@@ -47,10 +47,6 @@ class MenuGrid extends StatelessWidget {
                         const UserManagementRoute().push<void>(context);
                         return;
                       }
-                      if (type == MenuType.salesReports) {
-                        const SalesReportRoute().push<void>(context);
-                        return;
-                      }
                       if (type == MenuType.settings) {
                         showPosTerminalDetailsDialog(context);
                         return;

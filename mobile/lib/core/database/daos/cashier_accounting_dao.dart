@@ -230,4 +230,17 @@ class CashierAccountingDao extends DatabaseAccessor<AppDatabase> with _$CashierA
 
   Future<ZReadingsTableData?> getZReadingById(int id) =>
       (select(zReadingsTable)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  /// The cutoff before which [cashierId]'s sales are considered already
+  /// reported and should no longer be voidable: the latest periodEnd among
+  /// their last closed X-Reading, their last closed Daily Report, and the
+  /// store-wide last closed Z-Reading.
+  Future<DateTime> getVoidLockCutoff(int cashierId) async {
+    final results = await Future.wait([
+      getXReadingPeriodStart(cashierId),
+      getDailyReportPeriodStart(cashierId),
+      getZReadingPeriodStart(),
+    ]);
+    return results.reduce((a, b) => a.isAfter(b) ? a : b);
+  }
 }

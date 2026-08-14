@@ -22,6 +22,11 @@ import { ProductStatus } from '../products.enum';
   unique: true,
   where: '"deleted_at" IS NULL',
 })
+// ERP SKU (material code) — unique among live rows; see migration 1784246400000.
+@Index('UQ_products_sku', ['sku'], {
+  unique: true,
+  where: '"sku" IS NOT NULL AND "deleted_at" IS NULL',
+})
 export class Product {
   @PrimaryGeneratedColumn({ type: 'int' })
   id: number;
@@ -32,6 +37,10 @@ export class Product {
 
   @Column({ type: 'varchar', length: 100 })
   name: string;
+
+  /** ERP material code (SKU). Set when the product is managed/synced by the ERP back office. */
+  @Column({ type: 'varchar', length: 140, nullable: true })
+  sku: string | null;
 
   @Column({ type: 'text', nullable: true })
   description: string | null;
@@ -61,6 +70,13 @@ export class Product {
 
   @Column({ type: 'boolean', name: 'is_available', default: true })
   isAvailable: boolean;
+
+  /**
+   * Remaining sellable servings from the last ERP menu sync (null = not ERP-managed).
+   * Decremented on each confirmed order so availability stays accurate between syncs.
+   */
+  @Column({ type: 'int', name: 'available_servings', nullable: true })
+  availableServings: number | null;
 
   @Column({ type: 'int', name: 'sort_order', default: 0 })
   sortOrder: number;

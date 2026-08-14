@@ -233,9 +233,7 @@ class _ModifierSheet extends HookConsumerWidget {
                       if (groupData.value.isNotEmpty) const Gap(AppSpacing.md),
 
                       // Notes
-                      Text('Notes (optional)',
-                          style: AppTextStyles.labelMd
-                              .copyWith(color: AppColors.textSecondary)),
+                      const _SectionLabel('Notes (optional)'),
                       const Gap(AppSpacing.sm),
                       TextField(
                         controller: notesController,
@@ -318,78 +316,130 @@ class _VariantSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Variant', style: AppTextStyles.headingSm),
+              const _SectionLabel('Variant'),
               const Gap(AppSpacing.sm),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.error,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                ),
-                child: Text(
-                  'Required',
-                  style: AppTextStyles.labelMd.copyWith(
-                      color: Colors.white, fontSize: 10),
-                ),
-              ),
+              const _RequiredBadge(),
             ],
           ),
           const Gap(AppSpacing.sm),
-          ...variants.map((v) {
-            final isSelected = v.id == selectedId;
-            return GestureDetector(
-              onTap: () => onSelect(v),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                margin: const EdgeInsets.only(bottom: AppSpacing.xs),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColors.primary.withValues(alpha: 0.08)
-                      : AppColors.surfaceVariant,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                  border: Border.all(
-                    color: isSelected ? AppColors.primary : Colors.transparent,
-                    width: 1.5,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primary : Colors.transparent,
-                        border: Border.all(
-                          color: isSelected
-                              ? AppColors.primary
-                              : AppColors.border,
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                      ),
-                      child: isSelected
-                          ? const Icon(Icons.check_rounded,
-                              color: Colors.white, size: 14)
-                          : null,
-                    ),
-                    const Gap(AppSpacing.md),
-                    Expanded(
-                      child: Text(v.name, style: AppTextStyles.bodyMd),
-                    ),
-                    Text(
-                      'PHP ${v.price.toStringAsFixed(2)}',
-                      style: AppTextStyles.labelMd
-                          .copyWith(color: AppColors.primary),
-                    ),
-                  ],
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: variants.map((v) {
+              return _PillChip(
+                label: v.name,
+                priceLabel: 'PHP ${v.price.toStringAsFixed(2)}',
+                isSelected: v.id == selectedId,
+                onTap: () => onSelect(v),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Small uppercase caption used for section headings, matching the app's
+/// existing "ORDER TYPE" / "NOTES" caption style.
+class _SectionLabel extends StatelessWidget {
+  final String text;
+
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: AppTextStyles.labelMd.copyWith(
+        color: AppColors.textSecondary,
+        letterSpacing: 0.8,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+}
+
+class _RequiredBadge extends StatelessWidget {
+  const _RequiredBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.error,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+      ),
+      child: Text(
+        'Required',
+        style: AppTextStyles.labelMd.copyWith(color: Colors.white, fontSize: 10),
+      ),
+    );
+  }
+}
+
+/// Compact single-select option used for variants and radio-style modifier
+/// groups (maxSelections == 1) — a wrapping row of chips instead of a
+/// stacked full-width list.
+class _PillChip extends StatelessWidget {
+  final String label;
+  final String? priceLabel;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _PillChip({
+    required this.label,
+    this.priceLabel,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        constraints: const BoxConstraints(minWidth: 84),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color:
+              isSelected
+                  ? AppColors.primary.withValues(alpha: 0.08)
+                  : AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: AppTextStyles.bodyMd.copyWith(
+                fontWeight: FontWeight.w700,
+                color: isSelected ? AppColors.primary : AppColors.textPrimary,
+              ),
+            ),
+            if (priceLabel != null) ...[
+              const Gap(2),
+              Text(
+                priceLabel!,
+                style: AppTextStyles.bodySm.copyWith(
+                  color:
+                      isSelected ? AppColors.primary : AppColors.textSecondary,
                 ),
               ),
-            );
-          }),
-        ],
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -408,6 +458,8 @@ class _ModifierGroupSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isSingleSelect = data.group.maxSelections == 1;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.lg),
       child: Column(
@@ -416,27 +468,11 @@ class _ModifierGroupSection extends StatelessWidget {
           Row(
             children: [
               Flexible(
-                child: Text(
-                  data.group.name,
-                  style: AppTextStyles.headingSm,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child: _SectionLabel(data.group.name),
               ),
               const Gap(AppSpacing.sm),
               if (data.group.isRequired)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.error,
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                  ),
-                  child: Text(
-                    'Required',
-                    style: AppTextStyles.labelMd.copyWith(
-                        color: Colors.white, fontSize: 10),
-                  ),
-                )
+                const _RequiredBadge()
               else
                 Text(
                   'Optional · max ${data.group.maxSelections}',
@@ -446,63 +482,80 @@ class _ModifierGroupSection extends StatelessWidget {
             ],
           ),
           const Gap(AppSpacing.sm),
-          ...data.options.map((opt) {
-            final isSelected = selectedIds.contains(opt.id);
-            return GestureDetector(
-              onTap: () => onToggle(opt.id),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                margin: const EdgeInsets.only(bottom: AppSpacing.xs),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColors.primary.withValues(alpha: 0.08)
-                      : AppColors.surfaceVariant,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                  border: Border.all(
-                    color: isSelected ? AppColors.primary : Colors.transparent,
-                    width: 1.5,
+          if (isSingleSelect)
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: data.options.map((opt) {
+                return _PillChip(
+                  label: opt.name,
+                  priceLabel: opt.additionalPrice > 0
+                      ? '+PHP ${opt.additionalPrice.toStringAsFixed(2)}'
+                      : null,
+                  isSelected: selectedIds.contains(opt.id),
+                  onTap: () => onToggle(opt.id),
+                );
+              }).toList(),
+            )
+          else
+            ...data.options.map((opt) {
+              final isSelected = selectedIds.contains(opt.id);
+              return GestureDetector(
+                onTap: () => onToggle(opt.id),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primary.withValues(alpha: 0.08)
+                        : AppColors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    border: Border.all(
+                      color:
+                          isSelected ? AppColors.primary : Colors.transparent,
+                      width: 1.5,
+                    ),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primary : Colors.transparent,
-                        border: Border.all(
+                  child: Row(
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
                           color: isSelected
                               ? AppColors.primary
-                              : AppColors.border,
-                          width: 2,
+                              : Colors.transparent,
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.border,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                        borderRadius: data.group.maxSelections == 1
-                            ? BorderRadius.circular(AppSpacing.radiusFull)
-                            : BorderRadius.circular(4),
+                        child: isSelected
+                            ? const Icon(Icons.check_rounded,
+                                color: Colors.white, size: 14)
+                            : null,
                       ),
-                      child: isSelected
-                          ? const Icon(Icons.check_rounded,
-                              color: Colors.white, size: 14)
-                          : null,
-                    ),
-                    const Gap(AppSpacing.md),
-                    Expanded(
-                      child: Text(opt.name, style: AppTextStyles.bodyMd),
-                    ),
-                    if (opt.additionalPrice > 0)
-                      Text(
-                        '+PHP ${opt.additionalPrice.toStringAsFixed(2)}',
-                        style: AppTextStyles.labelMd
-                            .copyWith(color: AppColors.primary),
+                      const Gap(AppSpacing.md),
+                      Expanded(
+                        child: Text(opt.name, style: AppTextStyles.bodyMd),
                       ),
-                  ],
+                      if (opt.additionalPrice > 0)
+                        Text(
+                          '+PHP ${opt.additionalPrice.toStringAsFixed(2)}',
+                          style: AppTextStyles.labelMd
+                              .copyWith(color: AppColors.primary),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          }),
+              );
+            }),
         ],
       ),
     );

@@ -27,6 +27,8 @@ class InventoryState {
     if (q != null && q.isNotEmpty) {
       list = list.where((p) => p.name.toLowerCase().contains(q)).toList();
     }
+    list = list.toList()
+      ..sort((a, b) => a.isAvailable == b.isAvailable ? 0 : (a.isAvailable ? -1 : 1));
     return list;
   }
 

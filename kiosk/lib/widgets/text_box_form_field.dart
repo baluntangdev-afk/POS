@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../styles/color_set.dart';
 import '../theme/pos_design.dart';
+import '../utils/windows_touch_keyboard.dart';
+import 'onscreen_keyboard/onscreen_keyboard.dart';
 
 class TextBoxFormField extends HookWidget {
   const TextBoxFormField({
@@ -210,6 +214,17 @@ class TextBoxFormField extends HookWidget {
     final isObscured = useState(keyboardType == TextInputType.visiblePassword);
     final focusNode = useFocusNode();
     final isSubmitted = useState(false);
+
+    // On Windows this field is driven by the app's own [OnScreenKeyboard]
+    // instead of the OS touch keyboard. Marking it read-only is what actually
+    // suppresses the OS keyboard: Flutter never opens a text-input connection
+    // for a read-only field on Windows, so the OS is never told text input is
+    // active and has nothing to auto-invoke against. See [OnScreenKeyboard].
+    //
+    // Fields the *caller* marked read-only (pickers, display-only values) are
+    // excluded — they aren't meant to accept typing at all.
+    final useCustomKeyboard = Platform.isWindows && !readOnly && enabled;
+    final effectiveReadOnly = readOnly || useCustomKeyboard;
     return InputDecorationTheme(
       data: InputDecorationThemeData(
         iconColor: WidgetStateColor.resolveWith((states) {
@@ -253,15 +268,24 @@ class TextBoxFormField extends HookWidget {
           ],
           TextFormField(
             focusNode: focusNode,
-            onTap: readOnly ? onTap : null,
-            readOnly: readOnly,
+            onTap: () {
+              if (useCustomKeyboard) OnScreenKeyboard.show();
+              onTap?.call();
+            },
+            readOnly: effectiveReadOnly,
             enabled: enabled,
+            // Deliberately keyed off the caller's [readOnly], not
+            // [effectiveReadOnly]: a custom-keyboard field is read-only to the
+            // OS but must still be focusable, or it could never be typed into.
             canRequestFocus: !readOnly,
+            // Read-only fields hide the caret by default, but this one is
+            // actively being typed into, so the caret has to stay visible.
+            showCursor: useCustomKeyboard ? true : null,
             controller: controller,
             initialValue: controller != null ? null : initialValue,
             maxLines: maxLines,
             maxLength: maxLength,
-            keyboardType: keyboardType,
+            keyboardType: useCustomKeyboard ? TextInputType.none : keyboardType,
             inputFormatters: inputFormatters,
             textInputAction: textInputAction,
             validator: (value) {
@@ -271,7 +295,14 @@ class TextBoxFormField extends HookWidget {
             autovalidateMode:
                 isSubmitted.value ? AutovalidateMode.onUserInteraction : AutovalidateMode.onUnfocus,
             onChanged: onChanged,
-            onTapOutside: (_) => focusNode.unfocus(),
+            onTapOutside: (_) {
+              // The keyboard panel is wrapped in a TextFieldTapRegion, so
+              // tapping a key does not reach here — only genuine taps
+              // elsewhere in the app do.
+              focusNode.unfocus();
+              OnScreenKeyboard.hide();
+              WindowsTouchKeyboard.dismiss();
+            },
             obscureText: isObscured.value,
             style: const TextStyle().merge(style),
             decoration: InputDecoration(

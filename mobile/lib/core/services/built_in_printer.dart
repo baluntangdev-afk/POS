@@ -28,22 +28,22 @@ abstract final class BuiltInPrinter {
 
   static Map<String, dynamic> _encodeInstruction(PrintInstruction instruction) {
     return switch (instruction) {
-      PrintText(:final text, :final align, :final bold, :final sizeMultiplier) => {
-          'type': 'text',
-          'text': text,
-          'align': align.name,
-          'bold': bold,
-          'sizeMultiplier': sizeMultiplier,
-        },
-      PrintRow(:final columns, :final weights, :final lastColumnAlign, :final bold) => {
+      PrintText() => {'type': 'text', ..._encodeText(instruction)},
+      PrintRow(:final columns, :final resolvedWeights, :final minGap) => {
           'type': 'row',
-          'columns': columns,
-          'weights': weights,
-          'lastColumnAlign': lastColumnAlign.name,
-          'bold': bold,
+          'columns': columns.map(_encodeText).toList(),
+          'weights': resolvedWeights,
+          'minGap': minGap,
         },
       PrintDivider(:final char) => {'type': 'divider', 'char': char},
       PrintFeed(:final lines) => {'type': 'feed', 'lines': lines},
     };
   }
+
+  static Map<String, dynamic> _encodeText(PrintText text) => {
+        'text': text.text,
+        'align': text.align.name,
+        'bold': text.bold,
+        'sizeMultiplier': text.sizeMultiplier,
+      };
 }

@@ -30,15 +30,28 @@ class ReceiptNotifier extends AsyncNotifier<Receipt> {
     return receipt;
   }
 
-  Future<bool> print() async {
+  Future<bool> printBuiltIn() => _print(PrintService.printReceiptBuiltIn);
+
+  Future<bool> printBluetooth() => _print(PrintService.printReceiptBluetooth);
+
+  Future<bool> _print(
+    Future<bool> Function(
+      Receipt receipt, {
+      String storeFooter,
+      String? storeName,
+      String? storeAddress,
+      String? storeTin,
+      String? terminalName,
+    })
+    printFn,
+  ) async {
     if (!state.hasValue) return false;
     final db = ref.read(databaseProvider);
     final storeInfo = await db.storeInfoDao.getStoreInfo();
-    return PrintService.printReceipt(
+    return printFn(
       state.requireValue,
-      currency: (storeInfo?.currency.isNotEmpty ?? false) ? storeInfo!.currency : 'PHP',
       storeFooter:
-          (storeInfo?.receiptFooter.isNotEmpty ?? false) ? storeInfo!.receiptFooter : 'Thank you!',
+          (storeInfo?.receiptFooter.isNotEmpty ?? false) ? storeInfo!.receiptFooter : 'Thank You!',
       storeName: storeInfo?.storeName,
       storeAddress: storeInfo?.address,
       storeTin: storeInfo?.tin,

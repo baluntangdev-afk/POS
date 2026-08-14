@@ -19,6 +19,8 @@ backend + portable PostgreSQL 16) to a terminal.
 | PostgreSQL 16 | `C:\pgsql\` (portable) | `C:\POSKiosk\pgsql\` | Windows service `POSPostgres` (via `pg_ctl`) |
 | Database data | created on install | `C:\posdata\` | — |
 | Logs | created on install | `C:\POSKiosk\logs\` | — |
+| Database backups | created on first scheduled run | `C:\POSKiosk\Backups\` | Scheduled Task `POSKioskDatabaseBackup` (daily, 2 AM, as `SYSTEM`) |
+| Transaction/report PDF archive | created by the kiosk app at print time | `C:\POSKiosk\History\` | — |
 
 Install paths have **no spaces** on purpose — `pg_ctl` cannot register a service
 whose binary path contains spaces.
@@ -97,6 +99,42 @@ by `build:sea`. (For a deeper pre-flight on migrations/seeders, see
 5. `install-backend-service.bat` → registers + starts `POSBackendService` via NSSM,
    then polls `http://localhost:3000/api/v1/health/live` until the backend answers.
 6. Offers to launch the kiosk.
+
+---
+
+## Backups
+
+Every install registers a Windows Scheduled Task (`POSKioskDatabaseBackup`) that runs
+`scripts\backup-database.bat` daily at **2:00 AM as `SYSTEM`**. Each run:
+
+1. `pg_dump`s `pos_db` in custom format (compressed, restorable) to
+   `C:\POSKiosk\Backups\pos_db_<YYYYMMDD_HHmmss>.dump`.
+2. Copies `backend\.env` and `settings.txt` into
+   `C:\POSKiosk\Backups\config\<YYYYMMDD_HHmmss>\` alongside it — a restored database is
+   useless without the JWT secrets/DB credentials in `.env`.
+3. Deletes dumps and config snapshots older than **30 days**.
+
+Logged to `C:\POSKiosk\logs\backup-database.log`. Run `scripts\backup-database.bat
+"C:\POSKiosk"` manually (as administrator) to take an ad-hoc backup, e.g. before an
+uninstall/reinstall.
+
+**Secondary copy (USB / LAN share / cloud-synced folder) — opt-in per store:** a local-only
+backup dies with the machine it's protecting, which defeats the point for a single physical
+terminal. To enable it, create `C:\POSKiosk\Backups\secondary-target.txt` containing a single
+line with a reachable path (a drive letter like `E:\` for a USB drive, or a UNC path like
+`\\NAS\posbackups\`). Every run of `backup-database.ps1` then also copies that run's dump +
+config snapshot there; if the file is absent, empty, or the path isn't reachable, the local
+backup still succeeds — the secondary copy is best-effort on top of it, never a dependency.
+
+**Restore:** run `scripts\restore-database.bat "C:\POSKiosk" "<dump file>"` as administrator —
+it stops the backend, runs `pg_restore --clean`, offers to restore the matching
+`.env`/`settings.txt` config snapshot, and restarts the backend. (Equivalent manual command:
+`pgsql\bin\pg_restore.exe -U postgres -h 127.0.0.1 -p 5432 -d pos_db --clean --if-exists <dump file>`.)
+
+Both `C:\POSKiosk\Backups\` and `C:\POSKiosk\History\` (the kiosk's transaction/cashier-report
+PDF archive, see `kiosk/CLAUDE.md` / the print flow in `receipt_notifier.dart`) intentionally
+survive uninstall — see the comment in `installer.iss`'s `[UninstallDelete]`. Full design
+rationale: `docs/superpowers/specs/2026-08-10-backup-strategy-design.md`.
 
 ---
 
@@ -220,7 +258,10 @@ be\installer\
     ├── run-migrations.{bat,ps1}               # apply TypeORM migrations
     ├── install-backend-service.{bat,ps1}      # register POSBackendService via NSSM
     ├── update-backend.{bat,ps1}               # replace backend exe (hotfix)
-    ├── uninstall-services.{bat,ps1}           # remove both services
+    ├── uninstall-services.{bat,ps1}           # remove both services (+ backup task)
+    ├── backup-database.{bat,ps1}              # pg_dump + config snapshot + retention
+    ├── register-backup-task.{bat,ps1}         # register the daily backup Scheduled Task
+    ├── restore-database.{bat,ps1}             # pg_restore a chosen dump (disaster recovery)
     └── recover-services.bat                   # re-run DB + backend setup (recovery)
 be\docs\pre-installer-checklist.md             # migrations/seeders pre-flight detail
 ```

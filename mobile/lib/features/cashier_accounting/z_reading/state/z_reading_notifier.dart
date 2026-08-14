@@ -29,22 +29,26 @@ class ZReadingNotifier extends AsyncNotifier<ZReadingData> {
     final db = ref.watch(databaseProvider);
     final closedByName = _currentUserName;
 
-    final periodStart = await db.cashierAccountingDao.getZReadingPeriodStart();
+    // Lower bound for "unreported since" — may be a synthetic epoch/last-close
+    // boundary with no transaction actually at that time, so it's only used
+    // to scope the queries below, never shown directly to the user.
+    final queryStart = await db.cashierAccountingDao.getZReadingPeriodStart();
     final periodEnd = DateTime.now();
+    final periodStart = await db.salesDao.getEarliestTransactionDate(queryStart, periodEnd);
     final nextZCounter = await db.cashierAccountingDao.getNextZCounter();
 
-    final totalSales = await db.salesDao.getTotalSalesForDateRange(periodStart, periodEnd);
-    final transactionCount = await db.salesDao.getTransactionCountForDateRange(periodStart, periodEnd);
-    final statusCounts = await db.salesDao.getStatusCountsForDateRange(periodStart, periodEnd);
-    final discountTotal = await db.salesDao.getDiscountTotalForDateRange(periodStart, periodEnd);
-    final totalQtySold = await db.salesDao.getTotalQtySoldForDateRange(periodStart, periodEnd);
-    final cashSales = await db.salesDao.getCashSalesForDateRange(periodStart, periodEnd);
-    final paymentRows = await db.salesDao.getPaymentBreakdown(periodStart, periodEnd);
-    final cashierRows = await db.salesDao.getSalesByCashier(periodStart, periodEnd);
-    final discounts = await db.salesDao.getDiscountBreakdownForDateRange(periodStart, periodEnd);
-    final vatBreakdown = await db.salesDao.getVatBreakdownForDateRange(periodStart, periodEnd);
+    final totalSales = await db.salesDao.getTotalSalesForDateRange(queryStart, periodEnd);
+    final transactionCount = await db.salesDao.getTransactionCountForDateRange(queryStart, periodEnd);
+    final statusCounts = await db.salesDao.getStatusCountsForDateRange(queryStart, periodEnd);
+    final discountTotal = await db.salesDao.getDiscountTotalForDateRange(queryStart, periodEnd);
+    final totalQtySold = await db.salesDao.getTotalQtySoldForDateRange(queryStart, periodEnd);
+    final cashSales = await db.salesDao.getCashSalesForDateRange(queryStart, periodEnd);
+    final paymentRows = await db.salesDao.getPaymentBreakdown(queryStart, periodEnd);
+    final cashierRows = await db.salesDao.getSalesByCashier(queryStart, periodEnd);
+    final discounts = await db.salesDao.getDiscountBreakdownForDateRange(queryStart, periodEnd);
+    final vatBreakdown = await db.salesDao.getVatBreakdownForDateRange(queryStart, periodEnd);
     final beginningBalance = await db.cashierAccountingDao.getLastZReadingEndingBalance();
-    final paymentLedgers = await db.salesDao.getPaymentLedgerForDateRange(periodStart, periodEnd);
+    final paymentLedgers = await db.salesDao.getPaymentLedgerForDateRange(queryStart, periodEnd);
 
     final storeInfo = await db.storeInfoDao.getStoreInfo();
     final taxRate = storeInfo?.taxRate ?? 0.0;
@@ -121,6 +125,10 @@ class ZReadingNotifier extends AsyncNotifier<ZReadingData> {
     if (data.id != null) {
       throw StateError('Cannot close an already-closed Z-Reading');
     }
+    final periodStart = data.periodStart;
+    if (periodStart == null) {
+      throw StateError('Cannot close Z-Reading with no transactions');
+    }
 
     final db = ref.read(databaseProvider);
     final zCounter = await db.cashierAccountingDao.getNextZCounter();
@@ -141,7 +149,7 @@ class ZReadingNotifier extends AsyncNotifier<ZReadingData> {
 
     await db.cashierAccountingDao.closeZReading(
       zCounter: zCounter,
-      periodStart: data.periodStart,
+      periodStart: periodStart,
       periodEnd: data.periodEnd,
       closedByUserId: closedByUserId,
       closedByName: closedByName,

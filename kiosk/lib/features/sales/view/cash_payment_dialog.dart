@@ -33,18 +33,20 @@ Future<CashPayment?> showCashPaymentDialog(
     future = showAndroidBottomSheet<CashPayment>(
       context: context,
       maxHeightRatio: 0.95,
-      builder: (ctx) => _CashPaymentContent(
-        collectibleAmount: collectibleAmount,
-        initialCashReceived: initialCashReceived,
-      ),
+      builder:
+          (ctx) => _CashPaymentContent(
+            collectibleAmount: collectibleAmount,
+            initialCashReceived: initialCashReceived,
+          ),
     );
   } else {
     future = showDialog<CashPayment>(
       context: context,
-      builder: (context) => CashPaymentDialog(
-        collectibleAmount: collectibleAmount,
-        initialCashReceived: initialCashReceived,
-      ),
+      builder:
+          (context) => CashPaymentDialog(
+            collectibleAmount: collectibleAmount,
+            initialCashReceived: initialCashReceived,
+          ),
     );
   }
   return future.whenComplete(WindowsTouchKeyboard.dismiss);
@@ -52,11 +54,7 @@ Future<CashPayment?> showCashPaymentDialog(
 
 /// Windows dialog wrapper — wraps [_CashPaymentContent] in a [Dialog].
 class CashPaymentDialog extends HookWidget {
-  const CashPaymentDialog({
-    super.key,
-    required this.collectibleAmount,
-    this.initialCashReceived,
-  });
+  const CashPaymentDialog({super.key, required this.collectibleAmount, this.initialCashReceived});
 
   final Decimal collectibleAmount;
   final Decimal? initialCashReceived;
@@ -84,10 +82,7 @@ class CashPaymentDialog extends HookWidget {
 
 /// Shared form content used by both the Windows dialog and the Android bottom sheet.
 class _CashPaymentContent extends HookWidget {
-  const _CashPaymentContent({
-    required this.collectibleAmount,
-    this.initialCashReceived,
-  });
+  const _CashPaymentContent({required this.collectibleAmount, this.initialCashReceived});
 
   final Decimal collectibleAmount;
   final Decimal? initialCashReceived;
@@ -95,9 +90,7 @@ class _CashPaymentContent extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final formKey = useMemoized(() => GlobalKey<FormState>());
-    final cashController = useTextEditingController(
-      text: initialCashReceived?.withCommas ?? '',
-    );
+    final cashController = useTextEditingController(text: initialCashReceived?.withCommas ?? '');
     final cashInputFormatter = useMemoized(() => DecimalInputFormatter());
 
     useListenable(cashController);
@@ -105,294 +98,256 @@ class _CashPaymentContent extends HookWidget {
     final cashReceived = Decimal.tryParse(cashController.text.replaceAll(',', '')) ?? Decimal.zero;
     final bottomInset = Platform.isAndroid ? MediaQuery.of(context).viewPadding.bottom : 0.0;
 
-    void applyFormatted(String rawText) {
-      final newValue = cashInputFormatter.formatEditUpdate(
-        cashController.value,
-        TextEditingValue(
-          text: rawText,
-          selection: TextSelection.collapsed(offset: rawText.length),
-        ),
-      );
-      cashController.value = newValue;
-    }
-
-    void appendKey(String key) {
-      final current = cashController.text.replaceAll(',', '');
-      applyFormatted('$current$key');
-    }
-
-    void appendDecimal() {
-      final current = cashController.text.replaceAll(',', '');
-      if (current.contains('.')) return;
-      applyFormatted(current.isEmpty ? '0.' : '$current.');
-    }
-
-    void backspace() {
-      final current = cashController.text.replaceAll(',', '');
-      if (current.isEmpty) return;
-      applyFormatted(current.substring(0, current.length - 1));
-    }
-
     return Form(
-        key: formKey,
-        child: SingleChildScrollView(
-          child: Container(
-            width: context.responsive.value(kiosk: 600, tablet: 600, phone: double.infinity),
-            padding: EdgeInsets.only(
-              left: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-              right: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-              bottom: bottomInset,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              spacing: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-              children: [
-                Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-                Text(
-                  'Cash Payment',
-                  style: TextStyle(
-                    fontSize: context.responsive.value(kiosk: 36, tablet: 24, phone: 18),
-                    fontWeight: FontWeight.w700,
-                    color: POSColors.textPrimary,
-                    letterSpacing: -0.3,
-                  ),
-                  textAlign: TextAlign.center,
+      key: formKey,
+      child: SingleChildScrollView(
+        child: Container(
+          width: context.responsive.value(kiosk: 600, tablet: 600, phone: double.infinity),
+          padding: EdgeInsets.only(
+            left: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+            right: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+            bottom: bottomInset,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
+            children: [
+              Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+              Text(
+                'Cash Payment',
+                style: TextStyle(
+                  fontSize: context.responsive.value(kiosk: 36, tablet: 24, phone: 18),
+                  fontWeight: FontWeight.w700,
+                  color: POSColors.textPrimary,
+                  letterSpacing: -0.3,
                 ),
-                Container(
-                  padding: EdgeInsets.all(
-                    context.responsive.value(kiosk: 32, tablet: 24, phone: 16),
-                  ),
-                  decoration: BoxDecoration(
-                    color: POSColors.surfaceSubtle,
-                    borderRadius: BorderRadius.circular(POSRadius.xl),
-                    border: Border.all(color: POSColors.borderDefault),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Total Amount Due',
-                        style: TextStyle(
-                          color: POSColors.textTertiary,
-                          fontSize: context.responsive.value(kiosk: 24, tablet: 18, phone: 14),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Gap(context.responsive.value(kiosk: 12, tablet: 8, phone: 4)),
-                      Text(
-                        collectibleAmount.withCommas,
-                        style: TextStyle(
-                          fontSize: context.responsive.value(kiosk: 56, tablet: 36, phone: 28),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
+                textAlign: TextAlign.center,
+              ),
+              Container(
+                padding: EdgeInsets.all(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+                decoration: BoxDecoration(
+                  color: POSColors.surfaceSubtle,
+                  borderRadius: BorderRadius.circular(POSRadius.xl),
+                  border: Border.all(color: POSColors.borderDefault),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                child: Column(
                   children: [
                     Text(
-                      'Cash Received',
+                      'Total Amount Due',
                       style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+                        color: POSColors.textTertiary,
+                        fontSize: context.responsive.value(kiosk: 24, tablet: 18, phone: 14),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    TextFormField(
-                      controller: cashController,
-                      // Drive input via NumericKeypad / denomination buttons only —
-                      // do not open the Windows/Android system keyboard.
-                      readOnly: true,
-                      showCursor: true,
-                      enableInteractiveSelection: false,
-                      keyboardType: TextInputType.none,
-                      textInputAction: TextInputAction.done,
-                      inputFormatters: [cashInputFormatter],
+                    Gap(context.responsive.value(kiosk: 12, tablet: 8, phone: 4)),
+                    Text(
+                      collectibleAmount.withCommas,
                       style: TextStyle(
-                        fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+                        fontSize: context.responsive.value(kiosk: 56, tablet: 36, phone: 28),
+                        fontWeight: FontWeight.bold,
                       ),
-                      decoration: InputDecoration(
-                        hintText: '0.00',
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: const BorderSide(color: POSColors.borderDefault),
-                          borderRadius: BorderRadius.circular(POSRadius.md),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: const BorderSide(color: ColorSet.primary, width: 1.5),
-                          borderRadius: BorderRadius.circular(POSRadius.md),
-                        ),
-                        errorBorder: OutlineInputBorder(
-                          borderSide: const BorderSide(color: ColorSet.danger),
-                          borderRadius: BorderRadius.circular(POSRadius.md),
-                        ),
-                        focusedErrorBorder: OutlineInputBorder(
-                          borderSide: const BorderSide(color: ColorSet.danger, width: 1.5),
-                          borderRadius: BorderRadius.circular(POSRadius.md),
-                        ),
-                        suffixIcon: cashController.text.isNotEmpty
-                            ? IconButton(
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Cash Received',
+                    style: TextStyle(
+                      fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  TextFormField(
+                    controller: cashController,
+                    // Drive input via NumericKeypad / denomination buttons only —
+                    // do not open the Windows/Android system keyboard.
+                    readOnly: true,
+                    showCursor: true,
+                    enableInteractiveSelection: false,
+                    keyboardType: TextInputType.none,
+                    textInputAction: TextInputAction.done,
+                    inputFormatters: [cashInputFormatter],
+                    style: TextStyle(
+                      fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+                    ),
+                    decoration: InputDecoration(
+                      hintText: '0.00',
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: POSColors.borderDefault),
+                        borderRadius: BorderRadius.circular(POSRadius.md),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: ColorSet.primary, width: 1.5),
+                        borderRadius: BorderRadius.circular(POSRadius.md),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: ColorSet.danger),
+                        borderRadius: BorderRadius.circular(POSRadius.md),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: ColorSet.danger, width: 1.5),
+                        borderRadius: BorderRadius.circular(POSRadius.md),
+                      ),
+                      suffixIcon:
+                          cashController.text.isNotEmpty
+                              ? IconButton(
                                 icon: const Icon(Icons.clear_rounded, size: 20),
                                 onPressed: () {
                                   cashController.clear();
                                 },
                               )
-                            : null,
-                      ),
-                      validator: (value) {
-                        final rules = [
-                          minValue(collectibleAmount.toDouble(), message: 'Insufficient amount'),
-                        ];
-                        final validate = Validate<double>(rules: rules);
-                        final sanitizedValue = value?.replaceAll(',', '');
-                        final receivedAmount = double.tryParse(sanitizedValue ?? '') ?? 0.0;
-                        return validate(receivedAmount);
-                      },
+                              : null,
                     ),
-                  ],
-                ),
-                NumericKeypad(
-                  keyHeight: context.responsive.value(kiosk: 64, tablet: 56, phone: 48),
-                  onKeyPressed: appendKey,
-                  onBackspace: backspace,
-                  onDecimal: appendDecimal,
-                ),
-                ResponsiveWrapContainer(
-                  spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-                  equalWidth: true,
-                  rowItems: 3,
-                  // runSpacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-                  items:
-                      [20, 50, 100, 200, 500, 1000].map((denomination) {
-                        return Material(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(POSRadius.md),
-                          child: InkWell(
-                            onTap: () {
-                              final current = Decimal.tryParse(
-                                    cashController.text.replaceAll(',', ''),
-                                  ) ??
-                                  Decimal.zero;
-                              final newAmount = current + Decimal.fromInt(denomination);
-                              final newText = newAmount.toString();
-                              final newValue = cashInputFormatter.formatEditUpdate(
-                                cashController.value,
-                                TextEditingValue(
-                                  text: newText,
-                                  selection: TextSelection.collapsed(
-                                    offset: newText.length,
-                                  ),
-                                ),
-                              );
-                              cashController.value = newValue;
-                            },
-                            borderRadius: BorderRadius.circular(POSRadius.md),
-                            child: Container(
-                              width: context.responsive.value(kiosk: 120, tablet: 96, phone: 96),
-                              height: context.responsive.value(kiosk: 60, tablet: 48, phone: 48),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: POSColors.borderDefault),
-                                borderRadius: BorderRadius.circular(POSRadius.md),
+                    validator: (value) {
+                      final rules = [
+                        minValue(collectibleAmount.toDouble(), message: 'Insufficient amount'),
+                      ];
+                      final validate = Validate<double>(rules: rules);
+                      final sanitizedValue = value?.replaceAll(',', '');
+                      final receivedAmount = double.tryParse(sanitizedValue ?? '') ?? 0.0;
+                      return validate(receivedAmount);
+                    },
+                  ),
+                ],
+              ),
+              ResponsiveWrapContainer(
+                spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+                equalWidth: true,
+                rowItems: 3,
+                // runSpacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+                items:
+                    [20, 50, 100, 200, 500, 1000].map((denomination) {
+                      return Material(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(POSRadius.md),
+                        child: InkWell(
+                          onTap: () {
+                            final current =
+                                Decimal.tryParse(cashController.text.replaceAll(',', '')) ??
+                                Decimal.zero;
+                            final newAmount = current + Decimal.fromInt(denomination);
+                            final newText = newAmount.toString();
+                            final newValue = cashInputFormatter.formatEditUpdate(
+                              cashController.value,
+                              TextEditingValue(
+                                text: newText,
+                                selection: TextSelection.collapsed(offset: newText.length),
                               ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                '$denomination',
-                                style: TextStyle(
-                                  fontSize: context.responsive.value(
-                                    kiosk: 24,
-                                    tablet: 20,
-                                    phone: 16,
-                                  ),
-                                  fontWeight: FontWeight.w700,
-                                  color: POSColors.textPrimary,
+                            );
+                            cashController.value = newValue;
+                          },
+                          borderRadius: BorderRadius.circular(POSRadius.md),
+                          child: Container(
+                            width: context.responsive.value(kiosk: 120, tablet: 96, phone: 96),
+                            height: context.responsive.value(kiosk: 60, tablet: 48, phone: 48),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: POSColors.borderDefault),
+                              borderRadius: BorderRadius.circular(POSRadius.md),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '$denomination',
+                              style: TextStyle(
+                                fontSize: context.responsive.value(
+                                  kiosk: 24,
+                                  tablet: 20,
+                                  phone: 16,
                                 ),
+                                fontWeight: FontWeight.w700,
+                                color: POSColors.textPrimary,
                               ),
                             ),
                           ),
-                        );
-                      }).toList(),
-                ),
-                if (cashReceived >= collectibleAmount)
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Change',
-                        style: TextStyle(
-                          fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
-                          fontWeight: FontWeight.w500,
-                          color: POSColors.textTertiary,
                         ),
-                      ),
-                      Text(
-                        (cashReceived - collectibleAmount).withCommas,
-                        style: TextStyle(
-                          fontSize: context.responsive.value(kiosk: 56, tablet: 36, phone: 28),
-                          fontWeight: FontWeight.w800,
-                          color: ColorSet.success,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                Row(
+                      );
+                    }).toList(),
+              ),
+              if (cashReceived >= collectibleAmount)
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Button.outlined(
-                      foregroundColor: ColorSet.text,
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      label: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-                          vertical: context.responsive.value(kiosk: 8, tablet: 6, phone: 4),
-                        ),
-                        child: Text(
-                          'Cancel',
-                          style: TextStyle(
-                            fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
-                          ),
-                        ),
+                    Text(
+                      'Change',
+                      style: TextStyle(
+                        fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+                        fontWeight: FontWeight.w500,
+                        color: POSColors.textTertiary,
                       ),
                     ),
-                    Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-                    const Spacer(),
-                    Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
-                    Button(
-                      onPressed: () {
-                        if (!formKey.currentState!.validate()) return;
-                        final payment = CashPayment(
-                          paidAmount: collectibleAmount,
-                          cashReceived: cashReceived,
-                        );
-                        Navigator.of(context).pop(payment);
-                      },
-                      foregroundColor: ColorSet.background,
-                      backgroundColor: ColorSet.primary,
-                      label: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
-                          vertical: context.responsive.value(kiosk: 8, tablet: 6, phone: 4),
-                        ),
-                        child: Text(
-                          'Confirm',
-                          style: TextStyle(
-                            fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
-                          ),
-                        ),
+                    Text(
+                      (cashReceived - collectibleAmount).withCommas,
+                      style: TextStyle(
+                        fontSize: context.responsive.value(kiosk: 56, tablet: 36, phone: 28),
+                        fontWeight: FontWeight.w800,
+                        color: ColorSet.success,
+                        letterSpacing: -0.5,
                       ),
                     ),
                   ],
                 ),
-                Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
-              ],
-            ),
+              Row(
+                children: [
+                  Button.outlined(
+                    foregroundColor: ColorSet.text,
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+                        vertical: context.responsive.value(kiosk: 8, tablet: 6, phone: 4),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+                  const Spacer(),
+                  Gap(context.responsive.value(kiosk: 16, tablet: 12, phone: 8)),
+                  Button(
+                    onPressed: () {
+                      if (!formKey.currentState!.validate()) return;
+                      final payment = CashPayment(
+                        paidAmount: collectibleAmount,
+                        cashReceived: cashReceived,
+                      );
+                      Navigator.of(context).pop(payment);
+                    },
+                    foregroundColor: ColorSet.background,
+                    backgroundColor: ColorSet.primary,
+                    label: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
+                        vertical: context.responsive.value(kiosk: 8, tablet: 6, phone: 4),
+                      ),
+                      child: Text(
+                        'Confirm',
+                        style: TextStyle(
+                          fontSize: context.responsive.value(kiosk: 20, tablet: 16, phone: 12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Gap(context.responsive.value(kiosk: 32, tablet: 24, phone: 16)),
+            ],
           ),
         ),
+      ),
     );
   }
 }

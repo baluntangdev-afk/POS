@@ -95,7 +95,18 @@
       "Bash(npx *)",
       "Bash(npm --prefix \"C:/Users/Jufiel/Documents/POS_ENTERPRISE/POS_KIOSK/be\" run build:sea)",
       "PowerShell(whoami *)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "mcp__plugin_context7-plugin_context7__resolve-library-id",
+      "WebFetch(domain:pub.dev)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Read(//c/Users/Jufiel/AppData/Local/Pub/Cache/hosted/pub.dev/desktop_multi_window-0.3.0/lib/**)",
+      "Read(//c/Users/Jufiel/AppData/Local/Pub/Cache/hosted/pub.dev/**)",
+      "Read(//c/Users/Jufiel/AppData/Local/Pub/Cache/hosted/pub.dev/screen_retriever-0.2.0/lib/**)",
+      "Artifact",
+      "Bash(sed -i \"s/const group = ProductGroup\\(id: 5, name: 'Coffee & Cold Brew', image: Uint8List.empty\\(\\)\\);/final group = ProductGroup\\(id: 5, name: 'Coffee \\\\& Cold Brew', image: Uint8List\\(0\\)\\);/\" test/features/customer_display/entities/customer_display_catalog_test.dart)",
+      "Bash(sed -i \"s/const group = ProductGroup\\(id: 5, name: 'Coffee', image: Uint8List.empty\\(\\)\\);/final group = ProductGroup\\(id: 5, name: 'Coffee', image: Uint8List\\(0\\)\\);/\" test/features/customer_display/entities/customer_display_catalog_test.dart)",
+      "Bash(git -C /c/Users/Jufiel/Documents/POS_ENTERPRISE/POS_KIOSK status --short)",
+      "PowerShell(powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\Jufiel\\\\Documents\\\\POS_ENTERPRISE\\\\POS_KIOSK\\\\build-installer.ps1\" -Version 1.1.4)"
     ]
   }
 }

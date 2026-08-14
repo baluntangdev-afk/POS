@@ -52,7 +52,7 @@
 ; â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 #define MyAppName    "POS Kiosk"
-#define MyAppVersion "1.0.8"
+#define MyAppVersion "1.1.5"
 #define MyAppPublisher "Your Company"
 #define KioskExe     "pos_app.exe"
 #define BackendExe   "POSBackend.exe"
@@ -362,6 +362,13 @@ function NeedRestart(): Boolean;
 begin
   Result := False;
 end;
+
+
+
+
+
+
+
 
 
 

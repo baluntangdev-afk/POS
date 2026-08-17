@@ -431,7 +431,9 @@
       "Bash(flutter devices *)",
       "Bash(adb -s NB552023120510 shell screencap -p /sdcard/screen1.png)",
       "Bash(adb -s NB552023120510 pull /sdcard/screen1.png \"C:\\\\Users\\\\Jufiel\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Jufiel-Documents-POS-ENTERPRISE-POS-KIOSK\\\\d2905574-517a-48ca-8d5c-c1c0fa99555b\\\\scratchpad\\\\screen1.png\")",
-      "PowerShell($adb = \\(Get-Command adb -ErrorAction SilentlyContinue\\); if \\($adb\\) { $adb.Source } else { $env:ANDROID_HOME; $env:ANDROID_SDK_ROOT; Get-ChildItem -Path \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" -ErrorAction SilentlyContinue })"
+      "PowerShell($adb = \\(Get-Command adb -ErrorAction SilentlyContinue\\); if \\($adb\\) { $adb.Source } else { $env:ANDROID_HOME; $env:ANDROID_SDK_ROOT; Get-ChildItem -Path \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" -ErrorAction SilentlyContinue })",
+      "Bash(xargs -I{} sh -c 'echo {}')",
+      "Bash(powershell -Command \"Get-ChildItem -Path 'C:\\\\' -Filter 'gradient.dart' -Recurse -ErrorAction SilentlyContinue -Include 'gradient.dart' | Select-Object -First 3 FullName\" 2>&1)"
     ]
   }
 }

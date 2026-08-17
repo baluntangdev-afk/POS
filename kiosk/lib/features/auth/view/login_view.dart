@@ -126,18 +126,19 @@ class LoginView extends HookConsumerWidget {
 
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
-      child: step.value == _LoginStep.selectUser
-          ? _SelectUserStep(onUserSelected: selectUser)
-          : _EnterPinStep(
-              user: selectedUser.value!,
-              pin: pin.value,
-              loginError: loginError.value,
-              selectedButton: selectedButton,
-              onNumberPressed: onNumberPressed,
-              onBackspace: onBackspace,
-              onConfirm: attemptLogin,
-              onBack: backToUserSelection,
-            ),
+      child:
+          step.value == _LoginStep.selectUser
+              ? _SelectUserStep(onUserSelected: selectUser)
+              : _EnterPinStep(
+                user: selectedUser.value!,
+                pin: pin.value,
+                loginError: loginError.value,
+                selectedButton: selectedButton,
+                onNumberPressed: onNumberPressed,
+                onBackspace: onBackspace,
+                onConfirm: attemptLogin,
+                onBack: backToUserSelection,
+              ),
     );
   }
 }
@@ -152,6 +153,13 @@ class _SelectUserStep extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: IconButton(
+            onPressed: () => const OrderSourceRoute().go(context),
+            icon: const Icon(Icons.arrow_back_rounded, color: POSColors.textPrimary),
+          ),
+        ),
         Text(
           "Who's working?",
           style: TextStyle(

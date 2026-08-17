@@ -60,7 +60,7 @@ class MenuGrid extends StatelessWidget {
                         return;
                       }
                       if (type == MenuType.replenishment) {
-                        const ReplenishmentRoute().push<void>(context);
+                        // const ReplenishmentRoute().push<void>(context);
                         return;
                       }
                     },

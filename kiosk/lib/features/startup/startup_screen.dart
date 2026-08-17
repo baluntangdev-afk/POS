@@ -31,7 +31,7 @@ class StartupScreen extends HookConsumerWidget {
           final result = await ref.read(healthApiProvider).checkAlive();
           if (cancelled) return;
           if (result.isAlive) {
-            if (context.mounted) const LoginRoute().go(context);
+            if (context.mounted) const OrderSourceRoute().go(context);
           } else {
             lastError.value = result.error;
           }
@@ -112,9 +112,7 @@ class StartupScreen extends HookConsumerWidget {
                 duration: POSAnimation.slow,
                 child: Text(
                   key: ValueKey(isSlowStartup),
-                  isSlowStartup
-                      ? 'Services are taking a moment to start...'
-                      : 'Starting up...',
+                  isSlowStartup ? 'Services are taking a moment to start...' : 'Starting up...',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.75),
                     fontSize: 15,

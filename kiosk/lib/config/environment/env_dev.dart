@@ -17,6 +17,10 @@ final class EnvDev implements AppEnv {
   final String replenishmentApiBaseUrl = _EnvDev.replenishmentApiBaseUrl;
 
   @override
+  @EnviedField()
+  final String cartivoAuthApiBaseUrl = _EnvDev.cartivoAuthApiBaseUrl;
+
+  @override
   @EnviedField(obfuscate: true)
   final String secureStorageKey = _EnvDev.secureStorageKey;
 

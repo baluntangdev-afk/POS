@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -49,17 +50,24 @@ class OrdersLiveFeedRepositoryImpl implements OrdersLiveFeedRepository {
   }
 
   OrderEvent? _parse(Object? raw) {
-    if (raw is! String) return null;
+    if (raw is! String) {
+      debugPrint('[OrdersFeed] dropped non-string WS message: $raw');
+      return null;
+    }
     try {
       final json = jsonDecode(raw) as Map<String, dynamic>;
       final type = OrderEventType.fromWire(json['event_type'] as String);
-      if (type == null) return null;
+      if (type == null) {
+        debugPrint('[OrdersFeed] dropped unrecognized event_type: ${json['event_type']}');
+        return null;
+      }
       return OrderEvent(
         eventId: json['event_id'] as String,
         type: type,
         data: OrderData.fromJson(jsonEncode(json['data'])),
       );
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[OrdersFeed] failed to parse WS message: $raw\nerror: $e\n$st');
       return null;
     }
   }

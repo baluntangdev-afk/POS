@@ -18,8 +18,10 @@ class OrdersFeedState with OrdersFeedStateMappable {
   const OrdersFeedState({
     required this.connection,
     this.events = const IList.empty(),
+    this.kioskId,
   });
 
   final OrdersFeedConnection connection;
   final IList<OrderEvent> events;
+  final String? kioskId;
 }

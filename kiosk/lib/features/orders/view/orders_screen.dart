@@ -129,7 +129,7 @@ class _OrderEventCard extends StatelessWidget {
                 Text(label, style: TextStyle(fontWeight: FontWeight.w700, color: color, fontSize: 14)),
                 const SizedBox(height: 4),
                 Text(
-                  'Order #${event.data.id} · ${event.data.customerName}',
+                  'Order #${event.data.id} · ${event.data.customerName ?? 'Guest'}',
                   style: const TextStyle(fontWeight: FontWeight.w600, color: POSColors.textPrimary, fontSize: 15),
                 ),
                 const SizedBox(height: 2),

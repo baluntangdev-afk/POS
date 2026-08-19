@@ -5,12 +5,17 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'features/orders/entities/orders_feed_state.dart';
 import 'features/orders/state/orders_feed_notifier.dart';
 import 'navigation/router.dart';
 import 'styles/color_set.dart';
 import 'styles/fallback_theme.dart';
 import 'widgets/global_unfocus_on_tap_outside.dart';
 import 'widgets/onscreen_keyboard/onscreen_keyboard_scope.dart';
+
+/// Lets non-widget code (and app.dart itself) show a SnackBar without being
+/// tied to whichever screen's Scaffold is currently on screen.
+final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 class App extends ConsumerWidget {
   const App({super.key, required this.container});
@@ -24,8 +29,10 @@ class App extends ConsumerWidget {
     // in the notifier); it connects/disconnects itself as loginStateProvider
     // changes, independent of which screen is on screen.
     ref.watch(ordersFeedNotifierProvider);
+    ref.listen(ordersFeedNotifierProvider, _onOrdersFeedStateChange);
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: scaffoldMessengerKey,
       routerConfig: router,
       theme: fallbackTheme,
       builder: (context, child) {
@@ -107,4 +114,23 @@ class _WindowCloseGuardState extends State<_WindowCloseGuard> with WindowListene
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+void _onOrdersFeedStateChange(AsyncValue<OrdersFeedState>? previous, AsyncValue<OrdersFeedState> next) {
+  final wasConnected = previous?.value?.connection == OrdersFeedConnection.connected;
+  final isConnected = next.value?.connection == OrdersFeedConnection.connected;
+  if (wasConnected || !isConnected) return;
+
+  final kioskId = next.value?.kioskId;
+  scaffoldMessengerKey.currentState
+    ?..clearSnackBars()
+    ..showSnackBar(
+      SnackBar(
+        content: Text(
+          kioskId == null ? 'Connected to live orders' : 'Connected to live orders (kiosk: $kioskId)',
+        ),
+        backgroundColor: ColorSet.success,
+        duration: const Duration(seconds: 3),
+      ),
+    );
 }

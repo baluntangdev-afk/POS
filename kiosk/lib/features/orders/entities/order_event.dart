@@ -1,5 +1,4 @@
 import 'package:dart_mappable/dart_mappable.dart';
-import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 
 part 'order_event.mapper.dart';
 
@@ -26,7 +25,7 @@ enum OrderEventType {
   }
 }
 
-@MappableClass()
+@MappableClass(caseStyle: CaseStyle.snakeCase)
 class OrderEventItem with OrderEventItemMappable {
   const OrderEventItem({
     required this.productId,
@@ -38,12 +37,12 @@ class OrderEventItem with OrderEventItemMappable {
   final String productId;
   final String productName;
   final int quantity;
-  final String price;
+  final num price;
 
   static const fromJson = OrderEventItemMapper.fromJson;
 }
 
-@MappableClass()
+@MappableClass(caseStyle: CaseStyle.snakeCase)
 class OrderData with OrderDataMappable {
   const OrderData({
     required this.id,
@@ -54,18 +53,18 @@ class OrderData with OrderDataMappable {
     required this.total,
     required this.currency,
     required this.items,
-    required this.merchantIds,
+    required this.merchantId,
   });
 
   final String id;
   final String customerId;
-  final String customerName;
-  final String customerEmail;
+  final String? customerName;
+  final String? customerEmail;
   final String status;
-  final String total;
+  final num total;
   final String currency;
-  final IList<OrderEventItem> items;
-  final IList<String> merchantIds;
+  final List<OrderEventItem> items;
+  final String merchantId;
 
   static const fromJson = OrderDataMapper.fromJson;
 }

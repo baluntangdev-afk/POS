@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../data/backend_api/sources/pos_terminals_api.dart';
@@ -63,7 +64,7 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
 
       _connectedAt = DateTime.now();
       _subscription = session.events.listen(_onEvent, onError: _onDrop, onDone: _onDrop);
-      _setConnection(OrdersFeedConnection.connected);
+      _setConnection(OrdersFeedConnection.connected, kioskId: terminal.kioskId);
     } catch (_) {
       unawaited(_session?.close());
       _session = null;
@@ -73,6 +74,7 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
   }
 
   void _onEvent(OrderEvent event) {
+    debugPrint('[OrdersFeed] event received: ${event.type.name} ${event.eventId} (order ${event.data.id})');
     if (!_seenEventIds.add(event.eventId)) return;
     _recentEventIds.add(event.eventId);
     if (_recentEventIds.length > 200) {
@@ -110,10 +112,12 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     _backoff = doubled > _maxBackoff ? _maxBackoff : doubled;
   }
 
-  void _setConnection(OrdersFeedConnection connection) {
+  void _setConnection(OrdersFeedConnection connection, {String? kioskId}) {
     final current = state.value;
     if (current == null) return;
-    state = AsyncData(current.copyWith(connection: connection));
+    state = AsyncData(
+      current.copyWith(connection: connection, kioskId: kioskId ?? current.kioskId),
+    );
   }
 
   void _teardown() {

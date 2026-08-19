@@ -9,9 +9,9 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../widgets/payment_methods_card.dart';
 import '../../../widgets/section_card.dart';
 import '../../settings/state/store_info_notifier.dart';
+import '../../settings/view/store_info_screen.dart' show generateStoreId;
 
-Future<void> showStoreDetailsDialog(
-  BuildContext context, {
+Future<void> showStoreDetailsDialog(BuildContext context, {
   required VoidCallback onSignOut,
 }) {
   return showDialog<void>(
@@ -28,13 +28,22 @@ class StoreDetailsDialog extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final info = ref.read(storeInfoProvider).value;
+    final info = ref
+        .read(storeInfoProvider)
+        .value;
 
     final formKey = useMemoized(GlobalKey<FormState>.new);
+    final storeIdCtrl = useTextEditingController(
+      text: (info?.storeId.isNotEmpty ?? false)
+          ? info!.storeId
+          : generateStoreId(),
+    );
     final nameCtrl = useTextEditingController(text: info?.storeName ?? '');
     final addressCtrl = useTextEditingController(text: info?.address ?? '');
     final tinCtrl = useTextEditingController(text: info?.tin ?? '');
-    final terminalNameCtrl = useTextEditingController(text: info?.terminalName ?? '');
+    final terminalNameCtrl = useTextEditingController(
+      text: info?.terminalName ?? '',
+    );
     final isSubmitting = useState(false);
     final errorMessage = useState<String?>(null);
 
@@ -43,15 +52,18 @@ class StoreDetailsDialog extends HookConsumerWidget {
       isSubmitting.value = true;
       errorMessage.value = null;
       try {
-        await ref.read(storeInfoProvider.notifier).save(
-              storeName: nameCtrl.text.trim(),
-              address: addressCtrl.text.trim(),
-              tin: tinCtrl.text.trim(),
-              terminalName: terminalNameCtrl.text.trim(),
-              taxRate: info?.taxRate ?? 0.0,
-              currency: info?.currency ?? 'PHP',
-              receiptFooter: info?.receiptFooter ?? '',
-            );
+        await ref
+            .read(storeInfoProvider.notifier)
+            .save(
+          storeId: storeIdCtrl.text.trim(),
+          storeName: nameCtrl.text.trim(),
+          address: addressCtrl.text.trim(),
+          tin: tinCtrl.text.trim(),
+          terminalName: terminalNameCtrl.text.trim(),
+          taxRate: info?.taxRate ?? 0.0,
+          currency: info?.currency ?? 'PHP',
+          receiptFooter: info?.receiptFooter ?? '',
+        );
         if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
       } catch (e) {
         errorMessage.value = '$e';
@@ -65,7 +77,10 @@ class StoreDetailsDialog extends HookConsumerWidget {
       child: Container(
         width: 480,
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
+          maxHeight: MediaQuery
+              .of(context)
+              .size
+              .height * 0.85,
         ),
         decoration: BoxDecoration(
           color: AppColors.surface,
@@ -91,12 +106,30 @@ class StoreDetailsDialog extends HookConsumerWidget {
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     'Set up your store details before operating the system.',
-                    style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   SectionCard(
                     title: 'Basic Info',
                     children: [
+                      TextFormField(
+                        controller: storeIdCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Store ID',
+                          border: OutlineInputBorder(),
+                        ),
+                        textCapitalization: TextCapitalization.characters,
+                        validator:
+                            (v) =>
+                        (v
+                            ?.trim()
+                            .isEmpty ?? true)
+                            ? 'Store ID is required'
+                            : null,
+                      ),
+                      const Gap(AppSpacing.md),
                       TextFormField(
                         controller: nameCtrl,
                         decoration: const InputDecoration(
@@ -104,8 +137,13 @@ class StoreDetailsDialog extends HookConsumerWidget {
                           border: OutlineInputBorder(),
                         ),
                         textCapitalization: TextCapitalization.words,
-                        validator: (v) =>
-                            (v?.trim().isEmpty ?? true) ? 'Store name is required' : null,
+                        validator:
+                            (v) =>
+                        (v
+                            ?.trim()
+                            .isEmpty ?? true)
+                            ? 'Store name is required'
+                            : null,
                       ),
                       const Gap(AppSpacing.md),
                       TextFormField(
@@ -115,8 +153,13 @@ class StoreDetailsDialog extends HookConsumerWidget {
                           border: OutlineInputBorder(),
                         ),
                         maxLines: 2,
-                        validator: (v) =>
-                            (v?.trim().isEmpty ?? true) ? 'Address is required' : null,
+                        validator:
+                            (v) =>
+                        (v
+                            ?.trim()
+                            .isEmpty ?? true)
+                            ? 'Address is required'
+                            : null,
                       ),
                       const Gap(AppSpacing.md),
                       TextFormField(
@@ -126,8 +169,13 @@ class StoreDetailsDialog extends HookConsumerWidget {
                           hintText: '000-000-000-000',
                           border: OutlineInputBorder(),
                         ),
-                        validator: (v) =>
-                            (v?.trim().isEmpty ?? true) ? 'TIN is required' : null,
+                        validator:
+                            (v) =>
+                        (v
+                            ?.trim()
+                            .isEmpty ?? true)
+                            ? 'TIN is required'
+                            : null,
                       ),
                       const Gap(AppSpacing.md),
                       TextFormField(
@@ -151,11 +199,15 @@ class StoreDetailsDialog extends HookConsumerWidget {
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.errorLight,
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusMd,
+                        ),
                       ),
                       child: Text(
                         errorMessage.value!,
-                        style: AppTextStyles.bodySm.copyWith(color: AppColors.error),
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.error,
+                        ),
                       ),
                     ),
                   ],
@@ -164,18 +216,28 @@ class StoreDetailsDialog extends HookConsumerWidget {
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: isSubmitting.value
+                          onPressed:
+                          isSubmitting.value
                               ? null
                               : () {
-                                  Navigator.of(context, rootNavigator: true).pop();
-                                  onSignOut();
-                                },
+                            Navigator.of(
+                              context,
+                              rootNavigator: true,
+                            ).pop();
+                            onSignOut();
+                          },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.error,
-                            side: BorderSide(color: AppColors.error.withValues(alpha: 0.5)),
-                            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                            side: BorderSide(
+                              color: AppColors.error.withValues(alpha: 0.5),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: AppSpacing.md,
+                            ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusMd,
+                              ),
                             ),
                           ),
                           child: const Text('Sign Out'),
@@ -188,21 +250,29 @@ class StoreDetailsDialog extends HookConsumerWidget {
                           onPressed: isSubmitting.value ? null : onSave,
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: AppSpacing.md,
+                            ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusMd,
+                              ),
                             ),
                           ),
-                          child: isSubmitting.value
+                          child:
+                          isSubmitting.value
                               ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text('Save', style: TextStyle(color: Colors.white)),
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                              : const Text(
+                            'Save',
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ),
                     ],

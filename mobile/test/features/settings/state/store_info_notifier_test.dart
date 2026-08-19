@@ -16,6 +16,7 @@ void main() {
 
     await container.read(storeInfoProvider.future);
     await container.read(storeInfoProvider.notifier).save(
+          storeId: 'ST-001',
           storeName: 'My Store',
           address: '123 Main St',
           taxRate: 12.0,
@@ -27,6 +28,7 @@ void main() {
 
     final info = await container.read(storeInfoProvider.future);
     expect(info!.tin, '123-456-789-000');
+    expect(info.storeId, 'ST-001');
     expect(info.storeName, 'My Store');
     expect(info.terminalName, 'Front Counter');
   });

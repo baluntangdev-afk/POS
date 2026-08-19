@@ -43,6 +43,7 @@ dependencies:
   share_plus: ^10.0.0
   shared_preferences: ^2.5.4
   vector_graphics: ^1.1.19
+  web_socket_channel: ^3.0.3
   win32: ^5.15.0
   window_manager: ^0.5.1
 

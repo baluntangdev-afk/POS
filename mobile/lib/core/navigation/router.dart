@@ -16,6 +16,7 @@ import '../../features/cashier_accounting/z_reading/view/z_reading_screen.dart';
 import '../../features/inventory/view/inventory_screen.dart';
 import '../../features/inventory/view/modifier_groups_screen.dart';
 import '../../features/dashboard/view/dashboard_screen.dart';
+import '../../features/orders/view/orders_screen.dart';
 import '../../features/ordering/view/discount_screen.dart';
 import '../../features/ordering/view/ordering_screen.dart';
 import '../../features/ordering/view/payment_screen.dart';
@@ -112,6 +113,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/reports',
         builder: (context, state) => const ReportsScreen(),
+      ),
+      GoRoute(
+        path: '/orders',
+        builder: (context, state) => const OrdersScreen(),
       ),
       GoRoute(
         path: '/transactions',

@@ -65,6 +65,12 @@ const _kTileCashierAccounting = _Tile(
   accent: Color(0xFF8E44AD),
   route: '/cashier-accounting',
 );
+const _kTileOrders = _Tile(
+  label: 'Orders',
+  icon: Icons.receipt_long_outlined,
+  accent: Color(0xFF2980B9),
+  route: '/orders',
+);
 
 /// Max width the tile grid is allowed to stretch to, so very wide
 /// screens (tablet landscape, desktop) don't turn tiles into oversized
@@ -223,6 +229,7 @@ class DashboardScreen extends HookConsumerWidget {
       if (isAdmin) _kTileInventory,
       // _kTileReports hidden for now
       _kTileCashierAccounting,
+      _kTileOrders,
       _kTileSettings,
       if (isAdmin) _kTileUsers,
     ];

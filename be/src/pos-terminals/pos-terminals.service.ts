@@ -89,6 +89,15 @@ export class PosTerminalsService {
   async updateForUser(userId: number, dto: UpdatePosTerminalDto): Promise<PosTerminal> {
     const terminal = await this.findAssignedToUser(userId);
 
+    if (dto.kioskId !== undefined && dto.kioskId !== terminal.kioskId) {
+      const existing = await this.posTerminalRepository.findOne({
+        where: { kioskId: dto.kioskId },
+      });
+      if (existing) {
+        throw new ConflictException('This Kiosk ID is already in use.');
+      }
+      terminal.kioskId = dto.kioskId;
+    }
     if (dto.legalName !== undefined) terminal.legalName = dto.legalName;
     if (dto.address !== undefined) terminal.address = dto.address;
     if (dto.tinNumber !== undefined) terminal.tinNumber = dto.tinNumber;

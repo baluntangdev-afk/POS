@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'features/orders/state/orders_feed_notifier.dart';
 import 'navigation/router.dart';
 import 'styles/color_set.dart';
 import 'styles/fallback_theme.dart';
@@ -19,16 +20,15 @@ class App extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    // Boots the session-scoped orders live feed (kept alive via ref.keepAlive
+    // in the notifier); it connects/disconnects itself as loginStateProvider
+    // changes, independent of which screen is on screen.
+    ref.watch(ordersFeedNotifierProvider);
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       routerConfig: router,
       theme: fallbackTheme,
       builder: (context, child) {
-        // OnScreenKeyboardScope must sit OUTSIDE GlobalUnfocusOnTapOutside: the
-        // scope renders the keyboard panel as a sibling of the app content, so
-        // keeping the tap-outside Listener wrapped around the content alone
-        // means taps on a key never reach it and can't unfocus the field being
-        // typed into.
         final content = OnScreenKeyboardScope(
           child: GlobalUnfocusOnTapOutside(child: child ?? const SizedBox.shrink()),
         );

@@ -5,6 +5,7 @@ class StoreInfoTable extends Table {
   String get tableName => 'store_info';
 
   IntColumn get id => integer().autoIncrement()();
+  TextColumn get storeId => text().withDefault(const Constant(''))();
   TextColumn get storeName => text().withDefault(const Constant(''))();
   TextColumn get address => text().withDefault(const Constant(''))();
   RealColumn get taxRate => real().withDefault(const Constant(0.0))();

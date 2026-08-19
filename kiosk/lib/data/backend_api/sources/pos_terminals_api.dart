@@ -28,10 +28,12 @@ class PosTerminalsApi {
     required String legalName,
     required String address,
     required String tinNumber,
+    String? kioskId,
   }) async {
     final response = await _secureClient.patch<dynamic>(
       '/api/v1/pos-terminals/my-terminal',
       data: {
+        if (kioskId != null) 'kioskId': kioskId,
         'legalName': legalName,
         'address': address,
         'tinNumber': tinNumber,

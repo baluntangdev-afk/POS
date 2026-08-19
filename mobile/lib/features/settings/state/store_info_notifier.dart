@@ -13,6 +13,7 @@ class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
   }
 
   Future<void> save({
+    required String storeId,
     required String storeName,
     required String address,
     required double taxRate,
@@ -25,6 +26,7 @@ class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
     final existing = state.value;
     await db.storeInfoDao.upsertStoreInfo(StoreInfoTableCompanion(
       id: existing != null ? Value(existing.id) : const Value.absent(),
+      storeId: Value(storeId),
       storeName: Value(storeName),
       address: Value(address),
       taxRate: Value(taxRate),

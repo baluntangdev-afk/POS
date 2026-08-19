@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 abstract class AppEnv {
   String get backendApiBaseUrl;
   String get secureStorageKey;
+  String get ordersLiveFeedWsUrl;
   bool get isDev;
 }
 

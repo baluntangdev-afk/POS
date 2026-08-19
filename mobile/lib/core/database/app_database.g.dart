@@ -5699,6 +5699,18 @@ class $StoreInfoTableTable extends StoreInfoTable
       'PRIMARY KEY AUTOINCREMENT',
     ),
   );
+  static const VerificationMeta _storeIdMeta = const VerificationMeta(
+    'storeId',
+  );
+  @override
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
+    'store_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _storeNameMeta = const VerificationMeta(
     'storeName',
   );
@@ -5784,6 +5796,7 @@ class $StoreInfoTableTable extends StoreInfoTable
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    storeId,
     storeName,
     address,
     taxRate,
@@ -5806,6 +5819,12 @@ class $StoreInfoTableTable extends StoreInfoTable
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('store_id')) {
+      context.handle(
+        _storeIdMeta,
+        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
+      );
     }
     if (data.containsKey('store_name')) {
       context.handle(
@@ -5869,6 +5888,11 @@ class $StoreInfoTableTable extends StoreInfoTable
             DriftSqlType.int,
             data['${effectivePrefix}id'],
           )!,
+      storeId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}store_id'],
+          )!,
       storeName:
           attachedDatabase.typeMapping.read(
             DriftSqlType.string,
@@ -5916,6 +5940,7 @@ class $StoreInfoTableTable extends StoreInfoTable
 class StoreInfoTableData extends DataClass
     implements Insertable<StoreInfoTableData> {
   final int id;
+  final String storeId;
   final String storeName;
   final String address;
   final double taxRate;
@@ -5925,6 +5950,7 @@ class StoreInfoTableData extends DataClass
   final String terminalName;
   const StoreInfoTableData({
     required this.id,
+    required this.storeId,
     required this.storeName,
     required this.address,
     required this.taxRate,
@@ -5937,6 +5963,7 @@ class StoreInfoTableData extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    map['store_id'] = Variable<String>(storeId);
     map['store_name'] = Variable<String>(storeName);
     map['address'] = Variable<String>(address);
     map['tax_rate'] = Variable<double>(taxRate);
@@ -5950,6 +5977,7 @@ class StoreInfoTableData extends DataClass
   StoreInfoTableCompanion toCompanion(bool nullToAbsent) {
     return StoreInfoTableCompanion(
       id: Value(id),
+      storeId: Value(storeId),
       storeName: Value(storeName),
       address: Value(address),
       taxRate: Value(taxRate),
@@ -5967,6 +5995,7 @@ class StoreInfoTableData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return StoreInfoTableData(
       id: serializer.fromJson<int>(json['id']),
+      storeId: serializer.fromJson<String>(json['storeId']),
       storeName: serializer.fromJson<String>(json['storeName']),
       address: serializer.fromJson<String>(json['address']),
       taxRate: serializer.fromJson<double>(json['taxRate']),
@@ -5981,6 +6010,7 @@ class StoreInfoTableData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'storeId': serializer.toJson<String>(storeId),
       'storeName': serializer.toJson<String>(storeName),
       'address': serializer.toJson<String>(address),
       'taxRate': serializer.toJson<double>(taxRate),
@@ -5993,6 +6023,7 @@ class StoreInfoTableData extends DataClass
 
   StoreInfoTableData copyWith({
     int? id,
+    String? storeId,
     String? storeName,
     String? address,
     double? taxRate,
@@ -6002,6 +6033,7 @@ class StoreInfoTableData extends DataClass
     String? terminalName,
   }) => StoreInfoTableData(
     id: id ?? this.id,
+    storeId: storeId ?? this.storeId,
     storeName: storeName ?? this.storeName,
     address: address ?? this.address,
     taxRate: taxRate ?? this.taxRate,
@@ -6013,6 +6045,7 @@ class StoreInfoTableData extends DataClass
   StoreInfoTableData copyWithCompanion(StoreInfoTableCompanion data) {
     return StoreInfoTableData(
       id: data.id.present ? data.id.value : this.id,
+      storeId: data.storeId.present ? data.storeId.value : this.storeId,
       storeName: data.storeName.present ? data.storeName.value : this.storeName,
       address: data.address.present ? data.address.value : this.address,
       taxRate: data.taxRate.present ? data.taxRate.value : this.taxRate,
@@ -6033,6 +6066,7 @@ class StoreInfoTableData extends DataClass
   String toString() {
     return (StringBuffer('StoreInfoTableData(')
           ..write('id: $id, ')
+          ..write('storeId: $storeId, ')
           ..write('storeName: $storeName, ')
           ..write('address: $address, ')
           ..write('taxRate: $taxRate, ')
@@ -6047,6 +6081,7 @@ class StoreInfoTableData extends DataClass
   @override
   int get hashCode => Object.hash(
     id,
+    storeId,
     storeName,
     address,
     taxRate,
@@ -6060,6 +6095,7 @@ class StoreInfoTableData extends DataClass
       identical(this, other) ||
       (other is StoreInfoTableData &&
           other.id == this.id &&
+          other.storeId == this.storeId &&
           other.storeName == this.storeName &&
           other.address == this.address &&
           other.taxRate == this.taxRate &&
@@ -6071,6 +6107,7 @@ class StoreInfoTableData extends DataClass
 
 class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
   final Value<int> id;
+  final Value<String> storeId;
   final Value<String> storeName;
   final Value<String> address;
   final Value<double> taxRate;
@@ -6080,6 +6117,7 @@ class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
   final Value<String> terminalName;
   const StoreInfoTableCompanion({
     this.id = const Value.absent(),
+    this.storeId = const Value.absent(),
     this.storeName = const Value.absent(),
     this.address = const Value.absent(),
     this.taxRate = const Value.absent(),
@@ -6090,6 +6128,7 @@ class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
   });
   StoreInfoTableCompanion.insert({
     this.id = const Value.absent(),
+    this.storeId = const Value.absent(),
     this.storeName = const Value.absent(),
     this.address = const Value.absent(),
     this.taxRate = const Value.absent(),
@@ -6100,6 +6139,7 @@ class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
   });
   static Insertable<StoreInfoTableData> custom({
     Expression<int>? id,
+    Expression<String>? storeId,
     Expression<String>? storeName,
     Expression<String>? address,
     Expression<double>? taxRate,
@@ -6110,6 +6150,7 @@ class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (storeId != null) 'store_id': storeId,
       if (storeName != null) 'store_name': storeName,
       if (address != null) 'address': address,
       if (taxRate != null) 'tax_rate': taxRate,
@@ -6122,6 +6163,7 @@ class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
 
   StoreInfoTableCompanion copyWith({
     Value<int>? id,
+    Value<String>? storeId,
     Value<String>? storeName,
     Value<String>? address,
     Value<double>? taxRate,
@@ -6132,6 +6174,7 @@ class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
   }) {
     return StoreInfoTableCompanion(
       id: id ?? this.id,
+      storeId: storeId ?? this.storeId,
       storeName: storeName ?? this.storeName,
       address: address ?? this.address,
       taxRate: taxRate ?? this.taxRate,
@@ -6147,6 +6190,9 @@ class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (storeId.present) {
+      map['store_id'] = Variable<String>(storeId.value);
     }
     if (storeName.present) {
       map['store_name'] = Variable<String>(storeName.value);
@@ -6176,6 +6222,7 @@ class StoreInfoTableCompanion extends UpdateCompanion<StoreInfoTableData> {
   String toString() {
     return (StringBuffer('StoreInfoTableCompanion(')
           ..write('id: $id, ')
+          ..write('storeId: $storeId, ')
           ..write('storeName: $storeName, ')
           ..write('address: $address, ')
           ..write('taxRate: $taxRate, ')
@@ -16390,6 +16437,7 @@ typedef $$RefundItemsTableTableProcessedTableManager =
 typedef $$StoreInfoTableTableCreateCompanionBuilder =
     StoreInfoTableCompanion Function({
       Value<int> id,
+      Value<String> storeId,
       Value<String> storeName,
       Value<String> address,
       Value<double> taxRate,
@@ -16401,6 +16449,7 @@ typedef $$StoreInfoTableTableCreateCompanionBuilder =
 typedef $$StoreInfoTableTableUpdateCompanionBuilder =
     StoreInfoTableCompanion Function({
       Value<int> id,
+      Value<String> storeId,
       Value<String> storeName,
       Value<String> address,
       Value<double> taxRate,
@@ -16421,6 +16470,11 @@ class $$StoreInfoTableTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get storeId => $composableBuilder(
+    column: $table.storeId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -16474,6 +16528,11 @@ class $$StoreInfoTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get storeId => $composableBuilder(
+    column: $table.storeId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get storeName => $composableBuilder(
     column: $table.storeName,
     builder: (column) => ColumnOrderings(column),
@@ -16521,6 +16580,9 @@ class $$StoreInfoTableTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get storeId =>
+      $composableBuilder(column: $table.storeId, builder: (column) => column);
 
   GeneratedColumn<String> get storeName =>
       $composableBuilder(column: $table.storeName, builder: (column) => column);
@@ -16590,6 +16652,7 @@ class $$StoreInfoTableTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String> storeId = const Value.absent(),
                 Value<String> storeName = const Value.absent(),
                 Value<String> address = const Value.absent(),
                 Value<double> taxRate = const Value.absent(),
@@ -16599,6 +16662,7 @@ class $$StoreInfoTableTableTableManager
                 Value<String> terminalName = const Value.absent(),
               }) => StoreInfoTableCompanion(
                 id: id,
+                storeId: storeId,
                 storeName: storeName,
                 address: address,
                 taxRate: taxRate,
@@ -16610,6 +16674,7 @@ class $$StoreInfoTableTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String> storeId = const Value.absent(),
                 Value<String> storeName = const Value.absent(),
                 Value<String> address = const Value.absent(),
                 Value<double> taxRate = const Value.absent(),
@@ -16619,6 +16684,7 @@ class $$StoreInfoTableTableTableManager
                 Value<String> terminalName = const Value.absent(),
               }) => StoreInfoTableCompanion.insert(
                 id: id,
+                storeId: storeId,
                 storeName: storeName,
                 address: address,
                 taxRate: taxRate,

@@ -19,7 +19,7 @@ export class PosTerminal {
   @PrimaryGeneratedColumn({ type: 'int' })
   id: number;
 
-  @Column({ type: 'uuid', unique: true, name: 'kiosk_id' })
+  @Column({ type: 'varchar', length: 100, unique: true, name: 'kiosk_id' })
   kioskId: string;
 
   @BeforeInsert()

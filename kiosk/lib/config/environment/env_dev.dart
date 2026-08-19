@@ -17,5 +17,9 @@ final class EnvDev implements AppEnv {
   final String secureStorageKey = _EnvDev.secureStorageKey;
 
   @override
+  @EnviedField()
+  final String ordersLiveFeedWsUrl = _EnvDev.ordersLiveFeedWsUrl;
+
+  @override
   bool get isDev => true;
 }

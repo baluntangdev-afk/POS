@@ -39,6 +39,10 @@ class MenuGrid extends StatelessWidget {
                          const OrderingRoute().push<void>(context);
                          return;
                       }
+                      if (type == MenuType.orders) {
+                        const OrdersRoute().push<void>(context);
+                        return;
+                      }
                       if (type == MenuType.logout) {
                         const LoginRoute().go(context);
                         return;
@@ -71,15 +75,15 @@ class MenuGrid extends StatelessWidget {
   List<MenuItem> _getMenuItems() {
     final baseItems = [
       MenuItem(label: 'New Order', icon: Assets.images.svg.icCart.svg(), type: MenuType.newOrder),
+      const MenuItem(
+        label: 'Orders',
+        icon: Icon(Icons.receipt_long_outlined),
+        type: MenuType.orders,
+      ),
       MenuItem(
         label: 'Inventory',
         icon: Assets.images.svg.icInventory.svg(),
         type: MenuType.inventory,
-      ),
-      MenuItem(
-        label: 'Replenishment',
-        icon: Assets.images.cartivoLogo.image(),
-        type: MenuType.replenishment,
       ),
       MenuItem(
         label: 'Transactions',
@@ -105,6 +109,7 @@ class MenuGrid extends StatelessWidget {
           .where(
             (item) =>
                 item.type == MenuType.newOrder ||
+                item.type == MenuType.orders ||
                 item.type == MenuType.logout ||
                 item.type == MenuType.transactions,
           )

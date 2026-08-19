@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -27,6 +30,7 @@ class PosTerminalDetailsDialog extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final formKey = useRef(GlobalKey<FormState>());
+    final kioskIdController = useTextEditingController();
     final legalNameController = useTextEditingController();
     final addressController = useTextEditingController();
     final tinController = useTextEditingController();
@@ -39,6 +43,7 @@ class PosTerminalDetailsDialog extends HookConsumerWidget {
     useEffect(() {
       if (posTerminalAsync case AsyncData(value: final terminal)) {
         if (!isInitialized.value) {
+          kioskIdController.text = terminal.kioskId;
           legalNameController.text = terminal.legalName ?? '';
           addressController.text = terminal.address;
           tinController.text = terminal.tinNumber;
@@ -55,6 +60,7 @@ class PosTerminalDetailsDialog extends HookConsumerWidget {
       try {
         final api = ref.read(posTerminalsApiProvider);
         await api.updateMyTerminal(
+          kioskId: kioskIdController.text.trim(),
           legalName: legalNameController.text.trim(),
           address: addressController.text.trim(),
           tinNumber: tinController.text.trim(),
@@ -175,7 +181,7 @@ class PosTerminalDetailsDialog extends HookConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _KioskIdBadge(kioskId: terminal.kioskId),
+                        _KioskIdField(controller: kioskIdController),
                         const SizedBox(height: 16),
                         _PosFormField(
                           label: 'Legal Name',
@@ -752,46 +758,93 @@ class _DialogHeader extends StatelessWidget {
   }
 }
 
-class _KioskIdBadge extends StatelessWidget {
-  const _KioskIdBadge({required this.kioskId});
+class _KioskIdField extends HookWidget {
+  const _KioskIdField({required this.controller});
 
-  final String kioskId;
+  final TextEditingController controller;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: POSColors.surfaceSubtle,
-        borderRadius: BorderRadius.circular(POSRadius.md),
-        border: const Border.fromBorderSide(BorderSide(color: POSColors.borderDefault)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.fingerprint_rounded, size: 16, color: POSColors.textTertiary),
-          const SizedBox(width: 8),
-          const Text(
-            'Kiosk ID',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: POSColors.textTertiary,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              kioskId,
-              style: const TextStyle(
-                fontSize: 12,
+    final justCopied = useState(false);
+
+    useEffect(() {
+      if (!justCopied.value) return null;
+      final timer = Timer(const Duration(seconds: 2), () {
+        justCopied.value = false;
+      });
+      return timer.cancel;
+    }, [justCopied.value]);
+
+    Future<void> onCopy() async {
+      await Clipboard.setData(ClipboardData(text: controller.text));
+      justCopied.value = true;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.fingerprint_rounded, size: 14, color: POSColors.textTertiary),
+            SizedBox(width: 6),
+            Text(
+              'Kiosk ID',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
                 color: POSColors.textSecondary,
-                fontFamily: 'monospace',
+                letterSpacing: 0.2,
               ),
-              overflow: TextOverflow.ellipsis,
             ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          readOnly: KeyboardSuppress.readOnly,
+          showCursor: KeyboardSuppress.showCursor,
+          keyboardType: KeyboardSuppress.type(null),
+          onTap: KeyboardSuppress.onTap,
+          onTapOutside: (_) {
+            FocusManager.instance.primaryFocus?.unfocus();
+            OnScreenKeyboard.hide();
+            WindowsTouchKeyboard.dismiss();
+          },
+          style: const TextStyle(fontSize: 12, fontFamily: 'monospace', color: POSColors.textSecondary),
+          validator: (v) =>
+              (v == null || v.trim().isEmpty) ? 'Kiosk ID is required' : null,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: POSColors.surfaceSubtle,
+            suffixIcon: IconButton(
+              icon: Icon(
+                justCopied.value ? Icons.check_rounded : Icons.copy_rounded,
+                size: 16,
+                color: justCopied.value ? ColorSet.primary : POSColors.textTertiary,
+              ),
+              tooltip: 'Copy Kiosk ID',
+              onPressed: onCopy,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(POSRadius.md),
+              borderSide: const BorderSide(color: POSColors.borderDefault),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(POSRadius.md),
+              borderSide: const BorderSide(color: POSColors.borderDefault),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(POSRadius.md),
+              borderSide: const BorderSide(color: ColorSet.primary, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(POSRadius.md),
+              borderSide: const BorderSide(color: ColorSet.danger),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

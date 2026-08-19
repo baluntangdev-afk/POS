@@ -1,5 +1,6 @@
 enum MenuType {
   newOrder,
+  orders,
   inventory,
   replenishment,
   transactions,

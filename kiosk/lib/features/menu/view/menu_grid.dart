@@ -1,23 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../gen/assets.gen.dart';
 import '../../../navigation/router.dart';
 import '../../../widgets/resposive_wrap_container.dart';
+import '../../orders/state/pending_orders_count_provider.dart';
 import '../../settings/view/pos_terminal_details_dialog.dart';
 import '../entities/menu_item.dart';
 import '../enums/menu_type.dart';
 import '../enums/role.dart';
 import 'menu_item_card.dart';
 
-class MenuGrid extends StatelessWidget {
+class MenuGrid extends ConsumerWidget {
   const MenuGrid({super.key, required this.role});
 
   final Role role;
 
-  List<MenuItem> get menuItems => _getMenuItems();
+  List<MenuItem> _menuItems(int pendingOrdersCount) {
+    return _getMenuItems().map((item) {
+      if (item.type != MenuType.orders) return item;
+      // Always set, even at 0, so the badge stays visible at all times.
+      return item.copyWith(badgeCount: pendingOrdersCount);
+    }).toList();
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pendingOrdersCount = ref.watch(pendingOrdersCountProvider).value ?? 0;
+    final menuItems = _menuItems(pendingOrdersCount);
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;

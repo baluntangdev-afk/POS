@@ -5,10 +5,12 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/connectivity/connectivity_status_provider.dart';
 import '../../../data/backend_api/sources/pos_terminals_api.dart';
 import '../../auth/state/login_state_notifier.dart';
 import '../entities/order_event.dart';
 import '../entities/orders_feed_state.dart';
+import '../repositories/order_events_local_repository.dart';
 import '../repositories/orders_live_feed_repository.dart';
 
 const _initialBackoff = Duration(seconds: 1);
@@ -35,6 +37,7 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
   Timer? _retryTimer;
   Duration _backoff = _initialBackoff;
   DateTime? _connectedAt;
+  String? _kioskId;
   final Queue<String> _recentEventIds = Queue();
   final Set<String> _seenEventIds = {};
 
@@ -43,6 +46,7 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     ref.keepAlive();
     final loggedIn = ref.watch(loginStateProvider.select((auth) => auth.value != null));
     ref.onDispose(_teardown);
+    ref.listen(isOnlineProvider, _onConnectivityChange);
 
     if (!loggedIn) {
       _teardown();
@@ -53,10 +57,26 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     return const OrdersFeedState(connection: OrdersFeedConnection.connecting);
   }
 
+  /// Reconnects immediately when the device comes back online while the
+  /// socket is mid-backoff, instead of waiting out whatever delay
+  /// [_scheduleReconnect] left in flight.
+  void _onConnectivityChange(AsyncValue<bool>? previous, AsyncValue<bool> next) {
+    final wasOnline = previous?.value ?? false;
+    final isOnline = next.value ?? false;
+    if (wasOnline || !isOnline) return;
+
+    final connection = state.value?.connection;
+    if (connection != OrdersFeedConnection.reconnecting && connection != OrdersFeedConnection.disconnected) {
+      return;
+    }
+    unawaited(_connect());
+  }
+
   Future<void> _connect() async {
     _retryTimer?.cancel();
     try {
       final terminal = await ref.read(posTerminalsApiProvider).getMyTerminal();
+      _kioskId = terminal.kioskId;
       final repository = ref.read(ordersLiveFeedRepositoryProvider);
       final session = repository.connect(terminal.kioskId);
       _session = session;
@@ -79,6 +99,14 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     _recentEventIds.add(event.eventId);
     if (_recentEventIds.length > 200) {
       _seenEventIds.remove(_recentEventIds.removeFirst());
+    }
+
+    // Persist every event type, not just `created` — `updated`/`cancelled`
+    // must overwrite the stored order state so the pending-orders badge
+    // (driven by "latest event isn't a cancellation") stays accurate.
+    final kioskId = _kioskId;
+    if (kioskId != null) {
+      unawaited(ref.read(orderEventsLocalRepositoryProvider).save(event, kioskId: kioskId));
     }
 
     final current = state.value ?? const OrdersFeedState(connection: OrdersFeedConnection.connected);
@@ -129,5 +157,6 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     _session = null;
     _backoff = _initialBackoff;
     _connectedAt = null;
+    _kioskId = null;
   }
 }

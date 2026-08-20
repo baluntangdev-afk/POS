@@ -8,67 +8,28 @@ import '../../../theme/pos_design.dart';
 import '../../../widgets/brand_header.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/order_event.dart';
-import '../entities/orders_feed_state.dart';
-import '../state/orders_feed_notifier.dart';
+import '../state/pending_orders_count_provider.dart';
 
 class OrdersScreen extends ConsumerWidget {
   const OrdersScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final feed = ref.watch(ordersFeedNotifierProvider).value;
+    // Connection status is shown by the app-wide ConnectivityStatusBanner
+    // (see app.dart) — this screen only needs the persisted (on-disk) order
+    // list, the same source the menu badge reads, not the live feed's
+    // in-memory event log, which is empty on a fresh session/reconnect even
+    // when orders are already stored locally.
+    final events = ref.watch(persistedOrdersProvider).value ?? const [];
 
     return WindowsScaffold(
       backgroundColor: ColorSet.background,
       body: Column(
         children: [
           const BrandHeader(),
-          _ConnectionBanner(connection: feed?.connection ?? OrdersFeedConnection.connecting),
           Expanded(
-            child: feed == null || feed.events.isEmpty
-                ? const _EmptyBody()
-                : _OrderEventList(events: feed.events),
+            child: events.isEmpty ? const _EmptyBody() : _OrderEventList(events: events.toIList()),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ConnectionBanner extends StatelessWidget {
-  const _ConnectionBanner({required this.connection});
-
-  final OrdersFeedConnection connection;
-
-  @override
-  Widget build(BuildContext context) {
-    if (connection == OrdersFeedConnection.connected) return const SizedBox.shrink();
-
-    final r = context.responsive;
-    final (label, color) = switch (connection) {
-      OrdersFeedConnection.connected => ('Live', ColorSet.success),
-      OrdersFeedConnection.connecting => ('Connecting…', ColorSet.warning),
-      OrdersFeedConnection.reconnecting => ('Reconnecting — check internet connection', ColorSet.warning),
-      OrdersFeedConnection.disconnected => ('Not connected', POSColors.textTertiary),
-    };
-
-    return Container(
-      width: double.infinity,
-      color: color.withValues(alpha: 0.1),
-      padding: EdgeInsets.symmetric(
-        horizontal: r.value<double>(kiosk: 24, tablet: 16, phone: 12),
-        vertical: r.value<double>(kiosk: 10, tablet: 8, phone: 6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 8,
-            height: 8,
-            child: DecoratedBox(decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-          ),
-          const SizedBox(width: 8),
-          Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13)),
         ],
       ),
     );

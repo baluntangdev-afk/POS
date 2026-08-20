@@ -46,71 +46,105 @@ class MenuItemCard extends HookWidget {
     return MouseRegion(
       onEnter: (_) => isHovered.value = true,
       onExit: (_) => isHovered.value = false,
-      child: AnimatedContainer(
-        duration: POSAnimation.normal,
-        curve: Curves.easeInOut,
-        constraints: BoxConstraints(minHeight: minHeight),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(POSRadius.xl),
-          border: Border.all(
-            color: isHovered.value ? accent.withValues(alpha: 0.4) : POSColors.borderDefault,
-            width: 1.5,
-          ),
-          boxShadow: isHovered.value
-              ? [BoxShadow(color: accent.withValues(alpha: 0.15), blurRadius: 20, offset: const Offset(0, 6))]
-              : POSShadow.card,
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(POSRadius.xl),
-          child: InkWell(
-            onTap: () => onTap(menuItem.type),
-            borderRadius: BorderRadius.circular(POSRadius.xl),
-            splashColor: accent.withValues(alpha: 0.08),
-            highlightColor: accent.withValues(alpha: 0.04),
-            child: Padding(
-              padding: EdgeInsets.all(responsive.value<double>(kiosk: 24, tablet: 20, phone: 16)),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  AnimatedContainer(
-                    duration: POSAnimation.normal,
-                    width: iconSize * 1.6,
-                    height: iconSize * 1.6,
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: isHovered.value ? 0.15 : 0.1),
-                      borderRadius: BorderRadius.circular(POSRadius.lg),
-                    ),
-                    child: Center(
-                      child: SizedBox(
-                        height: iconSize,
-                        width: iconSize,
-                        child: ColorFiltered(
-                          colorFilter: ColorFilter.mode(accent, BlendMode.srcIn),
-                          child: menuItem.icon,
+      child: Stack(
+        clipBehavior: Clip.none,
+        fit: StackFit.passthrough,
+        children: [
+          AnimatedContainer(
+            duration: POSAnimation.normal,
+            curve: Curves.easeInOut,
+            constraints: BoxConstraints(minHeight: minHeight),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(POSRadius.xl),
+              border: Border.all(
+                color: isHovered.value ? accent.withValues(alpha: 0.4) : POSColors.borderDefault,
+                width: 1.5,
+              ),
+              boxShadow: isHovered.value
+                  ? [BoxShadow(color: accent.withValues(alpha: 0.15), blurRadius: 20, offset: const Offset(0, 6))]
+                  : POSShadow.card,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(POSRadius.xl),
+              child: InkWell(
+                onTap: () => onTap(menuItem.type),
+                borderRadius: BorderRadius.circular(POSRadius.xl),
+                splashColor: accent.withValues(alpha: 0.08),
+                highlightColor: accent.withValues(alpha: 0.04),
+                child: Padding(
+                  padding: EdgeInsets.all(responsive.value<double>(kiosk: 24, tablet: 20, phone: 16)),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AnimatedContainer(
+                        duration: POSAnimation.normal,
+                        width: iconSize * 1.6,
+                        height: iconSize * 1.6,
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: isHovered.value ? 0.15 : 0.1),
+                          borderRadius: BorderRadius.circular(POSRadius.lg),
+                        ),
+                        child: Center(
+                          child: SizedBox(
+                            height: iconSize,
+                            width: iconSize,
+                            child: ColorFiltered(
+                              colorFilter: ColorFilter.mode(accent, BlendMode.srcIn),
+                              child: menuItem.icon,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                      SizedBox(height: responsive.value<double>(kiosk: 14, tablet: 12, phone: 10)),
+                      Text(
+                        menuItem.label,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: labelSize,
+                          fontWeight: FontWeight.w600,
+                          color: POSColors.textPrimary,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: responsive.value<double>(kiosk: 14, tablet: 12, phone: 10)),
-                  Text(
-                    menuItem.label,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: labelSize,
-                      fontWeight: FontWeight.w600,
-                      color: POSColors.textPrimary,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
+          if (menuItem.badgeCount case final count?)
+            Positioned(top: -6, right: -6, child: _CountBadge(count: count)),
+        ],
+      ),
+    );
+  }
+}
+
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = count > 99 ? '99+' : '$count';
+    return Container(
+      constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      decoration: BoxDecoration(
+        color: ColorSet.danger,
+        borderRadius: BorderRadius.circular(POSRadius.full),
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [BoxShadow(color: ColorSet.danger.withValues(alpha: 0.35), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12, height: 1),
       ),
     );
   }

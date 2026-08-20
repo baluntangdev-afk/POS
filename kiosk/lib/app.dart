@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'features/orders/entities/order_event.dart';
 import 'features/orders/entities/orders_feed_state.dart';
 import 'features/orders/state/orders_feed_notifier.dart';
 import 'navigation/router.dart';
 import 'styles/color_set.dart';
 import 'styles/fallback_theme.dart';
+import 'widgets/connectivity_status_banner.dart';
 import 'widgets/global_unfocus_on_tap_outside.dart';
 import 'widgets/onscreen_keyboard/onscreen_keyboard_scope.dart';
 
@@ -30,6 +32,7 @@ class App extends ConsumerWidget {
     // changes, independent of which screen is on screen.
     ref.watch(ordersFeedNotifierProvider);
     ref.listen(ordersFeedNotifierProvider, _onOrdersFeedStateChange);
+    ref.listen(ordersFeedNotifierProvider, _onNewOrderCreated);
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: scaffoldMessengerKey,
@@ -37,7 +40,14 @@ class App extends ConsumerWidget {
       theme: fallbackTheme,
       builder: (context, child) {
         final content = OnScreenKeyboardScope(
-          child: GlobalUnfocusOnTapOutside(child: child ?? const SizedBox.shrink()),
+          child: Column(
+            children: [
+              const ConnectivityStatusBanner(),
+              Expanded(
+                child: GlobalUnfocusOnTapOutside(child: child ?? const SizedBox.shrink()),
+              ),
+            ],
+          ),
         );
         if (!kIsWeb && Platform.isWindows) {
           return _WindowCloseGuard(container: container, child: content);
@@ -114,6 +124,32 @@ class _WindowCloseGuardState extends State<_WindowCloseGuard> with WindowListene
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+/// Toasts once per new `order.created` event. The feed prepends new events,
+/// so anything ahead of the previous head (by event id) is new.
+void _onNewOrderCreated(AsyncValue<OrdersFeedState>? previous, AsyncValue<OrdersFeedState> next) {
+  final previousEvents = previous?.value?.events;
+  final nextEvents = next.value?.events;
+  if (nextEvents == null || nextEvents.isEmpty) return;
+
+  final previousHeadId = previousEvents?.isEmpty ?? true ? null : previousEvents!.first.eventId;
+  final newEvents = <OrderEvent>[];
+  for (final event in nextEvents) {
+    if (event.eventId == previousHeadId) break;
+    newEvents.add(event);
+  }
+
+  for (final event in newEvents.reversed) {
+    if (event.type != OrderEventType.created) continue;
+    scaffoldMessengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Text('New order #${event.data.id} · ${event.data.items.length} item(s)'),
+        backgroundColor: ColorSet.primary,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
 }
 
 void _onOrdersFeedStateChange(AsyncValue<OrdersFeedState>? previous, AsyncValue<OrdersFeedState> next) {

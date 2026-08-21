@@ -7,6 +7,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
+import '../../../utils/physical_keyboard_detector.dart';
 import '../../../utils/windows_touch_keyboard.dart';
 import '../../../widgets/onscreen_keyboard/keyboard_suppress.dart';
 import '../../../widgets/onscreen_keyboard/onscreen_keyboard.dart';
@@ -518,29 +519,33 @@ class _VariantRowField extends StatelessWidget {
             },
             onSelected: (selection) => row.nameController.text = selection,
             fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-              return TextFormField(
-                controller: controller,
-                focusNode: focusNode,
-                readOnly: KeyboardSuppress.readOnly,
-                showCursor: KeyboardSuppress.showCursor,
-                keyboardType: KeyboardSuppress.type(null),
-                onTap: KeyboardSuppress.onTap,
-                onTapOutside: (_) {
-                  focusNode.unfocus();
-                  OnScreenKeyboard.hide();
-                  WindowsTouchKeyboard.dismiss();
-                },
-                decoration: InputDecoration(
-                  hintText: 'e.g. Regular, Venti',
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(POSRadius.md),
-                    borderSide: const BorderSide(color: POSColors.borderDefault),
+              return ValueListenableBuilder<bool>(
+                valueListenable: PhysicalKeyboardDetector.attached,
+                builder: (context, hasPhysicalKeyboard, _) => TextFormField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  readOnly: KeyboardSuppress.readOnly(hasPhysicalKeyboard),
+                  showCursor: KeyboardSuppress.showCursor(hasPhysicalKeyboard),
+                  keyboardType: KeyboardSuppress.type(null, hasPhysicalKeyboard),
+                  contextMenuBuilder: KeyboardSuppress.contextMenuBuilder(hasPhysicalKeyboard),
+                  onTap: KeyboardSuppress.onTap,
+                  onTapOutside: (_) {
+                    focusNode.unfocus();
+                    OnScreenKeyboard.hide();
+                    WindowsTouchKeyboard.dismiss();
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Regular, Venti',
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(POSRadius.md),
+                      borderSide: const BorderSide(color: POSColors.borderDefault),
+                    ),
                   ),
+                  validator: Validate(rules: [isRequired()]).call,
                 ),
-                validator: Validate(rules: [isRequired()]).call,
               );
             },
           ),

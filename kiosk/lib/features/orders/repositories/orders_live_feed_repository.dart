@@ -46,7 +46,13 @@ class OrdersLiveFeedRepositoryImpl implements OrdersLiveFeedRepository {
         .map((raw) => _parse(raw))
         .where((event) => event != null)
         .cast<OrderEvent>();
-    return OrdersSocketSession(channel, events);
+    final session = OrdersSocketSession(channel, events);
+    unawaited(
+      session.ready.then(
+        (_) => debugPrint('[OrdersFeed] connected to ORDERS_LIVE_FEED_WS_URL: $_baseUrl (uri: $uri)'),
+      ),
+    );
+    return session;
   }
 
   OrderEvent? _parse(Object? raw) {
@@ -61,6 +67,7 @@ class OrdersLiveFeedRepositoryImpl implements OrdersLiveFeedRepository {
         debugPrint('[OrdersFeed] dropped unrecognized event_type: ${json['event_type']}');
         return null;
       }
+      debugPrint('RECEIVED LIVE DATA ${jsonEncode(json['data'])}');
       return OrderEvent(
         eventId: json['event_id'] as String,
         type: type,

@@ -8,6 +8,7 @@ import '../../../exceptions/exception_extension.dart';
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../theme/pos_design.dart';
+import '../../../utils/physical_keyboard_detector.dart';
 import '../../../utils/windows_touch_keyboard.dart';
 import '../../../widgets/onscreen_keyboard/keyboard_suppress.dart';
 import '../../../widgets/onscreen_keyboard/onscreen_keyboard.dart';
@@ -485,20 +486,24 @@ class _PaymentMethodFormDialog extends HookWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  TextFormField(
-                    controller: methodNameController,
-                    readOnly: KeyboardSuppress.readOnly,
-                    showCursor: KeyboardSuppress.showCursor,
-                    keyboardType: KeyboardSuppress.type(null),
-                    onTap: KeyboardSuppress.onTap,
-                    onTapOutside: (_) {
-                      FocusManager.instance.primaryFocus?.unfocus();
-                      OnScreenKeyboard.hide();
-                      WindowsTouchKeyboard.dismiss();
-                    },
-                    decoration: _fieldDecoration(hint: 'e.g. PayMaya, Bitcoin'),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Payment method name is required' : null,
+                  ValueListenableBuilder<bool>(
+                    valueListenable: PhysicalKeyboardDetector.attached,
+                    builder: (context, hasPhysicalKeyboard, _) => TextFormField(
+                      controller: methodNameController,
+                      readOnly: KeyboardSuppress.readOnly(hasPhysicalKeyboard),
+                      showCursor: KeyboardSuppress.showCursor(hasPhysicalKeyboard),
+                      keyboardType: KeyboardSuppress.type(null, hasPhysicalKeyboard),
+                      contextMenuBuilder: KeyboardSuppress.contextMenuBuilder(hasPhysicalKeyboard),
+                      onTap: KeyboardSuppress.onTap,
+                      onTapOutside: (_) {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        OnScreenKeyboard.hide();
+                        WindowsTouchKeyboard.dismiss();
+                      },
+                      decoration: _fieldDecoration(hint: 'e.g. PayMaya, Bitcoin'),
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? 'Payment method name is required' : null,
+                    ),
                   ),
                 ],
                 if (selectedMethod.value != PaymentMethod.cash) ...[
@@ -513,18 +518,22 @@ class _PaymentMethodFormDialog extends HookWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  TextFormField(
-                    controller: numberController,
-                    readOnly: KeyboardSuppress.readOnly,
-                    showCursor: KeyboardSuppress.showCursor,
-                    keyboardType: KeyboardSuppress.type(null),
-                    onTap: KeyboardSuppress.onTap,
-                    onTapOutside: (_) {
-                      FocusManager.instance.primaryFocus?.unfocus();
-                      OnScreenKeyboard.hide();
-                      WindowsTouchKeyboard.dismiss();
-                    },
-                    decoration: _fieldDecoration(hint: 'e.g. 09171234567'),
+                  ValueListenableBuilder<bool>(
+                    valueListenable: PhysicalKeyboardDetector.attached,
+                    builder: (context, hasPhysicalKeyboard, _) => TextFormField(
+                      controller: numberController,
+                      readOnly: KeyboardSuppress.readOnly(hasPhysicalKeyboard),
+                      showCursor: KeyboardSuppress.showCursor(hasPhysicalKeyboard),
+                      keyboardType: KeyboardSuppress.type(null, hasPhysicalKeyboard),
+                      contextMenuBuilder: KeyboardSuppress.contextMenuBuilder(hasPhysicalKeyboard),
+                      onTap: KeyboardSuppress.onTap,
+                      onTapOutside: (_) {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        OnScreenKeyboard.hide();
+                        WindowsTouchKeyboard.dismiss();
+                      },
+                      decoration: _fieldDecoration(hint: 'e.g. 09171234567'),
+                    ),
                   ),
                 ],
                 if (errorMessage.value != null) ...[
@@ -675,12 +684,15 @@ class _PosFormField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        TextFormField(
+        ValueListenableBuilder<bool>(
+          valueListenable: PhysicalKeyboardDetector.attached,
+          builder: (context, hasPhysicalKeyboard, _) => TextFormField(
           controller: controller,
           validator: validator,
-          readOnly: KeyboardSuppress.readOnly,
-          showCursor: KeyboardSuppress.showCursor,
-          keyboardType: KeyboardSuppress.type(null),
+          readOnly: KeyboardSuppress.readOnly(hasPhysicalKeyboard),
+          showCursor: KeyboardSuppress.showCursor(hasPhysicalKeyboard),
+          keyboardType: KeyboardSuppress.type(null, hasPhysicalKeyboard),
+          contextMenuBuilder: KeyboardSuppress.contextMenuBuilder(hasPhysicalKeyboard),
           onTap: KeyboardSuppress.onTap,
           onTapOutside: (_) {
             FocusManager.instance.primaryFocus?.unfocus();
@@ -709,6 +721,7 @@ class _PosFormField extends StatelessWidget {
               borderSide: const BorderSide(color: ColorSet.danger),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          ),
           ),
         ),
       ],

@@ -9,6 +9,7 @@ import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
+import '../../../utils/physical_keyboard_detector.dart';
 import '../../../utils/windows_touch_keyboard.dart';
 import '../../../widgets/onscreen_keyboard/keyboard_suppress.dart';
 import '../../../widgets/onscreen_keyboard/onscreen_keyboard.dart';
@@ -511,25 +512,29 @@ class UserFormDialog extends HookConsumerWidget {
           builder: (field) => Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(
-                style: TextStyle(fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13), color: POSColors.textPrimary),
-                focusNode: focusNode,
-                controller: controller,
-                keyboardType: KeyboardSuppress.type(keyboardType),
-                inputFormatters: inputFormatters,
-                enabled: enabled,
-                readOnly: KeyboardSuppress.readOnly,
-                showCursor: KeyboardSuppress.showCursor,
-                onTap: KeyboardSuppress.onTap,
-                onTapOutside: (_) {
-                  focusNode.unfocus();
-                  OnScreenKeyboard.hide();
-                  WindowsTouchKeyboard.dismiss();
-                },
-                decoration: _inputDecoration(context, icon).copyWith(
-                  errorText: field.hasError ? field.errorText : null,
+              ValueListenableBuilder<bool>(
+                valueListenable: PhysicalKeyboardDetector.attached,
+                builder: (context, hasPhysicalKeyboard, _) => TextField(
+                  style: TextStyle(fontSize: r.value<double>(kiosk: 15, tablet: 14, phone: 13), color: POSColors.textPrimary),
+                  focusNode: focusNode,
+                  controller: controller,
+                  keyboardType: KeyboardSuppress.type(keyboardType, hasPhysicalKeyboard),
+                  inputFormatters: inputFormatters,
+                  enabled: enabled,
+                  readOnly: KeyboardSuppress.readOnly(hasPhysicalKeyboard),
+                  showCursor: KeyboardSuppress.showCursor(hasPhysicalKeyboard),
+                  contextMenuBuilder: KeyboardSuppress.contextMenuBuilder(hasPhysicalKeyboard),
+                  onTap: KeyboardSuppress.onTap,
+                  onTapOutside: (_) {
+                    focusNode.unfocus();
+                    OnScreenKeyboard.hide();
+                    WindowsTouchKeyboard.dismiss();
+                  },
+                  decoration: _inputDecoration(context, icon).copyWith(
+                    errorText: field.hasError ? field.errorText : null,
+                  ),
+                  onChanged: (value) => field.didChange(value),
                 ),
-                onChanged: (value) => field.didChange(value),
               ),
             ],
           ),

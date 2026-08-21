@@ -51,3 +51,12 @@ final persistedOrdersProvider = StreamProvider<List<OrderEvent>>((ref) async* {
   final repository = ref.watch(orderEventsLocalRepositoryProvider);
   yield* repository.watchOrders(kioskId);
 });
+
+/// Deletes every persisted order for the current kiosk. Used by the
+/// Orders screen's "delete all" action; the list/badge update on their own
+/// once the underlying rows are gone, since both stream from the same DAO.
+Future<void> deleteAllOrders(WidgetRef ref) async {
+  final kioskId = await ref.read(resolvedKioskIdProvider.future);
+  if (kioskId == null) return;
+  await ref.read(orderEventsLocalRepositoryProvider).deleteAll(kioskId);
+}

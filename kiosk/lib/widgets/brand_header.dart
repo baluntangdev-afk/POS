@@ -9,9 +9,14 @@ import '../theme/pos_design.dart';
 /// App bar with an outlined Back button and the centered Cartivo logo,
 /// matching the header used on the New Order screen.
 class BrandHeader extends StatelessWidget {
-  const BrandHeader({super.key, this.onBackPressed});
+  const BrandHeader({super.key, this.onBackPressed, this.trailing});
 
   final VoidCallback? onBackPressed;
+
+  /// Optional trailing action shown at the right edge, mirroring the width
+  /// reserved for the back button so the logo stays centered. Falls back to
+  /// an empty spacer of the same width when omitted.
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +51,10 @@ class BrandHeader extends StatelessWidget {
           const Spacer(),
           Assets.images.cartivoLogo.image(height: r.value<double>(kiosk: 36, tablet: 28, phone: 22)),
           const Spacer(),
-          SizedBox(width: r.value<double>(kiosk: 110, tablet: 90, phone: 76)),
+          SizedBox(
+            width: r.value<double>(kiosk: 110, tablet: 90, phone: 76),
+            child: trailing == null ? null : Align(alignment: Alignment.centerRight, child: trailing),
+          ),
         ],
       ),
     );

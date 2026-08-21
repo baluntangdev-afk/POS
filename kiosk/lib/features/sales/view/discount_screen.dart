@@ -13,6 +13,7 @@ import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../utils/tax_calculator.dart';
+import '../../../utils/physical_keyboard_detector.dart';
 import '../../../utils/windows_touch_keyboard.dart';
 import '../../../widgets/onscreen_keyboard/keyboard_suppress.dart';
 import '../../../widgets/onscreen_keyboard/onscreen_keyboard.dart';
@@ -1672,12 +1673,15 @@ class _DlgDiscountPanel extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  TextFormField(
+                  ValueListenableBuilder<bool>(
+                    valueListenable: PhysicalKeyboardDetector.attached,
+                    builder: (context, hasPhysicalKeyboard, _) => TextFormField(
                     controller: codeController,
-                    keyboardType: KeyboardSuppress.type(TextInputType.text),
+                    keyboardType: KeyboardSuppress.type(TextInputType.text, hasPhysicalKeyboard),
                     textInputAction: TextInputAction.done,
-                    readOnly: KeyboardSuppress.readOnly,
-                    showCursor: KeyboardSuppress.showCursor,
+                    readOnly: KeyboardSuppress.readOnly(hasPhysicalKeyboard),
+                    showCursor: KeyboardSuppress.showCursor(hasPhysicalKeyboard),
+                    contextMenuBuilder: KeyboardSuppress.contextMenuBuilder(hasPhysicalKeyboard),
                     onTap: KeyboardSuppress.onTap,
                     onTapOutside: (_) {
                       FocusManager.instance.primaryFocus?.unfocus();
@@ -1733,6 +1737,7 @@ class _DlgDiscountPanel extends StatelessWidget {
                         borderSide: BorderSide(color: ColorSet.danger, width: 1.5),
                       ),
                     ),
+                    ),
                   ),
 
                   if (isSenior) ...[
@@ -1747,12 +1752,15 @@ class _DlgDiscountPanel extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    TextFormField(
+                    ValueListenableBuilder<bool>(
+                      valueListenable: PhysicalKeyboardDetector.attached,
+                      builder: (context, hasPhysicalKeyboard, _) => TextFormField(
                       controller: nameController,
-                      keyboardType: KeyboardSuppress.type(TextInputType.text),
+                      keyboardType: KeyboardSuppress.type(TextInputType.text, hasPhysicalKeyboard),
                       textInputAction: TextInputAction.done,
-                      readOnly: KeyboardSuppress.readOnly,
-                      showCursor: KeyboardSuppress.showCursor,
+                      readOnly: KeyboardSuppress.readOnly(hasPhysicalKeyboard),
+                      showCursor: KeyboardSuppress.showCursor(hasPhysicalKeyboard),
+                      contextMenuBuilder: KeyboardSuppress.contextMenuBuilder(hasPhysicalKeyboard),
                       onTap: KeyboardSuppress.onTap,
                       onTapOutside: (_) {
                         FocusManager.instance.primaryFocus?.unfocus();
@@ -1803,6 +1811,7 @@ class _DlgDiscountPanel extends StatelessWidget {
                           borderRadius: BorderRadius.circular(POSRadius.md),
                           borderSide: BorderSide(color: ColorSet.danger, width: 1.5),
                         ),
+                      ),
                       ),
                     ),
                   ],

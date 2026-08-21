@@ -7,6 +7,7 @@ import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
+import '../../../utils/physical_keyboard_detector.dart';
 import '../../../utils/windows_touch_keyboard.dart';
 import '../../../widgets/onscreen_keyboard/keyboard_suppress.dart';
 import '../../../widgets/onscreen_keyboard/onscreen_keyboard.dart';
@@ -250,12 +251,15 @@ class UserManagementScreen extends HookConsumerWidget {
     FocusNode searchFocusNode,
   ) {
     final r = context.responsive;
-    return TextField(
+    return ValueListenableBuilder<bool>(
+      valueListenable: PhysicalKeyboardDetector.attached,
+      builder: (context, hasPhysicalKeyboard, _) => TextField(
       focusNode: searchFocusNode,
       controller: searchController,
-      readOnly: KeyboardSuppress.readOnly,
-      showCursor: KeyboardSuppress.showCursor,
-      keyboardType: KeyboardSuppress.type(null),
+      readOnly: KeyboardSuppress.readOnly(hasPhysicalKeyboard),
+      showCursor: KeyboardSuppress.showCursor(hasPhysicalKeyboard),
+      keyboardType: KeyboardSuppress.type(null, hasPhysicalKeyboard),
+      contextMenuBuilder: KeyboardSuppress.contextMenuBuilder(hasPhysicalKeyboard),
       onTap: KeyboardSuppress.onTap,
       onTapOutside: (_) {
         searchFocusNode.unfocus();
@@ -302,6 +306,7 @@ class UserManagementScreen extends HookConsumerWidget {
           vertical: r.value<double>(kiosk: 14, tablet: 12, phone: 10),
           horizontal: r.value<double>(kiosk: 16, tablet: 14, phone: 12),
         ),
+      ),
       ),
     );
   }

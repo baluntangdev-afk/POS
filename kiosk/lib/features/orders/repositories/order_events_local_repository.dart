@@ -22,6 +22,9 @@ abstract class OrderEventsLocalRepository {
   /// underlying data as [watchPendingCount] — use this wherever the list
   /// needs to match what the badge counts.
   Stream<List<OrderEvent>> watchOrders(String kioskId);
+
+  /// Deletes every persisted order for [kioskId].
+  Future<void> deleteAll(String kioskId);
 }
 
 class OrderEventsLocalRepositoryImpl implements OrderEventsLocalRepository {
@@ -56,4 +59,7 @@ class OrderEventsLocalRepositoryImpl implements OrderEventsLocalRepository {
           .toList(),
     );
   }
+
+  @override
+  Future<void> deleteAll(String kioskId) => _dao.deleteAll(kioskId);
 }

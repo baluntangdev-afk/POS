@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -26,12 +28,57 @@ class OrdersScreen extends ConsumerWidget {
       backgroundColor: ColorSet.background,
       body: Column(
         children: [
-          const BrandHeader(),
+          BrandHeader(
+            trailing: events.isEmpty ? null : _DeleteAllButton(onConfirmed: () => deleteAllOrders(ref)),
+          ),
           Expanded(
             child: events.isEmpty ? const _EmptyBody() : _OrderEventList(events: events.toIList()),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DeleteAllButton extends StatelessWidget {
+  const _DeleteAllButton({required this.onConfirmed});
+
+  final VoidCallback onConfirmed;
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.4),
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(POSRadius.lg)),
+        title: const Text('Delete all orders?', style: TextStyle(fontWeight: FontWeight.w700)),
+        content: const Text(
+          "This clears every order from this screen and can't be undone.",
+          style: TextStyle(color: POSColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: ColorSet.danger),
+            child: const Text('Delete all'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed ?? false) onConfirmed();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: () => unawaited(_confirmDelete(context)),
+      tooltip: 'Delete all orders',
+      icon: const Icon(Icons.delete_outline_rounded),
+      color: ColorSet.danger,
     );
   }
 }

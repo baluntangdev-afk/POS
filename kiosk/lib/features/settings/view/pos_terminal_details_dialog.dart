@@ -11,10 +11,12 @@ import '../../../data/backend_api/sources/pos_terminals_api.dart';
 import '../../../exceptions/exception_extension.dart';
 import '../../../styles/color_set.dart';
 import '../../../theme/pos_design.dart';
+import '../../../utils/physical_keyboard_detector.dart';
 import '../../../utils/windows_touch_keyboard.dart';
 import '../../../widgets/onscreen_keyboard/keyboard_suppress.dart';
 import '../../../widgets/onscreen_keyboard/onscreen_keyboard.dart';
 import '../../menu/state/pos_terminal_notifier.dart';
+import '../../orders/state/orders_feed_notifier.dart';
 
 Future<void> showPosTerminalDetailsDialog(BuildContext context) {
   return showDialog<void>(
@@ -59,13 +61,24 @@ class PosTerminalDetailsDialog extends HookConsumerWidget {
       errorMessage.value = null;
       try {
         final api = ref.read(posTerminalsApiProvider);
+        final previousKioskId = switch (ref.read(posTerminalProvider)) {
+          AsyncData(:final value) => value.kioskId,
+          _ => null,
+        };
+        final newKioskId = kioskIdController.text.trim();
         await api.updateMyTerminal(
-          kioskId: kioskIdController.text.trim(),
+          kioskId: newKioskId,
           legalName: legalNameController.text.trim(),
           address: addressController.text.trim(),
           tinNumber: tinController.text.trim(),
         );
         ref.invalidate(posTerminalProvider);
+        if (previousKioskId != null && previousKioskId != newKioskId) {
+          // The live orders socket is opened with kioskId as `merchant_id`;
+          // force it to rebuild and reconnect with the new id instead of
+          // silently staying connected under the old one.
+          ref.invalidate(ordersFeedNotifierProvider);
+        }
         if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
       } catch (e) {
         errorMessage.value = e.message;
@@ -593,26 +606,30 @@ class _PaymentMethodFormDialog extends HookWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  TextFormField(
-                    controller: methodNameController,
-                    readOnly: KeyboardSuppress.readOnly,
-                    showCursor: KeyboardSuppress.showCursor,
-                    keyboardType: KeyboardSuppress.type(null),
-                    onTap: KeyboardSuppress.onTap,
-                    onTapOutside: (_) {
-                      FocusManager.instance.primaryFocus?.unfocus();
-                      OnScreenKeyboard.hide();
-                      WindowsTouchKeyboard.dismiss();
-                    },
-                    decoration: _fieldDecoration(hint: 'e.g. PayMaya, Bitcoin'),
-                    validator: (v) {
-                      final trimmed = (v ?? '').trim();
-                      if (trimmed.isEmpty) return 'Payment method name is required';
-                      if (existingOtherNames.contains(trimmed.toLowerCase())) {
-                        return 'A payment method with this name already exists';
-                      }
-                      return null;
-                    },
+                  ValueListenableBuilder<bool>(
+                    valueListenable: PhysicalKeyboardDetector.attached,
+                    builder: (context, hasPhysicalKeyboard, _) => TextFormField(
+                      controller: methodNameController,
+                      readOnly: KeyboardSuppress.readOnly(hasPhysicalKeyboard),
+                      showCursor: KeyboardSuppress.showCursor(hasPhysicalKeyboard),
+                      keyboardType: KeyboardSuppress.type(null, hasPhysicalKeyboard),
+                      contextMenuBuilder: KeyboardSuppress.contextMenuBuilder(hasPhysicalKeyboard),
+                      onTap: KeyboardSuppress.onTap,
+                      onTapOutside: (_) {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        OnScreenKeyboard.hide();
+                        WindowsTouchKeyboard.dismiss();
+                      },
+                      decoration: _fieldDecoration(hint: 'e.g. PayMaya, Bitcoin'),
+                      validator: (v) {
+                        final trimmed = (v ?? '').trim();
+                        if (trimmed.isEmpty) return 'Payment method name is required';
+                        if (existingOtherNames.contains(trimmed.toLowerCase())) {
+                          return 'A payment method with this name already exists';
+                        }
+                        return null;
+                      },
+                    ),
                   ),
                 ],
                 if (selectedMethod.value != PaymentMethod.cash) ...[
@@ -627,18 +644,22 @@ class _PaymentMethodFormDialog extends HookWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  TextFormField(
-                    controller: numberController,
-                    readOnly: KeyboardSuppress.readOnly,
-                    showCursor: KeyboardSuppress.showCursor,
-                    keyboardType: KeyboardSuppress.type(null),
-                    onTap: KeyboardSuppress.onTap,
-                    onTapOutside: (_) {
-                      FocusManager.instance.primaryFocus?.unfocus();
-                      OnScreenKeyboard.hide();
-                      WindowsTouchKeyboard.dismiss();
-                    },
-                    decoration: _fieldDecoration(hint: 'e.g. 09171234567'),
+                  ValueListenableBuilder<bool>(
+                    valueListenable: PhysicalKeyboardDetector.attached,
+                    builder: (context, hasPhysicalKeyboard, _) => TextFormField(
+                      controller: numberController,
+                      readOnly: KeyboardSuppress.readOnly(hasPhysicalKeyboard),
+                      showCursor: KeyboardSuppress.showCursor(hasPhysicalKeyboard),
+                      keyboardType: KeyboardSuppress.type(null, hasPhysicalKeyboard),
+                      contextMenuBuilder: KeyboardSuppress.contextMenuBuilder(hasPhysicalKeyboard),
+                      onTap: KeyboardSuppress.onTap,
+                      onTapOutside: (_) {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        OnScreenKeyboard.hide();
+                        WindowsTouchKeyboard.dismiss();
+                      },
+                      decoration: _fieldDecoration(hint: 'e.g. 09171234567'),
+                    ),
                   ),
                 ],
                 if (errorMessage.value != null) ...[
@@ -799,49 +820,53 @@ class _KioskIdField extends HookWidget {
           ],
         ),
         const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          readOnly: KeyboardSuppress.readOnly,
-          showCursor: KeyboardSuppress.showCursor,
-          keyboardType: KeyboardSuppress.type(null),
-          onTap: KeyboardSuppress.onTap,
-          onTapOutside: (_) {
-            FocusManager.instance.primaryFocus?.unfocus();
-            OnScreenKeyboard.hide();
-            WindowsTouchKeyboard.dismiss();
-          },
-          style: const TextStyle(fontSize: 12, fontFamily: 'monospace', color: POSColors.textSecondary),
-          validator: (v) =>
-              (v == null || v.trim().isEmpty) ? 'Kiosk ID is required' : null,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: POSColors.surfaceSubtle,
-            suffixIcon: IconButton(
-              icon: Icon(
-                justCopied.value ? Icons.check_rounded : Icons.copy_rounded,
-                size: 16,
-                color: justCopied.value ? ColorSet.primary : POSColors.textTertiary,
+        ValueListenableBuilder<bool>(
+          valueListenable: PhysicalKeyboardDetector.attached,
+          builder: (context, hasPhysicalKeyboard, _) => TextFormField(
+            controller: controller,
+            readOnly: KeyboardSuppress.readOnly(hasPhysicalKeyboard),
+            showCursor: KeyboardSuppress.showCursor(hasPhysicalKeyboard),
+            keyboardType: KeyboardSuppress.type(null, hasPhysicalKeyboard),
+            contextMenuBuilder: KeyboardSuppress.contextMenuBuilder(hasPhysicalKeyboard),
+            onTap: KeyboardSuppress.onTap,
+            onTapOutside: (_) {
+              FocusManager.instance.primaryFocus?.unfocus();
+              OnScreenKeyboard.hide();
+              WindowsTouchKeyboard.dismiss();
+            },
+            style: const TextStyle(fontSize: 12, fontFamily: 'monospace', color: POSColors.textSecondary),
+            validator: (v) =>
+                (v == null || v.trim().isEmpty) ? 'Kiosk ID is required' : null,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: POSColors.surfaceSubtle,
+              suffixIcon: IconButton(
+                icon: Icon(
+                  justCopied.value ? Icons.check_rounded : Icons.copy_rounded,
+                  size: 16,
+                  color: justCopied.value ? ColorSet.primary : POSColors.textTertiary,
+                ),
+                tooltip: 'Copy Kiosk ID',
+                onPressed: onCopy,
               ),
-              tooltip: 'Copy Kiosk ID',
-              onPressed: onCopy,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(POSRadius.md),
+                borderSide: const BorderSide(color: POSColors.borderDefault),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(POSRadius.md),
+                borderSide: const BorderSide(color: POSColors.borderDefault),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(POSRadius.md),
+                borderSide: const BorderSide(color: ColorSet.primary, width: 1.5),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(POSRadius.md),
+                borderSide: const BorderSide(color: ColorSet.danger),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(POSRadius.md),
-              borderSide: const BorderSide(color: POSColors.borderDefault),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(POSRadius.md),
-              borderSide: const BorderSide(color: POSColors.borderDefault),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(POSRadius.md),
-              borderSide: const BorderSide(color: ColorSet.primary, width: 1.5),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(POSRadius.md),
-              borderSide: const BorderSide(color: ColorSet.danger),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           ),
         ),
       ],
@@ -877,40 +902,44 @@ class _PosFormField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          validator: validator,
-          readOnly: KeyboardSuppress.readOnly,
-          showCursor: KeyboardSuppress.showCursor,
-          keyboardType: KeyboardSuppress.type(null),
-          onTap: KeyboardSuppress.onTap,
-          onTapOutside: (_) {
-            FocusManager.instance.primaryFocus?.unfocus();
-            OnScreenKeyboard.hide();
-            WindowsTouchKeyboard.dismiss();
-          },
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: POSColors.textTertiary.withValues(alpha: 0.6)),
-            filled: true,
-            fillColor: POSColors.surfaceSubtle,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(POSRadius.md),
-              borderSide: const BorderSide(color: POSColors.borderDefault),
+        ValueListenableBuilder<bool>(
+          valueListenable: PhysicalKeyboardDetector.attached,
+          builder: (context, hasPhysicalKeyboard, _) => TextFormField(
+            controller: controller,
+            validator: validator,
+            readOnly: KeyboardSuppress.readOnly(hasPhysicalKeyboard),
+            showCursor: KeyboardSuppress.showCursor(hasPhysicalKeyboard),
+            keyboardType: KeyboardSuppress.type(null, hasPhysicalKeyboard),
+            contextMenuBuilder: KeyboardSuppress.contextMenuBuilder(hasPhysicalKeyboard),
+            onTap: KeyboardSuppress.onTap,
+            onTapOutside: (_) {
+              FocusManager.instance.primaryFocus?.unfocus();
+              OnScreenKeyboard.hide();
+              WindowsTouchKeyboard.dismiss();
+            },
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(color: POSColors.textTertiary.withValues(alpha: 0.6)),
+              filled: true,
+              fillColor: POSColors.surfaceSubtle,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(POSRadius.md),
+                borderSide: const BorderSide(color: POSColors.borderDefault),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(POSRadius.md),
+                borderSide: const BorderSide(color: POSColors.borderDefault),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(POSRadius.md),
+                borderSide: const BorderSide(color: ColorSet.primary, width: 1.5),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(POSRadius.md),
+                borderSide: const BorderSide(color: ColorSet.danger),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(POSRadius.md),
-              borderSide: const BorderSide(color: POSColors.borderDefault),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(POSRadius.md),
-              borderSide: const BorderSide(color: ColorSet.primary, width: 1.5),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(POSRadius.md),
-              borderSide: const BorderSide(color: ColorSet.danger),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           ),
         ),
       ],

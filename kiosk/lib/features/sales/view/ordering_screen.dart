@@ -15,6 +15,7 @@ import '../../../styles/color_set.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
+import '../../../utils/physical_keyboard_detector.dart';
 import '../../../utils/windows_touch_keyboard.dart';
 import '../../../widgets/onscreen_keyboard/keyboard_suppress.dart';
 import '../../../widgets/onscreen_keyboard/onscreen_keyboard.dart';
@@ -1254,6 +1255,7 @@ class _OrderItemRow extends HookWidget {
   Widget build(BuildContext context) {
     final notesController = useTextEditingController(text: item.notes ?? '');
     final notesFocus = useFocusNode();
+    final hasPhysicalKeyboard = useValueListenable(PhysicalKeyboardDetector.attached);
 
     useEffect(() {
       void onFocusChange() {
@@ -1505,9 +1507,10 @@ class _OrderItemRow extends HookWidget {
                     controller: notesController,
                     focusNode: notesFocus,
                     onSubmitted: onNotesChanged,
-                    readOnly: KeyboardSuppress.readOnly,
-                    showCursor: KeyboardSuppress.showCursor,
-                    keyboardType: KeyboardSuppress.type(null),
+                    readOnly: KeyboardSuppress.readOnly(hasPhysicalKeyboard),
+                    showCursor: KeyboardSuppress.showCursor(hasPhysicalKeyboard),
+                    keyboardType: KeyboardSuppress.type(null, hasPhysicalKeyboard),
+                    contextMenuBuilder: KeyboardSuppress.contextMenuBuilder(hasPhysicalKeyboard),
                     onTap: KeyboardSuppress.onTap,
                     onTapOutside: (_) {
                       notesFocus.unfocus();

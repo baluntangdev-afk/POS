@@ -1,5 +1,7 @@
 import 'package:dart_mappable/dart_mappable.dart';
 
+import '../../../data/backend_api/mappers/date_time_with_offset_mapper.dart';
+
 part 'order_event.mapper.dart';
 
 /// The subset of the webhook-receiver's `event_type` values this kiosk
@@ -42,7 +44,13 @@ class OrderEventItem with OrderEventItemMappable {
   static const fromJson = OrderEventItemMapper.fromJson;
 }
 
-@MappableClass(caseStyle: CaseStyle.snakeCase)
+/// `on_site` orders are required to carry [OrderData.facilityId]/[facilityName];
+/// `pickup`/`delivery` never do. Null on `/api/test/*` orders, which don't
+/// select a fulfillment type at all.
+@MappableEnum(caseStyle: CaseStyle.snakeCase)
+enum FulfillmentType { onSite, pickup, delivery }
+
+@MappableClass(caseStyle: CaseStyle.snakeCase, includeCustomMappers: [DateTimeWithOffsetMapper()])
 class OrderData with OrderDataMappable {
   const OrderData({
     required this.id,
@@ -52,6 +60,13 @@ class OrderData with OrderDataMappable {
     required this.status,
     required this.total,
     required this.currency,
+    required this.districtId,
+    required this.districtName,
+    required this.fulfillmentType,
+    required this.facilityId,
+    required this.facilityName,
+    required this.createdAt,
+    required this.updatedAt,
     required this.items,
     required this.merchantId,
   });
@@ -63,6 +78,13 @@ class OrderData with OrderDataMappable {
   final String status;
   final num total;
   final String currency;
+  final String? districtId;
+  final String? districtName;
+  final FulfillmentType? fulfillmentType;
+  final String? facilityId;
+  final String? facilityName;
+  final DateTime createdAt;
+  final DateTime updatedAt;
   final List<OrderEventItem> items;
   final String merchantId;
 

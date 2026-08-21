@@ -48,4 +48,9 @@ class OrderEventsDao extends DatabaseAccessor<AppDatabase> with _$OrderEventsDao
           ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
         .watch();
   }
+
+  /// Deletes every persisted order for [kioskId].
+  Future<void> deleteAll(String kioskId) {
+    return (delete(orderEventsTable)..where((t) => t.kioskId.equals(kioskId))).go();
+  }
 }

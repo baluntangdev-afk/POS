@@ -6,7 +6,9 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 
 import '../styles/color_set.dart';
 import '../theme/pos_design.dart';
+import '../utils/physical_keyboard_detector.dart';
 import '../utils/windows_touch_keyboard.dart';
+import 'onscreen_keyboard/keyboard_suppress.dart';
 import 'onscreen_keyboard/onscreen_keyboard.dart';
 
 class TextBoxFormField extends HookWidget {
@@ -215,16 +217,26 @@ class TextBoxFormField extends HookWidget {
     final focusNode = useFocusNode();
     final isSubmitted = useState(false);
 
-    // On Windows this field is driven by the app's own [OnScreenKeyboard]
-    // instead of the OS touch keyboard. Marking it read-only is what actually
-    // suppresses the OS keyboard: Flutter never opens a text-input connection
-    // for a read-only field on Windows, so the OS is never told text input is
-    // active and has nothing to auto-invoke against. See [OnScreenKeyboard].
+    // On a touch-only Windows machine this field is driven entirely by the
+    // app's own [OnScreenKeyboard] instead of the OS touch keyboard. Marking
+    // it read-only is what actually suppresses the OS keyboard: Flutter
+    // never opens a text-input connection for a read-only field on Windows,
+    // so the OS is never told text input is active and has nothing to
+    // auto-invoke against. See [OnScreenKeyboard].
+    //
+    // That trick is only needed when there's no physical keyboard to fall
+    // back on. When [PhysicalKeyboardDetector] finds one attached (a real
+    // USB/PS2 keyboard, or a 2-in-1's built-in one), the field is left as a
+    // normal editable field so real key presses work directly — [onTap]
+    // below still offers [OnScreenKeyboard] too, so both stay usable at
+    // once.
     //
     // Fields the *caller* marked read-only (pickers, display-only values) are
-    // excluded — they aren't meant to accept typing at all.
-    final useCustomKeyboard = Platform.isWindows && !readOnly && enabled;
-    final effectiveReadOnly = readOnly || useCustomKeyboard;
+    // excluded from all of this — they aren't meant to accept typing at all.
+    final isWindowsField = Platform.isWindows && !readOnly && enabled;
+    final hasPhysicalKeyboard = useValueListenable(PhysicalKeyboardDetector.attached);
+    final suppressOsInputConnection = isWindowsField && !hasPhysicalKeyboard;
+    final effectiveReadOnly = readOnly || suppressOsInputConnection;
     return InputDecorationTheme(
       data: InputDecorationThemeData(
         iconColor: WidgetStateColor.resolveWith((states) {
@@ -269,10 +281,17 @@ class TextBoxFormField extends HookWidget {
           TextFormField(
             focusNode: focusNode,
             onTap: () {
-              if (useCustomKeyboard) OnScreenKeyboard.show();
+              if (isWindowsField) OnScreenKeyboard.show();
               onTap?.call();
             },
             readOnly: effectiveReadOnly,
+            // Flutter's built-in selection toolbar omits Cut/Paste for
+            // readOnly fields, and this field is only readOnly to the OS (see
+            // [suppressOsInputConnection] above) — it's actually editable.
+            // Rebuild the toolbar so long-press-to-paste keeps working. Not
+            // needed once a physical keyboard makes the field genuinely
+            // non-readOnly — the default toolbar already has Paste then.
+            contextMenuBuilder: suppressOsInputConnection ? buildSuppressedFieldContextMenu : null,
             enabled: enabled,
             // Deliberately keyed off the caller's [readOnly], not
             // [effectiveReadOnly]: a custom-keyboard field is read-only to the
@@ -280,12 +299,12 @@ class TextBoxFormField extends HookWidget {
             canRequestFocus: !readOnly,
             // Read-only fields hide the caret by default, but this one is
             // actively being typed into, so the caret has to stay visible.
-            showCursor: useCustomKeyboard ? true : null,
+            showCursor: suppressOsInputConnection ? true : null,
             controller: controller,
             initialValue: controller != null ? null : initialValue,
             maxLines: maxLines,
             maxLength: maxLength,
-            keyboardType: useCustomKeyboard ? TextInputType.none : keyboardType,
+            keyboardType: suppressOsInputConnection ? TextInputType.none : keyboardType,
             inputFormatters: inputFormatters,
             textInputAction: textInputAction,
             validator: (value) {
@@ -333,3 +352,5 @@ class TextBoxFormField extends HookWidget {
     );
   }
 }
+
+

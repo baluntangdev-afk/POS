@@ -94,7 +94,7 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
   }
 
   void _onEvent(OrderEvent event) {
-    debugPrint('[OrdersFeed] event received: ${event.type.name} ${event.eventId} (order ${event.data.id})');
+    debugPrint('[OrdersFeed] event received: ${event.type.name} ${event.eventId} (order ${event.data})');
     if (!_seenEventIds.add(event.eventId)) return;
     _recentEventIds.add(event.eventId);
     if (_recentEventIds.length > 200) {

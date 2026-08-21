@@ -47,8 +47,12 @@ class OrderEventItem with OrderEventItemMappable {
 /// `on_site` orders are required to carry [OrderData.facilityId]/[facilityName];
 /// `pickup`/`delivery` never do. Null on `/api/test/*` orders, which don't
 /// select a fulfillment type at all.
-@MappableEnum(caseStyle: CaseStyle.snakeCase)
-enum FulfillmentType { onSite, pickup, delivery }
+///
+/// [other] is the fallback for values outside the documented set (e.g. the
+/// webhook-receiver's own `/api/test/*` sandbox has been observed sending
+/// `"TEST"`) so an unrecognized value doesn't crash event parsing.
+@MappableEnum(caseStyle: CaseStyle.snakeCase, defaultValue: FulfillmentType.other)
+enum FulfillmentType { onSite, pickup, delivery, other }
 
 @MappableClass(caseStyle: CaseStyle.snakeCase, includeCustomMappers: [DateTimeWithOffsetMapper()])
 class OrderData with OrderDataMappable {

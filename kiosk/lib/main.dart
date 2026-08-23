@@ -11,6 +11,7 @@ import 'bootstrap.dart';
 import 'config/environment/env.dart';
 import 'customer_display_window_argument.dart';
 import 'features/customer_display/state/customer_display_host.dart';
+import 'features/customer_display/state/customer_display_log.dart';
 import 'features/customer_display/state/customer_display_receiver.dart';
 import 'features/customer_display/view/customer_display_app.dart';
 
@@ -38,27 +39,52 @@ Future<void> main(List<String> args) async {
 Future<void> _runCustomerDisplay(WindowController windowController) async {
   await windowManager.ensureInitialized();
 
-  final displays = await screenRetriever.getAllDisplays();
-  final primary = await screenRetriever.getPrimaryDisplay();
-  final target = displays.firstWhere(
-    (display) => display.id != primary.id,
-    orElse: () => primary,
-  );
-  final origin = target.visiblePosition ?? Offset.zero;
-  final size = target.visibleSize ?? target.size;
+  final log = CustomerDisplayLog('customer-display-receiver.log');
 
-  const windowOptions = WindowOptions(
-    backgroundColor: Colors.transparent,
-    titleBarStyle: TitleBarStyle.hidden,
-    windowButtonVisibility: false,
-    skipTaskbar: true,
-  );
+  try {
+    final displays = await screenRetriever.getAllDisplays();
+    final primary = await screenRetriever.getPrimaryDisplay();
 
-  await windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.setBounds(Rect.fromLTWH(origin.dx, origin.dy, size.width, size.height));
-    await windowManager.setFullScreen(true);
-    await windowManager.show(inactive: true);
-  });
+    // Some hardware (e.g. laptop built-in panels) reports an empty-string id
+    // from EnumDisplayDevices. When both the primary and secondary ids are ""
+    // the id comparison is always false, so we fall back to comparing the
+    // visible position, which is always populated on Windows.
+    final target = displays.firstWhere(
+      (d) {
+        if (d.id.isNotEmpty && primary.id.isNotEmpty) return d.id != primary.id;
+        final dp = d.visiblePosition;
+        final pp = primary.visiblePosition;
+        return dp != null && pp != null && (dp.dx != pp.dx || dp.dy != pp.dy);
+      },
+      orElse: () => primary,
+    );
+
+    unawaited(log.write(
+      'init: ${displays.length} displays found, '
+      'primary="${primary.id}" pos=${primary.visiblePosition}, '
+      'target="${target.id}" pos=${target.visiblePosition} size=${target.size}',
+    ));
+
+    // Use the full monitor size (not just the work area) so the window covers
+    // the entire secondary display including any taskbar area.
+    final origin = target.visiblePosition ?? Offset.zero;
+    final size = target.size;
+
+    const windowOptions = WindowOptions(
+      backgroundColor: Colors.transparent,
+      titleBarStyle: TitleBarStyle.hidden,
+      windowButtonVisibility: false,
+      skipTaskbar: true,
+    );
+
+    await windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.setBounds(Rect.fromLTWH(origin.dx, origin.dy, size.width, size.height));
+      await windowManager.setFullScreen(true);
+      await windowManager.show(inactive: true);
+    });
+  } catch (e, s) {
+    unawaited(log.write('init: FAILED: $e\n$s'));
+  }
 
   final container = ProviderContainer();
   CustomerDisplayReceiver(container).attach(windowController);

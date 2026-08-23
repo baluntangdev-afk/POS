@@ -136,9 +136,12 @@ class CustomerDisplayHost with ScreenListener {
     List<Display> displays;
     try {
       displays = await screenRetriever.getAllDisplays();
-    } catch (_) {
+    } catch (e) {
+      unawaited(_log.write('sync: getAllDisplays FAILED: $e'));
       return;
     }
+
+    unawaited(_log.write('sync: ${displays.length} display(s) found'));
 
     if (displays.length < 2) {
       final stale = _controller;
@@ -156,11 +159,13 @@ class CustomerDisplayHost with ScreenListener {
     if (_controller != null) return;
 
     try {
+      unawaited(_log.write('sync: creating customer-display sub-window'));
       final controller = await WindowController.create(
         const WindowConfiguration(arguments: customerDisplayWindowArgument),
       );
       await controller.show();
       _controller = controller;
+      unawaited(_log.write('sync: sub-window created, windowId=${controller.windowId}'));
       final data = _container.read(orderingProvider).value;
       if (data != null) {
         _pushSnapshot(data, justCompleted: false);
@@ -169,7 +174,8 @@ class CustomerDisplayHost with ScreenListener {
       if (catalog != null) {
         _pushCatalog(catalog);
       }
-    } catch (_) {
+    } catch (e) {
+      unawaited(_log.write('sync: WindowController.create FAILED: $e'));
       _scheduleRetry();
     }
   }

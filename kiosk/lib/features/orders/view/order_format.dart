@@ -20,6 +20,16 @@ String formatOrderMoney(num amount, String? currency) {
   return '${currency.toUpperCase()} ${_genericAmountFormat.format(amount)}';
 }
 
+/// Shortens a full order id (e.g. `ORD_D95A44C1-85CC-494E-B93D-25680D4CF6A1`)
+/// down to a display-friendly tail like `#4CF6A1` — enough to eyeball-match
+/// against a printed receipt without a wall of hex eating the whole card
+/// width. The full id is still shown wherever it matters (order details).
+String formatOrderId(String id) {
+  final digits = id.replaceAll(RegExp(r'[^0-9A-Za-z]'), '');
+  final tail = digits.length > 6 ? digits.substring(digits.length - 6) : digits;
+  return '#${tail.toUpperCase()}';
+}
+
 String capitalizeWords(String value) {
   if (value.isEmpty) return value;
   return value.split(RegExp(r'[_\s]+')).map((word) {

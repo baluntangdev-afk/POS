@@ -6,7 +6,7 @@ import '../order_fulfillment_spec.dart';
 
 /// Left sidebar (kiosk/tablet) or horizontal chip row (phone) listing every
 /// visible [OrderFulfillmentSpec], with a count badge per item. Selecting one
-/// drives which orders [OrderGrid] shows.
+/// drives which orders [OrderKanbanBoard] shows.
 class OrderFulfillmentNav extends StatelessWidget {
   const OrderFulfillmentNav({
     super.key,

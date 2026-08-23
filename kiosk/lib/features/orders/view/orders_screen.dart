@@ -16,7 +16,7 @@ import '../state/pending_orders_count_provider.dart';
 import 'order_fulfillment_spec.dart';
 import 'order_status.dart';
 import 'widgets/order_fulfillment_nav.dart';
-import 'widgets/order_grid.dart';
+import 'widgets/order_kanban_board.dart';
 
 class OrdersScreen extends HookConsumerWidget {
   const OrdersScreen({super.key});
@@ -97,9 +97,9 @@ class _OrdersBody extends StatelessWidget {
       onSelect: onSelect,
       vertical: vertical,
     );
-    final grid = Padding(
+    final board = Padding(
       padding: EdgeInsets.all(r.value<double>(kiosk: 24, tablet: 16, phone: 12)),
-      child: OrderGrid(
+      child: OrderKanbanBoard(
         title: activeSpec.label,
         accentColor: activeSpec.accentColor,
         events: sorted,
@@ -109,13 +109,13 @@ class _OrdersBody extends StatelessWidget {
 
     if (!vertical) {
       return Column(
-        children: [SizedBox(width: double.infinity, child: nav), Expanded(child: grid)],
+        children: [SizedBox(width: double.infinity, child: nav), Expanded(child: board)],
       );
     }
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [nav, Expanded(child: grid)],
+      children: [nav, Expanded(child: board)],
     );
   }
 }

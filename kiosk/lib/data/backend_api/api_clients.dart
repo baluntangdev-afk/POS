@@ -21,3 +21,13 @@ final secureApiClientProvider = Provider<Dio>((ref) {
   final client = httpClientProvider(options);
   return ref.watch(client);
 });
+
+/// Client for the webhook-receiver's REST endpoints (order status/cancel) —
+/// a separate, unauthenticated service from the main backend, on its own
+/// host/port ([AppEnv.cartivoAuthApiBaseUrl]).
+final cartivoApiClientProvider = Provider<Dio>((ref) {
+  final env = ref.watch(appEnvProvider);
+  final options = (baseUrl: env.cartivoAuthApiBaseUrl, interceptors: <Interceptor>[]);
+  final client = httpClientProvider(options);
+  return ref.watch(client);
+});

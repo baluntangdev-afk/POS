@@ -19,11 +19,13 @@ import 'tables/x_readings_table.dart';
 import 'tables/daily_reports_table.dart';
 import 'tables/z_readings_table.dart';
 import 'tables/payment_methods_table.dart';
+import 'tables/order_events_table.dart';
 import 'daos/users_dao.dart';
 import 'daos/products_dao.dart';
 import 'daos/sales_dao.dart';
 import 'daos/store_info_dao.dart';
 import 'daos/cashier_accounting_dao.dart';
+import 'daos/order_events_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -47,15 +49,16 @@ part 'app_database.g.dart';
     DailyReportsTable,
     ZReadingsTable,
     PaymentMethodsTable,
+    OrderEventsTable,
   ],
-  daos: [UsersDao, ProductsDao, SalesDao, StoreInfoDao, CashierAccountingDao],
+  daos: [UsersDao, ProductsDao, SalesDao, StoreInfoDao, CashierAccountingDao, OrderEventsDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? driftDatabase(name: 'mobile_pos'));
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -250,6 +253,9 @@ class AppDatabase extends _$AppDatabase {
             if (!await _hasColumn('store_info', 'store_id')) {
               await m.addColumn(storeInfoTable, storeInfoTable.storeId);
             }
+          }
+          if (from < 13) {
+            await m.createTable(orderEventsTable);
           }
         },
       );

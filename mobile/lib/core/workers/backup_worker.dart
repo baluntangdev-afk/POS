@@ -3,7 +3,7 @@ import 'package:workmanager/workmanager.dart';
 import '../database/app_database.dart';
 import '../services/backup/backup_service.dart';
 
-const String kBackupTaskName = 'hourly_pos_backup';
+const String kBackupTaskName = 'periodic_pos_backup';
 
 @pragma('vm:entry-point')
 void backupCallbackDispatcher() {
@@ -23,15 +23,15 @@ void backupCallbackDispatcher() {
 }
 
 /// Registers WorkManager and schedules the backup job to run roughly every
-/// hour. Safe to call on every app startup — `ExistingPeriodicWorkPolicy.keep`
+/// 3 hours. Safe to call on every app startup — `ExistingPeriodicWorkPolicy.keep`
 /// means an already-registered job is left alone rather than being reset.
-Future<void> scheduleHourlyBackup() async {
+Future<void> schedulePeriodicBackup() async {
   await Workmanager().initialize(backupCallbackDispatcher);
 
   await Workmanager().registerPeriodicTask(
     kBackupTaskName,
     kBackupTaskName,
-    frequency: const Duration(hours: 1),
+    frequency: const Duration(hours: 3),
     existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
   );
 }

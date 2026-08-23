@@ -10420,6 +10420,378 @@ class PaymentMethodsTableCompanion
   }
 }
 
+class $OrderEventsTableTable extends OrderEventsTable
+    with TableInfo<$OrderEventsTableTable, OrderEventsTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OrderEventsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _orderIdMeta = const VerificationMeta(
+    'orderId',
+  );
+  @override
+  late final GeneratedColumn<String> orderId = GeneratedColumn<String>(
+    'order_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _storeIdMeta = const VerificationMeta(
+    'storeId',
+  );
+  @override
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
+    'store_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _eventTypeMeta = const VerificationMeta(
+    'eventType',
+  );
+  @override
+  late final GeneratedColumn<String> eventType = GeneratedColumn<String>(
+    'event_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    orderId,
+    storeId,
+    eventType,
+    payload,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'order_events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OrderEventsTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('order_id')) {
+      context.handle(
+        _orderIdMeta,
+        orderId.isAcceptableOrUnknown(data['order_id']!, _orderIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_orderIdMeta);
+    }
+    if (data.containsKey('store_id')) {
+      context.handle(
+        _storeIdMeta,
+        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_storeIdMeta);
+    }
+    if (data.containsKey('event_type')) {
+      context.handle(
+        _eventTypeMeta,
+        eventType.isAcceptableOrUnknown(data['event_type']!, _eventTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_eventTypeMeta);
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {orderId};
+  @override
+  OrderEventsTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OrderEventsTableData(
+      orderId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}order_id'],
+          )!,
+      storeId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}store_id'],
+          )!,
+      eventType:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}event_type'],
+          )!,
+      payload:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}payload'],
+          )!,
+      updatedAt:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.dateTime,
+            data['${effectivePrefix}updated_at'],
+          )!,
+    );
+  }
+
+  @override
+  $OrderEventsTableTable createAlias(String alias) {
+    return $OrderEventsTableTable(attachedDatabase, alias);
+  }
+}
+
+class OrderEventsTableData extends DataClass
+    implements Insertable<OrderEventsTableData> {
+  final String orderId;
+  final String storeId;
+  final String eventType;
+  final String payload;
+  final DateTime updatedAt;
+  const OrderEventsTableData({
+    required this.orderId,
+    required this.storeId,
+    required this.eventType,
+    required this.payload,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['order_id'] = Variable<String>(orderId);
+    map['store_id'] = Variable<String>(storeId);
+    map['event_type'] = Variable<String>(eventType);
+    map['payload'] = Variable<String>(payload);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  OrderEventsTableCompanion toCompanion(bool nullToAbsent) {
+    return OrderEventsTableCompanion(
+      orderId: Value(orderId),
+      storeId: Value(storeId),
+      eventType: Value(eventType),
+      payload: Value(payload),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory OrderEventsTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OrderEventsTableData(
+      orderId: serializer.fromJson<String>(json['orderId']),
+      storeId: serializer.fromJson<String>(json['storeId']),
+      eventType: serializer.fromJson<String>(json['eventType']),
+      payload: serializer.fromJson<String>(json['payload']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'orderId': serializer.toJson<String>(orderId),
+      'storeId': serializer.toJson<String>(storeId),
+      'eventType': serializer.toJson<String>(eventType),
+      'payload': serializer.toJson<String>(payload),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  OrderEventsTableData copyWith({
+    String? orderId,
+    String? storeId,
+    String? eventType,
+    String? payload,
+    DateTime? updatedAt,
+  }) => OrderEventsTableData(
+    orderId: orderId ?? this.orderId,
+    storeId: storeId ?? this.storeId,
+    eventType: eventType ?? this.eventType,
+    payload: payload ?? this.payload,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  OrderEventsTableData copyWithCompanion(OrderEventsTableCompanion data) {
+    return OrderEventsTableData(
+      orderId: data.orderId.present ? data.orderId.value : this.orderId,
+      storeId: data.storeId.present ? data.storeId.value : this.storeId,
+      eventType: data.eventType.present ? data.eventType.value : this.eventType,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OrderEventsTableData(')
+          ..write('orderId: $orderId, ')
+          ..write('storeId: $storeId, ')
+          ..write('eventType: $eventType, ')
+          ..write('payload: $payload, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(orderId, storeId, eventType, payload, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OrderEventsTableData &&
+          other.orderId == this.orderId &&
+          other.storeId == this.storeId &&
+          other.eventType == this.eventType &&
+          other.payload == this.payload &&
+          other.updatedAt == this.updatedAt);
+}
+
+class OrderEventsTableCompanion extends UpdateCompanion<OrderEventsTableData> {
+  final Value<String> orderId;
+  final Value<String> storeId;
+  final Value<String> eventType;
+  final Value<String> payload;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const OrderEventsTableCompanion({
+    this.orderId = const Value.absent(),
+    this.storeId = const Value.absent(),
+    this.eventType = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  OrderEventsTableCompanion.insert({
+    required String orderId,
+    required String storeId,
+    required String eventType,
+    required String payload,
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : orderId = Value(orderId),
+       storeId = Value(storeId),
+       eventType = Value(eventType),
+       payload = Value(payload);
+  static Insertable<OrderEventsTableData> custom({
+    Expression<String>? orderId,
+    Expression<String>? storeId,
+    Expression<String>? eventType,
+    Expression<String>? payload,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (orderId != null) 'order_id': orderId,
+      if (storeId != null) 'store_id': storeId,
+      if (eventType != null) 'event_type': eventType,
+      if (payload != null) 'payload': payload,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  OrderEventsTableCompanion copyWith({
+    Value<String>? orderId,
+    Value<String>? storeId,
+    Value<String>? eventType,
+    Value<String>? payload,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return OrderEventsTableCompanion(
+      orderId: orderId ?? this.orderId,
+      storeId: storeId ?? this.storeId,
+      eventType: eventType ?? this.eventType,
+      payload: payload ?? this.payload,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (orderId.present) {
+      map['order_id'] = Variable<String>(orderId.value);
+    }
+    if (storeId.present) {
+      map['store_id'] = Variable<String>(storeId.value);
+    }
+    if (eventType.present) {
+      map['event_type'] = Variable<String>(eventType.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OrderEventsTableCompanion(')
+          ..write('orderId: $orderId, ')
+          ..write('storeId: $storeId, ')
+          ..write('eventType: $eventType, ')
+          ..write('payload: $payload, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -10451,11 +10823,17 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ZReadingsTableTable zReadingsTable = $ZReadingsTableTable(this);
   late final $PaymentMethodsTableTable paymentMethodsTable =
       $PaymentMethodsTableTable(this);
+  late final $OrderEventsTableTable orderEventsTable = $OrderEventsTableTable(
+    this,
+  );
   late final UsersDao usersDao = UsersDao(this as AppDatabase);
   late final ProductsDao productsDao = ProductsDao(this as AppDatabase);
   late final SalesDao salesDao = SalesDao(this as AppDatabase);
   late final StoreInfoDao storeInfoDao = StoreInfoDao(this as AppDatabase);
   late final CashierAccountingDao cashierAccountingDao = CashierAccountingDao(
+    this as AppDatabase,
+  );
+  late final OrderEventsDao orderEventsDao = OrderEventsDao(
     this as AppDatabase,
   );
   @override
@@ -10481,6 +10859,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     dailyReportsTable,
     zReadingsTable,
     paymentMethodsTable,
+    orderEventsTable,
   ];
 }
 
@@ -18645,6 +19024,230 @@ typedef $$PaymentMethodsTableTableProcessedTableManager =
       PaymentMethodsTableData,
       PrefetchHooks Function()
     >;
+typedef $$OrderEventsTableTableCreateCompanionBuilder =
+    OrderEventsTableCompanion Function({
+      required String orderId,
+      required String storeId,
+      required String eventType,
+      required String payload,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$OrderEventsTableTableUpdateCompanionBuilder =
+    OrderEventsTableCompanion Function({
+      Value<String> orderId,
+      Value<String> storeId,
+      Value<String> eventType,
+      Value<String> payload,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$OrderEventsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $OrderEventsTableTable> {
+  $$OrderEventsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get orderId => $composableBuilder(
+    column: $table.orderId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get storeId => $composableBuilder(
+    column: $table.storeId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get eventType => $composableBuilder(
+    column: $table.eventType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$OrderEventsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $OrderEventsTableTable> {
+  $$OrderEventsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get orderId => $composableBuilder(
+    column: $table.orderId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get storeId => $composableBuilder(
+    column: $table.storeId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get eventType => $composableBuilder(
+    column: $table.eventType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$OrderEventsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OrderEventsTableTable> {
+  $$OrderEventsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get orderId =>
+      $composableBuilder(column: $table.orderId, builder: (column) => column);
+
+  GeneratedColumn<String> get storeId =>
+      $composableBuilder(column: $table.storeId, builder: (column) => column);
+
+  GeneratedColumn<String> get eventType =>
+      $composableBuilder(column: $table.eventType, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$OrderEventsTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $OrderEventsTableTable,
+          OrderEventsTableData,
+          $$OrderEventsTableTableFilterComposer,
+          $$OrderEventsTableTableOrderingComposer,
+          $$OrderEventsTableTableAnnotationComposer,
+          $$OrderEventsTableTableCreateCompanionBuilder,
+          $$OrderEventsTableTableUpdateCompanionBuilder,
+          (
+            OrderEventsTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $OrderEventsTableTable,
+              OrderEventsTableData
+            >,
+          ),
+          OrderEventsTableData,
+          PrefetchHooks Function()
+        > {
+  $$OrderEventsTableTableTableManager(
+    _$AppDatabase db,
+    $OrderEventsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer:
+              () =>
+                  $$OrderEventsTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer:
+              () => $$OrderEventsTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer:
+              () => $$OrderEventsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> orderId = const Value.absent(),
+                Value<String> storeId = const Value.absent(),
+                Value<String> eventType = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OrderEventsTableCompanion(
+                orderId: orderId,
+                storeId: storeId,
+                eventType: eventType,
+                payload: payload,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String orderId,
+                required String storeId,
+                required String eventType,
+                required String payload,
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OrderEventsTableCompanion.insert(
+                orderId: orderId,
+                storeId: storeId,
+                eventType: eventType,
+                payload: payload,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper:
+              (p0) =>
+                  p0
+                      .map(
+                        (e) => (
+                          e.readTable(table),
+                          BaseReferences(db, table, e),
+                        ),
+                      )
+                      .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$OrderEventsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $OrderEventsTableTable,
+      OrderEventsTableData,
+      $$OrderEventsTableTableFilterComposer,
+      $$OrderEventsTableTableOrderingComposer,
+      $$OrderEventsTableTableAnnotationComposer,
+      $$OrderEventsTableTableCreateCompanionBuilder,
+      $$OrderEventsTableTableUpdateCompanionBuilder,
+      (
+        OrderEventsTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $OrderEventsTableTable,
+          OrderEventsTableData
+        >,
+      ),
+      OrderEventsTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -18692,4 +19295,6 @@ class $AppDatabaseManager {
       $$ZReadingsTableTableTableManager(_db, _db.zReadingsTable);
   $$PaymentMethodsTableTableTableManager get paymentMethodsTable =>
       $$PaymentMethodsTableTableTableManager(_db, _db.paymentMethodsTable);
+  $$OrderEventsTableTableTableManager get orderEventsTable =>
+      $$OrderEventsTableTableTableManager(_db, _db.orderEventsTable);
 }

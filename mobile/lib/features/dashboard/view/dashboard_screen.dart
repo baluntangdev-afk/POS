@@ -11,6 +11,9 @@ import '../../../widgets/setup_prompt_dialog.dart';
 import '../../auth/state/auth_providers.dart';
 import '../../auth/state/auth_state.dart';
 import '../../inventory/state/inventory_notifier.dart';
+import '../../live_orders/entities/orders_feed_state.dart';
+import '../../live_orders/state/orders_feed_notifier.dart';
+import '../../live_orders/state/pending_orders_count_provider.dart';
 import '../../settings/state/store_info_notifier.dart';
 import '../../users/state/users_notifier.dart';
 import 'store_details_dialog.dart';
@@ -20,13 +23,23 @@ class _Tile {
   final IconData icon;
   final Color accent;
   final String route;
+  final int? badge;
 
   const _Tile({
     required this.label,
     required this.icon,
     required this.accent,
     required this.route,
+    this.badge,
   });
+
+  _Tile copyWith({int? badge}) => _Tile(
+        label: label,
+        icon: icon,
+        accent: accent,
+        route: route,
+        badge: badge,
+      );
 }
 
 const _kTileNew = _Tile(
@@ -92,6 +105,15 @@ class DashboardScreen extends HookConsumerWidget {
     final authState = ref.watch(authNotifierProvider);
     final user = authState is AuthAuthenticated ? authState.user : null;
     final isAdmin = user?.isAdminOrSupervisor ?? false;
+
+    // Boots the session-scoped live-orders socket (kept alive via
+    // ref.keepAlive in the notifier); it connects/disconnects itself as
+    // authNotifierProvider / storeInfoProvider change. Dashboard owns this
+    // connection — the Orders screen only observes it, never boots it.
+    final feedConnection = ref.watch(
+      ordersFeedNotifierProvider.select((s) => s.value?.connection),
+    );
+    final pendingOrdersCount = ref.watch(pendingOrdersCountProvider).value ?? 0;
 
     final hasShownStoreDetailsDialog = useRef(false);
     final hasShownEmployeesDialog = useRef(false);
@@ -223,13 +245,23 @@ class DashboardScreen extends HookConsumerWidget {
       return null;
     }, const []);
 
+    // Explicit check every time Dashboard is shown — right after login, or
+    // navigating back to it later in the session. `ordersFeedNotifierProvider`
+    // already reconnects passively on its own state changes; this covers the
+    // case where the feed went quiet without one (e.g. a session kept alive
+    // from before the app was backgrounded).
+    useEffect(() {
+      ref.read(ordersFeedNotifierProvider.notifier).checkConnection();
+      return null;
+    }, const []);
+
     final tiles = [
       _kTileNew,
       _kTileTransactions,
       if (isAdmin) _kTileInventory,
       // _kTileReports hidden for now
       _kTileCashierAccounting,
-      _kTileOrders,
+      _kTileOrders.copyWith(badge: pendingOrdersCount > 0 ? pendingOrdersCount : null),
       _kTileSettings,
       if (isAdmin) _kTileUsers,
     ];
@@ -245,6 +277,7 @@ class DashboardScreen extends HookConsumerWidget {
               userName: user?.name ?? '',
               userRole: user?.role ?? '',
               firstName: firstName,
+              feedConnection: feedConnection,
               onSignOut: () => ref.read(authNotifierProvider.notifier).logout(),
             ),
             Expanded(
@@ -298,12 +331,14 @@ class _Header extends HookWidget {
   final String userName;
   final String userRole;
   final String firstName;
+  final OrdersFeedConnection? feedConnection;
   final VoidCallback onSignOut;
 
   const _Header({
     required this.userName,
     required this.userRole,
     required this.firstName,
+    required this.feedConnection,
     required this.onSignOut,
   });
 
@@ -326,7 +361,9 @@ class _Header extends HookWidget {
         final showDateTime = w >= 480;
         final iconOnlySignOut = w < 420;
         final showGreeting = greeting.isNotEmpty && w >= 340;
-        final headerHeight = showGreeting ? 76.0 : 64.0;
+        // +22 vs. the pre-live-orders heights, to fit the connection-status
+        // pill under the greeting without the Column overflowing.
+        final headerHeight = showGreeting ? 98.0 : 86.0;
 
         return Container(
           height: headerHeight,
@@ -348,7 +385,10 @@ class _Header extends HookWidget {
               Expanded(
                 child: Row(
                   children: [
-                    _BrandBlock(greeting: showGreeting ? greeting : ''),
+                    _BrandBlock(
+                      greeting: showGreeting ? greeting : '',
+                      feedConnection: feedConnection,
+                    ),
                     if (showDateTime) ...[
                       const SizedBox(width: 16),
                       Container(
@@ -425,8 +465,9 @@ class _Header extends HookWidget {
 
 class _BrandBlock extends StatelessWidget {
   final String greeting;
+  final OrdersFeedConnection? feedConnection;
 
-  const _BrandBlock({required this.greeting});
+  const _BrandBlock({required this.greeting, required this.feedConnection});
 
   @override
   Widget build(BuildContext context) {
@@ -453,7 +494,70 @@ class _BrandBlock extends StatelessWidget {
             ),
           ),
         ],
+        const SizedBox(height: 3),
+        _LiveOrdersStatusPill(connection: feedConnection),
       ],
+    );
+  }
+}
+
+/// Small status pill under the dashboard greeting, showing the live-orders
+/// socket state. Dashboard owns the connection (see [DashboardScreen.build]
+/// booting `ordersFeedNotifierProvider`), so this is where its state is
+/// checked — not a global banner, and not something the Orders screen owns.
+class _LiveOrdersStatusPill extends StatelessWidget {
+  final OrdersFeedConnection? connection;
+
+  const _LiveOrdersStatusPill({required this.connection});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color, bg) = switch (connection) {
+      OrdersFeedConnection.connected => (
+          'Live orders connected',
+          AppColors.success,
+          AppColors.successLight,
+        ),
+      OrdersFeedConnection.reconnecting => (
+          'Reconnecting…',
+          AppColors.warning,
+          AppColors.warningLight,
+        ),
+      OrdersFeedConnection.connecting || null => (
+          'Connecting…',
+          AppColors.warning,
+          AppColors.warningLight,
+        ),
+      OrdersFeedConnection.disconnected => (
+          'Live orders off',
+          AppColors.textDisabled,
+          AppColors.surfaceVariant,
+        ),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -683,34 +787,50 @@ class _TileGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rows = <Widget>[];
-    for (var i = 0; i < tiles.length; i += cols) {
-      final rowTiles = tiles.sublist(i, (i + cols).clamp(0, tiles.length));
-      rows.add(
-        Row(
-          children: [
-            for (var j = 0; j < rowTiles.length; j++) ...[
-              if (j > 0) SizedBox(width: gap),
-              Expanded(
-                child: _TileCard(
-                  tile: rowTiles[j],
-                  index: i + j,
-                  entrance: entrance,
-                ),
-              ),
-            ],
-            // fill remaining columns with invisible spacers
-            for (var k = rowTiles.length; k < cols; k++) ...[
-              SizedBox(width: gap),
-              const Expanded(child: SizedBox()),
-            ],
-          ],
-        ),
-      );
-      rows.add(SizedBox(height: gap));
-    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Needed to give a trailing, less-than-full row's tiles a fixed
+        // width so they can be centered instead of left-flush with an
+        // invisible Expanded spacer filling the rest of the row.
+        final columnWidth = (constraints.maxWidth - gap * (cols - 1)) / cols;
 
-    return Column(children: rows);
+        final rows = <Widget>[];
+        for (var i = 0; i < tiles.length; i += cols) {
+          final rowTiles = tiles.sublist(i, (i + cols).clamp(0, tiles.length));
+          final isFullRow = rowTiles.length == cols;
+
+          rows.add(
+            Row(
+              mainAxisAlignment: isFullRow ? MainAxisAlignment.start : MainAxisAlignment.center,
+              children: [
+                for (var j = 0; j < rowTiles.length; j++) ...[
+                  if (j > 0) SizedBox(width: gap),
+                  isFullRow
+                      ? Expanded(
+                          child: _TileCard(
+                            tile: rowTiles[j],
+                            index: i + j,
+                            entrance: entrance,
+                          ),
+                        )
+                      : SizedBox(
+                          width: columnWidth,
+                          child: _TileCard(
+                            tile: rowTiles[j],
+                            index: i + j,
+                            entrance: entrance,
+                          ),
+                        ),
+                ],
+              ],
+            ),
+          );
+          rows.add(SizedBox(height: gap));
+        }
+
+        return Column(children: rows);
+      },
+    );
   }
 }
 
@@ -784,43 +904,75 @@ class _TileCard extends HookWidget {
               ),
             ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: AppSpacing.lg,
-              horizontal: AppSpacing.md,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  width: 68,
-                  height: 68,
-                  decoration: BoxDecoration(
-                    color: accent.withValues(
-                      alpha: isPressed.value ? 0.18 : 0.12,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppSpacing.lg,
+                  horizontal: AppSpacing.md,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      width: 68,
+                      height: 68,
+                      decoration: BoxDecoration(
+                        color: accent.withValues(
+                          alpha: isPressed.value ? 0.18 : 0.12,
+                        ),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                      ),
+                      child: Icon(tile.icon, size: 32, color: accent),
                     ),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                  ),
-                  child: Icon(tile.icon, size: 32, color: accent),
+                    const SizedBox(height: AppSpacing.sm + 6),
+                    Text(
+                      tile.label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1A1A1A),
+                        letterSpacing: -0.2,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: AppSpacing.sm + 6),
-                Text(
-                  tile.label,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A1A1A),
-                    letterSpacing: -0.2,
-                    height: 1.3,
+              ),
+              if (tile.badge != null)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      tile.badge! > 99 ? '99+' : '${tile.badge}',
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1,
+                      ),
+                    ),
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
         ),
       ),

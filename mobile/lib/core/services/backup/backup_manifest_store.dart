@@ -54,8 +54,9 @@ abstract final class BackupManifestStore {
   /// Drops entries older than [maxAge] from the manifest and returns the
   /// file names that were dropped, so the caller can delete the actual
   /// backup files too. Time-based rather than count-based because backups
-  /// now run hourly — a count-based "keep the newest 30" would only cover
-  /// a day and a bit, not the multi-day window this is meant to provide.
+  /// now run every 3 hours — a count-based "keep the newest 30" would only
+  /// cover a handful of days, not the multi-day window this is meant to
+  /// provide.
   static Future<List<String>> removeOlderThan(Duration maxAge) async {
     final entries = await all();
     final cutoff = DateTime.now().subtract(maxAge);

@@ -6,9 +6,9 @@ import 'package:path/path.dart' as p;
 import 'backup_manifest_store.dart';
 
 abstract final class BackupStorageService {
-  /// Backups run hourly now, so this is a time window, not a count — 7 days
-  /// caps storage at roughly 168 zips while still giving a week of history
-  /// to fall back on.
+  /// Backups run every 3 hours now, so this is a time window, not a count —
+  /// 7 days caps storage at roughly 56 zips while still giving a week of
+  /// history to fall back on.
   static const Duration retentionWindow = Duration(days: 7);
 
   /// Writes [localZip] into the public Downloads/POS Backups folder,

@@ -1,0 +1,215 @@
+import 'dart:async';
+import 'dart:collection';
+
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+import '../../../core/connectivity/connectivity_status_provider.dart';
+import '../../auth/state/auth_providers.dart';
+import '../../auth/state/auth_state.dart';
+import '../../settings/state/store_info_notifier.dart';
+import '../entities/order_event.dart';
+import '../entities/orders_feed_state.dart';
+import '../repositories/order_events_local_repository.dart';
+import '../repositories/orders_live_feed_repository.dart';
+
+const _initialBackoff = Duration(seconds: 1);
+const _maxBackoff = Duration(seconds: 30);
+const _stableConnectionThreshold = Duration(seconds: 5);
+const _readyTimeout = Duration(seconds: 10);
+
+final ordersFeedNotifierProvider =
+    AsyncNotifierProvider<OrdersFeedNotifier, OrdersFeedState>(
+      OrdersFeedNotifier.new,
+      name: 'ordersFeedNotifierProvider',
+    );
+
+class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
+  StreamSubscription<OrderEvent>? _subscription;
+  OrdersSocketSession? _session;
+  Timer? _retryTimer;
+  Duration _backoff = _initialBackoff;
+  DateTime? _connectedAt;
+  String? _storeId;
+  final Queue<String> _recentEventIds = Queue();
+  final Set<String> _seenEventIds = {};
+
+  @override
+  Future<OrdersFeedState> build() async {
+    ref.keepAlive();
+    final authed = ref.watch(authNotifierProvider) is AuthAuthenticated;
+    final storeInfo = await ref.watch(storeInfoProvider.future);
+    final storeId = storeInfo?.storeId ?? '';
+    ref.onDispose(_teardown);
+    ref.listen(isOnlineProvider, _onConnectivityChange);
+
+    if (!authed || storeId.isEmpty) {
+      _teardown();
+      return const OrdersFeedState(
+        connection: OrdersFeedConnection.disconnected,
+      );
+    }
+
+    unawaited(_connect(storeId));
+    return const OrdersFeedState(connection: OrdersFeedConnection.connecting);
+  }
+
+  Future<void> checkConnection() async {
+    final authed = ref.read(authNotifierProvider) is AuthAuthenticated;
+    final storeInfo = await ref.read(storeInfoProvider.future);
+    final storeId = storeInfo?.storeId ?? '';
+
+    if (!authed || storeId.isEmpty) {
+      _teardown();
+      state = const AsyncData(
+        OrdersFeedState(connection: OrdersFeedConnection.disconnected),
+      );
+      return;
+    }
+
+    final current = state.value;
+    final alreadyOnTarget =
+        current != null &&
+        current.storeId == storeId &&
+        (current.connection == OrdersFeedConnection.connected ||
+            current.connection == OrdersFeedConnection.connecting);
+    if (alreadyOnTarget) return;
+
+    // Either nothing's connected yet, or the store ID changed underneath an
+    // existing session — tear down any stale socket for the old ID first.
+    _teardown();
+    state = AsyncData(
+      (current ??
+              const OrdersFeedState(
+                connection: OrdersFeedConnection.connecting,
+              ))
+          .copyWith(
+            connection: OrdersFeedConnection.connecting,
+            storeId: storeId,
+          ),
+    );
+    unawaited(_connect(storeId));
+  }
+
+  /// Reconnects immediately when the device comes back online while the
+  /// socket is mid-backoff, instead of waiting out whatever delay
+  /// [_scheduleReconnect] left in flight.
+  void _onConnectivityChange(
+    AsyncValue<bool>? previous,
+    AsyncValue<bool> next,
+  ) {
+    final wasOnline = previous?.value ?? false;
+    final isOnline = next.value ?? false;
+    if (wasOnline || !isOnline) return;
+
+    final connection = state.value?.connection;
+    if (connection != OrdersFeedConnection.reconnecting &&
+        connection != OrdersFeedConnection.disconnected) {
+      return;
+    }
+    final storeId = _storeId ?? state.value?.storeId;
+    if (storeId == null || storeId.isEmpty) return;
+    unawaited(_connect(storeId));
+  }
+
+  Future<void> _connect(String storeId) async {
+    _retryTimer?.cancel();
+    try {
+      _storeId = storeId;
+      final repository = ref.read(ordersLiveFeedRepositoryProvider);
+      final session = repository.connect(storeId);
+      _session = session;
+      await session.ready.timeout(_readyTimeout);
+
+      _connectedAt = DateTime.now();
+      _subscription = session.events.listen(
+        _onEvent,
+        onError: _onDrop,
+        onDone: _onDrop,
+      );
+      _setConnection(OrdersFeedConnection.connected, storeId: storeId);
+    } catch (_) {
+      unawaited(_session?.close());
+      _session = null;
+      _setConnection(OrdersFeedConnection.reconnecting);
+      _scheduleReconnect(storeId);
+    }
+  }
+
+  void _onEvent(OrderEvent event) {
+    if (!_seenEventIds.add(event.eventId)) return;
+    _recentEventIds.add(event.eventId);
+    if (_recentEventIds.length > 200) {
+      _seenEventIds.remove(_recentEventIds.removeFirst());
+    }
+
+    // Persist every event type, not just `created` — `updated`/`cancelled`
+    // must overwrite the stored order state so the pending-orders badge
+    // (driven by "latest event isn't a cancellation") stays accurate.
+    final storeId = _storeId;
+    if (storeId != null) {
+      unawaited(
+        ref
+            .read(orderEventsLocalRepositoryProvider)
+            .save(event, storeId: storeId),
+      );
+    }
+
+    final current =
+        state.value ??
+        const OrdersFeedState(connection: OrdersFeedConnection.connected);
+    final events = [event, ...current.events];
+    state = AsyncData(
+      current.copyWith(
+        connection: OrdersFeedConnection.connected,
+        events: events.take(ordersFeedMaxEvents).toList(),
+      ),
+    );
+  }
+
+  void _onDrop([Object? error, StackTrace? stackTrace]) {
+    if (_subscription == null) return; // already handled by a prior call
+    unawaited(_subscription?.cancel());
+    _subscription = null;
+    unawaited(_session?.close());
+    _session = null;
+
+    final wasStable =
+        _connectedAt != null &&
+        DateTime.now().difference(_connectedAt!) > _stableConnectionThreshold;
+    if (wasStable) _backoff = _initialBackoff;
+
+    _setConnection(OrdersFeedConnection.reconnecting);
+    final storeId = _storeId;
+    if (storeId != null) _scheduleReconnect(storeId);
+  }
+
+  void _scheduleReconnect(String storeId) {
+    _retryTimer?.cancel();
+    _retryTimer = Timer(_backoff, () => unawaited(_connect(storeId)));
+    final doubled = _backoff * 2;
+    _backoff = doubled > _maxBackoff ? _maxBackoff : doubled;
+  }
+
+  void _setConnection(OrdersFeedConnection connection, {String? storeId}) {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncData(
+      current.copyWith(
+        connection: connection,
+        storeId: storeId ?? current.storeId,
+      ),
+    );
+  }
+
+  void _teardown() {
+    _retryTimer?.cancel();
+    _retryTimer = null;
+    unawaited(_subscription?.cancel());
+    _subscription = null;
+    unawaited(_session?.close());
+    _session = null;
+    _backoff = _initialBackoff;
+    _connectedAt = null;
+    _storeId = null;
+  }
+}

@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/daos/order_events_dao.dart';
 import '../entities/order_event.dart';
+import '../use_cases/should_replace_stored_order.dart';
 
 final orderEventsLocalRepositoryProvider = Provider<OrderEventsLocalRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);
@@ -14,6 +15,12 @@ final orderEventsLocalRepositoryProvider = Provider<OrderEventsLocalRepository>(
 /// data — that's still the REST order history / [OrdersFeedState] in memory.
 abstract class OrderEventsLocalRepository {
   Future<void> save(OrderEvent event, {required String kioskId});
+
+  /// Like [save], but only overwrites the stored row if [event] isn't older
+  /// than what's already there (see [shouldReplaceStoredOrder]) — or there's
+  /// no stored row yet. Used for REST-sourced history, so a backfill can
+  /// never clobber a more recent update the live socket already wrote.
+  Future<void> saveIfNewer(OrderEvent event, {required String kioskId});
 
   /// Orders for [kioskId] not yet cancelled.
   Stream<int> watchPendingCount(String kioskId);
@@ -40,6 +47,14 @@ class OrderEventsLocalRepositoryImpl implements OrderEventsLocalRepository {
       eventType: event.type.name,
       payload: event.data.toJson(),
     );
+  }
+
+  @override
+  Future<void> saveIfNewer(OrderEvent event, {required String kioskId}) async {
+    final existingRow = await _dao.getOrder(event.data.id, kioskId);
+    final existing = existingRow == null ? null : OrderData.fromJson(existingRow.payload);
+    if (!shouldReplaceStoredOrder(existing: existing, incoming: event.data)) return;
+    await save(event, kioskId: kioskId);
   }
 
   @override

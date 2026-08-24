@@ -4,13 +4,11 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_app/data/backend_api/sources/orders_history_api.dart';
-import 'package:pos_app/features/orders/entities/order_event.dart';
 
 class _FakeHttpClientAdapter implements HttpClientAdapter {
-  _FakeHttpClientAdapter(this.body, {this.statusCode = 200});
+  _FakeHttpClientAdapter(this.body);
 
   final String body;
-  final int statusCode;
   RequestOptions? lastRequest;
 
   @override
@@ -22,7 +20,7 @@ class _FakeHttpClientAdapter implements HttpClientAdapter {
     lastRequest = options;
     return ResponseBody.fromString(
       body,
-      statusCode,
+      200,
       headers: {
         Headers.contentTypeHeader: [Headers.jsonContentType],
       },

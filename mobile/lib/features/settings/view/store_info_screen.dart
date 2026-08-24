@@ -253,7 +253,7 @@ class _StoreInfoForm extends HookConsumerWidget {
           terminalNameCtrl.text.trim(),
         );
       } finally {
-        saving.value = false;
+        if (context.mounted) saving.value = false;
       }
     }
 

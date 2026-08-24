@@ -82,9 +82,65 @@ class WindowsTouchKeyboard {
   static void startGuard() {
     if (!Platform.isWindows || _started) return;
     _started = true;
+    _disableDesktopModeAutoInvoke();
     _nativeChannel.setMethodCallHandler(_handleNativeCall);
     FocusManager.instance.addListener(_syncKeyboardToFocus);
     _syncKeyboardToFocus();
+  }
+
+  /// Writes `EnableDesktopModeAutoInvoke = 0` under this user's own
+  /// `HKCU\Software\Microsoft\TabletTip\1.7` key — the same setting
+  /// `TextInputHost.exe`/`TabTip.exe` itself checks before deciding to
+  /// auto-invoke off touch/focus heuristics in desktop mode. Without this,
+  /// every other layer in this file is reactive: it can only close the
+  /// keyboard window after Windows has already decided to show it, which is
+  /// a real 150ms-poll race — one this app can and does lose, which is what
+  /// let the OS keyboard and [OnScreenKeyboard] both end up on screen at
+  /// once. This makes Windows never decide to show it for this account in
+  /// the first place, so there is nothing left to race.
+  ///
+  /// Same account-wide scope as the `SC_CLOSE` side effect noted in
+  /// [_closeOsTouchKeyboardWindow] — but set deliberately and permanently
+  /// here, rather than as an accidental one-poll-tick side effect. On a
+  /// dedicated kiosk sign-in this account never needs the OS touch keyboard
+  /// for anything, since every field on Windows is driven by
+  /// [OnScreenKeyboard] instead. `TextInputHost.exe` can cache this value
+  /// for the lifetime of its own process, so a first-time change may need a
+  /// reboot before it's fully in effect.
+  static void _disableDesktopModeAutoInvoke() {
+    final subKeyPtr = r'Software\Microsoft\TabletTip\1.7'.toNativeUtf16();
+    final valueNamePtr = 'EnableDesktopModeAutoInvoke'.toNativeUtf16();
+    final hKeyPtr = calloc<IntPtr>();
+    final dataPtr = calloc<Uint32>();
+    try {
+      dataPtr.value = 0;
+      final createStatus = RegCreateKeyEx(
+        HKEY_CURRENT_USER,
+        subKeyPtr,
+        0,
+        nullptr,
+        REG_OPTION_NON_VOLATILE,
+        KEY_SET_VALUE,
+        nullptr,
+        hKeyPtr,
+        nullptr,
+      );
+      if (createStatus != 0) return;
+      RegSetValueEx(
+        hKeyPtr.value,
+        valueNamePtr,
+        0,
+        REG_DWORD,
+        dataPtr.cast<Uint8>(),
+        sizeOf<Uint32>(),
+      );
+      RegCloseKey(hKeyPtr.value);
+    } finally {
+      calloc.free(subKeyPtr);
+      calloc.free(valueNamePtr);
+      calloc.free(hKeyPtr);
+      calloc.free(dataPtr);
+    }
   }
 
   static Future<void> _handleNativeCall(MethodCall call) async {
@@ -151,17 +207,22 @@ class WindowsTouchKeyboard {
     });
   }
 
-  /// Closes the native "IPTip_Main_Window" (TabTip.exe) via
-  /// WM_SYSCOMMAND/SC_CLOSE — the technique that tells the touch keyboard
-  /// to actually retract, rather than `ShowWindow(SW_HIDE)`, which only
-  /// hides the window while leaving TabTip's own "should be shown" state
-  /// intact so it re-paints itself on the next trigger.
+  /// Hides the native "IPTip_Main_Window" (TabTip.exe) via
+  /// `ShowWindow(SW_HIDE)`. Deliberately *not*
+  /// `SendMessage(WM_SYSCOMMAND, SC_CLOSE)` — that's the same message the
+  /// keyboard's own "x" button sends, and Windows treats it as the user
+  /// manually dismissing the touch keyboard: it then stops auto-invoking the
+  /// keyboard *system-wide, for every app,* for the rest of the sign-in
+  /// session, not just here. `SW_HIDE` only hides this window instance and
+  /// leaves TabTip's own "should be shown" state alone, so it may re-paint
+  /// itself on the next trigger — an occasional in-app flicker, which is the
+  /// trade-off for not risking the OS keyboard breaking everywhere else.
   static void _closeOsTouchKeyboardWindow() {
     final classNamePtr = 'IPTip_Main_Window'.toNativeUtf16();
     try {
       final hwnd = FindWindow(classNamePtr, nullptr);
       if (hwnd != 0 && IsWindowVisible(hwnd) != 0) {
-        SendMessage(hwnd, WM_SYSCOMMAND, SC_CLOSE, 0);
+        ShowWindow(hwnd, SW_HIDE);
       }
     } finally {
       calloc.free(classNamePtr);

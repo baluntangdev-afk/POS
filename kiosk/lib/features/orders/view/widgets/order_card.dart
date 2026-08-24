@@ -94,6 +94,7 @@ class OrderCard extends HookConsumerWidget {
                     Expanded(
                       child: Text(
                         data.id.toUpperCase(),
+                        maxLines: 2,
                         style: TextStyle(
                           fontSize: r.scale(15),
                           fontWeight: FontWeight.bold,

@@ -5,6 +5,7 @@ abstract class AppEnv {
   String get secureStorageKey;
   String get ordersLiveFeedWsUrl;
   String get cartivoAuthApiBaseUrl;
+  String get ordersEventsApiBaseUrl;
   bool get isDev;
 }
 

@@ -52,7 +52,7 @@
 ; â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 #define MyAppName    "POS Kiosk"
-#define MyAppVersion "1.1.2"
+#define MyAppVersion "1.3.4"
 #define MyAppPublisher "Your Company"
 #define KioskExe     "pos_app.exe"
 #define BackendExe   "POSBackend.exe"
@@ -174,6 +174,41 @@ Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; F
 ;            staying stuck on "Starting up..." on a fresh machine).
 ;            Logs to: {app}\logs\configure-security-install.log
 Filename: "{cmd}"; Parameters: "/c powershell.exe -ExecutionPolicy Bypass -NonInteractive -File ""{app}\scripts\configure-security.ps1"" ""{app}"""; WorkingDir: "{app}"; Flags: runhidden waituntilterminated; StatusMsg: "Configuring Windows Firewall and Defender..."
+
+; Step 0b2 — Best-effort: disable the "TabletInputService" (Touch Keyboard and
+;            Handwriting Panel Service) for Windows builds where it still
+;            exists (older Windows 10/11). Confirmed via `sc query` on a
+;            Windows 11 23H2 (build 22631) test machine that this service no
+;            longer exists there at all (error 1060) — Microsoft has removed
+;            it on newer builds, and TextInputHost.exe launches through some
+;            other path that doesn't depend on it. Left in as a no-op-when-
+;            absent defense layer for any older machines in the fleet; the
+;            IFEO block below (Step 0b3) is what actually stops it on 23H2+.
+Filename: "{cmd}"; Parameters: "/c sc stop TabletInputService & sc config TabletInputService start= disabled"; Flags: runhidden waituntilterminated; StatusMsg: "Disabling Windows touch keyboard (legacy path)..."
+
+; Step 0b3 — Block TextInputHost.exe (and legacy TabTip.exe) from ever
+;            launching at all, via Image File Execution Options "Debugger"
+;            redirection. Whatever internal mechanism this Windows build
+;            uses to decide when to show the OS touch keyboard (heuristic,
+;            TSF connection, raw touch event, service, or something else
+;            entirely — confirmed on this fleet's Windows 11 23H2 machines
+;            that it is NOT gated by TabletInputService any more), all of
+;            those paths ultimately do the same thing: ask the OS loader to
+;            start the TextInputHost.exe/TabTip.exe process. IFEO is
+;            enforced by the loader itself for any process with that image
+;            name, regardless of caller, so pointing "Debugger" at a path
+;            that does not exist makes every such launch attempt fail
+;            immediately and silently — nothing to race, nothing to poll for,
+;            because the process itself never starts. This is what finally
+;            replaces every prior reactive layer (SW_HIDE/SC_CLOSE window
+;            tricks, the focus-driven native poll-and-close guard,
+;            EnableDesktopModeAutoInvoke=0, and the TabletInputService
+;            disable above) that could only ever race Windows' own decision
+;            to show it and kept losing that race. Safe on a dedicated kiosk
+;            terminal: this app draws its own on-screen keyboard (see
+;            kiosk\lib\widgets\onscreen_keyboard\) and never needs the emoji
+;            panel or clipboard-history flyout TextInputHost.exe also hosts.
+Filename: "{cmd}"; Parameters: "/c reg add ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\TextInputHost.exe"" /v Debugger /t REG_SZ /d ""{app}\blocked-by-kiosk.exe"" /f & reg add ""HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\TabTip.exe"" /v Debugger /t REG_SZ /d ""{app}\blocked-by-kiosk.exe"" /f & taskkill /F /IM TextInputHost.exe /T & taskkill /F /IM TabTip.exe /T"; Flags: runhidden waituntilterminated; StatusMsg: "Blocking Windows touch keyboard..."
 
 ; Step 0c — Create a dedicated kiosk Windows account and configure auto sign-in,
 ;            so the machine comes all the way back up (services + the visible
@@ -362,6 +397,10 @@ function NeedRestart(): Boolean;
 begin
   Result := False;
 end;
+
+
+
+
 
 
 

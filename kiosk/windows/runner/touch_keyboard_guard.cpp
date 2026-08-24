@@ -45,13 +45,22 @@ UINT_PTR g_poll_timer = 0;
 // never touches Flutter's focus tree at all).
 flutter::MethodChannel<flutter::EncodableValue>* g_channel = nullptr;
 
-// Closes the touch keyboard the same way the previous Dart-only guard did:
-// hide it immediately, then ask it to retract via WM_SYSCOMMAND/SC_CLOSE so
-// it doesn't just repaint itself on the next trigger.
+// Hides the touch keyboard window. Deliberately ShowWindow(SW_HIDE) only —
+// WM_SYSCOMMAND/SC_CLOSE was tried first (the same message the keyboard's own
+// "x" button sends), but that doesn't just hide this one instance: Windows
+// treats it as the user manually dismissing the touch keyboard and stops
+// auto-invoking it *system-wide, for every app, for the rest of the sign-in
+// session* — until someone taps the tray icon or the machine reboots. This
+// poll fires every 150ms, so that meant one stray empty-space tap in this
+// kiosk could permanently break the OS touch keyboard in every other app
+// (Chrome included) until a reboot. SW_HIDE has no such side effect — it
+// only hides this window instance, leaving the keyboard's own "should be
+// shown" state untouched, so it may repaint itself on the next trigger. That
+// occasional flicker, caught again on the next poll tick, is the trade-off
+// for not being able to wreck the keyboard for the whole machine.
 void CloseIfVisible(HWND hwnd) {
   if (!::IsWindow(hwnd)) return;
   ::ShowWindow(hwnd, SW_HIDE);
-  ::SendMessage(hwnd, WM_SYSCOMMAND, SC_CLOSE, 0);
 }
 
 // Empty string if the owning process can't be queried (e.g. it's running
@@ -118,6 +127,11 @@ bool IsTouchKeyboardWindow(const wchar_t* class_name,
   return _wcsicmp(process_name.c_str(), kTextInputHostProcessName) == 0;
 }
 
+// Sticky memory of which app last held *real* (non-keyboard) foreground.
+// See IsOurAppForeground() for why this can't just be recomputed from
+// GetForegroundWindow() on every check.
+bool g_app_was_foreground = false;
+
 // Whether the kiosk itself is the app the user is currently interacting with.
 //
 // This guard must only suppress the touch keyboard *for this app*. Without this
@@ -126,19 +140,27 @@ bool IsTouchKeyboardWindow(const wchar_t* class_name,
 // after the user alt-tabbed away, which is not ours to take away.
 bool IsOurAppForeground() {
   HWND foreground = ::GetForegroundWindow();
-  if (foreground == nullptr) return false;
+  if (foreground == nullptr) return g_app_was_foreground;
+
+  // The touch keyboard routinely takes OS foreground itself the instant it's
+  // touched (true of both the legacy IPTip_Main_Window and the modern
+  // TextInputHost.exe surface) — regardless of which underlying app asked for
+  // it. Treating "the keyboard is foreground" as "we are foreground" here
+  // would make every app's keyboard look like ours the moment the user
+  // touches it, closing e.g. Chrome's keyboard just because the kiosk process
+  // happens to still be running in the background. So when the keyboard
+  // itself is in front, keep trusting whichever app last had real foreground
+  // instead of re-deciding from the keyboard window.
+  wchar_t class_name[256] = L"";
+  ::GetClassNameW(foreground, class_name, ARRAYSIZE(class_name));
+  if (IsTouchKeyboardWindow(class_name, GetOwningProcessName(foreground))) {
+    return g_app_was_foreground;
+  }
 
   DWORD pid = 0;
   ::GetWindowThreadProcessId(foreground, &pid);
-  if (pid == ::GetCurrentProcessId()) return true;
-
-  // The touch keyboard can itself take foreground at the moment it appears, in
-  // which case the window in front is the keyboard rather than the kiosk. Treat
-  // that as still-ours so it can be closed, instead of deadlocking on "the
-  // keyboard is up, therefore we aren't foreground, therefore leave it alone".
-  wchar_t class_name[256] = L"";
-  ::GetClassNameW(foreground, class_name, ARRAYSIZE(class_name));
-  return IsTouchKeyboardWindow(class_name, GetOwningProcessName(foreground));
+  g_app_was_foreground = (pid == ::GetCurrentProcessId());
+  return g_app_was_foreground;
 }
 
 // EVENT_OBJECT_SHOW/HIDE never fire for this window on Windows 11: the

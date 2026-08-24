@@ -25,5 +25,9 @@ final class EnvDev implements AppEnv {
   final String cartivoAuthApiBaseUrl = _EnvDev.cartivoAuthApiBaseUrl;
 
   @override
+  @EnviedField()
+  final String ordersEventsApiBaseUrl = _EnvDev.ordersEventsApiBaseUrl;
+
+  @override
   bool get isDev => true;
 }

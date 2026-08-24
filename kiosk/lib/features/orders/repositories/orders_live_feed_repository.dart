@@ -60,22 +60,19 @@ class OrdersLiveFeedRepositoryImpl implements OrdersLiveFeedRepository {
       debugPrint('[OrdersFeed] dropped non-string WS message: $raw');
       return null;
     }
+    Map<String, dynamic> json;
     try {
-      final json = jsonDecode(raw) as Map<String, dynamic>;
-      final type = OrderEventType.fromWire(json['event_type'] as String);
-      if (type == null) {
-        debugPrint('[OrdersFeed] dropped unrecognized event_type: ${json['event_type']}');
-        return null;
-      }
-      debugPrint('RECEIVED LIVE DATA ${jsonEncode(json['data'])}');
-      return OrderEvent(
-        eventId: json['event_id'] as String,
-        type: type,
-        data: OrderData.fromJson(jsonEncode(json['data'])),
-      );
+      json = jsonDecode(raw) as Map<String, dynamic>;
     } catch (e, st) {
-      debugPrint('[OrdersFeed] failed to parse WS message: $raw\nerror: $e\n$st');
+      debugPrint('[OrdersFeed] failed to decode WS message: $raw\nerror: $e\n$st');
       return null;
     }
+    final event = OrderEvent.fromWireJson(json);
+    if (event == null) {
+      debugPrint('[OrdersFeed] dropped unparseable/unrecognized WS message: $raw');
+      return null;
+    }
+    debugPrint('RECEIVED LIVE DATA ${jsonEncode(json['data'])}');
+    return event;
   }
 }

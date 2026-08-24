@@ -6,12 +6,14 @@ import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/connectivity/connectivity_status_provider.dart';
+import '../../../data/backend_api/sources/orders_history_api.dart';
 import '../../../data/backend_api/sources/pos_terminals_api.dart';
 import '../../auth/state/login_state_notifier.dart';
 import '../entities/order_event.dart';
 import '../entities/orders_feed_state.dart';
 import '../repositories/order_events_local_repository.dart';
 import '../repositories/orders_live_feed_repository.dart';
+import '../use_cases/latest_event_per_order.dart';
 
 const _initialBackoff = Duration(seconds: 1);
 const _maxBackoff = Duration(seconds: 30);
@@ -77,6 +79,7 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     try {
       final terminal = await ref.read(posTerminalsApiProvider).getMyTerminal();
       _kioskId = terminal.kioskId;
+      await _syncHistory(terminal.kioskId);
       final repository = ref.read(ordersLiveFeedRepositoryProvider);
       final session = repository.connect(terminal.kioskId);
       _session = session;
@@ -91,6 +94,38 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
       _setConnection(OrdersFeedConnection.reconnecting);
       _scheduleReconnect();
     }
+  }
+
+  /// Backfills local order history for [kioskId] from the REST endpoint,
+  /// merging with write-if-newer semantics so it can never overwrite an
+  /// order the live socket has already updated more recently. Runs before
+  /// the socket opens in [_connect] (covering login and kiosk-ID changes
+  /// for free, since both already rebuild this notifier); also callable
+  /// standalone via [refreshHistory]. Best-effort: a failure here doesn't
+  /// stop the socket from connecting, and doesn't surface an error to the
+  /// UI — the screen keeps showing whatever's already persisted.
+  Future<void> _syncHistory(String kioskId) async {
+    try {
+      final events = await ref.read(ordersHistoryApiProvider).fetchEvents(kioskId);
+      final latest = latestEventPerOrder(events);
+      final repository = ref.read(orderEventsLocalRepositoryProvider);
+      for (final event in latest) {
+        await repository.saveIfNewer(event, kioskId: kioskId);
+      }
+    } catch (e, st) {
+      debugPrint('[OrdersFeed] history backfill failed: $e\n$st');
+    }
+  }
+
+  /// Re-fetches order history from the REST endpoint and merges it into
+  /// local storage, without touching the live socket connection. Used by
+  /// the Orders screen's on-mount load and pull-to-refresh. No-ops if this
+  /// notifier hasn't resolved a kiosk ID yet (not logged in / still
+  /// connecting for the first time).
+  Future<void> refreshHistory() async {
+    final kioskId = _kioskId;
+    if (kioskId == null) return;
+    await _syncHistory(kioskId);
   }
 
   void _onEvent(OrderEvent event) {

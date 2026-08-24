@@ -31,3 +31,15 @@ final cartivoApiClientProvider = Provider<Dio>((ref) {
   final client = httpClientProvider(options);
   return ref.watch(client);
 });
+
+/// Client for the webhook-receiver's order-history REST endpoint
+/// (`/webhooks/events`) — same host as the live orders WS feed
+/// ([AppEnv.ordersLiveFeedWsUrl]), configured separately via
+/// [AppEnv.ordersEventsApiBaseUrl] since it's a plain REST call rather than
+/// a socket URL. Unauthenticated, like [cartivoApiClientProvider].
+final ordersEventsApiClientProvider = Provider<Dio>((ref) {
+  final env = ref.watch(appEnvProvider);
+  final options = (baseUrl: env.ordersEventsApiBaseUrl, interceptors: <Interceptor>[]);
+  final client = httpClientProvider(options);
+  return ref.watch(client);
+});

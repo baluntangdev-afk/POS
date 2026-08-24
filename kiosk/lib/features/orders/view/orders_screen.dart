@@ -12,6 +12,7 @@ import '../../../theme/pos_design.dart';
 import '../../../widgets/brand_header.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/order_event.dart';
+import '../state/orders_feed_notifier.dart';
 import '../state/pending_orders_count_provider.dart';
 import 'order_fulfillment_spec.dart';
 import 'order_status.dart';
@@ -26,6 +27,11 @@ class OrdersScreen extends HookConsumerWidget {
     final events = ref.watch(persistedOrdersProvider).value ?? const [];
     final selected = useState(OrdersFilter.all);
 
+    useEffect(() {
+      unawaited(ref.read(ordersFeedNotifierProvider.notifier).refreshHistory());
+      return null;
+    }, const []);
+
     return WindowsScaffold(
       backgroundColor: ColorSet.background,
       body: Column(
@@ -38,10 +44,13 @@ class OrdersScreen extends HookConsumerWidget {
             child:
                 events.isEmpty
                     ? const _EmptyBody()
-                    : _OrdersBody(
-                      events: events.toIList(),
-                      selected: selected.value,
-                      onSelect: (f) => selected.value = f,
+                    : RefreshIndicator(
+                      onRefresh: () => ref.read(ordersFeedNotifierProvider.notifier).refreshHistory(),
+                      child: _OrdersBody(
+                        events: events.toIList(),
+                        selected: selected.value,
+                        onSelect: (f) => selected.value = f,
+                      ),
                     ),
           ),
         ],

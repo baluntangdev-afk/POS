@@ -38,7 +38,7 @@ The WS repository currently parses each message's JSON inline in
 fetch need identical "is this a valid order event" logic, so it moves onto
 `OrderEvent` itself as a static factory.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `test/features/orders/entities/order_event_test.dart`:
 
@@ -112,12 +112,12 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `flutter test test/features/orders/entities/order_event_test.dart`
 Expected: FAIL — `OrderEvent.fromWireJson` doesn't exist yet (compile error).
 
-- [ ] **Step 3: Add `fromWireJson` to `OrderEvent`**
+- [x] **Step 3: Add `fromWireJson` to `OrderEvent`**
 
 In `lib/features/orders/entities/order_event.dart`, add `import 'dart:convert';`
 at the top, then add the factory to the `OrderEvent` class (after its
@@ -158,12 +158,12 @@ class OrderEvent with OrderEventMappable {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `flutter test test/features/orders/entities/order_event_test.dart`
 Expected: PASS (5 tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/features/orders/entities/order_event.dart test/features/orders/entities/order_event_test.dart
@@ -183,7 +183,7 @@ has no existing test harness (it opens a real `WebSocketChannel`); covered by
 `flutter analyze` + the Task 1 unit tests it now depends on, plus manual
 verification in Task 9.
 
-- [ ] **Step 1: Replace `_parse`'s inline logic**
+- [x] **Step 1: Replace `_parse`'s inline logic**
 
 In `lib/features/orders/repositories/orders_live_feed_repository.dart`,
 replace the `_parse` method body:
@@ -216,12 +216,12 @@ check and `OrderData.fromJson` call inside one big `try`/`catch`). The
 `_parse` method's signature, the class it lives in, and every other method
 in the file are unchanged.
 
-- [ ] **Step 2: Verify it compiles and analyzes clean**
+- [x] **Step 2: Verify it compiles and analyzes clean**
 
 Run: `dart analyze lib/features/orders/repositories/orders_live_feed_repository.dart`
 Expected: `No issues found!`
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add lib/features/orders/repositories/orders_live_feed_repository.dart
@@ -235,7 +235,7 @@ git commit -m "refactor(kiosk): reuse shared parser in the live orders WS feed"
 **Files:**
 - Modify: `lib/data/backend_api/api_clients.dart`
 
-- [ ] **Step 1: Add the new client provider**
+- [x] **Step 1: Add the new client provider**
 
 In `lib/data/backend_api/api_clients.dart`, add after `cartivoApiClientProvider`:
 
@@ -253,12 +253,12 @@ final ordersEventsApiClientProvider = Provider<Dio>((ref) {
 });
 ```
 
-- [ ] **Step 2: Verify it compiles**
+- [x] **Step 2: Verify it compiles**
 
 Run: `dart analyze lib/data/backend_api/api_clients.dart`
 Expected: `No issues found!`
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add lib/data/backend_api/api_clients.dart
@@ -273,7 +273,7 @@ git commit -m "feat(kiosk): add REST client for the orders-history endpoint"
 - Create: `lib/data/backend_api/sources/orders_history_api.dart`
 - Test: `test/data/backend_api/sources/orders_history_api_test.dart`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `test/data/backend_api/sources/orders_history_api_test.dart`:
 
@@ -366,12 +366,12 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `flutter test test/data/backend_api/sources/orders_history_api_test.dart`
 Expected: FAIL — `package:pos_app/data/backend_api/sources/orders_history_api.dart` doesn't exist.
 
-- [ ] **Step 3: Create `OrdersHistoryApi`**
+- [x] **Step 3: Create `OrdersHistoryApi`**
 
 Create `lib/data/backend_api/sources/orders_history_api.dart`:
 
@@ -412,12 +412,12 @@ class OrdersHistoryApi {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `flutter test test/data/backend_api/sources/orders_history_api_test.dart`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/data/backend_api/sources/orders_history_api.dart test/data/backend_api/sources/orders_history_api_test.dart
@@ -437,7 +437,7 @@ The history endpoint returns the full per-event log (every `created`/
 order. Before persisting, that needs collapsing to one `OrderEvent` per
 `orderId` — whichever has the latest `data.updatedAt`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `test/features/orders/use_cases/latest_event_per_order_test.dart`:
 
@@ -502,12 +502,12 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `flutter test test/features/orders/use_cases/latest_event_per_order_test.dart`
 Expected: FAIL — file doesn't exist.
 
-- [ ] **Step 3: Implement it**
+- [x] **Step 3: Implement it**
 
 Create `lib/features/orders/use_cases/latest_event_per_order.dart`:
 
@@ -529,12 +529,12 @@ List<OrderEvent> latestEventPerOrder(List<OrderEvent> events) {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `flutter test test/features/orders/use_cases/latest_event_per_order_test.dart`
 Expected: PASS (2 tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/features/orders/use_cases/latest_event_per_order.dart test/features/orders/use_cases/latest_event_per_order_test.dart
@@ -569,7 +569,7 @@ plus the manual overwrite-race check in Task 9, Step 3 (item 4), matching how
 `orders_feed_notifier.dart` and `orders_live_feed_repository.dart` are
 already handled in this plan.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `test/features/orders/use_cases/should_replace_stored_order_test.dart`:
 
@@ -630,12 +630,12 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `flutter test test/features/orders/use_cases/should_replace_stored_order_test.dart`
 Expected: FAIL — file doesn't exist.
 
-- [ ] **Step 3: Implement the pure decision function**
+- [x] **Step 3: Implement the pure decision function**
 
 Create `lib/features/orders/use_cases/should_replace_stored_order.dart`:
 
@@ -653,12 +653,12 @@ bool shouldReplaceStoredOrder({required OrderData? existing, required OrderData 
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `flutter test test/features/orders/use_cases/should_replace_stored_order_test.dart`
 Expected: PASS (4 tests)
 
-- [ ] **Step 5: Add `getOrder` to the DAO**
+- [x] **Step 5: Add `getOrder` to the DAO**
 
 In `lib/core/database/daos/order_events_dao.dart`, add this method inside
 `OrderEventsDao` (after `upsertOrder`, before `watchPendingCount`):
@@ -673,7 +673,7 @@ In `lib/core/database/daos/order_events_dao.dart`, add this method inside
   }
 ```
 
-- [ ] **Step 6: Add `saveIfNewer` to the repository**
+- [x] **Step 6: Add `saveIfNewer` to the repository**
 
 In `lib/features/orders/repositories/order_events_local_repository.dart`,
 add the import:
@@ -704,12 +704,12 @@ And to `OrderEventsLocalRepositoryImpl` (after the existing `save` override):
   }
 ```
 
-- [ ] **Step 7: Verify it compiles**
+- [x] **Step 7: Verify it compiles**
 
 Run: `dart analyze lib/core/database/daos/order_events_dao.dart lib/features/orders/repositories/order_events_local_repository.dart`
 Expected: `No issues found!`
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add lib/features/orders/use_cases/should_replace_stored_order.dart lib/core/database/daos/order_events_dao.dart lib/features/orders/repositories/order_events_local_repository.dart test/features/orders/use_cases/should_replace_stored_order_test.dart
@@ -728,7 +728,7 @@ WebSocket + Riverpod `AsyncNotifier` lifecycle), consistent with the rest of
 the file today. Covered by `flutter analyze` here and manual verification in
 Task 9.
 
-- [ ] **Step 1: Add imports**
+- [x] **Step 1: Add imports**
 
 In `lib/features/orders/state/orders_feed_notifier.dart`, add these two
 imports alongside the existing ones:
@@ -738,7 +738,7 @@ import '../../../data/backend_api/sources/orders_history_api.dart';
 import '../use_cases/latest_event_per_order.dart';
 ```
 
-- [ ] **Step 2: Add `_syncHistory` and call it from `_connect`**
+- [x] **Step 2: Add `_syncHistory` and call it from `_connect`**
 
 Replace the existing `_connect` method:
 
@@ -823,12 +823,12 @@ with:
   }
 ```
 
-- [ ] **Step 3: Verify it compiles**
+- [x] **Step 3: Verify it compiles**
 
 Run: `dart analyze lib/features/orders/state/orders_feed_notifier.dart`
 Expected: `No issues found!`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add lib/features/orders/state/orders_feed_notifier.dart
@@ -842,7 +842,7 @@ git commit -m "feat(kiosk): backfill order history before connecting the live fe
 **Files:**
 - Modify: `lib/features/orders/view/orders_screen.dart`
 
-- [ ] **Step 1: Trigger a refresh on mount**
+- [x] **Step 1: Trigger a refresh on mount**
 
 In `lib/features/orders/view/orders_screen.dart`, inside `OrdersScreen.build`,
 add a `useEffect` right after the existing `useState` line:
@@ -863,7 +863,7 @@ Add the notifier import alongside the existing ones:
 import '../state/orders_feed_notifier.dart';
 ```
 
-- [ ] **Step 2: Wrap the board in a `RefreshIndicator`**
+- [x] **Step 2: Wrap the board in a `RefreshIndicator`**
 
 Replace the `Expanded` block in `OrdersScreen.build`:
 
@@ -905,12 +905,12 @@ without changes to `order_kanban_board.dart`. The empty state
 (`_EmptyBody`) isn't wrapped: there's nothing to pull against with zero
 orders, and the screen already refreshes automatically on mount.
 
-- [ ] **Step 3: Verify it compiles**
+- [x] **Step 3: Verify it compiles**
 
 Run: `dart analyze lib/features/orders/view/orders_screen.dart`
 Expected: `No issues found!`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add lib/features/orders/view/orders_screen.dart
@@ -923,12 +923,12 @@ git commit -m "feat(kiosk): refresh order history on Orders screen mount + pull-
 
 **Files:** none (verification only)
 
-- [ ] **Step 1: Run the full test suite**
+- [x] **Step 1: Run the full test suite**
 
 Run: `flutter test`
 Expected: all tests pass, including the 4 new test files from Tasks 1, 4, 5, 6.
 
-- [ ] **Step 2: Run static analysis on the whole project**
+- [x] **Step 2: Run static analysis on the whole project**
 
 Run: `dart analyze`
 Expected: `No issues found!`

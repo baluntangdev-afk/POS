@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +11,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/empty_state_widget.dart';
 import '../../live_orders/entities/order_event.dart';
+import '../../live_orders/state/orders_feed_notifier.dart';
 import '../../live_orders/state/pending_orders_count_provider.dart';
 import 'order_status.dart';
 
@@ -16,12 +20,17 @@ import 'order_status.dart';
 /// — so this screen shows the right thing on open even before any socket
 /// event arrives this session. The connection itself is booted and checked
 /// on `DashboardScreen`; this screen only observes it.
-class OrdersScreen extends ConsumerWidget {
+class OrdersScreen extends HookConsumerWidget {
   const OrdersScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ordersAsync = ref.watch(persistedOrdersProvider);
+
+    useEffect(() {
+      unawaited(ref.read(ordersFeedNotifierProvider.notifier).refreshHistory());
+      return null;
+    }, const []);
 
     return PopScope(
       canPop: false,
@@ -41,27 +50,40 @@ class OrdersScreen extends ConsumerWidget {
         ),
         body: ordersAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(
-            child: Text(
-              'Could not load orders.\n$e',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
-            ),
-          ),
+          error:
+              (e, _) => Center(
+                child: Text(
+                  'Could not load orders.\n$e',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
           data: (orders) {
             if (orders.isEmpty) {
               return const EmptyStateWidget(
                 title: 'No orders yet',
-                subtitle: 'New orders placed through your storefront will show up here in real time.',
+                subtitle:
+                    'New orders placed through your storefront will show up here in real time.',
               );
             }
-            return ListView.separated(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              itemCount: orders.length,
-              separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-              itemBuilder: (context, index) => _OrderCard(
-                event: orders[index],
-                onTap: () => _showOrderDetail(context, orders[index]),
+            return RefreshIndicator(
+              onRefresh:
+                  () =>
+                      ref
+                          .read(ordersFeedNotifierProvider.notifier)
+                          .refreshHistory(),
+              child: ListView.separated(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                itemCount: orders.length,
+                separatorBuilder:
+                    (_, __) => const SizedBox(height: AppSpacing.sm),
+                itemBuilder:
+                    (context, index) => _OrderCard(
+                      event: orders[index],
+                      onTap: () => _showOrderDetail(context, orders[index]),
+                    ),
               ),
             );
           },
@@ -89,7 +111,21 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = event.data;
+    final status = classifyOrderStatus(event);
     final isCancelled = event.type == OrderEventType.cancelled;
+    final canCancel = !isCancelled && status != OrderCardStatus.fulfilled;
+    final subtitle = [
+      (data.customerName ?? '').isNotEmpty ? data.customerName : 'Guest',
+      switch (data.fulfillmentType) {
+        FulfillmentType.onSite =>
+          (data.facilityName ?? '').isNotEmpty
+              ? 'On-site · ${data.facilityName}'
+              : 'On-site',
+        FulfillmentType.pickup => 'Pickup',
+        FulfillmentType.delivery => 'Delivery',
+        FulfillmentType.other => null,
+      },
+    ].whereType<String>().join(' · ');
 
     return Material(
       color: AppColors.surface,
@@ -100,13 +136,15 @@ class _OrderCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.cardPadding),
           decoration: BoxDecoration(
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-            border: Border(
-              left: BorderSide(
-                color: isCancelled ? AppColors.textDisabled : AppColors.primary,
-                width: 3,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadow,
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
-            ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -114,78 +152,81 @@ class _OrderCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 8.0,
                 children: [
-                  Expanded(child: Text('Order #${data.id}', style: AppTextStyles.headingSm)),
-                  Text(_relativeTime(data.updatedAt), style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary)),
+                  Expanded(
+                    child: Text(
+                      'Order #${data.id}',
+                      style: AppTextStyles.headingSm,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  _StatusBadge(
+                    status: status,
+                    rawStatus: data.status,
+                    interactive: canCancel,
+                  ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.xs),
-              if ((data.customerName ?? '').isNotEmpty)
+              const SizedBox(height: AppSpacing.sm),
+              if (subtitle.isNotEmpty)
                 Text(
-                  data.customerName!,
-                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
+                  subtitle,
+                  style: AppTextStyles.bodyMd.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                DateFormat('h:mm a').format(data.createdAt),
+                style: AppTextStyles.bodySm.copyWith(
+                  color: AppColors.textDisabled,
+                ),
+              ),
               const SizedBox(height: AppSpacing.sm),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _StatusBadge(status: classifyOrderStatus(event), rawStatus: data.status),
-                  const SizedBox(width: AppSpacing.xs),
-                  _FulfillmentChip(
-                    type: data.fulfillmentType,
-                    facilityName: data.facilityName,
-                    isCancelled: isCancelled,
-                  ),
-                  const Spacer(),
                   Text(
                     '${data.items.length} item${data.items.length == 1 ? '' : 's'}',
-                    style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                  const SizedBox(width: AppSpacing.sm),
                   Text(
                     NumberFormat.currency(symbol: '₱').format(data.total),
                     style: AppTextStyles.priceMd,
                   ),
                 ],
               ),
+              if (canCancel) ...[
+                const SizedBox(height: AppSpacing.md),
+                SizedBox(
+                  width: double.infinity,
+                  child: MaterialButton(
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(color: AppColors.error),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusFull,
+                      ),
+                    ),
+                    splashColor: AppColors.error.withValues(alpha: 0.3),
+                    padding: EdgeInsets.all(4.0),
+                    onPressed: () {},
+                    child: const Text(
+                      'CANCEL ORDER',
+                      style: TextStyle(
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FulfillmentChip extends StatelessWidget {
-  final FulfillmentType type;
-  final String? facilityName;
-  final bool isCancelled;
-
-  const _FulfillmentChip({required this.type, this.facilityName, required this.isCancelled});
-
-  String get _label => switch (type) {
-        FulfillmentType.onSite =>
-          (facilityName ?? '').isNotEmpty ? 'On-site · $facilityName' : 'On-site',
-        FulfillmentType.pickup => 'Pickup',
-        FulfillmentType.delivery => 'Delivery',
-        FulfillmentType.other => 'Order',
-      };
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: isCancelled ? AppColors.errorLight : AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        isCancelled ? 'Cancelled' : _label,
-        style: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.2,
-          color: isCancelled ? AppColors.error : AppColors.textSecondary,
         ),
       ),
     );
@@ -195,28 +236,79 @@ class _FulfillmentChip extends StatelessWidget {
 class _StatusBadge extends StatelessWidget {
   final OrderCardStatus status;
   final String rawStatus;
+  final bool interactive;
 
-  const _StatusBadge({required this.status, required this.rawStatus});
+  const _StatusBadge({
+    required this.status,
+    required this.rawStatus,
+    this.interactive = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final (label, color) = orderStatusPillStyle(status);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    final pill = Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: interactive ? 10 : 8,
+        vertical: 4,
+      ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: color, width: 1.2),
       ),
-      child: Text(
-        (status == OrderCardStatus.unknown ? rawStatus : label).toUpperCase(),
-        style: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0.2,
-          color: color,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            (status == OrderCardStatus.unknown ? rawStatus : label)
+                .toUpperCase(),
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.2,
+              color: color,
+            ),
+          ),
+          if (interactive) ...[
+            const SizedBox(width: 2),
+            Icon(Icons.keyboard_arrow_down, size: 14, color: color),
+          ],
+        ],
       ),
+    );
+
+    if (!interactive) return pill;
+
+    return PopupMenuButton<OrderCardStatus>(
+      tooltip: '',
+      padding: EdgeInsets.zero,
+      offset: const Offset(0, 30),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      ),
+      onSelected: (_) {},
+      itemBuilder:
+          (context) => const [
+            PopupMenuItem(
+              value: OrderCardStatus.pending,
+              child: Text('Pending'),
+            ),
+            PopupMenuItem(
+              value: OrderCardStatus.preparing,
+              child: Text('Preparing'),
+            ),
+            PopupMenuItem(value: OrderCardStatus.ready, child: Text('Ready')),
+            PopupMenuItem(
+              value: OrderCardStatus.fulfilled,
+              child: Text('Fulfilled'),
+            ),
+            PopupMenuItem(
+              value: OrderCardStatus.cancelled,
+              child: Text('Cancelled'),
+            ),
+          ],
+      child: pill,
     );
   }
 }
@@ -233,9 +325,16 @@ class _OrderDetailSheet extends StatelessWidget {
       child: Container(
         decoration: const BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppSpacing.radiusXl),
+          ),
         ),
-        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.lg),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.sm,
+          AppSpacing.lg,
+          AppSpacing.lg,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,8 +355,16 @@ class _OrderDetailSheet extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               spacing: 10,
               children: [
-                Expanded(child: Text('Order #${data.id}', style: AppTextStyles.headingLg)),
-                _StatusBadge(status: classifyOrderStatus(event), rawStatus: data.status),
+                Expanded(
+                  child: Text(
+                    'Order #${data.id}',
+                    style: AppTextStyles.headingLg,
+                  ),
+                ),
+                _StatusBadge(
+                  status: classifyOrderStatus(event),
+                  rawStatus: data.status,
+                ),
               ],
             ),
             const SizedBox(height: AppSpacing.xs),
@@ -265,14 +372,17 @@ class _OrderDetailSheet extends StatelessWidget {
               [
                 if ((data.customerName ?? '').isNotEmpty) data.customerName,
                 switch (data.fulfillmentType) {
-                  FulfillmentType.onSite => 'On-site${(data.facilityName ?? '').isNotEmpty ? ' · ${data.facilityName}' : ''}',
+                  FulfillmentType.onSite =>
+                    'On-site${(data.facilityName ?? '').isNotEmpty ? ' · ${data.facilityName}' : ''}',
                   FulfillmentType.pickup => 'Pickup',
                   FulfillmentType.delivery => 'Delivery',
                   FulfillmentType.other => null,
                 },
                 _relativeTime(data.updatedAt),
               ].whereType<String>().join(' · '),
-              style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.bodySm.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: AppSpacing.md),
             ...data.items.map(
@@ -280,10 +390,25 @@ class _OrderDetailSheet extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                 child: Row(
                   children: [
-                    Text('${item.quantity}×', style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSecondary)),
+                    Text(
+                      '${item.quantity}×',
+                      style: AppTextStyles.bodyMd.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                     const SizedBox(width: AppSpacing.sm),
-                    Expanded(child: Text(item.productName, style: AppTextStyles.bodyMd)),
-                    Text(NumberFormat.currency(symbol: '₱').format(item.price * item.quantity), style: AppTextStyles.bodyMd),
+                    Expanded(
+                      child: Text(
+                        item.productName,
+                        style: AppTextStyles.bodyMd,
+                      ),
+                    ),
+                    Text(
+                      NumberFormat.currency(
+                        symbol: '₱',
+                      ).format(item.price * item.quantity),
+                      style: AppTextStyles.bodyMd,
+                    ),
                   ],
                 ),
               ),
@@ -292,8 +417,16 @@ class _OrderDetailSheet extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Total', style: AppTextStyles.bodyLg.copyWith(color: AppColors.textSecondary)),
-                Text(NumberFormat.currency(symbol: '₱').format(data.total), style: AppTextStyles.priceLg),
+                Text(
+                  'Total',
+                  style: AppTextStyles.bodyLg.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                Text(
+                  NumberFormat.currency(symbol: '₱').format(data.total),
+                  style: AppTextStyles.priceLg,
+                ),
               ],
             ),
           ],

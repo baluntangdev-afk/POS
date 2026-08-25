@@ -27,6 +27,14 @@ class OrderEventsDao extends DatabaseAccessor<AppDatabase> with _$OrderEventsDao
     );
   }
 
+  /// The currently stored row for [orderId] within [storeId], if any — used
+  /// to decide whether a REST-sourced event is newer than what's on disk.
+  Future<OrderEventsTableData?> getOrder(String orderId, String storeId) {
+    return (select(orderEventsTable)
+          ..where((t) => t.orderId.equals(orderId) & t.storeId.equals(storeId)))
+        .getSingleOrNull();
+  }
+
   /// Orders for [storeId] whose latest known event isn't a cancellation.
   Stream<int> watchPendingCount(String storeId) {
     final query = selectOnly(orderEventsTable)

@@ -11,4 +11,8 @@ final class Env implements AppEnv {
   @EnviedField()
   @override
   final String ordersLiveFeedWsUrl = _Env.ordersLiveFeedWsUrl;
+
+  @EnviedField()
+  @override
+  final String ordersEventsApiBaseUrl = _Env.ordersEventsApiBaseUrl;
 }

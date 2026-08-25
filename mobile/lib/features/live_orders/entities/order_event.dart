@@ -173,4 +173,24 @@ class OrderEvent {
   final String eventId;
   final OrderEventType type;
   final OrderData data;
+
+  /// Parses one event off either the live WS feed or the REST history
+  /// endpoint — both send `{event_type, event_id, data, ...}`, the REST
+  /// payload just wraps extra fields (`id`, `received_at`, `created_at`)
+  /// around the same three. Returns `null` (never throws) for an
+  /// unrecognized `event_type` or a malformed/missing `data`, so a single
+  /// bad row never takes down a whole batch of events.
+  static OrderEvent? fromWireJson(Map<String, dynamic> json) {
+    try {
+      final type = OrderEventType.fromWire(json['event_type'] as String);
+      if (type == null) return null;
+      return OrderEvent(
+        eventId: json['event_id'] as String,
+        type: type,
+        data: OrderData.fromJson(json['data'] as Map<String, dynamic>),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
 }

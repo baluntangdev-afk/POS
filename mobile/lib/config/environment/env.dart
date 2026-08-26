@@ -15,4 +15,12 @@ final class Env implements AppEnv {
   @EnviedField()
   @override
   final String ordersEventsApiBaseUrl = _Env.ordersEventsApiBaseUrl;
+
+  @EnviedField()
+  @override
+  final String clientId = _Env.clientId;
+
+  @EnviedField(obfuscate: true)
+  @override
+  final String webhookSecret = _Env.webhookSecret;
 }

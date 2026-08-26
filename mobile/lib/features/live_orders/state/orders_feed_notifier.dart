@@ -13,6 +13,7 @@ import '../entities/order_event.dart';
 import '../entities/orders_feed_state.dart';
 import '../repositories/order_events_local_repository.dart';
 import '../repositories/orders_live_feed_repository.dart';
+import '../repositories/webhook_auth_repository.dart';
 import '../use_cases/latest_event_per_order.dart';
 
 const _initialBackoff = Duration(seconds: 1);
@@ -118,6 +119,7 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     _retryTimer?.cancel();
     try {
       _storeId = storeId;
+      await ref.read(webhookAuthRepositoryProvider).ensureToken(storeId);
       await _syncHistory(storeId);
       final repository = ref.read(ordersLiveFeedRepositoryProvider);
       final session = repository.connect(storeId);

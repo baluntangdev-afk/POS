@@ -6,6 +6,8 @@ abstract class AppEnv {
   String get ordersLiveFeedWsUrl;
   String get cartivoAuthApiBaseUrl;
   String get ordersEventsApiBaseUrl;
+  String get clientId;
+  String get webhookSecret;
   bool get isDev;
 }
 

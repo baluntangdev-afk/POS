@@ -28,6 +28,14 @@ final class Env implements AppEnv {
   @override
   final String ordersEventsApiBaseUrl = _Env.ordersEventsApiBaseUrl;
 
+  @EnviedField()
+  @override
+  final String clientId = _Env.clientId;
+
+  @EnviedField(obfuscate: true)
+  @override
+  final String webhookSecret = _Env.webhookSecret;
+
   @override
   bool get isDev => false;
 }

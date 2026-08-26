@@ -10,6 +10,7 @@ import '../../../styles/responsive/breakpoint.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 import '../../../widgets/brand_header.dart';
+import '../../../widgets/network_error_dialog.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../entities/order_event.dart';
 import '../state/orders_feed_notifier.dart';
@@ -18,6 +19,19 @@ import 'order_fulfillment_spec.dart';
 import 'order_status.dart';
 import 'widgets/order_fulfillment_nav.dart';
 import 'widgets/order_kanban_board.dart';
+
+Future<void> _refreshHistory(BuildContext context, WidgetRef ref) async {
+  try {
+    await ref.read(ordersFeedNotifierProvider.notifier).refreshHistory();
+  } catch (e) {
+    if (!context.mounted) return;
+    await showNetworkErrorDialog(
+      context,
+      error: e,
+      onRetry: () => unawaited(_refreshHistory(context, ref)),
+    );
+  }
+}
 
 class OrdersScreen extends HookConsumerWidget {
   const OrdersScreen({super.key});
@@ -28,7 +42,7 @@ class OrdersScreen extends HookConsumerWidget {
     final selected = useState(OrdersFilter.all);
 
     useEffect(() {
-      unawaited(ref.read(ordersFeedNotifierProvider.notifier).refreshHistory());
+      unawaited(_refreshHistory(context, ref));
       return null;
     }, const []);
 
@@ -45,7 +59,7 @@ class OrdersScreen extends HookConsumerWidget {
                 events.isEmpty
                     ? const _EmptyBody()
                     : RefreshIndicator(
-                      onRefresh: () => ref.read(ordersFeedNotifierProvider.notifier).refreshHistory(),
+                      onRefresh: () => _refreshHistory(context, ref),
                       child: _OrdersBody(
                         events: events.toIList(),
                         selected: selected.value,

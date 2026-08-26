@@ -3,12 +3,40 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pos_app/config/environment/app_env.dart';
 import 'package:pos_app/data/backend_api/sources/orders_history_api.dart';
 
+class _FakeAppEnv implements AppEnv {
+  @override
+  final String clientId = 'client_123';
+
+  @override
+  final String webhookSecret = 'shh';
+
+  @override
+  final String backendApiBaseUrl = '';
+
+  @override
+  final String secureStorageKey = '';
+
+  @override
+  final String ordersLiveFeedWsUrl = '';
+
+  @override
+  final String cartivoAuthApiBaseUrl = '';
+
+  @override
+  final String ordersEventsApiBaseUrl = '';
+
+  @override
+  final bool isDev = true;
+}
+
 class _FakeHttpClientAdapter implements HttpClientAdapter {
-  _FakeHttpClientAdapter(this.body);
+  _FakeHttpClientAdapter(this.body, {this.statusCode = 200});
 
   final String body;
+  final int statusCode;
   RequestOptions? lastRequest;
 
   @override
@@ -20,7 +48,7 @@ class _FakeHttpClientAdapter implements HttpClientAdapter {
     lastRequest = options;
     return ResponseBody.fromString(
       body,
-      200,
+      statusCode,
       headers: {
         Headers.contentTypeHeader: [Headers.jsonContentType],
       },
@@ -73,7 +101,7 @@ void main() {
     });
 
     test('fetches, decodes, and drops unrecognized event types', () async {
-      final api = OrdersHistoryApi(dio);
+      final api = OrdersHistoryApi(dio, _FakeAppEnv());
 
       final events = await api.fetchEvents('merch_1');
 
@@ -81,6 +109,46 @@ void main() {
       expect(events.single.data.id, 'ord_1');
       expect(adapter.lastRequest!.path, '/webhooks/events');
       expect(adapter.lastRequest!.queryParameters['merchant_id'], 'merch_1');
+    });
+
+    test('throws instead of swallowing a failed request', () async {
+      final failingAdapter = _FakeHttpClientAdapter('Internal Server Error', statusCode: 500);
+      final failingDio = Dio(BaseOptions(baseUrl: 'https://orders-history.test'))
+        ..httpClientAdapter = failingAdapter;
+      final api = OrdersHistoryApi(failingDio, _FakeAppEnv());
+
+      expect(() => api.fetchEvents('merch_1'), throwsA(isA<DioException>()));
+    });
+  });
+
+  group('OrdersHistoryApi.fetchToken', () {
+    test('posts webhook credentials and decodes the returned token', () async {
+      final adapter = _FakeHttpClientAdapter(
+        jsonEncode({'merchant_id': 'merch_1', 'token': 'eyJ...', 'exp': 1787544197}),
+      );
+      final dio = Dio(BaseOptions(baseUrl: 'https://orders-history.test'))..httpClientAdapter = adapter;
+      final api = OrdersHistoryApi(dio, _FakeAppEnv());
+
+      final dto = await api.fetchToken('merch_1');
+
+      expect(dto.merchantId, 'merch_1');
+      expect(dto.token, 'eyJ...');
+      expect(dto.exp, 1787544197);
+      expect(adapter.lastRequest!.path, '/auth/token');
+      expect(adapter.lastRequest!.data, {
+        'webhook_secret': 'shh',
+        'client_id': 'client_123',
+        'merchant_id': 'merch_1',
+      });
+    });
+
+    test('throws instead of swallowing a failed request', () async {
+      final failingAdapter = _FakeHttpClientAdapter('Internal Server Error', statusCode: 500);
+      final failingDio = Dio(BaseOptions(baseUrl: 'https://orders-history.test'))
+        ..httpClientAdapter = failingAdapter;
+      final api = OrdersHistoryApi(failingDio, _FakeAppEnv());
+
+      expect(() => api.fetchToken('merch_1'), throwsA(isA<DioException>()));
     });
   });
 }

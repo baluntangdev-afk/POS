@@ -29,5 +29,13 @@ final class EnvDev implements AppEnv {
   final String ordersEventsApiBaseUrl = _EnvDev.ordersEventsApiBaseUrl;
 
   @override
+  @EnviedField()
+  final String clientId = _EnvDev.clientId;
+
+  @override
+  @EnviedField(obfuscate: true)
+  final String webhookSecret = _EnvDev.webhookSecret;
+
+  @override
   bool get isDev => true;
 }

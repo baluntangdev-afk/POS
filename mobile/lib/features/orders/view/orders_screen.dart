@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/result/result.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -13,6 +14,7 @@ import '../../../core/widgets/empty_state_widget.dart';
 import '../../live_orders/entities/order_event.dart';
 import '../../live_orders/state/orders_feed_notifier.dart';
 import '../../live_orders/state/pending_orders_count_provider.dart';
+import '../../live_orders/use_cases/order_update_error.dart';
 import 'order_status.dart';
 
 /// Live incoming-orders list. Reads `persistedOrdersProvider` — sourced from
@@ -102,18 +104,52 @@ class OrdersScreen extends HookConsumerWidget {
   }
 }
 
-class _OrderCard extends StatelessWidget {
+class _OrderCard extends HookConsumerWidget {
   final OrderEvent event;
   final VoidCallback onTap;
 
   const _OrderCard({required this.event, required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final data = event.data;
     final status = classifyOrderStatus(event);
     final isCancelled = event.type == OrderEventType.cancelled;
     final canCancel = !isCancelled && status != OrderCardStatus.fulfilled;
+    final isSubmitting = useState(false);
+
+    // Runs [action], shows a snackbar on failure, and keeps the card in its
+    // submitting state (spinner + disabled controls) until it settles.
+    Future<void> submit(
+      Future<Result<OrderEvent, OrderUpdateError>> Function() action,
+    ) async {
+      if (isSubmitting.value) return;
+      isSubmitting.value = true;
+      final result = await action();
+      if (!context.mounted) return;
+      isSubmitting.value = false;
+      if (result.isFailure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.error.message),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+
+    Future<void> changeStatus(OrderCardStatus next) => submit(
+      () => ref
+          .read(ordersFeedNotifierProvider.notifier)
+          .setOrderStatus(data.id, next.rawValue),
+    );
+
+    Future<void> cancelOrder() => submit(
+      () => ref
+          .read(ordersFeedNotifierProvider.notifier)
+          .setOrderStatus(data.id, OrderCardStatus.cancelled.rawValue),
+    );
     final subtitle = [
       (data.customerName ?? '').isNotEmpty ? data.customerName : 'Guest',
       switch (data.fulfillmentType) {
@@ -166,6 +202,8 @@ class _OrderCard extends StatelessWidget {
                     status: status,
                     rawStatus: data.status,
                     interactive: canCancel,
+                    isSubmitting: isSubmitting.value,
+                    onSelected: changeStatus,
                   ),
                 ],
               ),
@@ -213,15 +251,26 @@ class _OrderCard extends StatelessWidget {
                     ),
                     splashColor: AppColors.error.withValues(alpha: 0.3),
                     padding: EdgeInsets.all(4.0),
-                    onPressed: () {},
-                    child: const Text(
-                      'CANCEL ORDER',
-                      style: TextStyle(
-                        color: AppColors.error,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
+                    onPressed: isSubmitting.value
+                        ? null
+                        : () => _confirmCancelOrder(context, cancelOrder),
+                    child: isSubmitting.value
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 1.5,
+                              color: AppColors.error,
+                            ),
+                          )
+                        : const Text(
+                            'CANCEL ORDER',
+                            style: TextStyle(
+                              color: AppColors.error,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
                   ),
                 ),
               ],
@@ -237,11 +286,15 @@ class _StatusBadge extends StatelessWidget {
   final OrderCardStatus status;
   final String rawStatus;
   final bool interactive;
+  final bool isSubmitting;
+  final ValueChanged<OrderCardStatus>? onSelected;
 
   const _StatusBadge({
     required this.status,
     required this.rawStatus,
     this.interactive = false,
+    this.isSubmitting = false,
+    this.onSelected,
   });
 
   @override
@@ -272,45 +325,77 @@ class _StatusBadge extends StatelessWidget {
           ),
           if (interactive) ...[
             const SizedBox(width: 2),
-            Icon(Icons.keyboard_arrow_down, size: 14, color: color),
+            if (isSubmitting)
+              SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.5,
+                  color: color,
+                ),
+              )
+            else
+              Icon(Icons.keyboard_arrow_down, size: 14, color: color),
           ],
         ],
       ),
     );
 
-    if (!interactive) return pill;
+    if (!interactive || onSelected == null) return pill;
 
     return PopupMenuButton<OrderCardStatus>(
       tooltip: '',
+      enabled: !isSubmitting,
       padding: EdgeInsets.zero,
       offset: const Offset(0, 30),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
       ),
-      onSelected: (_) {},
-      itemBuilder:
-          (context) => const [
-            PopupMenuItem(
-              value: OrderCardStatus.pending,
-              child: Text('Pending'),
+      onSelected: (next) => onSelected?.call(next),
+      itemBuilder: (context) => [
+        for (final option in assignableOrderStatuses)
+          PopupMenuItem(
+            value: option,
+            // The current status stays selectable so staff can re-apply it
+            // (e.g. to re-push the update); it's only marked, not disabled.
+            child: Row(
+              children: [
+                Expanded(child: Text(orderStatusPillStyle(option).$1)),
+                if (option == status)
+                  const Icon(Icons.check, size: 18, color: AppColors.primary),
+              ],
             ),
-            PopupMenuItem(
-              value: OrderCardStatus.preparing,
-              child: Text('Preparing'),
-            ),
-            PopupMenuItem(value: OrderCardStatus.ready, child: Text('Ready')),
-            PopupMenuItem(
-              value: OrderCardStatus.fulfilled,
-              child: Text('Fulfilled'),
-            ),
-            PopupMenuItem(
-              value: OrderCardStatus.cancelled,
-              child: Text('Cancelled'),
-            ),
-          ],
+          ),
+      ],
       child: pill,
     );
   }
+}
+
+/// Asks for confirmation, then runs [onConfirmed] (the actual cancel request).
+Future<void> _confirmCancelOrder(
+  BuildContext context,
+  Future<void> Function() onConfirmed,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Cancel this order?'),
+      content: const Text("This can't be undone."),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Keep order'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          style: TextButton.styleFrom(foregroundColor: AppColors.error),
+          child: const Text('Cancel order'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed ?? false) await onConfirmed();
 }
 
 class _OrderDetailSheet extends StatelessWidget {

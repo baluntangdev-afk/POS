@@ -38,6 +38,32 @@ class OrdersHistoryApi {
         .toList();
   }
 
+  /// Applies a partial update to [orderId] via the webhook-receiver's
+  /// manual-update endpoint. The server shallow-merges [updates] onto the
+  /// order's last snapshot and returns the resulting `order.updated` event,
+  /// which it also broadcasts on the live WS feed. Throws [DioException] on a
+  /// non-2xx response (400/401/404/429) — callers map those to a UI reason.
+  /// Throws [FormatException] if the 200 body can't be parsed into an
+  /// [OrderEvent].
+  Future<OrderEvent> updateOrder(
+    String orderId, {
+    required Map<String, dynamic> updates,
+  }) async {
+    final response = await _httpClient.patch<dynamic>(
+      '/merchant/orders/$orderId',
+      data: {'updates': updates},
+    );
+    final json = response.data as Map<String, dynamic>;
+    final event = OrderEvent.fromWireJson(json['event'] as Map<String, dynamic>);
+    if (event == null) {
+      throw const FormatException(
+        'order.updated event missing/unparseable in response',
+      );
+    }
+    return event;
+  }
+
+
   /// Exchanges the app's static webhook credentials for a merchant-scoped
   /// bearer token, used to authorize subsequent `/merchant/orders` calls.
   Future<WebhookTokenDto> fetchToken(String merchantId) async {

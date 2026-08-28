@@ -19,6 +19,7 @@ import '../../auth/state/auth_state.dart';
 import '../entities/inventory_product.dart';
 import '../state/inventory_notifier.dart';
 import 'categories_tab.dart';
+import 'modifier_groups_management_screen.dart';
 import 'product_form_dialog.dart';
 
 class InventoryScreen extends HookConsumerWidget {
@@ -31,7 +32,7 @@ class InventoryScreen extends HookConsumerWidget {
       return null;
     }, const []);
 
-    final tabController = useTabController(initialLength: 2);
+    final tabController = useTabController(initialLength: 3);
     final currentTab = useState(0);
     useEffect(() {
       void listener() => currentTab.value = tabController.index;
@@ -65,6 +66,7 @@ class InventoryScreen extends HookConsumerWidget {
             tabs: const [
               Tab(text: 'Products'),
               Tab(text: 'Categories'),
+              Tab(text: 'Modifiers'),
             ],
           ),
           leading: IconButton(
@@ -85,6 +87,7 @@ class InventoryScreen extends HookConsumerWidget {
           children: const [
             _ProductsTab(),
             CategoriesTab(),
+            ModifierGroupsManagementScreen(),
           ],
         ),
         floatingActionButton: currentTab.value == 0 && isAdmin

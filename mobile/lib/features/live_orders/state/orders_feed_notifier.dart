@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/connectivity/connectivity_status_provider.dart';
+import '../../../core/result/result.dart';
 import '../../../data/backend_api/sources/orders_history_api.dart';
 import '../../auth/state/auth_providers.dart';
 import '../../auth/state/auth_state.dart';
@@ -15,6 +16,7 @@ import '../repositories/order_events_local_repository.dart';
 import '../repositories/orders_live_feed_repository.dart';
 import '../repositories/webhook_auth_repository.dart';
 import '../use_cases/latest_event_per_order.dart';
+import '../use_cases/order_update_error.dart';
 
 const _initialBackoff = Duration(seconds: 1);
 const _maxBackoff = Duration(seconds: 30);
@@ -174,6 +176,50 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     if (storeId == null) return;
     await _syncHistory(storeId);
   }
+
+  /// Manually updates an order through the REST endpoint and persists the
+  /// returned `order.updated` event locally, so the Orders screen (which
+  /// reads the persisted `order_events` table) reflects the change right
+  /// away instead of waiting on the WS echo. The live feed will also
+  /// broadcast the same event — [_onEvent]'s `_seenEventIds` guard de-dupes
+  /// it. Returns the reason on failure so the caller can surface it.
+  Future<Result<OrderEvent, OrderUpdateError>> applyOrderUpdate(
+    String orderId, {
+    required Map<String, dynamic> updates,
+  }) async {
+    final storeId = _storeId ?? state.value?.storeId;
+    if (storeId == null || storeId.isEmpty) {
+      return const Failure(OrderUpdateError.unknown);
+    }
+    try {
+      final event = await ref
+          .read(ordersHistoryApiProvider)
+          .updateOrder(orderId, updates: updates);
+      // Pre-seed the de-dupe set so the WS echo of this same event is
+      // ignored by [_onEvent]; track it in _recentEventIds too so it's
+      // still subject to the normal ring-buffer eviction.
+      if (_seenEventIds.add(event.eventId)) {
+        _recentEventIds.add(event.eventId);
+        if (_recentEventIds.length > 200) {
+          _seenEventIds.remove(_recentEventIds.removeFirst());
+        }
+      }
+      await ref
+          .read(orderEventsLocalRepositoryProvider)
+          .save(event, storeId: storeId);
+      return Success(event);
+    } catch (e, st) {
+      debugPrint('[OrdersFeed] applyOrderUpdate failed: $e\n$st');
+      return Failure(orderUpdateErrorFrom(e));
+    }
+  }
+
+  /// Convenience wrapper over [applyOrderUpdate] for the common case of
+  /// moving an order to a new [status] (including `cancelled`).
+  Future<Result<OrderEvent, OrderUpdateError>> setOrderStatus(
+    String orderId,
+    String status,
+  ) => applyOrderUpdate(orderId, updates: {'status': status});
 
   void _onEvent(OrderEvent event) {
     if (!_seenEventIds.add(event.eventId)) return;

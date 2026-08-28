@@ -5,6 +5,22 @@ import '../../live_orders/entities/order_event.dart';
 
 enum OrderCardStatus { pending, preparing, ready, cancelled, fulfilled, unknown }
 
+/// Statuses staff can move an order to directly from a card. `cancelled` is
+/// deliberately excluded — cancelling is a separate, confirmed action — as is
+/// `unknown`, which isn't a real target.
+const assignableOrderStatuses = [
+  OrderCardStatus.pending,
+  OrderCardStatus.preparing,
+  OrderCardStatus.ready,
+  OrderCardStatus.fulfilled,
+];
+
+extension OrderCardStatusWire on OrderCardStatus {
+  /// The raw status string the webhook-receiver expects in an `updates`
+  /// payload — the inverse of the switch in [classifyOrderStatus].
+  String get rawValue => name;
+}
+
 OrderCardStatus classifyOrderStatus(OrderEvent event) {
   if (event.type == OrderEventType.cancelled) return OrderCardStatus.cancelled;
   switch (event.data.status.toLowerCase()) {

@@ -10,7 +10,12 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/popup_menu_form_field.dart';
 import '../../auth/entities/user_entity.dart';
 import '../../auth/state/auth_providers.dart';
+import '../../cashier_accounting/daily_report/state/daily_report_notifier.dart';
+import '../../cashier_accounting/x_reading/state/x_reading_notifier.dart';
+import '../../cashier_accounting/z_reading/state/z_reading_notifier.dart';
+import '../../ordering/state/receipt_notifier.dart';
 import '../../ordering/use_cases/void_sale.dart';
+import '../state/transactions_notifier.dart';
 
 class VoidTransactionDialog extends HookConsumerWidget {
   const VoidTransactionDialog({
@@ -85,6 +90,16 @@ class VoidTransactionDialog extends HookConsumerWidget {
       }
 
       await ref.read(voidSaleProvider)(saleId: saleId, reason: reason);
+
+      // A void changes the same figures a sale/refund does, so refresh every
+      // view that reads them — otherwise the transactions list (and readings)
+      // keep showing the pre-void status until reopened.
+      ref.invalidate(transactionsProvider);
+      ref.invalidate(receiptProvider(saleId));
+      ref.invalidate(xReadingProvider);
+      ref.invalidate(zReadingProvider);
+      ref.invalidate(dailyReportProvider);
+
       isLoading.value = false;
       if (context.mounted) Navigator.of(context).pop(true);
     }

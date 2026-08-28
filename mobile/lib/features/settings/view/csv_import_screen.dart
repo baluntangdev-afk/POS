@@ -38,8 +38,7 @@ class CsvImportScreen extends HookConsumerWidget {
         ),
         _ImporterConfig(
           title: 'Modifiers',
-          subtitle:
-              'Columns: product_name, group_name, is_required, max_selections, option_name, additional_price',
+          subtitle: 'Columns: Modifier Group, Modifier Name',
           icon: Icons.tune_rounded,
           importer: ModifiersCsvImporter(db),
         ),
@@ -302,8 +301,8 @@ class _ResultBanner extends StatelessWidget {
                 const Gap(2),
                 Text(
                   '${result.successCount} imported'
-                  '${result.skippedCount > 0 ? ' Â· ${result.skippedCount} skipped' : ''}'
-                  '${result.errors.isNotEmpty ? ' Â· ${result.errors.length} failed' : ''}',
+                  '${result.skippedCount > 0 ? ' ${result.skippedCount} skipped' : ''}'
+                  '${result.errors.isNotEmpty ? ' ${result.errors.length} failed' : ''}',
                   style: AppTextStyles.bodySm.copyWith(
                     color: color,
                     fontWeight: FontWeight.w600,

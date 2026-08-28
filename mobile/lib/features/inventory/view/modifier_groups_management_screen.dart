@@ -74,6 +74,7 @@ class ModifierGroupsManagementScreen extends ConsumerWidget {
 class _GroupCard extends ConsumerWidget {
   final ModifierGroupWithOptions entry;
   final bool isAdmin;
+
   const _GroupCard({required this.entry, required this.isAdmin});
 
   @override
@@ -150,10 +151,16 @@ class _GroupCard extends ConsumerWidget {
                   Opacity(
                     opacity: option.isActive ? 1.0 : 0.55,
                     child: ListTile(
-                      title: Text(option.name),
-                      subtitle: Text(
-                        '+ PHP ${option.additionalPrice.toStringAsFixed(2)}${option.isActive ? '' : ' · Inactive'}',
+                      title: Text(
+                        option.name,
+                        style: TextStyle(fontSize: 12.0),
                       ),
+                      subtitle:
+                          option.additionalPrice > 0
+                              ? Text(
+                                '+ PHP ${option.additionalPrice.toStringAsFixed(2)}${option.isActive ? '' : ' · Inactive'}',
+                              )
+                              : null,
                       trailing:
                           isAdmin
                               ? Row(

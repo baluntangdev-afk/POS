@@ -47,10 +47,18 @@ class OrderEventsLocalRepositoryImpl implements OrderEventsLocalRepository {
   @override
   Future<Result<void, AppError>> save(OrderEvent event, {required String storeId}) async {
     try {
+      // A manual update that sets `status: cancelled` still arrives as an
+      // `order.updated` event; normalize it here so `watchPendingCount`
+      // (which filters on `eventType != 'cancelled'`) and the reconstructed
+      // `OrderEventType` in `watchOrders` both treat it as cancelled.
+      final effectiveType = event.type == OrderEventType.cancelled ||
+              event.data.status.toLowerCase() == 'cancelled'
+          ? OrderEventType.cancelled.name
+          : event.type.name;
       await _dao.upsertOrder(
         orderId: event.data.id,
         storeId: storeId,
-        eventType: event.type.name,
+        eventType: effectiveType,
         payload: jsonEncode(event.data.toJson()),
       );
       return const Success(null);

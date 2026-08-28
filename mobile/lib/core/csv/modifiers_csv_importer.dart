@@ -6,8 +6,16 @@ import 'package:drift/drift.dart';
 import '../database/app_database.dart';
 import 'csv_importer.dart';
 
-/// Expected columns (header row required):
-/// product_name, group_name, is_required, max_selections, option_name, additional_price
+/// Expected columns (header row required, matched by position — header text
+/// itself is ignored so minor variations like "Modifler Group" still work):
+/// Modifier Group, Modifier Name
+///
+/// Groups and options are purely global: no product association, price,
+/// required flag, or max-selections column. New groups default to
+/// single-select/optional (isRequired=false, maxSelections=1); new options
+/// default to additionalPrice=0. Re-importing the same file is a no-op for
+/// rows whose (group, option name) already exists. A row missing either cell
+/// is silently skipped rather than reported as an error.
 class ModifiersCsvImporter implements CsvImporter {
   final AppDatabase _db;
   const ModifiersCsvImporter(this._db);
@@ -17,78 +25,64 @@ class ModifiersCsvImporter implements CsvImporter {
     final rows = _parse(await file.readAsString());
     if (rows.isEmpty) return const ImportResult(successCount: 0, skippedCount: 0, errors: []);
 
-    final headers = rows.first.map((e) => e.toString().trim().toLowerCase()).toList();
     final dataRows = rows.skip(1).toList();
 
-    final productCache = <String, int?>{};
     final groupCache = <String, int>{};
+    final optionNamesCache = <int, Set<String>>{};
     int success = 0;
+    int skipped = 0;
     final errors = <CsvRowError>[];
 
     for (int i = 0; i < dataRows.length; i++) {
       final rowNum = i + 2;
       try {
-        final row = _mapRow(headers, dataRows[i]);
-        final productName = (row['product_name'] ?? '').toString().trim();
-        final groupName = (row['group_name'] ?? '').toString().trim();
-        final optionName = (row['option_name'] ?? '').toString().trim();
+        final row = dataRows[i];
+        final groupName = (row.isNotEmpty ? row[0] : '').toString().trim();
+        final optionName = (row.length > 1 ? row[1] : '').toString().trim();
 
-        if (productName.isEmpty || groupName.isEmpty || optionName.isEmpty) {
-          errors.add(CsvRowError(rowNum, 'product_name, group_name, option_name are required'));
+        if (groupName.isEmpty || optionName.isEmpty) {
+          skipped++;
           continue;
         }
 
-        if (!productCache.containsKey(productName)) {
-          final products = await _db.productsDao.getAllProducts();
-          productCache[productName] = products.where((p) => p.name == productName).firstOrNull?.id;
-        }
-        final productId = productCache[productName];
-        if (productId == null) {
-          errors.add(CsvRowError(rowNum, 'Product not found: $productName — import products first'));
-          continue;
-        }
-
-        // Modifier groups are global (shared across products), keyed by name alone.
         if (!groupCache.containsKey(groupName)) {
           final groups = await _db.productsDao.getAllModifierGroups();
           final existing = groups.where((g) => g.name == groupName).firstOrNull;
-          final gId = existing?.id ?? await _db.productsDao.createModifierGroup(
-            ModifierGroupsTableCompanion(
-              name: Value(groupName),
-              isRequired: Value((row['is_required'] ?? 'false').toString().toLowerCase() == 'true'),
-              maxSelections: Value(int.tryParse((row['max_selections'] ?? '1').toString()) ?? 1),
-            ),
-          );
+          final gId = existing?.id ??
+              await _db.productsDao.createModifierGroup(
+                ModifierGroupsTableCompanion.insert(
+                  name: groupName,
+                  isRequired: const Value(false),
+                  maxSelections: const Value(1),
+                ),
+              );
           groupCache[groupName] = gId;
         }
-        final modGroupId = groupCache[groupName]!;
-        await _db.productsDao.attachModifierGroupToProduct(productId, modGroupId);
+        final groupId = groupCache[groupName]!;
 
-        final additionalPrice = double.tryParse((row['additional_price'] ?? '0').toString()) ?? 0.0;
+        if (!optionNamesCache.containsKey(groupId)) {
+          final options = await _db.productsDao.getOptionsForGroup(groupId);
+          optionNamesCache[groupId] = options.map((o) => o.name.trim().toLowerCase()).toSet();
+        }
+        final existingNames = optionNamesCache[groupId]!;
+        if (existingNames.contains(optionName.toLowerCase())) {
+          skipped++;
+          continue;
+        }
+
         await _db.productsDao.insertModifierOption(
-          ModifierOptionsTableCompanion(
-            groupId: Value(modGroupId),
-            name: Value(optionName),
-            additionalPrice: Value(additionalPrice),
-          ),
+          ModifierOptionsTableCompanion.insert(groupId: groupId, name: optionName),
         );
+        existingNames.add(optionName.toLowerCase());
         success++;
       } catch (e) {
         errors.add(CsvRowError(rowNum, e.toString()));
       }
     }
 
-    return ImportResult(successCount: success, skippedCount: 0, errors: errors);
+    return ImportResult(successCount: success, skippedCount: skipped, errors: errors);
   }
 
   List<List<dynamic>> _parse(String content) =>
       const CsvToListConverter(eol: '\n').convert(content);
-
-  Map<String, dynamic> _mapRow(List<String> headers, List<dynamic> row) {
-    final map = <String, dynamic>{};
-    for (int i = 0; i < headers.length; i++) {
-      map[headers[i]] = i < row.length ? row[i] : null;
-    }
-    return map;
-  }
 }

@@ -23,6 +23,7 @@ import '../../features/ordering/view/payment_screen.dart';
 import '../../features/ordering/view/receipt_screen.dart';
 import '../../features/reports/view/reports_screen.dart';
 import '../../features/settings/view/backup_screen.dart';
+import '../../features/settings/view/csv_export_key_screen.dart';
 import '../../features/settings/view/csv_import_screen.dart';
 import '../../features/settings/view/printer_setup_screen.dart';
 import '../../features/settings/view/settings_screen.dart';
@@ -228,6 +229,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'printer',
             builder: (context, state) => const PrinterSetupScreen(),
+          ),
+          GoRoute(
+            path: 'csv-export-key',
+            builder: (context, state) => const CsvExportKeyScreen(),
           ),
         ],
       ),

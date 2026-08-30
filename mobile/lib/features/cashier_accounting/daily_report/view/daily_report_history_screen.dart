@@ -13,6 +13,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../reports/entities/report_data.dart';
 import '../entities/daily_report_data.dart';
+import '../../shared/export_csv_button.dart';
 import '../state/daily_report_notifier.dart';
 import 'daily_report_screen.dart';
 
@@ -133,6 +134,10 @@ class DailyReportReprintScreen extends HookConsumerWidget {
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         actions: [
+          ExportCsvButton(
+            periodStart: rowAsync.value?.periodStart,
+            onExport: (exp) => exp.exportDailyReport(_toDailyReportData(rowAsync.value!)),
+          ),
           IconButton(
             icon: isPrinting.value
                 ? const SizedBox(

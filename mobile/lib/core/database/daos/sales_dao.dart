@@ -10,6 +10,7 @@ import '../tables/users_table.dart';
 import '../tables/products_table.dart';
 import '../tables/product_groups_table.dart';
 import '../../../features/transactions/entities/transaction_summary.dart';
+import '../../csv/transaction_export_row.dart';
 import '../../../features/reports/entities/report_data.dart';
 import '../../../features/ordering/entities/discount.dart';
 import '../../../features/ordering/entities/receipt.dart';
@@ -1151,5 +1152,51 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
               amount: r.read<double>('amount'),
             ))
         .toList();
+  }
+
+  Future<List<TransactionExportRow>> getTransactionsForExport({
+    required DateTime from,
+    required DateTime to,
+    int? cashierId,
+  }) async {
+    final q = select(salesTable).join([
+      leftOuterJoin(usersTable, usersTable.id.equalsExp(salesTable.cashierId)),
+    ]);
+    q.where(salesTable.createdAt.isBetweenValues(from, to));
+    if (cashierId != null) q.where(salesTable.cashierId.equals(cashierId));
+    q.orderBy([OrderingTerm.asc(salesTable.createdAt)]);
+
+    final rows = await q.get();
+    final saleIds = rows.map((r) => r.readTable(salesTable).id).toList();
+
+    final refundedByIds = await _refundedAmountsBySaleIds(saleIds);
+
+    final paymentsByIds = <int, List<String>>{};
+    if (saleIds.isNotEmpty) {
+      final payments = await (select(paymentsTable)
+            ..where((t) => t.saleId.isIn(saleIds)))
+          .get();
+      for (final p in payments) {
+        paymentsByIds.putIfAbsent(p.saleId, () => []).add(p.method);
+      }
+    }
+
+    return rows.map((row) {
+      final sale = row.readTable(salesTable);
+      final user = row.readTableOrNull(usersTable);
+      return TransactionExportRow(
+        id: sale.id,
+        soNumber: sale.soNumber,
+        cashierName: user?.name ?? 'Unknown',
+        createdAt: sale.createdAt,
+        total: sale.total,
+        discount: sale.discount,
+        status: sale.status,
+        type: sale.type,
+        refundedAmount: refundedByIds[sale.id] ?? 0,
+        voidReason: sale.voidReason,
+        paymentMethods: paymentsByIds[sale.id] ?? [],
+      );
+    }).toList();
   }
 }

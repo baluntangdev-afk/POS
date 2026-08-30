@@ -54,6 +54,13 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: 'Back up device data or restore from a backup file',
                 onTap: () => context.push('/settings/backup'),
               ),
+              const SizedBox(height: AppSpacing.sm),
+              _SettingsTile(
+                icon: Icons.key_rounded,
+                title: 'CSV Export Key',
+                subtitle: 'View or regenerate the encryption key for exported reports',
+                onTap: () => context.push('/settings/csv-export-key'),
+              ),
               const SizedBox(height: AppSpacing.lg),
               _SectionHeader('Store'),
               _SettingsTile(

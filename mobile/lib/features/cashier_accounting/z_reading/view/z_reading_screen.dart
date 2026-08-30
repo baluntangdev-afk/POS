@@ -15,6 +15,7 @@ import '../../../reports/view/report_preview_widgets.dart';
 import '../../../transactions/view/refund_auth_dialog.dart';
 import '../entities/z_reading_data.dart';
 import '../state/z_reading_notifier.dart';
+import '../../shared/export_csv_button.dart';
 
 class ZReadingScreen extends HookConsumerWidget {
   const ZReadingScreen({super.key});
@@ -73,6 +74,10 @@ class ZReadingScreen extends HookConsumerWidget {
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         actions: [
+          ExportCsvButton(
+            periodStart: dataAsync.value?.periodStart,
+            onExport: (exp) => exp.exportZReading(dataAsync.value!),
+          ),
           IconButton(
             icon: const Icon(Icons.history_rounded),
             tooltip: 'History',

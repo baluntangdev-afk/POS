@@ -13,6 +13,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../reports/entities/report_data.dart';
 import '../entities/z_reading_data.dart';
+import '../../shared/export_csv_button.dart';
 import '../state/z_reading_notifier.dart';
 import 'z_reading_screen.dart';
 
@@ -133,6 +134,10 @@ class ZReadingReprintScreen extends HookConsumerWidget {
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         actions: [
+          ExportCsvButton(
+            periodStart: rowAsync.value?.periodStart,
+            onExport: (exp) => exp.exportZReading(_toZReadingData(rowAsync.value!)),
+          ),
           IconButton(
             icon: isPrinting.value
                 ? const SizedBox(

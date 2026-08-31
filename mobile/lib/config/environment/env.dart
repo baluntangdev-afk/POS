@@ -23,4 +23,8 @@ final class Env implements AppEnv {
   @EnviedField(obfuscate: true)
   @override
   final String webhookSecret = _Env.webhookSecret;
+
+  @EnviedField(defaultValue: '', obfuscate: true)
+  @override
+  final String csvExportPassword = _Env.csvExportPassword;
 }

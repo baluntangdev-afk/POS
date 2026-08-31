@@ -11,6 +11,7 @@ import '../tables/products_table.dart';
 import '../tables/product_groups_table.dart';
 import '../../../features/transactions/entities/transaction_summary.dart';
 import '../../csv/transaction_export_row.dart';
+import '../../csv/sale_item_export_row.dart';
 import '../../../features/reports/entities/report_data.dart';
 import '../../../features/ordering/entities/discount.dart';
 import '../../../features/ordering/entities/receipt.dart';
@@ -1152,6 +1153,31 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
               amount: r.read<double>('amount'),
             ))
         .toList();
+  }
+
+  Future<List<SaleItemExportRow>> getSaleItemsForExport(List<int> saleIds) async {
+    if (saleIds.isEmpty) return [];
+    final rows = await (select(saleItemsTable).join([
+      leftOuterJoin(productsTable, productsTable.id.equalsExp(saleItemsTable.productId)),
+    ])
+          ..where(saleItemsTable.saleId.isIn(saleIds))
+          ..orderBy([
+            OrderingTerm.asc(saleItemsTable.saleId),
+            OrderingTerm.asc(saleItemsTable.id),
+          ]))
+        .get();
+    return rows.map((row) {
+      final item = row.readTable(saleItemsTable);
+      final product = row.readTableOrNull(productsTable);
+      return SaleItemExportRow(
+        saleId: item.saleId,
+        productName: product?.name ?? 'Unknown Product',
+        variantName: item.variantName,
+        qty: item.qty,
+        unitPrice: item.unitPrice,
+        discountAmount: item.discountAmount ?? 0,
+      );
+    }).toList();
   }
 
   Future<List<TransactionExportRow>> getTransactionsForExport({

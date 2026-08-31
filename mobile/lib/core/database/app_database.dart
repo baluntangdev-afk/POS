@@ -58,7 +58,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'mobile_pos'));
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -256,6 +256,11 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 13) {
             await m.createTable(orderEventsTable);
+          }
+          if (from < 14) {
+            if (!await _hasColumn('order_events', 'sync_generation')) {
+              await m.addColumn(orderEventsTable, orderEventsTable.syncGeneration);
+            }
           }
         },
       );

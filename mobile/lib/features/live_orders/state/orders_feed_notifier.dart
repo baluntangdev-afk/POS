@@ -38,6 +38,13 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
   String? _storeId;
   final Queue<String> _recentEventIds = Queue();
   final Set<String> _seenEventIds = {};
+  // Monotonically increasing counter incremented at the start of each
+  // _syncHistory call. Rows are stamped with the current value during the
+  // upsert loop; any row whose stamp is below the counter after the loop
+  // is absent from the server and gets swept. Socket-written rows are stamped
+  // with _syncGeneration at write time, so they survive the next sweep as long
+  // as the server still returns them.
+  int _syncGeneration = 0;
 
   @override
   Future<OrdersFeedState> build() async {
@@ -153,14 +160,31 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
   /// UI — the screen keeps showing whatever's already persisted.
   Future<void> _syncHistory(String storeId) async {
     try {
-      final events = await ref
-          .read(ordersHistoryApiProvider)
-          .fetchEvents(storeId);
+      // Increment before the fetch so any socket event that fires during the
+      // request is already stamped with this generation (via _onEvent →
+      // save(..., syncGeneration: _syncGeneration)) and won't be swept.
+      _syncGeneration++;
+      final currentGeneration = _syncGeneration;
+      final syncStartedAt = DateTime.now();
+
+      final events = await ref.read(ordersHistoryApiProvider).fetchEvents(storeId);
       final latest = latestEventPerOrder(events);
       final repository = ref.read(orderEventsLocalRepositoryProvider);
       for (final event in latest) {
-        await repository.saveIfNewer(event, storeId: storeId);
+        await repository.saveIfNewer(
+          event,
+          storeId: storeId,
+          syncGeneration: currentGeneration,
+        );
       }
+
+      // Mark-and-sweep: delete rows not seen in this sync cycle.
+      // The updatedBefore guard keeps any row the socket wrote mid-flight.
+      await repository.sweepStaleOrders(
+        storeId: storeId,
+        currentGeneration: currentGeneration,
+        syncStartedAt: syncStartedAt,
+      );
     } catch (e, st) {
       debugPrint('[OrdersFeed] history backfill failed: $e\n$st');
     }
@@ -206,7 +230,7 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
       }
       await ref
           .read(orderEventsLocalRepositoryProvider)
-          .save(event, storeId: storeId);
+          .save(event, storeId: storeId, syncGeneration: _syncGeneration);
       return Success(event);
     } catch (e, st) {
       debugPrint('[OrdersFeed] applyOrderUpdate failed: $e\n$st');
@@ -236,7 +260,7 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
       unawaited(
         ref
             .read(orderEventsLocalRepositoryProvider)
-            .save(event, storeId: storeId),
+            .save(event, storeId: storeId, syncGeneration: _syncGeneration),
       );
     }
 

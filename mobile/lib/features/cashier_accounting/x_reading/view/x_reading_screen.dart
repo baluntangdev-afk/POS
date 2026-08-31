@@ -9,12 +9,9 @@ import '../../../../core/services/print_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../auth/state/auth_providers.dart';
-import '../../../auth/state/auth_state.dart';
 import '../../../reports/view/report_preview_widgets.dart';
 import '../entities/x_reading_data.dart';
 import '../state/x_reading_notifier.dart';
-import '../../shared/export_csv_button.dart';
 
 class XReadingScreen extends HookConsumerWidget {
   const XReadingScreen({super.key});
@@ -74,14 +71,6 @@ class XReadingScreen extends HookConsumerWidget {
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         actions: [
-          ExportCsvButton(
-            periodStart: dataAsync.value?.periodStart,
-            onExport: (exp) {
-              final authState = ref.read(authNotifierProvider);
-              final cashierId = authState is AuthAuthenticated ? authState.user.id : null;
-              return exp.exportXReading(dataAsync.value!, cashierId: cashierId);
-            },
-          ),
           IconButton(
             icon: const Icon(Icons.history_rounded),
             tooltip: 'History',

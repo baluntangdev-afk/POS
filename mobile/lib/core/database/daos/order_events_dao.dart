@@ -9,13 +9,15 @@ part 'order_events_dao.g.dart';
 class OrderEventsDao extends DatabaseAccessor<AppDatabase> with _$OrderEventsDaoMixin {
   OrderEventsDao(super.db);
 
-  /// Upserts the latest known state for an order, keyed by [orderId] — a
-  /// later `updated`/`cancelled` event overwrites the row `created` made.
+  /// Upserts the latest known state for an order, keyed by [orderId]. Stamps
+  /// the row with [syncGeneration] so the sweep step knows which sync cycle
+  /// last confirmed this order still exists on the server.
   Future<void> upsertOrder({
     required String orderId,
     required String storeId,
     required String eventType,
     required String payload,
+    required int syncGeneration,
   }) {
     return into(orderEventsTable).insertOnConflictUpdate(
       OrderEventsTableCompanion.insert(
@@ -23,8 +25,23 @@ class OrderEventsDao extends DatabaseAccessor<AppDatabase> with _$OrderEventsDao
         storeId: storeId,
         eventType: eventType,
         payload: payload,
+        syncGeneration: Value(syncGeneration),
       ),
     );
+  }
+
+  /// Updates only the [syncGeneration] stamp on an existing row, leaving
+  /// payload and timestamps untouched. Called by [saveIfNewer] when the
+  /// stored row is already newer than the REST response — we still want to
+  /// mark the order as "seen this sync" so the sweep doesn't remove it.
+  Future<void> stampSyncGeneration(
+    String orderId,
+    String storeId,
+    int syncGeneration,
+  ) {
+    return (update(orderEventsTable)
+          ..where((t) => t.orderId.equals(orderId) & t.storeId.equals(storeId)))
+        .write(OrderEventsTableCompanion(syncGeneration: Value(syncGeneration)));
   }
 
   /// The currently stored row for [orderId] within [storeId], if any — used
@@ -59,5 +76,24 @@ class OrderEventsDao extends DatabaseAccessor<AppDatabase> with _$OrderEventsDao
   /// Deletes every persisted order for [storeId].
   Future<void> deleteAll(String storeId) {
     return (delete(orderEventsTable)..where((t) => t.storeId.equals(storeId))).go();
+  }
+
+  /// Deletes stale orders: rows for [storeId] whose [syncGeneration] is below
+  /// [currentGeneration] (not seen in the latest sync) AND whose [updatedAt]
+  /// is before [updatedBefore] (not written by a live WebSocket event that
+  /// arrived while the REST request was in flight).
+  Future<void> sweepStaleOrders({
+    required String storeId,
+    required int currentGeneration,
+    required DateTime updatedBefore,
+  }) {
+    return (delete(orderEventsTable)
+          ..where(
+            (t) =>
+                t.storeId.equals(storeId) &
+                t.syncGeneration.isSmallerThanValue(currentGeneration) &
+                t.updatedAt.isSmallerThanValue(updatedBefore),
+          ))
+        .go();
   }
 }

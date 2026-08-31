@@ -14,25 +14,42 @@ final orderEventsLocalRepositoryProvider = Provider<OrderEventsLocalRepository>(
   return OrderEventsLocalRepositoryImpl(db.orderEventsDao);
 });
 
-/// Local (per-store) persistence of each order's latest known state, backing
-/// the pending-orders badge on the Orders tile. Not a source of truth for
-/// order data — that's still the in-memory [OrdersFeedState] / a future REST
-/// order history.
 abstract class OrderEventsLocalRepository {
-  Future<Result<void, AppError>> save(OrderEvent event, {required String storeId});
+  /// Unconditionally upserts [event] for [storeId], stamping the row with
+  /// [syncGeneration]. Used for live WebSocket events and manual REST updates.
+  Future<Result<void, AppError>> save(
+    OrderEvent event, {
+    required String storeId,
+    required int syncGeneration,
+  });
 
-  /// Like [save], but only overwrites the stored row if [event] isn't older
-  /// than what's already there (see [shouldReplaceStoredOrder]) — or there's
-  /// no stored row yet. Used for REST-sourced history, so a backfill can
-  /// never clobber a more recent update the live socket already wrote.
-  Future<Result<void, AppError>> saveIfNewer(OrderEvent event, {required String storeId});
+  /// Like [save], but only overwrites the payload when [event] is not older
+  /// than the stored row (see [shouldReplaceStoredOrder]). Always updates the
+  /// [syncGeneration] stamp — even when the payload is skipped — so that the
+  /// sweep step doesn't remove an order that still exists on the server but
+  /// was already updated more recently by the live socket.
+  Future<Result<void, AppError>> saveIfNewer(
+    OrderEvent event, {
+    required String storeId,
+    required int syncGeneration,
+  });
+
+  /// Removes orders for [storeId] whose [syncGeneration] stamp is below
+  /// [currentGeneration] (absent from the latest REST sync) and whose
+  /// [updatedAt] is before [syncStartedAt] (not written mid-flight by the
+  /// WebSocket). Call this after the [saveIfNewer] upsert loop to propagate
+  /// server-side deletes to the local DB without hitting any SQLite variable
+  /// count limit.
+  Future<Result<void, AppError>> sweepStaleOrders({
+    required String storeId,
+    required int currentGeneration,
+    required DateTime syncStartedAt,
+  });
 
   /// Orders for [storeId] not yet cancelled.
   Stream<int> watchPendingCount(String storeId);
 
-  /// All persisted orders for [storeId], most recently updated first. Same
-  /// underlying data as [watchPendingCount] — use this wherever the list
-  /// needs to match what the badge counts.
+  /// All persisted orders for [storeId], most recently updated first.
   Stream<List<OrderEvent>> watchOrders(String storeId);
 
   /// Deletes every persisted order for [storeId].
@@ -45,7 +62,11 @@ class OrderEventsLocalRepositoryImpl implements OrderEventsLocalRepository {
   final OrderEventsDao _dao;
 
   @override
-  Future<Result<void, AppError>> save(OrderEvent event, {required String storeId}) async {
+  Future<Result<void, AppError>> save(
+    OrderEvent event, {
+    required String storeId,
+    required int syncGeneration,
+  }) async {
     try {
       // A manual update that sets `status: cancelled` still arrives as an
       // `order.updated` event; normalize it here so `watchPendingCount`
@@ -60,6 +81,7 @@ class OrderEventsLocalRepositoryImpl implements OrderEventsLocalRepository {
         storeId: storeId,
         eventType: effectiveType,
         payload: jsonEncode(event.data.toJson()),
+        syncGeneration: syncGeneration,
       );
       return const Success(null);
     } catch (e) {
@@ -68,16 +90,44 @@ class OrderEventsLocalRepositoryImpl implements OrderEventsLocalRepository {
   }
 
   @override
-  Future<Result<void, AppError>> saveIfNewer(OrderEvent event, {required String storeId}) async {
+  Future<Result<void, AppError>> saveIfNewer(
+    OrderEvent event, {
+    required String storeId,
+    required int syncGeneration,
+  }) async {
     try {
       final existingRow = await _dao.getOrder(event.data.id, storeId);
       final existing = existingRow == null
           ? null
           : OrderData.fromJson(jsonDecode(existingRow.payload) as Map<String, dynamic>);
       if (!shouldReplaceStoredOrder(existing: existing, incoming: event.data)) {
+        // Payload isn't newer (socket already wrote a more recent update), but
+        // the order still exists on the server — bump its generation stamp so
+        // the sweep doesn't delete it.
+        if (existingRow != null) {
+          await _dao.stampSyncGeneration(event.data.id, storeId, syncGeneration);
+        }
         return const Success(null);
       }
-      return save(event, storeId: storeId);
+      return save(event, storeId: storeId, syncGeneration: syncGeneration);
+    } catch (e) {
+      return Failure(DatabaseError(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void, AppError>> sweepStaleOrders({
+    required String storeId,
+    required int currentGeneration,
+    required DateTime syncStartedAt,
+  }) async {
+    try {
+      await _dao.sweepStaleOrders(
+        storeId: storeId,
+        currentGeneration: currentGeneration,
+        updatedBefore: syncStartedAt,
+      );
+      return const Success(null);
     } catch (e) {
       return Failure(DatabaseError(e.toString()));
     }

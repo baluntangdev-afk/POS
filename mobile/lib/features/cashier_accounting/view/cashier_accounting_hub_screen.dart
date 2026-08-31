@@ -2,11 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/csv/report_csv_exporter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../auth/state/auth_providers.dart';
+import '../../auth/state/auth_state.dart';
+import '../daily_report/state/daily_report_notifier.dart';
+import '../x_reading/state/x_reading_notifier.dart';
+import '../z_reading/state/z_reading_notifier.dart';
 
 class _HubTile {
   final String label;
@@ -75,6 +82,7 @@ class CashierAccountingHubScreen extends StatelessWidget {
             },
             icon: Icon(Icons.arrow_back),
           ),
+          actions: const [_ExportPopupButton()],
         ),
         body: ListView.separated(
           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -83,6 +91,89 @@ class CashierAccountingHubScreen extends StatelessWidget {
           itemBuilder: (context, i) => _HubCard(tile: _kTiles[i]),
         ),
       ),
+    );
+  }
+}
+
+class _ExportPopupButton extends HookConsumerWidget {
+  const _ExportPopupButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final xAsync = ref.watch(xReadingProvider);
+    final dailyAsync = ref.watch(dailyReportProvider);
+    final zAsync = ref.watch(zReadingProvider);
+    final isExporting = useState(false);
+
+    final xData = xAsync.value;
+    final dailyData = dailyAsync.value;
+    final zData = zAsync.value;
+
+    Future<void> runExport(Future<String> Function(ReportCsvExporter) exportFn) async {
+      isExporting.value = true;
+      try {
+        final exporter = ref.read(reportCsvExporterProvider);
+        final filename = await exportFn(exporter);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Saved to Downloads/$filename')),
+          );
+        }
+      } on Exception {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Export failed — check storage space')),
+          );
+        }
+      } finally {
+        isExporting.value = false;
+      }
+    }
+
+    if (isExporting.value) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        child: SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.download),
+      tooltip: 'Export CSV',
+      onSelected: (value) {
+        final authState = ref.read(authNotifierProvider);
+        final cashierId = authState is AuthAuthenticated ? authState.user.id : null;
+
+        switch (value) {
+          case 'x':
+            runExport((exp) => exp.exportXReading(xData!, cashierId: cashierId));
+          case 'daily':
+            runExport((exp) => exp.exportDailyReport(dailyData!, cashierId: cashierId));
+          case 'z':
+            runExport((exp) => exp.exportZReading(zData!));
+        }
+      },
+      itemBuilder: (_) => [
+        PopupMenuItem(
+          value: 'x',
+          enabled: xData?.periodStart != null,
+          child: const Text('Export X-Reading CSV'),
+        ),
+        PopupMenuItem(
+          value: 'daily',
+          enabled: dailyData?.periodStart != null,
+          child: const Text('Export Daily Report CSV'),
+        ),
+        PopupMenuItem(
+          value: 'z',
+          enabled: zData?.periodStart != null,
+          child: const Text('Export Z-Reading CSV'),
+        ),
+      ],
     );
   }
 }

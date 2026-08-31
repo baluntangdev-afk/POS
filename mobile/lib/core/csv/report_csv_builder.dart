@@ -5,13 +5,14 @@ import '../../features/cashier_accounting/x_reading/entities/x_reading_data.dart
 import '../../features/cashier_accounting/z_reading/entities/z_reading_data.dart';
 import '../../features/reports/entities/report_data.dart';
 import 'transaction_export_row.dart';
+import 'sale_item_export_row.dart';
 
 abstract final class ReportCsvBuilder {
   static final _dateFmt = DateFormat('yyyy-MM-dd');
   static final _timeFmt = DateFormat('HH:mm');
   static final _moneyFmt = NumberFormat('0.00');
 
-  static String buildXReading(XReadingData d, List<TransactionExportRow> txns) {
+  static String buildXReading(XReadingData d, List<TransactionExportRow> txns, List<SaleItemExportRow> items) {
     final buf = StringBuffer();
     _writeHeader(buf, {
       'Report Type': 'X-Reading',
@@ -35,10 +36,12 @@ abstract final class ReportCsvBuilder {
     _writePaymentBreakdown(buf, d.paymentBreakdown);
     buf.writeln();
     _writeTransactions(buf, txns);
+    buf.writeln();
+    _writeItemsSold(buf, txns, items);
     return buf.toString();
   }
 
-  static String buildZReading(ZReadingData d, List<TransactionExportRow> txns) {
+  static String buildZReading(ZReadingData d, List<TransactionExportRow> txns, List<SaleItemExportRow> items) {
     final buf = StringBuffer();
     _writeHeader(buf, {
       'Report Type': 'Z-Reading',
@@ -69,10 +72,12 @@ abstract final class ReportCsvBuilder {
     _writePaymentBreakdown(buf, d.paymentBreakdown);
     buf.writeln();
     _writeTransactions(buf, txns);
+    buf.writeln();
+    _writeItemsSold(buf, txns, items);
     return buf.toString();
   }
 
-  static String buildDailyReport(DailyReportData d, List<TransactionExportRow> txns) {
+  static String buildDailyReport(DailyReportData d, List<TransactionExportRow> txns, List<SaleItemExportRow> items) {
     final buf = StringBuffer();
     _writeHeader(buf, {
       'Report Type': 'Daily Report',
@@ -96,6 +101,8 @@ abstract final class ReportCsvBuilder {
     buf.writeln('Payment Method,Amount,Count');
     buf.writeln();
     _writeTransactions(buf, txns);
+    buf.writeln();
+    _writeItemsSold(buf, txns, items);
     return buf.toString();
   }
 
@@ -110,6 +117,28 @@ abstract final class ReportCsvBuilder {
     buf.writeln('Payment Method,Amount,Count');
     for (final p in breakdown) {
       buf.writeln('${_esc(p.displayName)},${_moneyFmt.format(p.total)},');
+    }
+  }
+
+  static void _writeItemsSold(
+    StringBuffer buf,
+    List<TransactionExportRow> txns,
+    List<SaleItemExportRow> items,
+  ) {
+    final txnById = {for (final t in txns) t.id: t};
+    buf.writeln('Items Sold');
+    buf.writeln('Invoice No,Product,Variant,Qty,Unit Price,Discount,Line Total');
+    for (final item in items) {
+      final invoiceNo = txnById[item.saleId]?.invoiceNumber ?? '';
+      buf.writeln([
+        _esc(invoiceNo),
+        _esc(item.productName),
+        _esc(item.variantName),
+        item.qty,
+        _moneyFmt.format(item.unitPrice),
+        _moneyFmt.format(item.discountAmount),
+        _moneyFmt.format(item.lineTotal),
+      ].join(','));
     }
   }
 

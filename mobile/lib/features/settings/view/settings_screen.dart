@@ -56,9 +56,9 @@ class SettingsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.sm),
               _SettingsTile(
-                icon: Icons.key_rounded,
-                title: 'CSV Export Key',
-                subtitle: 'View or regenerate the encryption key for exported reports',
+                icon: Icons.lock_outline_rounded,
+                title: 'CSV Export Password',
+                subtitle: 'Password required to download report CSV files',
                 onTap: () => context.push('/settings/csv-export-key'),
               ),
               const SizedBox(height: AppSpacing.lg),

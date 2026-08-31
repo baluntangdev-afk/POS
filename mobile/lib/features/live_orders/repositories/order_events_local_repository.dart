@@ -77,7 +77,7 @@ class OrderEventsLocalRepositoryImpl implements OrderEventsLocalRepository {
           ? OrderEventType.cancelled.name
           : event.type.name;
       await _dao.upsertOrder(
-        orderId: event.data.id,
+        orderId: event.eventId,
         storeId: storeId,
         eventType: effectiveType,
         payload: jsonEncode(event.data.toJson()),

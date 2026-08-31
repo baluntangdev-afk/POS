@@ -15,7 +15,6 @@ import '../entities/orders_feed_state.dart';
 import '../repositories/order_events_local_repository.dart';
 import '../repositories/orders_live_feed_repository.dart';
 import '../repositories/webhook_auth_repository.dart';
-import '../use_cases/latest_event_per_order.dart';
 import '../use_cases/order_update_error.dart';
 
 const _initialBackoff = Duration(seconds: 1);
@@ -44,7 +43,7 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
   // is absent from the server and gets swept. Socket-written rows are stamped
   // with _syncGeneration at write time, so they survive the next sweep as long
   // as the server still returns them.
-  int _syncGeneration = 0;
+  final int _syncGeneration = 0;
 
   @override
   Future<OrdersFeedState> build() async {
@@ -160,31 +159,12 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
   /// UI — the screen keeps showing whatever's already persisted.
   Future<void> _syncHistory(String storeId) async {
     try {
-      // Increment before the fetch so any socket event that fires during the
-      // request is already stamped with this generation (via _onEvent →
-      // save(..., syncGeneration: _syncGeneration)) and won't be swept.
-      _syncGeneration++;
-      final currentGeneration = _syncGeneration;
-      final syncStartedAt = DateTime.now();
-
       final events = await ref.read(ordersHistoryApiProvider).fetchEvents(storeId);
-      final latest = latestEventPerOrder(events);
       final repository = ref.read(orderEventsLocalRepositoryProvider);
-      for (final event in latest) {
-        await repository.saveIfNewer(
-          event,
-          storeId: storeId,
-          syncGeneration: currentGeneration,
-        );
+      await repository.deleteAll(storeId);
+      for (final event in events) {
+        await repository.save(event, storeId: storeId, syncGeneration: _syncGeneration);
       }
-
-      // Mark-and-sweep: delete rows not seen in this sync cycle.
-      // The updatedBefore guard keeps any row the socket wrote mid-flight.
-      await repository.sweepStaleOrders(
-        storeId: storeId,
-        currentGeneration: currentGeneration,
-        syncStartedAt: syncStartedAt,
-      );
     } catch (e, st) {
       debugPrint('[OrdersFeed] history backfill failed: $e\n$st');
     }

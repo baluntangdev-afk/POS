@@ -15,6 +15,9 @@ enum OrderEventType {
       case 'order.cancelled':
         return OrderEventType.cancelled;
       default:
+        // Forward-compat: any unrecognized order.* type (e.g. order.fulfilled,
+        // order.shipped) is treated as an update rather than silently dropped.
+        if (eventType.startsWith('order.')) return OrderEventType.updated;
         return null;
     }
   }

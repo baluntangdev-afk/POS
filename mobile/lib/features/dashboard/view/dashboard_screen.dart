@@ -115,72 +115,95 @@ class DashboardScreen extends HookConsumerWidget {
     );
     final ordersCount = ref.watch(ordersCountProvider).value ?? 0;
 
-    final hasShownStoreDetailsDialog = useRef(false);
+    // First-run setup runs as a strict chain: store details -> employees ->
+    // products. Only one prompt is ever visible, and each step is only offered
+    // once the previous one is satisfied. Without this gating all three checks
+    // fire from the same provider/post-frame pass and the dialogs stack on top
+    // of the store form. Store setup is mandatory; the employees and products
+    // steps are skippable and only prompt once per session.
+    final isSetupDialogOpen = useRef(false);
     final hasShownEmployeesDialog = useRef(false);
     final hasShownProductsDialog = useRef(false);
 
-    void checkAndShowStoreDetailsDialog() {
-      if (hasShownStoreDetailsDialog.value) return;
+    void checkAndShowSetupFlow() {
       if (user?.isAdmin != true) return;
+      if (isSetupDialogOpen.value) return;
 
+      // Re-evaluates the chain once the current dialog closes. Needed because
+      // StoreDetailsDialog.onSave mutates storeInfoProvider *before* it pops,
+      // so the ref.listen fired by that change still sees isSetupDialogOpen ==
+      // true and bails — this callback is what advances to the next step.
+      void open(Future<void> future) {
+        isSetupDialogOpen.value = true;
+        unawaited(
+          future.whenComplete(() {
+            isSetupDialogOpen.value = false;
+            checkAndShowSetupFlow();
+          }),
+        );
+      }
+
+      // Step 1 — store details (mandatory)
       final storeState = ref.read(storeInfoProvider);
       if (storeState.isLoading || storeState.hasError) return;
       final info = storeState.value;
-      if (info == null || info.storeName.trim().isNotEmpty) return;
+      if (info == null) return;
+      if (info.storeName.trim().isEmpty) {
+        open(
+          showStoreDetailsDialog(
+            context,
+            onSignOut: () => ref.read(authNotifierProvider.notifier).logout(),
+          ),
+        );
+        return;
+      }
 
-      hasShownStoreDetailsDialog.value = true;
-      unawaited(
-        showStoreDetailsDialog(
-          context,
-          onSignOut: () => ref.read(authNotifierProvider.notifier).logout(),
-        ),
-      );
-    }
+      // Step 2 — employees (skippable)
+      if (!hasShownEmployeesDialog.value) {
+        final usersState = ref.read(usersProvider);
+        if (usersState.isLoading || usersState.hasError) return;
+        final users = usersState.value;
+        if (users == null) return;
+        if (users.length <= 1) {
+          hasShownEmployeesDialog.value = true;
+          open(
+            showSetupPromptDialog(
+              context,
+              title: 'No Employees Added',
+              message:
+                  'No employee accounts have been set up yet. '
+                  'Add one now, or skip and set them up later from Users.',
+              type: SetupPromptType.warning,
+              primaryButtonText: 'Add Employee',
+              secondaryButtonText: 'Sign Out',
+              tertiaryButtonText: 'Skip for now',
+              barrierDismissible: false,
+              onPrimaryPressed: () {
+                Navigator.of(context, rootNavigator: true).pop();
+                context.push('/users');
+              },
+              onSecondaryPressed: () {
+                Navigator.of(context, rootNavigator: true).pop();
+                ref.read(authNotifierProvider.notifier).logout();
+              },
+              onTertiaryPressed: () {
+                Navigator.of(context, rootNavigator: true).pop();
+              },
+            ),
+          );
+          return;
+        }
+      }
 
-    void checkAndShowEmployeesDialog() {
-      if (hasShownEmployeesDialog.value) return;
-      if (user?.isAdmin != true) return;
-
-      final usersState = ref.read(usersProvider);
-      if (usersState.isLoading || usersState.hasError) return;
-      final users = usersState.value;
-      if (users == null || users.length > 1) return;
-
-      hasShownEmployeesDialog.value = true;
-      unawaited(
-        showSetupPromptDialog(
-          context,
-          title: 'No Employees Added',
-          message:
-              'No employee accounts have been set up yet. '
-              'Add at least one employee before operating the system.',
-          type: SetupPromptType.warning,
-          primaryButtonText: 'Add Employee',
-          secondaryButtonText: 'Sign Out',
-          barrierDismissible: false,
-          onPrimaryPressed: () {
-            Navigator.of(context, rootNavigator: true).pop();
-            context.push('/users');
-          },
-          onSecondaryPressed: () {
-            Navigator.of(context, rootNavigator: true).pop();
-            ref.read(authNotifierProvider.notifier).logout();
-          },
-        ),
-      );
-    }
-
-    void checkAndShowProductsDialog() {
+      // Step 3 — products (skippable)
       if (hasShownProductsDialog.value) return;
-      if (user?.isAdmin != true) return;
-
       final inventoryState = ref.read(inventoryNotifierProvider);
       if (inventoryState.isLoading || inventoryState.hasError) return;
       final products = inventoryState.value?.products;
       if (products == null || products.isNotEmpty) return;
 
       hasShownProductsDialog.value = true;
-      unawaited(
+      open(
         showSetupPromptDialog(
           context,
           title: 'No Products Found',
@@ -205,21 +228,12 @@ class DashboardScreen extends HookConsumerWidget {
       );
     }
 
-    ref.listen(storeInfoProvider, (prev, next) {
-      checkAndShowStoreDetailsDialog();
-      checkAndShowEmployeesDialog();
-      checkAndShowProductsDialog();
-    });
-    ref.listen(usersProvider, (prev, next) {
-      checkAndShowStoreDetailsDialog();
-      checkAndShowEmployeesDialog();
-      checkAndShowProductsDialog();
-    });
-    ref.listen(inventoryNotifierProvider, (prev, next) {
-      checkAndShowStoreDetailsDialog();
-      checkAndShowEmployeesDialog();
-      checkAndShowProductsDialog();
-    });
+    ref.listen(storeInfoProvider, (prev, next) => checkAndShowSetupFlow());
+    ref.listen(usersProvider, (prev, next) => checkAndShowSetupFlow());
+    ref.listen(
+      inventoryNotifierProvider,
+      (prev, next) => checkAndShowSetupFlow(),
+    );
 
     // ref.listen only fires on state *changes*. If storeInfoProvider /
     // usersProvider / inventoryNotifierProvider already resolved during an
@@ -228,9 +242,7 @@ class DashboardScreen extends HookConsumerWidget {
     // in memory, not just future transitions.
     useEffect(() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        checkAndShowStoreDetailsDialog();
-        checkAndShowEmployeesDialog();
-        checkAndShowProductsDialog();
+        checkAndShowSetupFlow();
       });
       return null;
     }, const []);

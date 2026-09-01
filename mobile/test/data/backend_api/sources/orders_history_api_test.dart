@@ -18,6 +18,15 @@ class _FakeAppEnv implements AppEnv {
 
   @override
   final String ordersEventsApiBaseUrl = '';
+
+  @override
+  final String csvExportPassword = '';
+
+  @override
+  final String senderEmail = '';
+
+  @override
+  final String senderAppPassword = '';
 }
 
 class _FakeHttpClientAdapter implements HttpClientAdapter {

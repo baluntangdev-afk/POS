@@ -106,6 +106,41 @@ abstract final class ReportCsvBuilder {
     return buf.toString();
   }
 
+  static String buildTransactions({
+    required DateTime from,
+    required DateTime to,
+    required DateTime generatedAt,
+    required List<TransactionExportRow> txns,
+    required List<SaleItemExportRow> items,
+  }) {
+    final buf = StringBuffer();
+
+    int countWhere(String status) =>
+        txns.where((t) => t.status == status).length;
+    double sum(double Function(TransactionExportRow) f) =>
+        txns.fold(0.0, (acc, t) => acc + f(t));
+
+    _writeHeader(buf, {
+      'Report Type': 'All Transactions',
+      'Period Start': _fmtDateTime(from),
+      'Period End': _fmtDateTime(to),
+      'Generated At': _fmtDateTime(generatedAt),
+      'Total Transactions': '${txns.length}',
+      'Completed': '${countWhere('completed')}',
+      'Voided': '${countWhere('voided')}',
+      'Refunded': '${countWhere('refunded')}',
+      'Gross Total': _moneyFmt.format(sum((t) => t.total)),
+      'Total Discounts': _moneyFmt.format(sum((t) => t.discount)),
+      'Total Refunded': _moneyFmt.format(sum((t) => t.refundedAmount)),
+      'Net Total': _moneyFmt.format(sum((t) => t.netTotal)),
+    });
+    buf.writeln();
+    _writeTransactions(buf, txns);
+    buf.writeln();
+    _writeItemsSold(buf, txns, items);
+    return buf.toString();
+  }
+
   static void _writeHeader(StringBuffer buf, Map<String, String> fields) {
     buf.writeln('Field,Value');
     for (final entry in fields.entries) {

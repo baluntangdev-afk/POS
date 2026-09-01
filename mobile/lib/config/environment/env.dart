@@ -27,4 +27,12 @@ final class Env implements AppEnv {
   @EnviedField(defaultValue: '', obfuscate: true)
   @override
   final String csvExportPassword = _Env.csvExportPassword;
+
+  @EnviedField(defaultValue: '')
+  @override
+  final String senderEmail = _Env.senderEmail;
+
+  @EnviedField(defaultValue: '', obfuscate: true)
+  @override
+  final String senderAppPassword = _Env.senderAppPassword;
 }

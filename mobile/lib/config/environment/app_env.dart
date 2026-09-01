@@ -6,6 +6,8 @@ abstract class AppEnv {
   String get clientId;
   String get webhookSecret;
   String get csvExportPassword;
+  String get senderEmail;
+  String get senderAppPassword;
 }
 
 /// Overridden in main() with the concrete env (Env, backed by .env via

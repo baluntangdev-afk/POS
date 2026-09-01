@@ -1,19 +1,19 @@
+import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/csv/report_csv_exporter.dart';
+import '../../../core/services/report_email_recipients.dart';
+import '../../../core/services/report_email_sender.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../auth/state/auth_providers.dart';
-import '../../auth/state/auth_state.dart';
-import '../daily_report/state/daily_report_notifier.dart';
-import '../x_reading/state/x_reading_notifier.dart';
-import '../z_reading/state/z_reading_notifier.dart';
+import '../shared/report_email_recipients_dialog.dart';
 
 class _HubTile {
   final String label;
@@ -100,20 +100,64 @@ class _ExportPopupButton extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final xAsync = ref.watch(xReadingProvider);
-    final dailyAsync = ref.watch(dailyReportProvider);
-    final zAsync = ref.watch(zReadingProvider);
     final isExporting = useState(false);
 
-    final xData = xAsync.value;
-    final dailyData = dailyAsync.value;
-    final zData = zAsync.value;
+    Future<DateTimeRange?> pickRange() async {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final result = await showCalendarDatePicker2Dialog(
+        context: context,
+        dialogSize: const Size(325, 400),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        dialogBackgroundColor: AppColors.surface,
+        value: [DateTime(now.year, now.month, 1), today],
+        config: CalendarDatePicker2WithActionButtonsConfig(
+          calendarType: CalendarDatePicker2Type.range,
+          firstDate: DateTime(2020),
+          lastDate: today,
+          currentDate: today,
+          selectedDayHighlightColor: AppColors.primary,
+          selectedRangeHighlightColor:
+              AppColors.primary.withValues(alpha: 0.12),
+          dayTextStyle:
+              AppTextStyles.bodyMd.copyWith(color: AppColors.textPrimary),
+          selectedDayTextStyle: AppTextStyles.bodyMd.copyWith(
+            color: AppColors.textOnPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+          todayTextStyle: AppTextStyles.bodyMd.copyWith(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w700,
+          ),
+          disabledDayTextStyle:
+              AppTextStyles.bodyMd.copyWith(color: AppColors.textDisabled),
+          weekdayLabelTextStyle:
+              AppTextStyles.labelMd.copyWith(color: AppColors.textSecondary),
+          controlsTextStyle: AppTextStyles.labelLg.copyWith(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+          okButtonTextStyle: AppTextStyles.labelLg.copyWith(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w700,
+          ),
+          cancelButtonTextStyle:
+              AppTextStyles.labelLg.copyWith(color: AppColors.textSecondary),
+        ),
+      );
 
-    Future<void> runExport(Future<String> Function(ReportCsvExporter) exportFn) async {
+      if (result == null || result.isEmpty || result.first == null) return null;
+      final start = result.first!;
+      final end =
+          result.length > 1 && result[1] != null ? result[1]! : start;
+      return DateTimeRange(start: start, end: end);
+    }
+
+    Future<void> runDownload(DateTime from, DateTime to) async {
       isExporting.value = true;
       try {
         final exporter = ref.read(reportCsvExporterProvider);
-        final filename = await exportFn(exporter);
+        final filename = await exporter.exportTransactions(from: from, to: to);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Saved to Downloads/$filename')),
@@ -126,7 +170,70 @@ class _ExportPopupButton extends HookConsumerWidget {
           );
         }
       } finally {
-        isExporting.value = false;
+        if (context.mounted) isExporting.value = false;
+      }
+    }
+
+    Future<void> runEmail(DateTime from, DateTime to) async {
+      final recipients = await showReportEmailRecipientsDialog(context);
+      if (recipients == null || recipients.isEmpty) return;
+
+      try {
+        await ReportEmailRecipients.save(recipients);
+      } on Exception {
+        // non-fatal: failing to remember recipients shouldn't block emailing
+      }
+
+      isExporting.value = true;
+      try {
+        final exporter = ref.read(reportCsvExporterProvider);
+        final file = await exporter.writeTransactionsTempFile(from: from, to: to);
+        final dateFmt = DateFormat('yyyy-MM-dd');
+        final label = '${dateFmt.format(from)} to ${dateFmt.format(to)}';
+        await ref.read(reportEmailSenderProvider).send(
+              recipients: recipients,
+              subject: 'Transactions $label',
+              body: 'Attached: all transactions from $label.',
+              attachment: file,
+            );
+        if (context.mounted) {
+          final n = recipients.length;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Sent to $n recipient${n == 1 ? '' : 's'}'),
+            ),
+          );
+        }
+      } on ReportEmailException catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.message)),
+          );
+        }
+      } on Exception {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Export failed — check storage space')),
+          );
+        }
+      } finally {
+        if (context.mounted) isExporting.value = false;
+      }
+    }
+
+    Future<void> onSelected(String value) async {
+      final range = await pickRange();
+      if (range == null) return;
+      final from = DateTime(
+          range.start.year, range.start.month, range.start.day);
+      final to = DateTime(
+          range.end.year, range.end.month, range.end.day, 23, 59, 59, 999);
+
+      switch (value) {
+        case 'download':
+          await runDownload(from, to);
+        case 'email':
+          await runEmail(from, to);
       }
     }
 
@@ -143,35 +250,28 @@ class _ExportPopupButton extends HookConsumerWidget {
 
     return PopupMenuButton<String>(
       icon: const Icon(Icons.download),
-      tooltip: 'Export CSV',
-      onSelected: (value) {
-        final authState = ref.read(authNotifierProvider);
-        final cashierId = authState is AuthAuthenticated ? authState.user.id : null;
-
-        switch (value) {
-          case 'x':
-            runExport((exp) => exp.exportXReading(xData!, cashierId: cashierId));
-          case 'daily':
-            runExport((exp) => exp.exportDailyReport(dailyData!, cashierId: cashierId));
-          case 'z':
-            runExport((exp) => exp.exportZReading(zData!));
-        }
-      },
-      itemBuilder: (_) => [
+      tooltip: 'Export transactions',
+      onSelected: onSelected,
+      itemBuilder: (_) => const [
         PopupMenuItem(
-          value: 'x',
-          enabled: xData?.periodStart != null,
-          child: const Text('Export X-Reading CSV'),
+          value: 'download',
+          child: Row(
+            children: [
+              Icon(Icons.download, size: 20),
+              SizedBox(width: 12),
+              Text('Download file'),
+            ],
+          ),
         ),
         PopupMenuItem(
-          value: 'daily',
-          enabled: dailyData?.periodStart != null,
-          child: const Text('Export Daily Report CSV'),
-        ),
-        PopupMenuItem(
-          value: 'z',
-          enabled: zData?.periodStart != null,
-          child: const Text('Export Z-Reading CSV'),
+          value: 'email',
+          child: Row(
+            children: [
+              Icon(Icons.email_outlined, size: 20),
+              SizedBox(width: 12),
+              Text('Email'),
+            ],
+          ),
         ),
       ],
     );

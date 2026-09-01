@@ -15,6 +15,7 @@ import '../entities/orders_feed_state.dart';
 import '../repositories/order_events_local_repository.dart';
 import '../repositories/orders_live_feed_repository.dart';
 import '../repositories/webhook_auth_repository.dart';
+import '../use_cases/latest_event_per_order.dart';
 import '../use_cases/order_update_error.dart';
 
 const _initialBackoff = Duration(seconds: 1);
@@ -37,13 +38,6 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
   String? _storeId;
   final Queue<String> _recentEventIds = Queue();
   final Set<String> _seenEventIds = {};
-  // Monotonically increasing counter incremented at the start of each
-  // _syncHistory call. Rows are stamped with the current value during the
-  // upsert loop; any row whose stamp is below the counter after the loop
-  // is absent from the server and gets swept. Socket-written rows are stamped
-  // with _syncGeneration at write time, so they survive the next sweep as long
-  // as the server still returns them.
-  final int _syncGeneration = 0;
 
   @override
   Future<OrdersFeedState> build() async {
@@ -150,21 +144,33 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
   }
 
   /// Backfills local order history for [storeId] from the REST endpoint,
-  /// merging with write-if-newer semantics so it can never overwrite an
-  /// order the live socket has already updated more recently. Runs before
-  /// the socket opens in [_connect] (covering login and store-ID changes
-  /// for free, since both already rebuild this notifier); also callable
-  /// standalone via [refreshHistory]. Best-effort: a failure here doesn't
-  /// stop the socket from connecting, and doesn't surface an error to the
-  /// UI — the screen keeps showing whatever's already persisted.
+  /// rebuilding the local table from the server response: it wipes every
+  /// persisted order for the store and re-inserts whatever the endpoint
+  /// returns. Runs before the socket opens in [_connect] (covering login
+  /// and store-ID changes for free, since both already rebuild this
+  /// notifier); also callable standalone via [refreshHistory]. Best-effort:
+  /// a failure here doesn't stop the socket from connecting, and doesn't
+  /// surface an error to the UI — the screen keeps showing whatever's
+  /// already persisted.
+  ///
+  /// The wipe and re-insert run in one DB transaction so the Orders screen's
+  /// reactive query re-emits a single time, on commit — the list never
+  /// flashes empty mid-sync. A live socket event that lands after the fetch
+  /// starts but isn't in the response yet is wiped here; it comes back on the
+  /// next sync or the next socket event for that order.
   Future<void> _syncHistory(String storeId) async {
     try {
       final events = await ref.read(ordersHistoryApiProvider).fetchEvents(storeId);
+      // The history endpoint returns the full per-event log; collapse it to
+      // the latest event per order before persisting.
+      final orders = latestEventPerOrder(events);
       final repository = ref.read(orderEventsLocalRepositoryProvider);
-      await repository.deleteAll(storeId);
-      for (final event in events) {
-        await repository.save(event, storeId: storeId, syncGeneration: _syncGeneration);
-      }
+      await repository.runInTransaction(() async {
+        await repository.deleteOrdersForStore(storeId);
+        for (final event in orders) {
+          await repository.save(event, storeId: storeId);
+        }
+      });
     } catch (e, st) {
       debugPrint('[OrdersFeed] history backfill failed: $e\n$st');
     }
@@ -210,7 +216,7 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
       }
       await ref
           .read(orderEventsLocalRepositoryProvider)
-          .save(event, storeId: storeId, syncGeneration: _syncGeneration);
+          .save(event, storeId: storeId);
       return Success(event);
     } catch (e, st) {
       debugPrint('[OrdersFeed] applyOrderUpdate failed: $e\n$st');
@@ -240,7 +246,7 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
       unawaited(
         ref
             .read(orderEventsLocalRepositoryProvider)
-            .save(event, storeId: storeId, syncGeneration: _syncGeneration),
+            .save(event, storeId: storeId),
       );
     }
 

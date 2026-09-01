@@ -13,7 +13,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/empty_state_widget.dart';
 import '../../live_orders/entities/order_event.dart';
 import '../../live_orders/state/orders_feed_notifier.dart';
-import '../../live_orders/state/pending_orders_count_provider.dart';
+import '../../live_orders/state/orders_count_provider.dart';
 import '../../live_orders/use_cases/order_update_error.dart';
 import 'order_status.dart';
 

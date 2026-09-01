@@ -10482,18 +10482,6 @@ class $OrderEventsTableTable extends OrderEventsTable
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
-  static const VerificationMeta _syncGenerationMeta = const VerificationMeta(
-    'syncGeneration',
-  );
-  @override
-  late final GeneratedColumn<int> syncGeneration = GeneratedColumn<int>(
-    'sync_generation',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
   @override
   List<GeneratedColumn> get $columns => [
     orderId,
@@ -10501,7 +10489,6 @@ class $OrderEventsTableTable extends OrderEventsTable
     eventType,
     payload,
     updatedAt,
-    syncGeneration,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -10553,15 +10540,6 @@ class $OrderEventsTableTable extends OrderEventsTable
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
-    if (data.containsKey('sync_generation')) {
-      context.handle(
-        _syncGenerationMeta,
-        syncGeneration.isAcceptableOrUnknown(
-          data['sync_generation']!,
-          _syncGenerationMeta,
-        ),
-      );
-    }
     return context;
   }
 
@@ -10596,11 +10574,6 @@ class $OrderEventsTableTable extends OrderEventsTable
             DriftSqlType.dateTime,
             data['${effectivePrefix}updated_at'],
           )!,
-      syncGeneration:
-          attachedDatabase.typeMapping.read(
-            DriftSqlType.int,
-            data['${effectivePrefix}sync_generation'],
-          )!,
     );
   }
 
@@ -10617,14 +10590,12 @@ class OrderEventsTableData extends DataClass
   final String eventType;
   final String payload;
   final DateTime updatedAt;
-  final int syncGeneration;
   const OrderEventsTableData({
     required this.orderId,
     required this.storeId,
     required this.eventType,
     required this.payload,
     required this.updatedAt,
-    required this.syncGeneration,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -10634,7 +10605,6 @@ class OrderEventsTableData extends DataClass
     map['event_type'] = Variable<String>(eventType);
     map['payload'] = Variable<String>(payload);
     map['updated_at'] = Variable<DateTime>(updatedAt);
-    map['sync_generation'] = Variable<int>(syncGeneration);
     return map;
   }
 
@@ -10645,7 +10615,6 @@ class OrderEventsTableData extends DataClass
       eventType: Value(eventType),
       payload: Value(payload),
       updatedAt: Value(updatedAt),
-      syncGeneration: Value(syncGeneration),
     );
   }
 
@@ -10660,7 +10629,6 @@ class OrderEventsTableData extends DataClass
       eventType: serializer.fromJson<String>(json['eventType']),
       payload: serializer.fromJson<String>(json['payload']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
-      syncGeneration: serializer.fromJson<int>(json['syncGeneration']),
     );
   }
   @override
@@ -10672,7 +10640,6 @@ class OrderEventsTableData extends DataClass
       'eventType': serializer.toJson<String>(eventType),
       'payload': serializer.toJson<String>(payload),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
-      'syncGeneration': serializer.toJson<int>(syncGeneration),
     };
   }
 
@@ -10682,14 +10649,12 @@ class OrderEventsTableData extends DataClass
     String? eventType,
     String? payload,
     DateTime? updatedAt,
-    int? syncGeneration,
   }) => OrderEventsTableData(
     orderId: orderId ?? this.orderId,
     storeId: storeId ?? this.storeId,
     eventType: eventType ?? this.eventType,
     payload: payload ?? this.payload,
     updatedAt: updatedAt ?? this.updatedAt,
-    syncGeneration: syncGeneration ?? this.syncGeneration,
   );
   OrderEventsTableData copyWithCompanion(OrderEventsTableCompanion data) {
     return OrderEventsTableData(
@@ -10698,10 +10663,6 @@ class OrderEventsTableData extends DataClass
       eventType: data.eventType.present ? data.eventType.value : this.eventType,
       payload: data.payload.present ? data.payload.value : this.payload,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
-      syncGeneration:
-          data.syncGeneration.present
-              ? data.syncGeneration.value
-              : this.syncGeneration,
     );
   }
 
@@ -10712,21 +10673,14 @@ class OrderEventsTableData extends DataClass
           ..write('storeId: $storeId, ')
           ..write('eventType: $eventType, ')
           ..write('payload: $payload, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('syncGeneration: $syncGeneration')
+          ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-    orderId,
-    storeId,
-    eventType,
-    payload,
-    updatedAt,
-    syncGeneration,
-  );
+  int get hashCode =>
+      Object.hash(orderId, storeId, eventType, payload, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -10735,8 +10689,7 @@ class OrderEventsTableData extends DataClass
           other.storeId == this.storeId &&
           other.eventType == this.eventType &&
           other.payload == this.payload &&
-          other.updatedAt == this.updatedAt &&
-          other.syncGeneration == this.syncGeneration);
+          other.updatedAt == this.updatedAt);
 }
 
 class OrderEventsTableCompanion extends UpdateCompanion<OrderEventsTableData> {
@@ -10745,7 +10698,6 @@ class OrderEventsTableCompanion extends UpdateCompanion<OrderEventsTableData> {
   final Value<String> eventType;
   final Value<String> payload;
   final Value<DateTime> updatedAt;
-  final Value<int> syncGeneration;
   final Value<int> rowid;
   const OrderEventsTableCompanion({
     this.orderId = const Value.absent(),
@@ -10753,7 +10705,6 @@ class OrderEventsTableCompanion extends UpdateCompanion<OrderEventsTableData> {
     this.eventType = const Value.absent(),
     this.payload = const Value.absent(),
     this.updatedAt = const Value.absent(),
-    this.syncGeneration = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   OrderEventsTableCompanion.insert({
@@ -10762,7 +10713,6 @@ class OrderEventsTableCompanion extends UpdateCompanion<OrderEventsTableData> {
     required String eventType,
     required String payload,
     this.updatedAt = const Value.absent(),
-    this.syncGeneration = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : orderId = Value(orderId),
        storeId = Value(storeId),
@@ -10774,7 +10724,6 @@ class OrderEventsTableCompanion extends UpdateCompanion<OrderEventsTableData> {
     Expression<String>? eventType,
     Expression<String>? payload,
     Expression<DateTime>? updatedAt,
-    Expression<int>? syncGeneration,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -10783,7 +10732,6 @@ class OrderEventsTableCompanion extends UpdateCompanion<OrderEventsTableData> {
       if (eventType != null) 'event_type': eventType,
       if (payload != null) 'payload': payload,
       if (updatedAt != null) 'updated_at': updatedAt,
-      if (syncGeneration != null) 'sync_generation': syncGeneration,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -10794,7 +10742,6 @@ class OrderEventsTableCompanion extends UpdateCompanion<OrderEventsTableData> {
     Value<String>? eventType,
     Value<String>? payload,
     Value<DateTime>? updatedAt,
-    Value<int>? syncGeneration,
     Value<int>? rowid,
   }) {
     return OrderEventsTableCompanion(
@@ -10803,7 +10750,6 @@ class OrderEventsTableCompanion extends UpdateCompanion<OrderEventsTableData> {
       eventType: eventType ?? this.eventType,
       payload: payload ?? this.payload,
       updatedAt: updatedAt ?? this.updatedAt,
-      syncGeneration: syncGeneration ?? this.syncGeneration,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -10826,9 +10772,6 @@ class OrderEventsTableCompanion extends UpdateCompanion<OrderEventsTableData> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
-    if (syncGeneration.present) {
-      map['sync_generation'] = Variable<int>(syncGeneration.value);
-    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -10843,7 +10786,6 @@ class OrderEventsTableCompanion extends UpdateCompanion<OrderEventsTableData> {
           ..write('eventType: $eventType, ')
           ..write('payload: $payload, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('syncGeneration: $syncGeneration, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -19089,7 +19031,6 @@ typedef $$OrderEventsTableTableCreateCompanionBuilder =
       required String eventType,
       required String payload,
       Value<DateTime> updatedAt,
-      Value<int> syncGeneration,
       Value<int> rowid,
     });
 typedef $$OrderEventsTableTableUpdateCompanionBuilder =
@@ -19099,7 +19040,6 @@ typedef $$OrderEventsTableTableUpdateCompanionBuilder =
       Value<String> eventType,
       Value<String> payload,
       Value<DateTime> updatedAt,
-      Value<int> syncGeneration,
       Value<int> rowid,
     });
 
@@ -19134,11 +19074,6 @@ class $$OrderEventsTableTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get syncGeneration => $composableBuilder(
-    column: $table.syncGeneration,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -19176,11 +19111,6 @@ class $$OrderEventsTableTableOrderingComposer
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
   );
-
-  ColumnOrderings<int> get syncGeneration => $composableBuilder(
-    column: $table.syncGeneration,
-    builder: (column) => ColumnOrderings(column),
-  );
 }
 
 class $$OrderEventsTableTableAnnotationComposer
@@ -19206,11 +19136,6 @@ class $$OrderEventsTableTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
-
-  GeneratedColumn<int> get syncGeneration => $composableBuilder(
-    column: $table.syncGeneration,
-    builder: (column) => column,
-  );
 }
 
 class $$OrderEventsTableTableTableManager
@@ -19262,7 +19187,6 @@ class $$OrderEventsTableTableTableManager
                 Value<String> eventType = const Value.absent(),
                 Value<String> payload = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
-                Value<int> syncGeneration = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => OrderEventsTableCompanion(
                 orderId: orderId,
@@ -19270,7 +19194,6 @@ class $$OrderEventsTableTableTableManager
                 eventType: eventType,
                 payload: payload,
                 updatedAt: updatedAt,
-                syncGeneration: syncGeneration,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -19280,7 +19203,6 @@ class $$OrderEventsTableTableTableManager
                 required String eventType,
                 required String payload,
                 Value<DateTime> updatedAt = const Value.absent(),
-                Value<int> syncGeneration = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => OrderEventsTableCompanion.insert(
                 orderId: orderId,
@@ -19288,7 +19210,6 @@ class $$OrderEventsTableTableTableManager
                 eventType: eventType,
                 payload: payload,
                 updatedAt: updatedAt,
-                syncGeneration: syncGeneration,
                 rowid: rowid,
               ),
           withReferenceMapper:

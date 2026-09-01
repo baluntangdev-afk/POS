@@ -258,8 +258,15 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(orderEventsTable);
           }
           if (from < 14) {
-            if (!await _hasColumn('order_events', 'sync_generation')) {
-              await m.addColumn(orderEventsTable, orderEventsTable.syncGeneration);
+            // v14 briefly added order_events.sync_generation to drive a
+            // generation-stamp sweep; that was replaced by a wipe-and-rebuild
+            // history sync, so the column is no longer part of the schema.
+            // Guarded so installs that ran the interim v14 (column present)
+            // converge back to the column-less shape.
+            if (await _hasColumn('order_events', 'sync_generation')) {
+              await customStatement(
+                'ALTER TABLE order_events DROP COLUMN sync_generation',
+              );
             }
           }
         },

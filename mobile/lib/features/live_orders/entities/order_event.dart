@@ -36,11 +36,15 @@ class OrderEventItem {
   final int quantity;
   final num price;
 
+  /// Lenient on purpose: a line item with an odd/missing field falls back to
+  /// a sensible default rather than throwing, so one bad item can't drop the
+  /// whole order off the screen. `quantity` also tolerates a JSON number that
+  /// decodes as a double.
   factory OrderEventItem.fromJson(Map<String, dynamic> json) => OrderEventItem(
-        productId: json['product_id'] as String,
-        productName: json['product_name'] as String,
-        quantity: json['quantity'] as int,
-        price: json['price'] as num,
+        productId: json['product_id']?.toString() ?? '',
+        productName: json['product_name']?.toString() ?? '',
+        quantity: (json['quantity'] as num?)?.toInt() ?? 1,
+        price: json['price'] as num? ?? 0,
       );
 }
 
@@ -116,26 +120,36 @@ class OrderData {
   final List<OrderEventItem> items;
   final String merchantId;
 
-  factory OrderData.fromJson(Map<String, dynamic> json) => OrderData(
-        id: json['id'] as String,
-        customerId: json['customer_id'] as String,
-        customerName: json['customer_name'] as String?,
-        customerEmail: json['customer_email'] as String?,
-        status: json['status'] as String,
-        total: json['total'] as num,
-        currency: json['currency'] as String,
-        districtId: json['district_id'] as String?,
-        districtName: json['district_name'] as String?,
-        fulfillmentType: FulfillmentType.fromWire(json['fulfillment_type'] as String?),
-        facilityId: json['facility_id'] as String?,
-        facilityName: json['facility_name'] as String?,
-        createdAt: DateTime.parse(json['created_at'] as String),
-        updatedAt: DateTime.parse(json['updated_at'] as String),
-        items: (json['items'] as List<dynamic>? ?? [])
-            .map((e) => OrderEventItem.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        merchantId: json['merchant_id'] as String,
-      );
+  /// Lenient on purpose: only [id] is truly required (it keys the local row
+  /// and every update call). Every other field falls back to a sane default
+  /// rather than throwing, so an order with an unexpected/missing field still
+  /// reaches the Orders screen instead of being silently dropped.
+  factory OrderData.fromJson(Map<String, dynamic> json) {
+    final created = DateTime.tryParse(json['created_at']?.toString() ?? '');
+    final updated = DateTime.tryParse(json['updated_at']?.toString() ?? '');
+    final epoch = DateTime.fromMillisecondsSinceEpoch(0);
+    return OrderData(
+      id: json['id'] as String,
+      customerId: json['customer_id']?.toString() ?? '',
+      customerName: json['customer_name'] as String?,
+      customerEmail: json['customer_email'] as String?,
+      status: json['status']?.toString() ?? 'unknown',
+      total: json['total'] as num? ?? 0,
+      currency: json['currency']?.toString() ?? '',
+      districtId: json['district_id'] as String?,
+      districtName: json['district_name'] as String?,
+      fulfillmentType: FulfillmentType.fromWire(json['fulfillment_type'] as String?),
+      facilityId: json['facility_id'] as String?,
+      facilityName: json['facility_name'] as String?,
+      createdAt: created ?? updated ?? epoch,
+      updatedAt: updated ?? created ?? epoch,
+      items: (json['items'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(OrderEventItem.fromJson)
+          .toList(),
+      merchantId: json['merchant_id']?.toString() ?? '',
+    );
+  }
 
   /// Round-trips through [OrderEventsLocalRepository] storage — only the
   /// fields the Orders screen actually renders need to survive the trip.

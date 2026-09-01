@@ -13,7 +13,7 @@ import '../../auth/state/auth_state.dart';
 import '../../inventory/state/inventory_notifier.dart';
 import '../../live_orders/entities/orders_feed_state.dart';
 import '../../live_orders/state/orders_feed_notifier.dart';
-import '../../live_orders/state/pending_orders_count_provider.dart';
+import '../../live_orders/state/orders_count_provider.dart';
 import '../../settings/state/store_info_notifier.dart';
 import '../../users/state/users_notifier.dart';
 import 'store_details_dialog.dart';
@@ -113,7 +113,7 @@ class DashboardScreen extends HookConsumerWidget {
     final feedConnection = ref.watch(
       ordersFeedNotifierProvider.select((s) => s.value?.connection),
     );
-    final pendingOrdersCount = ref.watch(pendingOrdersCountProvider).value ?? 0;
+    final ordersCount = ref.watch(ordersCountProvider).value ?? 0;
 
     final hasShownStoreDetailsDialog = useRef(false);
     final hasShownEmployeesDialog = useRef(false);
@@ -261,7 +261,7 @@ class DashboardScreen extends HookConsumerWidget {
       if (isAdmin) _kTileInventory,
       // _kTileReports hidden for now
       _kTileCashierAccounting,
-      _kTileOrders.copyWith(badge: pendingOrdersCount > 0 ? pendingOrdersCount : null),
+      _kTileOrders.copyWith(badge: ordersCount > 0 ? ordersCount : null),
       _kTileSettings,
       if (isAdmin) _kTileUsers,
     ];

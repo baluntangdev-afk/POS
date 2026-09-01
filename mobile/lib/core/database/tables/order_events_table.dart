@@ -14,9 +14,6 @@ class OrderEventsTable extends Table {
   TextColumn get eventType => text()();
   TextColumn get payload => text()();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
-  // Incremented each time _syncHistory runs; rows with a stale generation that
-  // weren't touched by the current sync are swept after the upsert loop.
-  IntColumn get syncGeneration => integer().withDefault(const Constant(0))();
 
   @override
   Set<Column> get primaryKey => {orderId};

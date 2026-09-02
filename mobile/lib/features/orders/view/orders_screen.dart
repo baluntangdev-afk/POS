@@ -17,11 +17,6 @@ import '../../live_orders/state/orders_count_provider.dart';
 import '../../live_orders/use_cases/order_update_error.dart';
 import 'order_status.dart';
 
-/// Live incoming-orders list. Reads `persistedOrdersProvider` — sourced from
-/// the local `order_events` table, not the in-memory socket state directly
-/// — so this screen shows the right thing on open even before any socket
-/// event arrives this session. The connection itself is booted and checked
-/// on `DashboardScreen`; this screen only observes it.
 class OrdersScreen extends HookConsumerWidget {
   const OrdersScreen({super.key});
 

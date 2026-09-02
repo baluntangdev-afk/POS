@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -12,8 +12,10 @@ import '../../auth/state/auth_providers.dart';
 import '../../auth/state/auth_state.dart';
 import '../../inventory/state/inventory_notifier.dart';
 import '../../live_orders/entities/orders_feed_state.dart';
+import '../../live_orders/state/merchant_device_notifier.dart';
 import '../../live_orders/state/orders_feed_notifier.dart';
 import '../../live_orders/state/orders_count_provider.dart';
+import '../../live_orders/view/device_registration_prompt.dart';
 import '../../settings/state/store_info_notifier.dart';
 import '../../users/state/users_notifier.dart';
 import 'store_details_dialog.dart';
@@ -34,12 +36,12 @@ class _Tile {
   });
 
   _Tile copyWith({int? badge}) => _Tile(
-        label: label,
-        icon: icon,
-        accent: accent,
-        route: route,
-        badge: badge,
-      );
+    label: label,
+    icon: icon,
+    accent: accent,
+    route: route,
+    badge: badge,
+  );
 }
 
 const _kTileNew = _Tile(
@@ -230,6 +232,12 @@ class DashboardScreen extends HookConsumerWidget {
 
     ref.listen(storeInfoProvider, (prev, next) => checkAndShowSetupFlow());
     ref.listen(usersProvider, (prev, next) => checkAndShowSetupFlow());
+
+    // Device-registration outcome (triggered from store-info save). Shows the
+    // "pending approval" dialog / a retry snackbar without interrupting setup.
+    ref.listen(merchantDeviceNotifierProvider, (prev, next) {
+      handleMerchantDeviceOutcome(context, prev?.value, next.value);
+    });
     ref.listen(
       inventoryNotifierProvider,
       (prev, next) => checkAndShowSetupFlow(),
@@ -420,7 +428,9 @@ class _Header extends HookWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     if (userName.isNotEmpty) ...[
-                      Flexible(child: _UserPill(name: userName, role: userRole)),
+                      Flexible(
+                        child: _UserPill(name: userName, role: userRole),
+                      ),
                       const SizedBox(width: 10),
                     ],
                     // Sign out
@@ -458,7 +468,9 @@ class _Header extends HookWidget {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              padding: const EdgeInsets.symmetric(horizontal: 14),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                              ),
                             ),
                           ),
                         ),
@@ -526,30 +538,30 @@ class _LiveOrdersStatusPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final (label, color, bg) = switch (connection) {
       OrdersFeedConnection.connected => (
-          'Live orders connected',
-          AppColors.success,
-          AppColors.successLight,
-        ),
+        'Live orders connected',
+        AppColors.success,
+        AppColors.successLight,
+      ),
       OrdersFeedConnection.reconnecting => (
-          'Reconnecting…',
-          AppColors.warning,
-          AppColors.warningLight,
-        ),
-      OrdersFeedConnection.connecting || null => (
-          'Connecting…',
-          AppColors.warning,
-          AppColors.warningLight,
-        ),
+        'Reconnecting…',
+        AppColors.warning,
+        AppColors.warningLight,
+      ),
+      OrdersFeedConnection.connecting ||
+      null => ('Connecting…', AppColors.warning, AppColors.warningLight),
       OrdersFeedConnection.disconnected => (
-          'Live orders off',
-          AppColors.textDisabled,
-          AppColors.surfaceVariant,
-        ),
+        'Live orders off',
+        AppColors.textDisabled,
+        AppColors.surfaceVariant,
+      ),
     };
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -813,26 +825,29 @@ class _TileGrid extends StatelessWidget {
 
           rows.add(
             Row(
-              mainAxisAlignment: isFullRow ? MainAxisAlignment.start : MainAxisAlignment.center,
+              mainAxisAlignment:
+                  isFullRow
+                      ? MainAxisAlignment.start
+                      : MainAxisAlignment.center,
               children: [
                 for (var j = 0; j < rowTiles.length; j++) ...[
                   if (j > 0) SizedBox(width: gap),
                   isFullRow
                       ? Expanded(
-                          child: _TileCard(
-                            tile: rowTiles[j],
-                            index: i + j,
-                            entrance: entrance,
-                          ),
-                        )
-                      : SizedBox(
-                          width: columnWidth,
-                          child: _TileCard(
-                            tile: rowTiles[j],
-                            index: i + j,
-                            entrance: entrance,
-                          ),
+                        child: _TileCard(
+                          tile: rowTiles[j],
+                          index: i + j,
+                          entrance: entrance,
                         ),
+                      )
+                      : SizedBox(
+                        width: columnWidth,
+                        child: _TileCard(
+                          tile: rowTiles[j],
+                          index: i + j,
+                          entrance: entrance,
+                        ),
+                      ),
                 ],
               ],
             ),
@@ -937,7 +952,9 @@ class _TileCard extends HookWidget {
                         color: accent.withValues(
                           alpha: isPressed.value ? 0.18 : 0.12,
                         ),
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusLg,
+                        ),
                       ),
                       child: Icon(tile.icon, size: 32, color: accent),
                     ),
@@ -964,7 +981,10 @@ class _TileCard extends HookWidget {
                   top: 8,
                   right: 8,
                   child: Container(
-                    constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                    constraints: const BoxConstraints(
+                      minWidth: 20,
+                      minHeight: 20,
+                    ),
                     padding: const EdgeInsets.symmetric(horizontal: 5),
                     decoration: BoxDecoration(
                       color: AppColors.error,

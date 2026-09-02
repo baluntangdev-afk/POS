@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
+import '../../live_orders/repositories/webhook_auth_repository.dart';
+import '../../live_orders/state/merchant_device_notifier.dart';
 
 class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
   @override
@@ -24,26 +29,78 @@ class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
   }) async {
     final db = ref.read(databaseProvider);
     final existing = state.value;
-    await db.storeInfoDao.upsertStoreInfo(StoreInfoTableCompanion(
-      id: existing != null ? Value(existing.id) : const Value.absent(),
-      storeId: Value(storeId),
-      storeName: Value(storeName),
-      address: Value(address),
-      taxRate: Value(taxRate),
-      currency: Value(currency),
-      receiptFooter: Value(receiptFooter),
-      tin: Value(tin),
-      terminalName: Value(terminalName),
-    ));
+    final previousStoreId = existing?.storeId.trim() ?? '';
+    await db.storeInfoDao.upsertStoreInfo(
+      StoreInfoTableCompanion(
+        id: existing != null ? Value(existing.id) : const Value.absent(),
+        storeId: Value(storeId),
+        storeName: Value(storeName),
+        address: Value(address),
+        taxRate: Value(taxRate),
+        currency: Value(currency),
+        receiptFooter: Value(receiptFooter),
+        tin: Value(tin),
+        terminalName: Value(terminalName),
+      ),
+    );
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(build);
+
+    final deviceName =
+        terminalName.trim().isNotEmpty ? terminalName.trim() : storeName.trim();
+    final newStoreId = storeId.trim();
+    final storeIdChanged = newStoreId != previousStoreId;
+
+    // Fire-and-forget so the save UI stays responsive, but the token refresh
+    // and the device registration run strictly in that order inside the
+    // helper.
+    unawaited(
+      _provisionForStore(
+        storeId: newStoreId,
+        deviceName: deviceName,
+        storeIdChanged: storeIdChanged,
+      ),
+    );
+  }
+
+  /// Reacts to a store-info save by (re)provisioning the backend identity for
+  /// the current store:
+  ///  1. When the store/merchant id changed, mint a fresh `/auth/token` for
+  ///     it and persist it as the active bearer token — before anything uses
+  ///     it. `/auth/token` is *not* called when the id is unchanged.
+  ///  2. Then register this device for the store (a no-op if it is already
+  ///     registered for this exact id).
+  Future<void> _provisionForStore({
+    required String storeId,
+    required String deviceName,
+    required bool storeIdChanged,
+  }) async {
+    if (storeId.isEmpty) return;
+
+    try {
+      if (storeIdChanged) {
+        await ref.read(webhookAuthRepositoryProvider).refreshToken(storeId);
+        await ref
+            .read(merchantDeviceNotifierProvider.notifier)
+            .registerIfNeeded(name: deviceName);
+      }
+
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[StoreInfo] store provisioning failed for $storeId: '
+        '$error\n$stackTrace',
+      );
+    }
   }
 }
 
 final storeInfoProvider =
-    AsyncNotifierProvider<StoreInfoNotifier, StoreInfoTableData?>(StoreInfoNotifier.new);
+    AsyncNotifierProvider<StoreInfoNotifier, StoreInfoTableData?>(
+      StoreInfoNotifier.new,
+    );
 
-class PaymentMethodsNotifier extends AsyncNotifier<List<PaymentMethodsTableData>> {
+class PaymentMethodsNotifier
+    extends AsyncNotifier<List<PaymentMethodsTableData>> {
   @override
   Future<List<PaymentMethodsTableData>> build() {
     final db = ref.watch(databaseProvider);
@@ -56,11 +113,13 @@ class PaymentMethodsNotifier extends AsyncNotifier<List<PaymentMethodsTableData>
     String? accountNumber,
   }) async {
     final db = ref.read(databaseProvider);
-    await db.storeInfoDao.insertPaymentMethod(PaymentMethodsTableCompanion.insert(
-      label: label,
-      accountName: Value(accountName),
-      accountNumber: Value(accountNumber),
-    ));
+    await db.storeInfoDao.insertPaymentMethod(
+      PaymentMethodsTableCompanion.insert(
+        label: label,
+        accountName: Value(accountName),
+        accountNumber: Value(accountNumber),
+      ),
+    );
     await refresh();
   }
 
@@ -94,6 +153,7 @@ class PaymentMethodsNotifier extends AsyncNotifier<List<PaymentMethodsTableData>
   }
 }
 
-final paymentMethodsProvider =
-    AsyncNotifierProvider<PaymentMethodsNotifier, List<PaymentMethodsTableData>>(
-        PaymentMethodsNotifier.new);
+final paymentMethodsProvider = AsyncNotifierProvider<
+  PaymentMethodsNotifier,
+  List<PaymentMethodsTableData>
+>(PaymentMethodsNotifier.new);

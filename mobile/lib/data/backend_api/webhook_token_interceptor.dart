@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:mobile/data/backend_api/sources/auth_api.dart';
 
 import '../../config/environment/app_env.dart';
 import '../secure_storage/schemas/webhook_auth_doc.dart';
@@ -14,12 +15,6 @@ final webhookTokenInterceptorProvider = Provider<WebhookTokenInterceptor>((ref) 
   return WebhookTokenInterceptor(storage, refreshClient, env);
 });
 
-/// Attaches the cached webhook bearer token to every request on
-/// [ordersEventsApiClientProvider]. The token itself is fetched once up
-/// front — see `WebhookAuthRepository.ensureToken`, called when the orders
-/// feed connects — this interceptor only reads what's cached and, on a 401,
-/// refreshes it reactively so a mid-session expiry doesn't require the app
-/// to restart the connection.
 class WebhookTokenInterceptor extends QueuedInterceptor {
   WebhookTokenInterceptor(this._storage, this._refreshClient, this._env);
 
@@ -63,7 +58,7 @@ class WebhookTokenInterceptor extends QueuedInterceptor {
   }
 
   Future<WebhookAuthDoc> _refreshToken(String merchantId) async {
-    final dto = await OrdersHistoryApi(_refreshClient, _env).fetchToken(merchantId);
+    final dto = await AuthApi(_refreshClient, _env).fetchToken(merchantId);
     final doc = WebhookAuthDoc(
       merchantId: dto.merchantId,
       token: dto.token,

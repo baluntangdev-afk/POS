@@ -10,6 +10,8 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../widgets/payment_methods_card.dart';
 import '../../../widgets/section_card.dart';
+import '../../live_orders/state/merchant_device_notifier.dart';
+import '../../live_orders/view/device_registration_prompt.dart';
 import '../state/store_info_notifier.dart';
 
 const _storeIdAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -29,43 +31,61 @@ class StoreInfoScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final infoAsync = ref.watch(storeInfoProvider);
 
+    // Surfaces the device-registration outcome kicked off by saving store
+    // info here. De-duplicated with the dashboard listener — only one dialog.
+    ref.listen(merchantDeviceNotifierProvider, (prev, next) {
+      handleMerchantDeviceOutcome(context, prev?.value, next.value);
+    });
+
     return infoAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
-      error: (e, _) => Scaffold(
-        appBar: AppBar(title: const Text('Store Information')),
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-              const Gap(AppSpacing.md),
-              Text('$e',
-                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
-                  textAlign: TextAlign.center),
-              const Gap(AppSpacing.lg),
-              FilledButton(
-                onPressed: () => ref.invalidate(storeInfoProvider),
-                child: const Text('Retry'),
+      loading:
+          () =>
+              const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error:
+          (e, _) => Scaffold(
+            appBar: AppBar(title: const Text('Store Information')),
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: AppColors.error,
+                  ),
+                  const Gap(AppSpacing.md),
+                  Text(
+                    '$e',
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const Gap(AppSpacing.lg),
+                  FilledButton(
+                    onPressed: () => ref.invalidate(storeInfoProvider),
+                    child: const Text('Retry'),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
       data: (info) {
         if (info == null || info.storeId.isEmpty) {
           return _StoreIdSetupGate(
-            onConfirm: (storeId) => ref.read(storeInfoProvider.notifier).save(
-                  storeId: storeId,
-                  storeName: info?.storeName ?? '',
-                  address: info?.address ?? '',
-                  taxRate: info?.taxRate ?? 0.0,
-                  currency: info?.currency ?? 'PHP',
-                  receiptFooter: info?.receiptFooter ?? '',
-                  tin: info?.tin ?? '',
-                  terminalName: info?.terminalName ?? '',
-                ),
+            onConfirm:
+                (storeId) => ref
+                    .read(storeInfoProvider.notifier)
+                    .save(
+                      storeId: storeId,
+                      storeName: info?.storeName ?? '',
+                      address: info?.address ?? '',
+                      taxRate: info?.taxRate ?? 0.0,
+                      currency: info?.currency ?? 'PHP',
+                      receiptFooter: info?.receiptFooter ?? '',
+                      tin: info?.tin ?? '',
+                      terminalName: info?.terminalName ?? '',
+                    ),
           );
         }
         return _StoreInfoForm(
@@ -77,8 +97,19 @@ class StoreInfoScreen extends HookConsumerWidget {
           initialFooter: info.receiptFooter,
           initialTin: info.tin,
           initialTerminalName: info.terminalName,
-          onSave: (storeId, name, address, taxRate, currency, footer, tin, terminalName) async {
-            await ref.read(storeInfoProvider.notifier).save(
+          onSave: (
+            storeId,
+            name,
+            address,
+            taxRate,
+            currency,
+            footer,
+            tin,
+            terminalName,
+          ) async {
+            await ref
+                .read(storeInfoProvider.notifier)
+                .save(
                   storeId: storeId,
                   storeName: name,
                   address: address,
@@ -89,9 +120,9 @@ class StoreInfoScreen extends HookConsumerWidget {
                   terminalName: terminalName,
                 );
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Store info saved')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Store info saved')));
             }
           },
         );
@@ -127,9 +158,7 @@ class _StoreIdSetupGate extends HookWidget {
       return null;
     }, const []);
 
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
 
@@ -174,7 +203,11 @@ class _StoreIdInputDialog extends HookWidget {
                   border: OutlineInputBorder(),
                 ),
                 textCapitalization: TextCapitalization.characters,
-                validator: (v) => (v?.trim().isEmpty ?? true) ? 'Store ID is required' : null,
+                validator:
+                    (v) =>
+                        (v?.trim().isEmpty ?? true)
+                            ? 'Store ID is required'
+                            : null,
               ),
             ],
           ),
@@ -182,13 +215,14 @@ class _StoreIdInputDialog extends HookWidget {
         actions: [
           FilledButton(
             onPressed: saving.value ? null : confirm,
-            child: saving.value
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Confirm'),
+            child:
+                saving.value
+                    ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                    : const Text('Confirm'),
           ),
         ],
       ),
@@ -205,8 +239,17 @@ class _StoreInfoForm extends HookConsumerWidget {
   final String initialFooter;
   final String initialTin;
   final String initialTerminalName;
-  final Future<void> Function(String, String, String, double, String, String, String, String)
-      onSave;
+  final Future<void> Function(
+    String,
+    String,
+    String,
+    double,
+    String,
+    String,
+    String,
+    String,
+  )
+  onSave;
 
   const _StoreInfoForm({
     required this.initialStoreId,
@@ -231,7 +274,9 @@ class _StoreInfoForm extends HookConsumerWidget {
     final currencyCtrl = useTextEditingController(text: initialCurrency);
     final footerCtrl = useTextEditingController(text: initialFooter);
     final tinCtrl = useTextEditingController(text: initialTin);
-    final terminalNameCtrl = useTextEditingController(text: initialTerminalName);
+    final terminalNameCtrl = useTextEditingController(
+      text: initialTerminalName,
+    );
     final formKey = useMemoized(GlobalKey<FormState>.new);
     final saving = useState(false);
 
@@ -279,8 +324,11 @@ class _StoreInfoForm extends HookConsumerWidget {
                     border: OutlineInputBorder(),
                   ),
                   textCapitalization: TextCapitalization.characters,
-                  validator: (v) =>
-                      (v?.trim().isEmpty ?? true) ? 'Store ID is required' : null,
+                  validator:
+                      (v) =>
+                          (v?.trim().isEmpty ?? true)
+                              ? 'Store ID is required'
+                              : null,
                 ),
                 const Gap(AppSpacing.md),
                 TextFormField(
@@ -290,8 +338,11 @@ class _StoreInfoForm extends HookConsumerWidget {
                     border: OutlineInputBorder(),
                   ),
                   textCapitalization: TextCapitalization.words,
-                  validator: (v) =>
-                      (v?.trim().isEmpty ?? true) ? 'Store name is required' : null,
+                  validator:
+                      (v) =>
+                          (v?.trim().isEmpty ?? true)
+                              ? 'Store name is required'
+                              : null,
                 ),
                 const Gap(AppSpacing.md),
                 TextFormField(
@@ -328,21 +379,25 @@ class _StoreInfoForm extends HookConsumerWidget {
             FilledButton(
               onPressed: saving.value ? null : save,
               style: FilledButton.styleFrom(
-                minimumSize: const Size(double.infinity, AppSpacing.touchPreferred),
+                minimumSize: const Size(
+                  double.infinity,
+                  AppSpacing.touchPreferred,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                 ),
               ),
-              child: saving.value
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('Save'),
+              child:
+                  saving.value
+                      ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                      : const Text('Save'),
             ),
           ],
         ),

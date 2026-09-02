@@ -73,6 +73,10 @@ class MenuGrid extends ConsumerWidget {
                         const TransactionsRoute().push<void>(context);
                         return;
                       }
+                      if (type == MenuType.backupTransfer) {
+                        const DeviceTransferRoute().push<void>(context);
+                        return;
+                      }
                     },
                   );
                 }).toList(),
@@ -113,6 +117,11 @@ class MenuGrid extends ConsumerWidget {
         type: MenuType.userManagement,
       ),
       MenuItem(label: 'Sync Data', icon: Assets.images.svg.icSync.svg(), type: MenuType.syncData),
+      const MenuItem(
+        label: 'Backup & Transfer',
+        icon: Icon(Icons.settings_backup_restore_rounded),
+        type: MenuType.backupTransfer,
+      ),
     ];
     if (role == Role.user) {
       return baseItems

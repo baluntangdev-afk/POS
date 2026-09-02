@@ -7,6 +7,7 @@ enum MenuType {
   promos,
   salesReports,
   syncData,
+  backupTransfer,
   userManagement,
   logout,
   settings,

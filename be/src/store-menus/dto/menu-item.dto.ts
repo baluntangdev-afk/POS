@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, ApiSchema } from '@nestjs/swagger';
 
 /**
  * Menu Item DTO.
@@ -33,8 +33,11 @@ export class MenuItemDto {
 }
 
 /**
- * Modifier Group DTO for menu items.
+ * Modifier Group DTO for menu items. Schema name is disambiguated from the
+ * canonical `ModifierGroupDto` in `modifier-groups/` and the
+ * `MenuItemModifierGroupDto` in `products/dto/product-details/`.
  */
+@ApiSchema({ name: 'StoreMenuModifierGroupDto' })
 export class ModifierGroupDto {
   @ApiProperty({ description: 'Modifier group ID', example: 1 })
   id: number;

@@ -34,6 +34,7 @@ import { ReportsModule } from './reports/reports.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { PosTerminalsModule } from './pos-terminals/pos-terminals.module';
 import { ErpSyncModule } from './erp-sync/erp-sync.module';
+import { DeviceTransferModule } from './device-transfer/device-transfer.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { ErpSyncModule } from './erp-sync/erp-sync.module';
     CatalogModule,
     PosTerminalsModule,
     ErpSyncModule,
+    DeviceTransferModule,
   ],
   providers: [AppConfigService],
 })

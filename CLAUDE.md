@@ -97,6 +97,8 @@ products/
 
 **Cross-cutting** — `EventEmitterModule` for in-process events; `ScheduleModule` + `CronJobsModule` for scheduled work.
 
+**Device transfer** — `src/device-transfer/` exports the entire `public` schema (every base table, `migrations` included) as one gzipped-then-AES-256-GCM-encrypted `.posbackup` file, and imports one as a **full replace**. `POST /api/v1/device-transfer/export` and `/import` are admin/supervisor only. Import runs in a single transaction: `SET LOCAL session_replication_role = 'replica'` (needs a superuser DB role — true for the bundled Postgres), `TRUNCATE ... CASCADE`, bulk re-insert preserving primary keys, then reset every sequence (parsed from `column_default`, so standalone sequences like `z_readings_z_counter_seq` are covered too). A strict import is refused unless the archive's migration history is identical to the target's. Passing `partialRestore: 'true'` on `/import` switches to a best-effort mode: the migration-history gate is skipped, the target keeps its own `migrations` table, and only the tables/columns present on both devices are imported — a table is dropped whole if the target added a required column the archive lacks, a column is dropped if its Postgres `udt` changed. Everything skipped comes back in `DeviceImportSummaryDto.skipped` (`{ tables, columns }`). Used for migrating a store to a replacement kiosk machine — see `docs/runbooks/kiosk-device-migration.md`.
+
 **Health endpoints** — mounted under the global `api/v1` prefix:
 
 | Endpoint | Checks |
@@ -154,7 +156,9 @@ sales/
 └── view/           # Screens and dialogs (HookConsumerWidget)
 ```
 
-Implemented features: `auth`, `catalog`, `menu`, `onboarding`, `ordering`, `reports`, `sales`, `settings`, `users`.
+Implemented features: `auth`, `catalog`, `device_transfer`, `menu`, `onboarding`, `ordering`, `reports`, `sales`, `settings`, `users`.
+
+`device_transfer` — admin/supervisor "Backup & Transfer" hub (`MenuType.backupTransfer` → `DeviceTransferRoute`). Export writes an encrypted `.posbackup` file via `file_picker`; import replaces all device data from one. Both flows gate on a passphrase plus `SupervisorAuthorizationDialog`; import also needs a typed `REPLACE` confirmation and signs the user out on success. Talks to the backend `device-transfer` module (see Backend section).
 
 **Data flow:** View → Riverpod provider → Repository → API source (`lib/data/backend_api/sources/`) → Dio HTTP client → Backend
 

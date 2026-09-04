@@ -12,11 +12,16 @@ import '../../auth/state/auth_state.dart';
 import '../../settings/state/store_info_notifier.dart';
 import '../entities/order_event.dart';
 import '../entities/orders_feed_state.dart';
+import '../repositories/device_token_repository.dart';
 import '../repositories/order_events_local_repository.dart';
 import '../repositories/orders_live_feed_repository.dart';
 import '../repositories/webhook_auth_repository.dart';
+import '../use_cases/device_token_error.dart';
 import '../use_cases/latest_event_per_order.dart';
 import '../use_cases/order_update_error.dart';
+import '../use_cases/webhook_auth_error.dart';
+import 'device_token_status_provider.dart';
+import 'webhook_auth_status_provider.dart';
 
 const _initialBackoff = Duration(seconds: 1);
 const _maxBackoff = Duration(seconds: 30);
@@ -121,10 +126,11 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     _retryTimer?.cancel();
     try {
       _storeId = storeId;
-      await ref.read(webhookAuthRepositoryProvider).ensureToken(storeId);
+      await _ensureToken(storeId);
+      final deviceToken = await _ensureDeviceToken(storeId);
       await _syncHistory(storeId);
       final repository = ref.read(ordersLiveFeedRepositoryProvider);
-      final session = repository.connect(storeId);
+      final session = repository.connect(storeId, bearerToken: deviceToken);
       _session = session;
       await session.ready.timeout(_readyTimeout);
 
@@ -135,12 +141,66 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
         onDone: _onDrop,
       );
       _setConnection(OrdersFeedConnection.connected, storeId: storeId);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      final reason = switch (error) {
+        WebhookAuthException(:final message) => message,
+        DeviceTokenException(:final message) => message,
+        _ => error.toString(),
+      };
+      debugPrint('[OrdersFeed] connect failed: $reason\n$stackTrace');
       unawaited(_session?.close());
       _session = null;
+      // A handshake the receiver rejected as unauthorized (401/403) means the
+      // cached device token is stale/revoked — drop it so the next attempt
+      // re-mints instead of replaying the same dead token.
+      if (error is! DeviceTokenException && _looksLikeAuthRejection(error)) {
+        unawaited(ref.read(deviceTokenRepositoryProvider).invalidate());
+      }
       _setConnection(OrdersFeedConnection.reconnecting);
       _scheduleReconnect(storeId);
     }
+  }
+
+  /// Mints the orders-service token, reporting a rejected request to
+  /// [webhookAuthStatusProvider] (which drives the toast) before letting the
+  /// failure fall through to [_connect]'s reconnect handling.
+  Future<void> _ensureToken(String storeId) async {
+    final status = ref.read(webhookAuthStatusProvider.notifier);
+    try {
+      await ref.read(webhookAuthRepositoryProvider).ensureToken(storeId);
+      status.clear();
+    } on WebhookAuthException catch (error) {
+      status.reportFailure(error.reason, error.message);
+      rethrow;
+    }
+  }
+
+  /// Mints (or reuses) the `/devices/token` bearer for [storeId] that
+  /// authenticates the WS handshake, reporting a rejection to
+  /// [deviceTokenStatusProvider] (which drives the toast) before letting the
+  /// failure fall through to [_connect]'s reconnect handling.
+  Future<String> _ensureDeviceToken(String storeId) async {
+    final status = ref.read(deviceTokenStatusProvider.notifier);
+    try {
+      final token = await ref
+          .read(deviceTokenRepositoryProvider)
+          .ensureToken(storeId);
+      status.clear();
+      return token;
+    } on DeviceTokenException catch (error) {
+      status.reportFailure(error.reason, error.message);
+      rethrow;
+    }
+  }
+
+  /// Whether a failed handshake looks like the receiver rejecting the bearer
+  /// (`IOWebSocketChannel` surfaces the HTTP status in the exception text).
+  bool _looksLikeAuthRejection(Object error) {
+    final text = error.toString();
+    return text.contains('401') ||
+        text.contains('403') ||
+        text.toLowerCase().contains('unauthorized') ||
+        text.toLowerCase().contains('forbidden');
   }
 
   /// Backfills local order history for [storeId] from the REST endpoint,

@@ -6,7 +6,6 @@ import '../../config/environment/app_env.dart';
 import '../secure_storage/schemas/webhook_auth_doc.dart';
 import '../secure_storage/sources/webhook_auth_storage.dart';
 import 'api_clients.dart';
-import 'sources/orders_history_api.dart';
 
 final webhookTokenInterceptorProvider = Provider<WebhookTokenInterceptor>((ref) {
   final storage = ref.watch(webhookAuthStorageProvider);

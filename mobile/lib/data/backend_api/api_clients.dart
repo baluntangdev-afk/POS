@@ -16,3 +16,12 @@ final ordersAuthRefreshApiClientProvider = Provider<Dio>((ref) {
   return Dio(BaseOptions(baseUrl: env.ordersEventsApiBaseUrl))
     ..interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
 });
+
+/// Clean client for `POST /devices/token`: no `WebhookTokenInterceptor`, since
+/// that endpoint authenticates from its request body and the interceptor's
+/// 401 → `/auth/token` refresh-and-retry would be wrong here.
+final deviceTokenApiClientProvider = Provider<Dio>((ref) {
+  final env = ref.watch(appEnvProvider);
+  return Dio(BaseOptions(baseUrl: env.ordersEventsApiBaseUrl))
+    ..interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
+});

@@ -6,6 +6,7 @@ import '../../../data/backend_api/schemas/device_registration_dto.dart';
 import '../../../data/backend_api/schemas/register_device_request.dart';
 import '../../settings/state/store_info_notifier.dart';
 import '../entities/merchant_device_state.dart';
+import '../repositories/device_token_repository.dart';
 import '../repositories/merchant_device_repository.dart';
 import '../use_cases/device_identity.dart';
 import '../use_cases/device_registration_error.dart';
@@ -84,6 +85,11 @@ class MerchantDeviceNotifier extends AsyncNotifier<MerchantDeviceState> {
           registration: registration,
         ),
       );
+      // The device secret / id are now in secure storage — warm the
+      // `/devices/token` cache so the live-orders socket can authenticate
+      // without waiting on a first mint. Best-effort: a pending-approval
+      // rejection here is normal and the pre-connect step re-mints anyway.
+      await _mintDeviceToken(storeId);
       return Success(registration);
     } catch (error, stackTrace) {
       debugPrint('[MerchantDevice] register failed: $error\n$stackTrace');
@@ -94,19 +100,28 @@ class MerchantDeviceNotifier extends AsyncNotifier<MerchantDeviceState> {
           registeredStoreId: current.registeredStoreId,
           registration: current.registration,
           error: reason,
+          errorMessage: deviceRegistrationMessageFrom(error, reason),
         ),
       );
       return Failure(reason);
     }
   }
 
-  /// Clears the persisted `device_id` (e.g. on sign-out or device reset).
+  Future<void> _mintDeviceToken(String storeId) async {
+    try {
+      await ref.read(deviceTokenRepositoryProvider).refreshToken(storeId);
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[MerchantDevice] device-token warm-up skipped: $error\n$stackTrace',
+      );
+    }
+  }
+
   Future<void> forget() async {
     await _repository.forget();
     state = const AsyncData(MerchantDeviceState());
   }
 
-  /// Re-reads the persisted `device_id` from secure storage.
   Future<void> refresh() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(build);

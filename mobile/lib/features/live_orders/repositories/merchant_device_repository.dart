@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../data/backend_api/schemas/device_registration_dto.dart';
 import '../../../data/backend_api/schemas/register_device_request.dart';
 import '../../../data/backend_api/sources/merchant_devices_api.dart';
+import '../../../data/secure_storage/sources/device_token_storage.dart';
 import '../../../data/secure_storage/sources/merchant_device_storage.dart';
 
 final merchantDeviceRepositoryProvider = Provider<MerchantDeviceRepository>((
@@ -10,7 +11,8 @@ final merchantDeviceRepositoryProvider = Provider<MerchantDeviceRepository>((
 ) {
   final api = ref.watch(merchantDevicesApiProvider);
   final storage = ref.watch(merchantDeviceStorageProvider);
-  return MerchantDeviceRepositoryImpl(api, storage);
+  final deviceTokenStorage = ref.watch(deviceTokenStorageProvider);
+  return MerchantDeviceRepositoryImpl(api, storage, deviceTokenStorage);
 });
 
 abstract class MerchantDeviceRepository {
@@ -22,7 +24,6 @@ abstract class MerchantDeviceRepository {
     required String storeId,
   });
 
-  /// The `device_id` saved by a previous [registerDevice] call, if any.
   Future<String?> currentDeviceId();
 
   /// The `store_id` the persisted registration belongs to, if any.
@@ -33,10 +34,15 @@ abstract class MerchantDeviceRepository {
 }
 
 class MerchantDeviceRepositoryImpl implements MerchantDeviceRepository {
-  const MerchantDeviceRepositoryImpl(this._api, this._storage);
+  const MerchantDeviceRepositoryImpl(
+    this._api,
+    this._storage,
+    this._deviceTokenStorage,
+  );
 
   final MerchantDevicesApi _api;
   final MerchantDeviceStorage _storage;
+  final DeviceTokenStorage _deviceTokenStorage;
 
   @override
   Future<DeviceRegistrationDto> registerDevice(
@@ -60,5 +66,10 @@ class MerchantDeviceRepositoryImpl implements MerchantDeviceRepository {
   Future<String?> registeredStoreId() => _storage.registeredStoreId;
 
   @override
-  Future<void> forget() => _storage.clear();
+  Future<void> forget() async {
+    await _storage.clear();
+    // The cached `/devices/token` bearer is minted from the credentials we
+    // just dropped — clear it too so nothing hands out a stale token.
+    await _deviceTokenStorage.clear();
+  }
 }

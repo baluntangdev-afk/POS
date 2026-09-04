@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../../../config/environment/app_env.dart';
@@ -28,9 +29,11 @@ class OrdersSocketSession {
 }
 
 abstract class OrdersLiveFeedRepository {
-  /// Opens one WS connection scoped to [storeId] (sent as `merchant_id`).
-  /// The caller owns reconnect/backoff — this is a single attempt.
-  OrdersSocketSession connect(String storeId);
+  /// Opens one WS connection scoped to [storeId] (sent as `merchant_id`),
+  /// authenticated with [bearerToken] (the `/devices/token` JWT) on the
+  /// handshake `Authorization` header. The caller owns reconnect/backoff —
+  /// this is a single attempt.
+  OrdersSocketSession connect(String storeId, {String? bearerToken});
 }
 
 class OrdersLiveFeedRepositoryImpl implements OrdersLiveFeedRepository {
@@ -39,9 +42,14 @@ class OrdersLiveFeedRepositoryImpl implements OrdersLiveFeedRepository {
   final String _baseUrl;
 
   @override
-  OrdersSocketSession connect(String storeId) {
+  OrdersSocketSession connect(String storeId, {String? bearerToken}) {
     final uri = Uri.parse('${_wsUrl(_baseUrl)}/ws').replace(queryParameters: {'merchant_id': storeId});
-    final channel = WebSocketChannel.connect(uri);
+    final channel = IOWebSocketChannel.connect(
+      uri,
+      headers: bearerToken == null
+          ? null
+          : {'Authorization': 'Bearer $bearerToken'},
+    );
     final events = channel.stream
         .map((raw) => _parse(raw))
         .where((event) => event != null)

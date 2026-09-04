@@ -12,6 +12,7 @@ class MerchantDeviceState {
     this.registration,
     this.isRegistering = false,
     this.error,
+    this.errorMessage,
   });
 
   /// The `device_id` persisted in secure storage, if the device has been
@@ -32,6 +33,11 @@ class MerchantDeviceState {
   /// new attempt starts or one succeeds.
   final DeviceRegistrationError? error;
 
+  /// User-facing text for [error] — the backend's own `message` from the
+  /// failed response when it sent one, otherwise the mapped copy for [error].
+  /// `null` whenever [error] is `null`.
+  final String? errorMessage;
+
   bool get isRegistered => deviceId != null;
 
   /// Review state from the last registration response, if known.
@@ -43,6 +49,7 @@ class MerchantDeviceState {
     DeviceRegistrationDto? registration,
     bool? isRegistering,
     DeviceRegistrationError? error,
+    String? errorMessage,
   }) {
     return MerchantDeviceState(
       deviceId: deviceId ?? this.deviceId,
@@ -50,6 +57,7 @@ class MerchantDeviceState {
       registration: registration ?? this.registration,
       isRegistering: isRegistering ?? this.isRegistering,
       error: error ?? this.error,
+      errorMessage: errorMessage ?? this.errorMessage,
     );
   }
 }

@@ -10,14 +10,8 @@ import '../use_cases/device_registration_error.dart';
 // (dashboard setup flow + settings store-info screen), only the first
 // reaction wins and dialogs never stack.
 String? _promptedDeviceId;
-DeviceRegistrationError? _snackedError;
+DeviceRegistrationError? _shownError;
 
-/// Reacts to [MerchantDeviceState] transitions from a `ref.listen`. Shows the
-/// "pending approval" dialog once per successful registration, and a
-/// dismissible snackbar once per failure.
-///
-/// Nothing here blocks or gates the app — the device keeps operating whether
-/// or not it has been approved.
 void handleMerchantDeviceOutcome(
   BuildContext context,
   MerchantDeviceState? previous,
@@ -28,7 +22,7 @@ void handleMerchantDeviceOutcome(
   final registration = next.registration;
   if (registration != null && _promptedDeviceId != registration.deviceId) {
     _promptedDeviceId = registration.deviceId;
-    _snackedError = null;
+    _shownError = null;
     unawaited(
       showSetupPromptDialog(
         context,
@@ -45,13 +39,17 @@ void handleMerchantDeviceOutcome(
   }
 
   final error = next.error;
-  if (error != null && error != _snackedError && error != previous?.error) {
-    _snackedError = error;
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(
-        content: Text(
-          '${error.message} It will retry the next time store info is saved.',
-        ),
+  if (error != null && error != _shownError && error != previous?.error) {
+    _shownError = error;
+    unawaited(
+      showSetupPromptDialog(
+        context,
+        type: SetupPromptType.error,
+        title: 'Device Registration Failed',
+        message:
+            '${next.errorMessage ?? error.message}\n\n'
+            'It will retry the next time store info is saved.',
+        primaryButtonText: 'OK',
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../config/environment/app_env.dart';
 import '../api_clients.dart';
+import '../errors/api_call.dart';
 import '../schemas/webhook_token_dto.dart';
 
 final authApiProvider = Provider<AuthApi>((ref) {
@@ -13,13 +14,16 @@ final authApiProvider = Provider<AuthApi>((ref) {
   return AuthApi(httpClient, env);
 });
 
-class AuthApi {
+class AuthApi with ApiCall {
   const AuthApi(this._httpClient, this._env);
 
   final Dio _httpClient;
   final AppEnv _env;
 
-  Future<WebhookTokenDto> fetchToken(String merchantId) async {
+  /// `POST /auth/token` — exchanges the webhook credentials for a bearer
+  /// token. Throws an `ApiException` on any failure — an `ApiResponseException`
+  /// with `code == 'invalid_webhook_secret'` when the secret is wrong.
+  Future<WebhookTokenDto> fetchToken(String merchantId) => guard(() async {
     final response = await _httpClient.post<dynamic>(
       '/auth/token',
       data: {
@@ -29,5 +33,5 @@ class AuthApi {
       },
     );
     return WebhookTokenDto.fromJson(jsonEncode(response.data));
-  }
+  });
 }

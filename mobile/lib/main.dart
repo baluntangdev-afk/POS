@@ -18,7 +18,9 @@ import 'core/theme/app_theme.dart';
 import 'core/workers/backup_worker.dart';
 import 'features/live_orders/entities/order_event.dart';
 import 'features/live_orders/entities/orders_feed_state.dart';
+import 'features/live_orders/state/device_token_status_provider.dart';
 import 'features/live_orders/state/orders_feed_notifier.dart';
+import 'features/live_orders/state/webhook_auth_status_provider.dart';
 
 /// Lets non-widget code show a SnackBar without being tied to whichever
 /// screen's Scaffold is currently on screen — needed since live-order
@@ -82,6 +84,15 @@ class _App extends ConsumerWidget {
     ref.listen(ordersFeedNotifierProvider, (previous, next) {
       _onOrderEvents(previous, next, ref);
     });
+    // Orders-service auth failures (a rejected `/auth/token`, e.g. a wrong
+    // webhook secret) surface as a toast wherever the user is.
+    ref.listen(webhookAuthStatusProvider, (previous, next) {
+      if (next != null && next != previous) _showAuthToast(next.message);
+    });
+    // Same, for a rejected `/devices/token` (the live-orders WS bearer).
+    ref.listen(deviceTokenStatusProvider, (previous, next) {
+      if (next != null && next != previous) _showAuthToast(next.message);
+    });
     return MaterialApp.router(
       title: 'POS Mobile',
       theme: AppTheme.light,
@@ -115,6 +126,18 @@ void _onOrderEvents(
     _showOrderToast(event);
     unawaited(ref.read(orderNotificationsServiceProvider).notify(event));
   }
+}
+
+void _showAuthToast(String message) {
+  scaffoldMessengerKey.currentState
+    ?..clearSnackBars()
+    ..showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.error,
+        duration: const Duration(seconds: 5),
+      ),
+    );
 }
 
 void _showOrderToast(OrderEvent event) {

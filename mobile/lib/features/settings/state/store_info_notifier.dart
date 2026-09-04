@@ -8,6 +8,8 @@ import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
 import '../../live_orders/repositories/webhook_auth_repository.dart';
 import '../../live_orders/state/merchant_device_notifier.dart';
+import '../../live_orders/state/webhook_auth_status_provider.dart';
+import '../../live_orders/use_cases/webhook_auth_error.dart';
 
 class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
   @override
@@ -43,7 +45,9 @@ class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
         terminalName: Value(terminalName),
       ),
     );
-    state = const AsyncValue.loading();
+    // Reload without dropping the current value, so the screen keeps showing
+    // the form (with its own inline saving indicator) instead of flashing a
+    // full-screen spinner during this quick local re-read.
     state = await AsyncValue.guard(build);
 
     final deviceName =
@@ -51,9 +55,6 @@ class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
     final newStoreId = storeId.trim();
     final storeIdChanged = newStoreId != previousStoreId;
 
-    // Fire-and-forget so the save UI stays responsive, but the token refresh
-    // and the device registration run strictly in that order inside the
-    // helper.
     unawaited(
       _provisionForStore(
         storeId: newStoreId,
@@ -63,13 +64,6 @@ class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
     );
   }
 
-  /// Reacts to a store-info save by (re)provisioning the backend identity for
-  /// the current store:
-  ///  1. When the store/merchant id changed, mint a fresh `/auth/token` for
-  ///     it and persist it as the active bearer token — before anything uses
-  ///     it. `/auth/token` is *not* called when the id is unchanged.
-  ///  2. Then register this device for the store (a no-op if it is already
-  ///     registered for this exact id).
   Future<void> _provisionForStore({
     required String storeId,
     required String deviceName,
@@ -79,17 +73,29 @@ class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
 
     try {
       if (storeIdChanged) {
-        await ref.read(webhookAuthRepositoryProvider).refreshToken(storeId);
+        await _refreshToken(storeId);
         await ref
             .read(merchantDeviceNotifierProvider.notifier)
             .registerIfNeeded(name: deviceName);
       }
-
+      return;
     } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
       debugPrint(
         '[StoreInfo] store provisioning failed for $storeId: '
         '$error\n$stackTrace',
       );
+    }
+  }
+
+  Future<void> _refreshToken(String storeId) async {
+    final status = ref.read(webhookAuthStatusProvider.notifier);
+    try {
+      await ref.read(webhookAuthRepositoryProvider).refreshToken(storeId);
+      status.clear();
+    } on WebhookAuthException catch (error) {
+      status.reportFailure(error.reason, error.message);
+      rethrow;
     }
   }
 }

@@ -1,0 +1,88 @@
+name: mobile_merchant
+description: "A mobile app for dpo third party merchants"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+# NOTE: versions follow the reusable architecture template, but the codegen
+# stack (freezed / riverpod / drift / injectable / custom_lint) is bumped to its
+# current majors — the template's pins (freezed 2.x → build 2.x) do not resolve
+# together on Dart 3.11's analyzer. Architecture and layer rules are unchanged.
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Routing
+  go_router: ^16.0.0
+
+  # State management
+  flutter_riverpod: ^3.0.0
+  riverpod_annotation: ^3.0.0
+
+  # Code generation (models)
+  freezed_annotation: ^3.0.0
+  json_annotation: ^4.9.0
+
+  # Networking
+  dio: ^5.7.0
+  pretty_dio_logger: ^1.4.0
+  connectivity_plus: ^6.1.0
+
+  # DI
+  get_it: ^8.0.0
+  injectable: ^2.5.0
+
+  # Storage
+  flutter_secure_storage: ^9.2.2
+
+  # Local database
+  drift: ^2.28.0
+  sqlite3_flutter_libs: ^0.5.42
+  path_provider: ^2.1.4
+  path: ^1.9.0
+
+  # Environment
+  flutter_dotenv: ^5.2.1
+
+  # UI
+  google_fonts: ^6.2.1
+  gap: ^3.0.1
+  shimmer: ^3.0.0
+  cached_network_image: ^3.4.0
+
+  # Utilities
+  equatable: ^2.0.5
+  dartz: ^0.10.1
+  intl: ^0.20.2
+  logger: ^2.5.0
+  meta: ^1.15.0
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Codegen
+  build_runner: ^2.4.13
+  freezed: ^3.0.0
+  json_serializable: ^6.9.0
+  riverpod_generator: ^3.0.0
+  injectable_generator: ^2.7.0
+  drift_dev: ^2.28.0
+
+  # Lint
+  flutter_lints: ^6.0.0
+  # custom_lint + riverpod_lint intentionally omitted for now: custom_lint 0.8.x
+  # and riverpod_lint 3.1.x ship mismatched plugin entrypoints and fail to start
+  # the analyzer plugin. Add them back (with the `custom_lint` plugin line in
+  # analysis_options.yaml) once a compatible pair is available.
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env

@@ -10,6 +10,15 @@ class ApiEndpoints {
   static const String refresh = '/auth/refresh';
   static const String me = '/auth/me';
 
-  // Dashboard (placeholder — wire up when the feature is implemented)
-  // static const String dashboardSummary = '/merchant/dashboard';
+  // Webhook auth — exchanges webhook_secret + merchant_id for a short-lived JWT
+  static const String authToken = '/auth/token';
+
+  // Device registration
+  static const String devicesRegister = '/devices/register';
+
+  // Device token — exchanges device credentials for a short-lived WS bearer JWT
+  static const String devicesToken = '/devices/token';
+
+  // Orders — paginated order-event stream for the authenticated merchant
+  static const String merchantOrders = '/merchant/orders';
 }

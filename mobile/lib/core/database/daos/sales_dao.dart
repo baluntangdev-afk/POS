@@ -99,13 +99,17 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
 
   Future<int> insertPendingSale({required int cashierId, required Sale sale}) {
     return transaction(() async {
+      // Use DateTime.now() here — not sale.createdAt — so the recorded timestamp
+      // reflects when the transaction was actually finalized, not when the cart
+      // was opened (which could be much earlier, even the previous day).
+      final now = DateTime.now();
       final saleId = await insertSale(SalesTableCompanion.insert(
         cashierId: cashierId,
         total: sale.total,
         discount: Value(sale.totalDiscount),
         status: 'pending',
         type: sale.type,
-        createdAt: sale.createdAt,
+        createdAt: now,
       ));
 
       for (final item in sale.items) {
@@ -146,11 +150,11 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
           amount: sale.payment!.amountPaid,
           cashReceived: Value(sale.payment!.cashReceived),
           reference: Value(sale.payment!.reference),
-          createdAt: sale.createdAt,
+          createdAt: now,
         ));
       }
 
-      final soNumber = await _generateSoNumber(sale.createdAt);
+      final soNumber = await _generateSoNumber(now);
       await (update(salesTable)..where((t) => t.id.equals(saleId)))
           .write(SalesTableCompanion(soNumber: Value(soNumber)));
 

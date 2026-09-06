@@ -212,7 +212,7 @@ class _OrderCard extends HookConsumerWidget {
                 ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                DateFormat('h:mm a').format(data.createdAt),
+                DateFormat('h:mm a').format(data.createdAt.toLocal()),
                 style: AppTextStyles.bodySm.copyWith(
                   color: AppColors.textDisabled,
                 ),

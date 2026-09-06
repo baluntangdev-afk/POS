@@ -1,23 +1,25 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/app_snackbar.dart';
+import '../../../merchant/domain/entities/merchant.dart';
+import '../../../merchant/presentation/dialogs/merchant_form_dialog.dart';
+import '../../../merchant/state/merchant_notifier.dart';
 
-/// Top toolbar for the dashboard: brand mark on the left, live clock on the
-/// right. Ported from the `mobile/` app's dashboard header, trimmed to just
-/// these two pieces (no greeting / user pill / sign-out yet — those features
-/// don't exist in this app).
-class DashboardToolbar extends StatelessWidget {
+class DashboardToolbar extends ConsumerWidget {
   const DashboardToolbar({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final merchantAsync = ref.watch(merchantProvider);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = constraints.maxWidth;
-        final showClock = w >= 480;
 
         return Container(
           height: 64,
@@ -35,13 +37,36 @@ class DashboardToolbar extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: w > 600 ? 28 : 16),
           child: Row(
             children: [
-              const _Brand(),
-              const Spacer(),
-              if (showClock) ...[
-                Container(width: 1, height: 28, color: AppColors.border),
-                const SizedBox(width: 16),
-                const _Clock(),
-              ],
+              Expanded(
+                child: _Brand(merchant: merchantAsync.value),
+              ),
+              Container(width: 1, height: 28, color: AppColors.border),
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Settings',
+                icon: const Icon(
+                  Icons.settings_rounded,
+                  color: AppColors.textSecondary,
+                  size: 22,
+                ),
+                onPressed: () async {
+                  final current = merchantAsync.value;
+                  final saved = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => MerchantFormDialog(
+                      isRegistration: false,
+                      initialMerchantId: current?.merchantId,
+                      initialMerchantName: current?.merchantName,
+                      onSubmit: (id, name) => ref
+                          .read(merchantProvider.notifier)
+                          .save(merchantId: id, merchantName: name),
+                    ),
+                  );
+                  if ((saved ?? false) && context.mounted) {
+                    AppSnackbar.success(context, 'Merchant settings saved.');
+                  }
+                },
+              ),
             ],
           ),
         );
@@ -51,10 +76,14 @@ class DashboardToolbar extends StatelessWidget {
 }
 
 class _Brand extends StatelessWidget {
-  const _Brand();
+  const _Brand({this.merchant});
+
+  final Merchant? merchant;
 
   @override
   Widget build(BuildContext context) {
+    final hasMerchant = merchant != null;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -76,27 +105,49 @@ class _Brand extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 9),
-        Text.rich(
-          TextSpan(
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextSpan(
-                text: 'Carti',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                  letterSpacing: -0.4,
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Carti',
+                      style: GoogleFonts.inter(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                        letterSpacing: -0.4,
+                        height: 1.2,
+                      ),
+                    ),
+                    TextSpan(
+                      text: 'vo',
+                      style: GoogleFonts.inter(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                        letterSpacing: -0.4,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              TextSpan(
-                text: 'vo',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
-                  letterSpacing: -0.4,
+              if (hasMerchant)
+                Text(
+                  '${merchant!.merchantName} | ${merchant!.merchantId}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                    letterSpacing: 0,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -130,7 +181,7 @@ class _ClockState extends State<_Clock> {
     _now = DateTime.now();
     _timer = Timer.periodic(
       const Duration(seconds: 30),
-      (_) => setState(() => _now = DateTime.now()),
+          (_) => setState(() => _now = DateTime.now()),
     );
   }
 

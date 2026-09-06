@@ -7,6 +7,8 @@ analyzer:
   # Re-enable once custom_lint + riverpod_lint resolve to a compatible pair:
   # plugins:
   #   - custom_lint
+  errors:
+    invalid_annotation_target: ignore
   exclude:
     - "**/*.g.dart"
     - "**/*.freezed.dart"

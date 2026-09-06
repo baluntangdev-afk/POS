@@ -28,8 +28,8 @@ dependencies:
 
   # Networking
   dio: ^5.7.0
-  pretty_dio_logger: ^1.4.0
   connectivity_plus: ^6.1.0
+  web_socket_channel: ^3.0.3
 
   # DI
   get_it: ^8.0.0
@@ -53,6 +53,10 @@ dependencies:
   shimmer: ^3.0.0
   cached_network_image: ^3.4.0
 
+  # Device / package info (device registration)
+  device_info_plus: ^11.0.0
+  package_info_plus: ^8.0.0
+
   # Utilities
   equatable: ^2.0.5
   dartz: ^0.10.1
@@ -65,6 +69,9 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+  # App icon generator
+  flutter_launcher_icons: ^0.14.3
 
   # Codegen
   build_runner: ^2.4.13
@@ -80,6 +87,12 @@ dev_dependencies:
   # and riverpod_lint 3.1.x ship mismatched plugin entrypoints and fail to start
   # the analyzer plugin. Add them back (with the `custom_lint` plugin line in
   # analysis_options.yaml) once a compatible pair is available.
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
 
 flutter:
   uses-material-design: true

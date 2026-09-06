@@ -85,7 +85,7 @@ class _HistoryTile extends StatelessWidget {
             style: AppTextStyles.headingSm,
           ),
           subtitle: Text(
-            '${row.closedByName} • ${DateFormat('MMM d, y h:mm a').format(row.generatedAt)}',
+            '${row.closedByName} • ${DateFormat('MMM d, y h:mm a').format(row.generatedAt.toLocal())}',
             style: AppTextStyles.bodySm.copyWith(
               color: AppColors.textSecondary,
             ),

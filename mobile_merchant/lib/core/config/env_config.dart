@@ -19,4 +19,16 @@ class EnvConfig {
       (_get('ENABLE_LOGGING') ?? 'false').toLowerCase() == 'true';
 
   static String get settingsPassword => _get('SETTINGS_PASSWORD') ?? '';
+
+  static String get webhookSecret => _get('WEBHOOK_SECRET') ?? '';
+
+  static String get clientId => _get('CLIENT_ID') ?? '';
+
+  /// Derives the WebSocket base URL from [apiBaseUrl] by stripping the path
+  /// and converting the scheme (http → ws, https → wss).
+  static String get wsBaseUrl {
+    final apiUri = Uri.parse(apiBaseUrl);
+    final scheme = apiUri.scheme == 'https' ? 'wss' : 'ws';
+    return Uri(scheme: scheme, host: apiUri.host, port: apiUri.port).toString();
+  }
 }

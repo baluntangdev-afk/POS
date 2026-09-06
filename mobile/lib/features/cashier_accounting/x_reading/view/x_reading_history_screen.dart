@@ -82,7 +82,7 @@ class _HistoryTile extends StatelessWidget {
           onTap: onTap,
           title: Text('X-Reading #${row.id}', style: AppTextStyles.headingSm),
           subtitle: Text(
-            '${row.cashierName} • ${DateFormat('MMM d, y h:mm a').format(row.generatedAt)}',
+            '${row.cashierName} • ${DateFormat('MMM d, y h:mm a').format(row.generatedAt.toLocal())}',
             style: AppTextStyles.bodySm.copyWith(
               color: AppColors.textSecondary,
             ),

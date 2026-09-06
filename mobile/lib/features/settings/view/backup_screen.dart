@@ -49,7 +49,7 @@ class BackupScreen extends HookConsumerWidget {
             data: (at) => Text(
               at == null
                   ? 'No backup has been made yet.'
-                  : 'Last backup: ${DateFormat.yMMMd().add_jm().format(at)}',
+                  : 'Last backup: ${DateFormat.yMMMd().add_jm().format(at.toLocal())}',
               style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
             ),
             loading: () => const SizedBox.shrink(),

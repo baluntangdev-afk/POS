@@ -171,7 +171,7 @@ class _TransactionTile extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           subtitle: Text(
-            '${tx.displayType} • ${tx.cashierName} • ${DateFormat('MMM d, h:mm a').format(tx.createdAt)}',
+            '${tx.displayType} • ${tx.cashierName} • ${DateFormat('MMM d, h:mm a').format(tx.createdAt.toLocal())}',
             style: AppTextStyles.bodySm.copyWith(
               color: AppColors.textSecondary,
             ),

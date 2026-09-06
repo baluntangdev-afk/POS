@@ -6,6 +6,12 @@ import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'daos/merchant_dao.dart';
+import 'daos/order_events_dao.dart';
+import 'tables/merchant_table.dart';
+import 'tables/order_events_table.dart';
+import 'tables/order_items_table.dart';
+
 part 'app_database.g.dart';
 
 /// The app's single local SQLite database. Registered with the DI graph by
@@ -14,7 +20,7 @@ part 'app_database.g.dart';
 /// Add tables to the `tables:` list below (one `class Xs extends Table` each),
 /// bump [schemaVersion], and add an `onUpgrade` branch for every change.
 /// Only `data/datasources` should talk to this class — never `domain/`.
-@DriftDatabase(tables: [])
+@DriftDatabase(tables: [MerchantTable, OrderEventsTable, OrderItemsTable])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -23,15 +29,24 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.withExecutor(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
         onUpgrade: (m, from, to) async {
-          // if (from < 2) { await m.addColumn(...); }
+          if (from < 2) {
+            await m.createTable(merchantTable);
+          }
+          if (from < 3) {
+            await m.createTable(orderEventsTable);
+            await m.createTable(orderItemsTable);
+          }
         },
       );
+
+  MerchantDao get merchantDao => MerchantDao(this);
+  OrderEventsDao get orderEventsDao => OrderEventsDao(this);
 }
 
 LazyDatabase _openConnection() {

@@ -30,8 +30,8 @@ class AppLogger {
 class _EnvFilter extends LogFilter {
   @override
   bool shouldLog(LogEvent event) {
-    if (EnvConfig.enableLogging) return true;
+    // if (EnvConfig.enableLogging) return true;
     // Always surface warnings and errors, even with logging disabled.
-    return event.level.index >= Level.warning.index;
+    return true;
   }
 }

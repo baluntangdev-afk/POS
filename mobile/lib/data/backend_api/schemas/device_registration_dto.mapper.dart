@@ -69,6 +69,13 @@ class DeviceRegistrationDtoMapper
     key: r'review_note',
     opt: true,
   );
+  static String? _$merchantName(DeviceRegistrationDto v) => v.merchantName;
+  static const Field<DeviceRegistrationDto, String> _f$merchantName = Field(
+    'merchantName',
+    _$merchantName,
+    key: r'merchant_name',
+    opt: true,
+  );
 
   @override
   final MappableFields<DeviceRegistrationDto> fields = const {
@@ -79,6 +86,7 @@ class DeviceRegistrationDtoMapper
     #requestedAt: _f$requestedAt,
     #reviewedAt: _f$reviewedAt,
     #reviewNote: _f$reviewNote,
+    #merchantName: _f$merchantName,
   };
 
   static DeviceRegistrationDto _instantiate(DecodingData data) {
@@ -90,6 +98,7 @@ class DeviceRegistrationDtoMapper
       requestedAt: data.dec(_f$requestedAt),
       reviewedAt: data.dec(_f$reviewedAt),
       reviewNote: data.dec(_f$reviewNote),
+      merchantName: data.dec(_f$merchantName),
     );
   }
 
@@ -171,6 +180,7 @@ abstract class DeviceRegistrationDtoCopyWith<
     DateTime? requestedAt,
     DateTime? reviewedAt,
     String? reviewNote,
+    String? merchantName,
   });
   DeviceRegistrationDtoCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -194,6 +204,7 @@ class _DeviceRegistrationDtoCopyWithImpl<$R, $Out>
     Object? requestedAt = $none,
     Object? reviewedAt = $none,
     Object? reviewNote = $none,
+    Object? merchantName = $none,
   }) => $apply(
     FieldCopyWithData({
       if (deviceId != null) #deviceId: deviceId,
@@ -203,6 +214,7 @@ class _DeviceRegistrationDtoCopyWithImpl<$R, $Out>
       if (requestedAt != $none) #requestedAt: requestedAt,
       if (reviewedAt != $none) #reviewedAt: reviewedAt,
       if (reviewNote != $none) #reviewNote: reviewNote,
+      if (merchantName != $none) #merchantName: merchantName,
     }),
   );
   @override
@@ -214,6 +226,7 @@ class _DeviceRegistrationDtoCopyWithImpl<$R, $Out>
     requestedAt: data.get(#requestedAt, or: $value.requestedAt),
     reviewedAt: data.get(#reviewedAt, or: $value.reviewedAt),
     reviewNote: data.get(#reviewNote, or: $value.reviewNote),
+    merchantName: data.get(#merchantName, or: $value.merchantName),
   );
 
   @override

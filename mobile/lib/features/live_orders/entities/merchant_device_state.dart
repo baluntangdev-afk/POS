@@ -10,6 +10,8 @@ class MerchantDeviceState {
     this.deviceId,
     this.registeredStoreId,
     this.registration,
+    this.persistedStatus,
+    this.persistedMerchantName,
     this.isRegistering = false,
     this.error,
     this.errorMessage,
@@ -26,6 +28,14 @@ class MerchantDeviceState {
   /// The full record from the most recent registration call this session.
   final DeviceRegistrationDto? registration;
 
+  /// The `status` from the last register response, rehydrated from secure
+  /// storage on startup. Used when [registration] is null this session.
+  final String? persistedStatus;
+
+  /// The `merchant_name` from the last register response, rehydrated from
+  /// secure storage on startup.
+  final String? persistedMerchantName;
+
   /// True while a registration request is in flight.
   final bool isRegistering;
 
@@ -40,13 +50,21 @@ class MerchantDeviceState {
 
   bool get isRegistered => deviceId != null;
 
-  /// Review state from the last registration response, if known.
-  String? get status => registration?.status;
+  /// Review state from the last registration response, falling back to the
+  /// value persisted from a previous session.
+  String? get status => registration?.status ?? persistedStatus;
+
+  /// Human-readable merchant name from the last registration response,
+  /// falling back to the persisted value.
+  String? get merchantName =>
+      registration?.merchantName ?? persistedMerchantName;
 
   MerchantDeviceState copyWith({
     String? deviceId,
     String? registeredStoreId,
     DeviceRegistrationDto? registration,
+    String? persistedStatus,
+    String? persistedMerchantName,
     bool? isRegistering,
     DeviceRegistrationError? error,
     String? errorMessage,
@@ -55,6 +73,9 @@ class MerchantDeviceState {
       deviceId: deviceId ?? this.deviceId,
       registeredStoreId: registeredStoreId ?? this.registeredStoreId,
       registration: registration ?? this.registration,
+      persistedStatus: persistedStatus ?? this.persistedStatus,
+      persistedMerchantName:
+          persistedMerchantName ?? this.persistedMerchantName,
       isRegistering: isRegistering ?? this.isRegistering,
       error: error ?? this.error,
       errorMessage: errorMessage ?? this.errorMessage,

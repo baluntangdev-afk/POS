@@ -90,6 +90,7 @@ class _MerchantFormDialogState extends State<MerchantFormDialog> {
     return PopScope(
       canPop: !widget.isRegistration,
       child: AlertDialog(
+        scrollable: true,
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),

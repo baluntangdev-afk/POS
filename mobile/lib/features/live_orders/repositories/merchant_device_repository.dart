@@ -29,6 +29,13 @@ abstract class MerchantDeviceRepository {
   /// The `store_id` the persisted registration belongs to, if any.
   Future<String?> registeredStoreId();
 
+  /// The `status` from the last register response persisted locally, if any.
+  Future<String?> lastKnownStatus();
+
+  /// The `merchant_name` from the last register response persisted locally,
+  /// if any.
+  Future<String?> lastKnownMerchantName();
+
   /// Forgets the persisted `device_id` / `device_secret` / registered store.
   Future<void> forget();
 }
@@ -56,6 +63,11 @@ class MerchantDeviceRepositoryImpl implements MerchantDeviceRepository {
       await _storage.writeDeviceSecret(secret);
     }
     await _storage.writeRegisteredStoreId(storeId);
+    await _storage.writeLastStatus(registration.status);
+    final merchantName = registration.merchantName?.trim() ?? '';
+    if (merchantName.isNotEmpty) {
+      await _storage.writeMerchantName(merchantName);
+    }
     return registration;
   }
 
@@ -64,6 +76,12 @@ class MerchantDeviceRepositoryImpl implements MerchantDeviceRepository {
 
   @override
   Future<String?> registeredStoreId() => _storage.registeredStoreId;
+
+  @override
+  Future<String?> lastKnownStatus() => _storage.lastStatus;
+
+  @override
+  Future<String?> lastKnownMerchantName() => _storage.merchantName;
 
   @override
   Future<void> forget() async {

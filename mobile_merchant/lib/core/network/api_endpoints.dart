@@ -21,4 +21,8 @@ class ApiEndpoints {
 
   // Orders — paginated order-event stream for the authenticated merchant
   static const String merchantOrders = '/merchant/orders';
+
+  /// `PATCH /merchant/orders/{orderId}` — update a single order (e.g. status).
+  static String merchantOrder(String orderId) =>
+      '/merchant/orders/${Uri.encodeComponent(orderId)}';
 }

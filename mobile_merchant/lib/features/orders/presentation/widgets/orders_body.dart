@@ -349,11 +349,6 @@ class _EmptyState extends StatelessWidget {
                   .copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: AppSpacing.xs),
-            Text(
-              'New orders placed through your storefront will appear here.',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.caption,
-            ),
           ],
         ),
       ),

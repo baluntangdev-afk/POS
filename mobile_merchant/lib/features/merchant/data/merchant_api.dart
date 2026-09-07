@@ -6,6 +6,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../orders/data/models/device_token_dto.dart';
 import '../../orders/data/models/merchant_orders_dto.dart';
+import '../../orders/data/models/order_status_update_result_dto.dart';
 import 'models/device_registration_dto.dart';
 import 'models/register_device_request.dart';
 import 'models/webhook_token_dto.dart';
@@ -106,6 +107,43 @@ class MerchantApi {
     );
     _assertSuccess(response, const {200});
     return MerchantOrdersDto.fromJson(
+      (response.data as Map).cast<String, dynamic>(),
+    );
+  }
+
+  /// `PATCH /merchant/orders/{orderId}` — moves an order to [status]
+  /// (`cancelled` included). [token] must be a valid webhook JWT.
+  ///
+  /// The response echoes the canonical `order.updated` event the backend also
+  /// broadcasts on the live feed, so callers can converge the local list on it.
+  Future<OrderStatusUpdateResultDto> updateOrderStatus({
+    required String orderId,
+    required String status,
+    required String token,
+  }) async {
+    final Response<dynamic> response;
+    try {
+      response = await _apiClient.dio.patch<dynamic>(
+        ApiEndpoints.merchantOrder(orderId),
+        data: {
+          'updates': {'status': status},
+        },
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+    } on DioException catch (e) {
+      final code = e.response?.statusCode ?? 0;
+      throw MerchantApiException(
+        statusCode: code,
+        error: 'network_error',
+        message: code >= 500
+            ? 'The server could not update this order. Please try again.'
+            : 'Could not reach the server. Check your connection and try again.',
+      );
+    }
+    _assertSuccess(response, const {200});
+    return OrderStatusUpdateResultDto.fromJson(
       (response.data as Map).cast<String, dynamic>(),
     );
   }

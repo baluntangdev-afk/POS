@@ -15,8 +15,6 @@ final reportEmailSenderProvider = Provider<ReportEmailSender>((ref) {
   );
 });
 
-/// Thrown when the report email could not be delivered. The original error is
-/// kept in [cause] for logging; [message] is safe to show to the operator.
 class ReportEmailException implements Exception {
   ReportEmailException(this.message, [this.cause]);
 

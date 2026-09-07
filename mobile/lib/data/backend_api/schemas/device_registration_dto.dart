@@ -24,6 +24,7 @@ class DeviceRegistrationDto with DeviceRegistrationDtoMappable {
     this.requestedAt,
     this.reviewedAt,
     this.reviewNote,
+    this.merchantName,
   });
 
   /// Opaque device identifier issued by the backend (`dev_...`).
@@ -46,6 +47,11 @@ class DeviceRegistrationDto with DeviceRegistrationDtoMappable {
 
   /// Optional note left by the reviewer.
   final String? reviewNote;
+
+  /// Human-readable merchant/store name the backend resolved for this device,
+  /// when it sent one. Present on the register success payload alongside
+  /// [status].
+  final String? merchantName;
 
   static const fromJson = DeviceRegistrationDtoMapper.fromJson;
 }

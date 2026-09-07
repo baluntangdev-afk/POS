@@ -14,6 +14,7 @@ class App extends ConsumerWidget {
     return MaterialApp.router(
       title: EnvConfig.appName,
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: appScaffoldMessengerKey,
       theme: AppTheme.lightTheme,
       routerConfig: ref.watch(appRouterProvider),
       builder: (context, child) =>

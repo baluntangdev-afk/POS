@@ -35,12 +35,20 @@ class WebhookTokenDtoMapper extends ClassMapperBase<WebhookTokenDto> {
   );
   static int _$exp(WebhookTokenDto v) => v.exp;
   static const Field<WebhookTokenDto, int> _f$exp = Field('exp', _$exp);
+  static String? _$merchantName(WebhookTokenDto v) => v.merchantName;
+  static const Field<WebhookTokenDto, String> _f$merchantName = Field(
+    'merchantName',
+    _$merchantName,
+    key: r'merchant_name',
+    opt: true,
+  );
 
   @override
   final MappableFields<WebhookTokenDto> fields = const {
     #merchantId: _f$merchantId,
     #token: _f$token,
     #exp: _f$exp,
+    #merchantName: _f$merchantName,
   };
 
   static WebhookTokenDto _instantiate(DecodingData data) {
@@ -48,6 +56,7 @@ class WebhookTokenDtoMapper extends ClassMapperBase<WebhookTokenDto> {
       merchantId: data.dec(_f$merchantId),
       token: data.dec(_f$token),
       exp: data.dec(_f$exp),
+      merchantName: data.dec(_f$merchantName),
     );
   }
 
@@ -113,7 +122,7 @@ extension WebhookTokenDtoValueCopy<$R, $Out>
 
 abstract class WebhookTokenDtoCopyWith<$R, $In extends WebhookTokenDto, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
-  $R call({String? merchantId, String? token, int? exp});
+  $R call({String? merchantId, String? token, int? exp, String? merchantName});
   WebhookTokenDtoCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
   );
@@ -128,11 +137,17 @@ class _WebhookTokenDtoCopyWithImpl<$R, $Out>
   late final ClassMapperBase<WebhookTokenDto> $mapper =
       WebhookTokenDtoMapper.ensureInitialized();
   @override
-  $R call({String? merchantId, String? token, int? exp}) => $apply(
+  $R call({
+    String? merchantId,
+    String? token,
+    int? exp,
+    Object? merchantName = $none,
+  }) => $apply(
     FieldCopyWithData({
       if (merchantId != null) #merchantId: merchantId,
       if (token != null) #token: token,
       if (exp != null) #exp: exp,
+      if (merchantName != $none) #merchantName: merchantName,
     }),
   );
   @override
@@ -140,6 +155,7 @@ class _WebhookTokenDtoCopyWithImpl<$R, $Out>
     merchantId: data.get(#merchantId, or: $value.merchantId),
     token: data.get(#token, or: $value.token),
     exp: data.get(#exp, or: $value.exp),
+    merchantName: data.get(#merchantName, or: $value.merchantName),
   );
 
   @override

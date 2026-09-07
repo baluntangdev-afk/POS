@@ -50,8 +50,7 @@ class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
     // full-screen spinner during this quick local re-read.
     state = await AsyncValue.guard(build);
 
-    final deviceName =
-        terminalName.trim().isNotEmpty ? terminalName.trim() : storeName.trim();
+    final deviceName = storeName.trim();
     final newStoreId = storeId.trim();
     final storeIdChanged = newStoreId != previousStoreId;
 
@@ -64,6 +63,32 @@ class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
     );
   }
 
+  /// Applies the `merchant_name` the backend resolves on `/auth/token` to the
+  /// local store info, overwriting both the store name and the terminal name.
+  /// No-op when [merchantName] is blank or already matches. Writes straight to
+  /// the DB so it does not re-trigger device provisioning.
+  Future<void> applyMerchantName(String merchantName) async {
+    final name = merchantName.trim();
+    if (name.isEmpty) return;
+
+    final existing = state.value;
+    if (existing != null &&
+        existing.storeName == name &&
+        existing.terminalName == name) {
+      return;
+    }
+
+    final db = ref.read(databaseProvider);
+    await db.storeInfoDao.upsertStoreInfo(
+      StoreInfoTableCompanion(
+        id: existing != null ? Value(existing.id) : const Value.absent(),
+        storeName: Value(name),
+        terminalName: Value(name),
+      ),
+    );
+    state = await AsyncValue.guard(build);
+  }
+
   Future<void> _provisionForStore({
     required String storeId,
     required String deviceName,
@@ -73,10 +98,31 @@ class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
 
     try {
       if (storeIdChanged) {
-        await _refreshToken(storeId);
+        // `/auth/token` runs before `/devices/register` and already resolves
+        // the merchant name — mirror it into the local store info and use it
+        // as the device name we register with.
+        final merchantName = (await _refreshToken(storeId))?.trim() ?? '';
+        if (merchantName.isNotEmpty) {
+          await applyMerchantName(merchantName);
+        }
         await ref
             .read(merchantDeviceNotifierProvider.notifier)
-            .registerIfNeeded(name: deviceName);
+            .registerIfNeeded(
+              name: merchantName.isNotEmpty ? merchantName : deviceName,
+            );
+        // `/devices/register` may resolve its own `merchant_name` — prefer it
+        // when present so the form matches what the backend has on file.
+        final registeredName =
+            ref
+                .read(merchantDeviceNotifierProvider)
+                .value
+                ?.registration
+                ?.merchantName
+                ?.trim() ??
+            '';
+        if (registeredName.isNotEmpty && registeredName != merchantName) {
+          await applyMerchantName(registeredName);
+        }
       }
       return;
     } catch (error, stackTrace) {
@@ -88,11 +134,16 @@ class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
     }
   }
 
-  Future<void> _refreshToken(String storeId) async {
+  /// Mints a fresh `/auth/token` for [storeId] and returns the `merchant_name`
+  /// the backend resolved (or `null` when it sent none).
+  Future<String?> _refreshToken(String storeId) async {
     final status = ref.read(webhookAuthStatusProvider.notifier);
     try {
-      await ref.read(webhookAuthRepositoryProvider).refreshToken(storeId);
+      final merchantName = await ref
+          .read(webhookAuthRepositoryProvider)
+          .refreshToken(storeId);
       status.clear();
+      return merchantName;
     } on WebhookAuthException catch (error) {
       status.reportFailure(error.reason, error.message);
       rethrow;

@@ -39,6 +39,60 @@ OrderCardStatus classifyOrderStatus(OrderEvent event) {
   }
 }
 
+/// Lifecycle order for the Orders screen status tabs. A status present in the
+/// data but missing here (only [OrderCardStatus.unknown] today) is appended
+/// after these, in the order it's first seen.
+const _orderStatusTabOrder = [
+  OrderCardStatus.pending,
+  OrderCardStatus.preparing,
+  OrderCardStatus.ready,
+  OrderCardStatus.fulfilled,
+  OrderCardStatus.cancelled,
+];
+
+/// One entry in the Orders screen's status tab row. A null [status] is the
+/// leading "All" tab.
+class OrderStatusTab {
+  const OrderStatusTab({
+    required this.status,
+    required this.label,
+    required this.count,
+  });
+
+  final OrderCardStatus? status;
+  final String label;
+  final int count;
+
+  bool get isAll => status == null;
+}
+
+/// Builds the Orders screen tab row for [events]: "All" first (total count),
+/// then one tab per [OrderCardStatus] present in the data, ordered by
+/// [_orderStatusTabOrder] with any leftover statuses appended. A status with no
+/// orders gets no tab, so the row stays dynamic as orders move between statuses.
+List<OrderStatusTab> buildOrderStatusTabs(List<OrderEvent> events) {
+  final counts = <OrderCardStatus, int>{};
+  for (final event in events) {
+    final status = classifyOrderStatus(event);
+    counts[status] = (counts[status] ?? 0) + 1;
+  }
+
+  final ordered = <OrderCardStatus>[
+    ..._orderStatusTabOrder.where(counts.containsKey),
+    ...counts.keys.where((s) => !_orderStatusTabOrder.contains(s)),
+  ];
+
+  return [
+    OrderStatusTab(status: null, label: 'All', count: events.length),
+    for (final status in ordered)
+      OrderStatusTab(
+        status: status,
+        label: orderStatusPillStyle(status).$1,
+        count: counts[status]!,
+      ),
+  ];
+}
+
 /// Display label + color for a status badge. Mirrors the kiosk app's
 /// `orderStatusPillStyle` so status colors read consistently across both
 /// apps.

@@ -20,6 +20,8 @@ class MerchantDeviceStorage {
   static const _deviceSecretKey = 'merchant_device_secret';
   static const _installIdKey = 'merchant_install_id';
   static const _registeredStoreIdKey = 'merchant_registered_store_id';
+  static const _lastStatusKey = 'merchant_device_status';
+  static const _merchantNameKey = 'merchant_device_merchant_name';
 
   final FlutterSecureStorage _storage;
 
@@ -45,6 +47,20 @@ class MerchantDeviceStorage {
   Future<void> writeDeviceSecret(String deviceSecret) =>
       _storage.write(key: _deviceSecretKey, value: deviceSecret);
 
+  /// The `status` from the most recent `POST /devices/register` response
+  /// (`pending`, `approved`, `deactivated`, ...). Survives restarts so the
+  /// Store Info screen can show the last known state.
+  Future<String?> get lastStatus => _storage.read(key: _lastStatusKey);
+
+  Future<void> writeLastStatus(String status) =>
+      _storage.write(key: _lastStatusKey, value: status);
+
+  /// The `merchant_name` the backend resolved for this device, if any.
+  Future<String?> get merchantName => _storage.read(key: _merchantNameKey);
+
+  Future<void> writeMerchantName(String name) =>
+      _storage.write(key: _merchantNameKey, value: name);
+
   /// Returns the stable install id, generating and persisting one on first
   /// call. Not cleared by [clear] — it identifies the install, not the
   /// approval.
@@ -60,6 +76,8 @@ class MerchantDeviceStorage {
     await _storage.delete(key: _deviceIdKey);
     await _storage.delete(key: _deviceSecretKey);
     await _storage.delete(key: _registeredStoreIdKey);
+    await _storage.delete(key: _lastStatusKey);
+    await _storage.delete(key: _merchantNameKey);
   }
 
   static String _uuidV4() {

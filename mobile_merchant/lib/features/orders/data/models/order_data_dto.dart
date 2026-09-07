@@ -42,4 +42,29 @@ class OrderDataDto {
             .map((e) => OrderItemDto.fromJson(e as Map<String, dynamic>))
             .toList(),
       );
+
+  /// Lenient parser for the live WebSocket payload. Only [id] is required
+  /// (its absence throws, and the caller treats that as a dropped event);
+  /// everything else falls back to a sane default rather than throwing.
+  factory OrderDataDto.fromWireJson(Map<String, dynamic> json) {
+    final created = DateTime.tryParse(json['created_at']?.toString() ?? '');
+    final updated = DateTime.tryParse(json['updated_at']?.toString() ?? '');
+    final epoch = DateTime.fromMillisecondsSinceEpoch(0);
+    return OrderDataDto(
+      id: json['id'] as String,
+      customerId: json['customer_id']?.toString() ?? '',
+      customerName: json['customer_name'] as String?,
+      customerEmail: json['customer_email'] as String?,
+      status: json['status']?.toString() ?? 'unknown',
+      total: (json['total'] as num?)?.toDouble() ?? 0,
+      currency: json['currency']?.toString() ?? '',
+      createdAt: created ?? updated ?? epoch,
+      updatedAt: updated ?? created ?? epoch,
+      merchantId: json['merchant_id']?.toString() ?? '',
+      items: (json['items'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(OrderItemDto.fromWireJson)
+          .toList(),
+    );
+  }
 }

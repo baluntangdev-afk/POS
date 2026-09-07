@@ -5,11 +5,12 @@ import 'package:flutter/material.dart';
 import '../../../widgets/setup_prompt_dialog.dart';
 import '../entities/merchant_device_state.dart';
 import '../use_cases/device_registration_error.dart';
+import 'device_registration_status_visual.dart';
 
 // Module-level guards so that if more than one screen listens at once
 // (dashboard setup flow + settings store-info screen), only the first
 // reaction wins and dialogs never stack.
-String? _promptedDeviceId;
+String? _shownStatusKey; // '<deviceId>|<status>'
 DeviceRegistrationError? _shownError;
 
 void handleMerchantDeviceOutcome(
@@ -19,23 +20,35 @@ void handleMerchantDeviceOutcome(
 ) {
   if (next == null) return;
 
+  // Only surface the dialog for a status that arrived from a live
+  // register/refresh call this session — a `persistedStatus` rehydrated on
+  // startup is shown by the persistent status card, not a popup.
   final registration = next.registration;
-  if (registration != null && _promptedDeviceId != registration.deviceId) {
-    _promptedDeviceId = registration.deviceId;
-    _shownError = null;
-    unawaited(
-      showSetupPromptDialog(
-        context,
-        type: SetupPromptType.info,
-        title: 'Device Pending Approval',
-        message:
-            'This device has been submitted to your merchant account and is '
-            'awaiting approval. You can keep using the POS as normal in the '
-            'meantime.',
-        primaryButtonText: 'Got it',
-      ),
-    );
-    return;
+  final status = registration?.status.trim().toLowerCase();
+  final deviceId = registration?.deviceId;
+  if (registration != null &&
+      status != null &&
+      status.isNotEmpty &&
+      deviceId != null) {
+    final key = '$deviceId|$status';
+    if (key != _shownStatusKey) {
+      _shownStatusKey = key;
+      _shownError = null;
+      final visual = DeviceRegistrationStatusVisual.of(
+        next.status,
+        next.merchantName,
+      );
+      unawaited(
+        showSetupPromptDialog(
+          context,
+          type: visual.dialogType,
+          title: visual.dialogTitle,
+          message: visual.body,
+          primaryButtonText: visual.primaryButtonText,
+        ),
+      );
+      return;
+    }
   }
 
   final error = next.error;

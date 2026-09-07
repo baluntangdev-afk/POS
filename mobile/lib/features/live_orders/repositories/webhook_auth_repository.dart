@@ -25,9 +25,12 @@ abstract class WebhookAuthRepository {
   /// the active bearer token, replacing any cached one. Use this when the
   /// merchant/store id has changed.
   ///
+  /// Returns the `merchant_name` the backend resolved for [merchantId], or
+  /// `null` when it did not send one.
+  ///
   /// Throws [WebhookAuthException] on a rejected request, same as
   /// [ensureToken].
-  Future<void> refreshToken(String merchantId);
+  Future<String?> refreshToken(String merchantId);
 }
 
 class WebhookAuthRepositoryImpl implements WebhookAuthRepository {
@@ -49,7 +52,7 @@ class WebhookAuthRepositoryImpl implements WebhookAuthRepository {
   }
 
   @override
-  Future<void> refreshToken(String merchantId) async {
+  Future<String?> refreshToken(String merchantId) async {
     final WebhookTokenDto dto;
     try {
       dto = await _api.fetchToken(merchantId);
@@ -67,6 +70,7 @@ class WebhookAuthRepositoryImpl implements WebhookAuthRepository {
         expiresAt: DateTime.fromMillisecondsSinceEpoch(dto.exp * 1000),
       ),
     );
+    return dto.merchantName;
   }
 
   Future<WebhookAuthDoc?> _tryLatest() async {

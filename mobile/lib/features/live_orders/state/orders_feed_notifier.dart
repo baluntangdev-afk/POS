@@ -48,8 +48,18 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
   Future<OrdersFeedState> build() async {
     ref.keepAlive();
     final authed = ref.watch(authNotifierProvider) is AuthAuthenticated;
-    final storeInfo = await ref.watch(storeInfoProvider.future);
-    final storeId = storeInfo?.storeId ?? '';
+    // A failed store-info provisioning (e.g. an unrecognized merchant/store ID)
+    // leaves storeInfoProvider in an error state whose retained value is still
+    // the previous store. Treat that as "no store" so the feed tears down and
+    // the Dashboard pill reads "off", instead of reconnecting for — or showing
+    // a stale "connected" against — a store the orders service rejected.
+    String storeId;
+    try {
+      final storeInfo = await ref.watch(storeInfoProvider.future);
+      storeId = storeInfo?.storeId ?? '';
+    } catch (_) {
+      storeId = '';
+    }
     ref.onDispose(_teardown);
     ref.listen(isOnlineProvider, _onConnectivityChange);
 
@@ -66,8 +76,13 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
 
   Future<void> checkConnection() async {
     final authed = ref.read(authNotifierProvider) is AuthAuthenticated;
-    final storeInfo = await ref.read(storeInfoProvider.future);
-    final storeId = storeInfo?.storeId ?? '';
+    String storeId;
+    try {
+      final storeInfo = await ref.read(storeInfoProvider.future);
+      storeId = storeInfo?.storeId ?? '';
+    } catch (_) {
+      storeId = '';
+    }
 
     if (!authed || storeId.isEmpty) {
       _teardown();
@@ -220,7 +235,9 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
   /// next sync or the next socket event for that order.
   Future<void> _syncHistory(String storeId) async {
     try {
-      final events = await ref.read(ordersHistoryApiProvider).fetchEvents(storeId);
+      final events = await ref
+          .read(ordersHistoryApiProvider)
+          .fetchEvents(storeId);
       // The history endpoint returns the full per-event log; collapse it to
       // the latest event per order before persisting.
       final orders = latestEventPerOrder(events);

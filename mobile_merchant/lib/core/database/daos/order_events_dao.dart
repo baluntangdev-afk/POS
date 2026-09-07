@@ -41,10 +41,24 @@ class OrderEventsDao extends DatabaseAccessor<AppDatabase>
 
   /// Replaces all cached events for [merchantId] with [events] in a single
   /// transaction. Passing an empty list clears the cache for that merchant.
+  ///
+  /// The REST feed is an event *log* — it can carry several events for one
+  /// order. They are collapsed here to the latest event per order (highest
+  /// `id`, matching `orders_body._deduplicateByOrderId`) so the table holds
+  /// one row per order — the invariant [upsertLiveEvent] relies on.
   Future<void> replaceAll(
     String merchantId,
     List<OrderEventDto> events,
   ) async {
+    final latestPerOrder = <String, OrderEventDto>{};
+    for (final event in events) {
+      final existing = latestPerOrder[event.data.id];
+      if (existing == null || event.id > existing.id) {
+        latestPerOrder[event.data.id] = event;
+      }
+    }
+    final dedupedEvents = latestPerOrder.values.toList();
+
     await transaction(() async {
       // Delete items first (FK child), then the parent events.
       final existingIds = await (select(orderEventsTable)
@@ -62,7 +76,7 @@ class OrderEventsDao extends DatabaseAccessor<AppDatabase>
             ..where((t) => t.merchantId.equals(merchantId)))
           .go();
 
-      for (final event in events) {
+      for (final event in dedupedEvents) {
         await into(orderEventsTable).insert(
           OrderEventsTableCompanion.insert(
             id: Value(event.id),
@@ -103,6 +117,87 @@ class OrderEventsDao extends DatabaseAccessor<AppDatabase>
       (update(orderEventsTable)..where((t) => t.orderId.equals(orderId))).write(
         OrderEventsTableCompanion(orderStatus: Value(newStatus)),
       );
+
+  /// Upserts a single live WebSocket event, keyed by ([merchantId], `orderId`)
+  /// — one row per order, latest event wins. On an update the row keeps its
+  /// existing `id` (so pagination cursors stay valid); a brand-new order is
+  /// inserted with the event's synthesized `id`. The order's line items are
+  /// fully replaced. All in one transaction.
+  Future<void> upsertLiveEvent(String merchantId, OrderEventDto event) async {
+    await transaction(() async {
+      // Newest first. Normally 0 or 1 row, but a cache written before
+      // [replaceAll] deduped (or an offline session where it never ran) can
+      // hold several rows for one order — heal that here instead of letting
+      // `getSingleOrNull` throw "Too many elements".
+      final matches = await (select(orderEventsTable)
+            ..where((t) =>
+                t.orderId.equals(event.data.id) &
+                t.merchantId.equals(merchantId))
+            ..orderBy([(t) => OrderingTerm.desc(t.id)]))
+          .get();
+
+      final existing = matches.isEmpty ? null : matches.first;
+
+      if (matches.length > 1) {
+        final staleIds = matches.skip(1).map((e) => e.id).toList();
+        await (delete(orderItemsTable)..where((t) => t.eventId.isIn(staleIds)))
+            .go();
+        await (delete(orderEventsTable)..where((t) => t.id.isIn(staleIds))).go();
+      }
+
+      final rowId = existing?.id ?? event.id;
+
+      if (existing != null) {
+        await (update(orderEventsTable)..where((t) => t.id.equals(rowId))).write(
+          OrderEventsTableCompanion(
+            eventId: Value(event.eventId),
+            eventType: Value(event.eventType),
+            receivedAt: Value(event.receivedAt.toIso8601String()),
+            customerName: Value(event.data.customerName),
+            customerEmail: Value(event.data.customerEmail),
+            orderStatus: Value(event.data.status),
+            orderTotal: Value(event.data.total),
+            currency: Value(event.data.currency),
+            orderUpdatedAt: Value(event.data.updatedAt.toIso8601String()),
+          ),
+        );
+        await (delete(orderItemsTable)..where((t) => t.eventId.equals(rowId)))
+            .go();
+      } else {
+        await into(orderEventsTable).insert(
+          OrderEventsTableCompanion.insert(
+            id: Value(rowId),
+            eventId: event.eventId,
+            eventType: event.eventType,
+            receivedAt: event.receivedAt.toIso8601String(),
+            createdAt: event.createdAt.toIso8601String(),
+            merchantId: merchantId,
+            orderId: event.data.id,
+            customerId: event.data.customerId,
+            customerName: Value(event.data.customerName),
+            customerEmail: Value(event.data.customerEmail),
+            orderStatus: event.data.status,
+            orderTotal: event.data.total,
+            currency: event.data.currency,
+            orderCreatedAt: event.data.createdAt.toIso8601String(),
+            orderUpdatedAt: event.data.updatedAt.toIso8601String(),
+          ),
+        );
+      }
+
+      for (final item in event.data.items) {
+        await into(orderItemsTable).insert(
+          OrderItemsTableCompanion.insert(
+            eventId: rowId,
+            productId: item.productId,
+            productName: item.productName,
+            quantity: item.quantity,
+            price: item.price,
+          ),
+        );
+      }
+    });
+  }
 
   // ---------------------------------------------------------------------------
 

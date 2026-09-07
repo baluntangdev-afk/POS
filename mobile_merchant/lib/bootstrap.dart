@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 import 'core/di/injection.dart';
+import 'core/services/notifications/order_notifications_service.dart';
 import 'core/services/settings_service.dart';
 import 'core/utils/app_logger.dart';
 
@@ -16,6 +17,9 @@ Future<void> bootstrap() async {
 
   // Warm up the runtime endpoint override before the first request.
   await getIt<SettingsService>().init();
+
+  // Sets up the Android notification channel + asks for the runtime permission.
+  await getIt<OrderNotificationsService>().initialize();
 
   FlutterError.onError = (details) {
     AppLogger.logError('FlutterError', details.exception, details.stack);

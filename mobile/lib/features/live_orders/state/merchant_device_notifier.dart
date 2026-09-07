@@ -25,9 +25,13 @@ class MerchantDeviceNotifier extends AsyncNotifier<MerchantDeviceState> {
   Future<MerchantDeviceState> build() async {
     final deviceId = await _repository.currentDeviceId();
     final registeredStoreId = await _repository.registeredStoreId();
+    final persistedStatus = await _repository.lastKnownStatus();
+    final persistedMerchantName = await _repository.lastKnownMerchantName();
     return MerchantDeviceState(
       deviceId: deviceId,
       registeredStoreId: registeredStoreId,
+      persistedStatus: persistedStatus,
+      persistedMerchantName: persistedMerchantName,
     );
   }
 
@@ -69,6 +73,8 @@ class MerchantDeviceNotifier extends AsyncNotifier<MerchantDeviceState> {
         deviceId: current.deviceId,
         registeredStoreId: current.registeredStoreId,
         registration: current.registration,
+        persistedStatus: current.persistedStatus,
+        persistedMerchantName: current.persistedMerchantName,
         isRegistering: true,
       ),
     );
@@ -78,11 +84,17 @@ class MerchantDeviceNotifier extends AsyncNotifier<MerchantDeviceState> {
         request,
         storeId: storeId,
       );
+      final merchantName = registration.merchantName?.trim();
       state = AsyncData(
         MerchantDeviceState(
           deviceId: registration.deviceId,
           registeredStoreId: storeId,
           registration: registration,
+          persistedStatus: registration.status,
+          persistedMerchantName:
+              merchantName != null && merchantName.isNotEmpty
+                  ? merchantName
+                  : current.persistedMerchantName,
         ),
       );
       // The device secret / id are now in secure storage — warm the
@@ -99,11 +111,35 @@ class MerchantDeviceNotifier extends AsyncNotifier<MerchantDeviceState> {
           deviceId: current.deviceId,
           registeredStoreId: current.registeredStoreId,
           registration: current.registration,
+          persistedStatus: current.persistedStatus,
+          persistedMerchantName: current.persistedMerchantName,
           error: reason,
           errorMessage: deviceRegistrationMessageFrom(error, reason),
         ),
       );
       return Failure(reason);
+    }
+  }
+
+  /// Re-runs `POST /devices/register` for the store this device is already
+  /// registered against, to pull the current approval [MerchantDeviceState.status].
+  /// Idempotent: the Idempotency-Key is the stable install id, so the backend
+  /// replays the current record rather than creating a new enrollment. No-op
+  /// when the device is not registered yet or has no stored store id.
+  Future<void> refreshStatus() async {
+    try {
+      final loaded = await future;
+      if (loaded.isRegistering || !loaded.isRegistered) return;
+      final storeId = loaded.registeredStoreId?.trim() ?? '';
+      if (storeId.isEmpty) return;
+
+      final name = loaded.merchantName?.trim();
+      final request = await ref
+          .read(deviceIdentityProvider)
+          .describe(name: name == null || name.isEmpty ? 'POS Device' : name);
+      await register(request, storeId: storeId);
+    } catch (error, stackTrace) {
+      debugPrint('[MerchantDevice] refreshStatus skipped: $error\n$stackTrace');
     }
   }
 

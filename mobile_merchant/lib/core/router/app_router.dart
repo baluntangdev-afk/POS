@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -11,6 +11,11 @@ part 'app_router.g.dart';
 /// Global navigator key — lets non-widget code (e.g. the session-expiry
 /// listener) drive navigation.
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+
+/// Global scaffold-messenger key — lets non-widget code (e.g. the live-orders
+/// feed) show a snackbar without a `BuildContext`.
+final GlobalKey<ScaffoldMessengerState> appScaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 @riverpod
 GoRouter appRouter(Ref ref) {

@@ -14,6 +14,7 @@ import '../../../widgets/payment_methods_card.dart';
 import '../../../widgets/section_card.dart';
 import '../../live_orders/state/merchant_device_notifier.dart';
 import '../../live_orders/view/device_registration_prompt.dart';
+import '../../live_orders/view/device_registration_status_card.dart';
 import '../state/store_info_notifier.dart';
 
 const _storeIdAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -317,6 +318,8 @@ class _StoreInfoForm extends HookConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
+          const DeviceRegistrationStatusCard(),
+          const Gap(AppSpacing.lg),
           SectionCard(
             title: 'Basic Info',
             children: [

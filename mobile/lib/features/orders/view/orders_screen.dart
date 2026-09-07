@@ -14,8 +14,26 @@ import '../../../core/widgets/empty_state_widget.dart';
 import '../../live_orders/entities/order_event.dart';
 import '../../live_orders/state/orders_feed_notifier.dart';
 import '../../live_orders/state/orders_count_provider.dart';
+import '../../live_orders/state/webhook_auth_status_provider.dart';
 import '../../live_orders/use_cases/order_update_error.dart';
+import '../../live_orders/use_cases/webhook_auth_error.dart';
 import 'order_status.dart';
+
+/// Whether a store-info auth failure should replace the Orders list with an
+/// error state rather than let a cached list show through. A rejected store ID
+/// or a bad build config means the list can't be trusted; a transient network /
+/// server blip (already covered by the toast) shouldn't hide orders we have.
+bool _blocksOrdersList(WebhookAuthError reason) => switch (reason) {
+  WebhookAuthError.network ||
+  WebhookAuthError.serverError ||
+  WebhookAuthError.rateLimited ||
+  WebhookAuthError.unexpectedResponse ||
+  WebhookAuthError.unknown => false,
+  WebhookAuthError.invalidWebhookSecret ||
+  WebhookAuthError.invalidClient ||
+  WebhookAuthError.unauthorized ||
+  WebhookAuthError.invalidRequest => true,
+};
 
 class OrdersScreen extends HookConsumerWidget {
   const OrdersScreen({super.key});
@@ -23,6 +41,7 @@ class OrdersScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ordersAsync = ref.watch(persistedOrdersProvider);
+    final authFailure = ref.watch(webhookAuthStatusProvider);
 
     useEffect(() {
       unawaited(ref.read(ordersFeedNotifierProvider.notifier).refreshHistory());
@@ -45,56 +64,216 @@ class OrdersScreen extends HookConsumerWidget {
             icon: const Icon(Icons.arrow_back),
           ),
         ),
-        body: ordersAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error:
-              (e, _) => Center(
-                child: Text(
-                  'Could not load orders.\n$e',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.bodySm.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-          data: (orders) {
-            if (orders.isEmpty) {
-              return const EmptyStateWidget(
-                title: 'No orders yet',
-                subtitle:
-                    'New orders placed through your storefront will show up here in real time.',
-              );
-            }
-            return RefreshIndicator(
-              onRefresh:
-                  () =>
-                      ref
-                          .read(ordersFeedNotifierProvider.notifier)
-                          .refreshHistory(),
-              child: ListView.separated(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                itemCount: orders.length,
-                separatorBuilder:
-                    (_, __) => const SizedBox(height: AppSpacing.sm),
-                itemBuilder:
-                    (context, index) => _OrderCard(
-                      event: orders[index],
-                      onTap: () => _showOrderDetail(context, orders[index]),
-                    ),
-              ),
-            );
-          },
-        ),
+        body: _body(context, ref, ordersAsync, authFailure),
       ),
     );
   }
 
-  void _showOrderDetail(BuildContext context, OrderEvent event) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => _OrderDetailSheet(event: event),
+  Widget _body(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue<List<OrderEvent>> ordersAsync,
+    WebhookAuthFailure? authFailure,
+  ) {
+    // A rejected store/merchant ID (or bad build config) means the persisted
+    // list belongs to a store we're no longer signed in as — surface the
+    // failure instead of showing it. Transient blips fall through to the
+    // cached list, which the toast already covers.
+    if (authFailure != null && _blocksOrdersList(authFailure.reason)) {
+      return EmptyStateWidget(
+        icon: Icons.error_outline,
+        title: "Can't load orders",
+        subtitle: authFailure.message,
+      );
+    }
+
+    return ordersAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error:
+          (e, _) => const EmptyStateWidget(
+            icon: Icons.error_outline,
+            title: "Can't load orders",
+            subtitle:
+                'Something went wrong reading saved orders. Go back and try again.',
+          ),
+      data: (orders) {
+        if (orders.isEmpty) {
+          return const EmptyStateWidget(
+            title: 'No orders yet',
+            subtitle:
+                'New orders placed through your storefront will show up here in real time.',
+          );
+        }
+        return _OrdersList(orders: orders);
+      },
+    );
+  }
+}
+
+void _showOrderDetail(BuildContext context, OrderEvent event) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (_) => _OrderDetailSheet(event: event),
+  );
+}
+
+/// The order list plus its dynamic status tab row. Tabs are derived from the
+/// statuses actually present in [orders] ("All" first); tapping one filters the
+/// list. If the active tab's status disappears after a refresh, the selection
+/// falls back to "All".
+class _OrdersList extends HookConsumerWidget {
+  final List<OrderEvent> orders;
+
+  const _OrdersList({required this.orders});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tabs = buildOrderStatusTabs(orders);
+    final selected = useState<OrderCardStatus?>(null);
+
+    final activeStatus =
+        tabs.any((t) => t.status == selected.value) ? selected.value : null;
+
+    final filtered =
+        activeStatus == null
+            ? orders
+            : orders
+                .where((e) => classifyOrderStatus(e) == activeStatus)
+                .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _OrdersTabBar(
+          tabs: tabs,
+          selected: activeStatus,
+          onSelect: (status) => selected.value = status,
+        ),
+        const Divider(height: 1, thickness: 1, color: AppColors.divider),
+        Expanded(
+          child:
+              filtered.isEmpty
+                  ? const EmptyStateWidget(
+                    title: 'Nothing in this status',
+                    subtitle: 'Switch tabs to see your other orders.',
+                  )
+                  : RefreshIndicator(
+                    onRefresh:
+                        () => ref
+                            .read(ordersFeedNotifierProvider.notifier)
+                            .refreshHistory(),
+                    child: ListView.separated(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      itemCount: filtered.length,
+                      separatorBuilder:
+                          (_, _) => const SizedBox(height: AppSpacing.sm),
+                      itemBuilder:
+                          (context, index) => _OrderCard(
+                            event: filtered[index],
+                            onTap:
+                                () => _showOrderDetail(context, filtered[index]),
+                          ),
+                    ),
+                  ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Horizontal, scrollable row of status pills. Mirrors the merchant app's
+/// tab row: an active pill is filled with the brand color, each pill carries a
+/// count badge.
+class _OrdersTabBar extends StatelessWidget {
+  final List<OrderStatusTab> tabs;
+  final OrderCardStatus? selected;
+  final ValueChanged<OrderCardStatus?> onSelect;
+
+  const _OrdersTabBar({
+    required this.tabs,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 52,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        itemCount: tabs.length,
+        separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+        itemBuilder: (context, index) {
+          final tab = tabs[index];
+          final isActive = tab.status == selected;
+          return Center(
+            child: GestureDetector(
+              onTap: () => onSelect(tab.status),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: isActive ? AppColors.primary : AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  border: Border.all(
+                    color: isActive ? AppColors.primary : AppColors.border,
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      tab.label,
+                      style: AppTextStyles.labelLg.copyWith(
+                        color:
+                            isActive
+                                ? AppColors.textOnPrimary
+                                : AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            isActive
+                                ? Colors.white.withValues(alpha: 0.22)
+                                : AppColors.background,
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusFull,
+                        ),
+                      ),
+                      child: Text(
+                        '${tab.count}',
+                        style: AppTextStyles.bodySm.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color:
+                              isActive
+                                  ? AppColors.textOnPrimary
+                                  : AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -246,26 +425,28 @@ class _OrderCard extends HookConsumerWidget {
                     ),
                     splashColor: AppColors.error.withValues(alpha: 0.3),
                     padding: EdgeInsets.all(4.0),
-                    onPressed: isSubmitting.value
-                        ? null
-                        : () => _confirmCancelOrder(context, cancelOrder),
-                    child: isSubmitting.value
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 1.5,
-                              color: AppColors.error,
+                    onPressed:
+                        isSubmitting.value
+                            ? null
+                            : () => _confirmCancelOrder(context, cancelOrder),
+                    child:
+                        isSubmitting.value
+                            ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.5,
+                                color: AppColors.error,
+                              ),
+                            )
+                            : const Text(
+                              'CANCEL ORDER',
+                              style: TextStyle(
+                                color: AppColors.error,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                              ),
                             ),
-                          )
-                        : const Text(
-                            'CANCEL ORDER',
-                            style: TextStyle(
-                              color: AppColors.error,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
                   ),
                 ),
               ],
@@ -347,21 +528,26 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
       ),
       onSelected: (next) => onSelected?.call(next),
-      itemBuilder: (context) => [
-        for (final option in assignableOrderStatuses)
-          PopupMenuItem(
-            value: option,
-            // The current status stays selectable so staff can re-apply it
-            // (e.g. to re-push the update); it's only marked, not disabled.
-            child: Row(
-              children: [
-                Expanded(child: Text(orderStatusPillStyle(option).$1)),
-                if (option == status)
-                  const Icon(Icons.check, size: 18, color: AppColors.primary),
-              ],
-            ),
-          ),
-      ],
+      itemBuilder:
+          (context) => [
+            for (final option in assignableOrderStatuses)
+              PopupMenuItem(
+                value: option,
+                // The current status stays selectable so staff can re-apply it
+                // (e.g. to re-push the update); it's only marked, not disabled.
+                child: Row(
+                  children: [
+                    Expanded(child: Text(orderStatusPillStyle(option).$1)),
+                    if (option == status)
+                      const Icon(
+                        Icons.check,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                  ],
+                ),
+              ),
+          ],
       child: pill,
     );
   }
@@ -374,21 +560,22 @@ Future<void> _confirmCancelOrder(
 ) async {
   final confirmed = await showDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('Cancel this order?'),
-      content: const Text("This can't be undone."),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Keep order'),
+    builder:
+        (dialogContext) => AlertDialog(
+          title: const Text('Cancel this order?'),
+          content: const Text("This can't be undone."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Keep order'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: TextButton.styleFrom(foregroundColor: AppColors.error),
+              child: const Text('Cancel order'),
+            ),
+          ],
         ),
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(true),
-          style: TextButton.styleFrom(foregroundColor: AppColors.error),
-          child: const Text('Cancel order'),
-        ),
-      ],
-    ),
   );
   if (confirmed ?? false) await onConfirmed();
 }

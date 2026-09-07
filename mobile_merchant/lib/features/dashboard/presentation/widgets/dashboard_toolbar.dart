@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../merchant/domain/entities/merchant.dart';
 import '../../../merchant/presentation/dialogs/merchant_form_dialog.dart';
 import '../../../merchant/state/merchant_notifier.dart';
+import 'connection_status_indicator.dart';
 
 class DashboardToolbar extends ConsumerWidget {
   const DashboardToolbar({super.key});
@@ -40,6 +41,9 @@ class DashboardToolbar extends ConsumerWidget {
               Expanded(
                 child: _Brand(merchant: merchantAsync.value),
               ),
+              const SizedBox(width: 12),
+              ConnectionStatusIndicator(showLabel: w > 600),
+              const SizedBox(width: 12),
               Container(width: 1, height: 28, color: AppColors.border),
               const SizedBox(width: 8),
               IconButton(

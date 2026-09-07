@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
@@ -21,8 +23,19 @@ class OrdersState {
 // ---------------------------------------------------------------------------
 
 class OrdersNotifier extends AsyncNotifier<OrdersState> {
+  /// Bounded ring of event ids already folded into the list via
+  /// [applyLiveEvent]. A status change made here (`PATCH /merchant/orders/...`)
+  /// is applied from the response, then echoed back on the live socket a moment
+  /// later — this ring drops that echo so the list isn't re-mutated (which,
+  /// with an out-of-order echo, could briefly revert the status).
+  final Queue<String> _appliedEventIds = Queue();
+  final Set<String> _appliedEventIdSet = {};
+
   @override
   Future<OrdersState> build() async {
+    _appliedEventIds.clear();
+    _appliedEventIdSet.clear();
+
     final merchant = await ref.watch(merchantProvider.future);
     if (merchant == null) return const OrdersState(events: []);
 
@@ -53,17 +66,48 @@ class OrdersNotifier extends AsyncNotifier<OrdersState> {
     await future;
   }
 
-  /// Optimistically updates the status of an order in both local state and DB.
-  // TODO: wire to a backend PATCH /merchant/orders/{orderId}/status endpoint
-  // once the API is available.
+  /// Moves [orderId] to [newStatus] via `PATCH /merchant/orders/{orderId}`,
+  /// then folds the canonical `order.updated` event from the response into the
+  /// list and local DB. Throws [MerchantApiException] on failure — the order
+  /// card surfaces the message and the displayed status is left unchanged.
   Future<void> updateStatus(String orderId, String newStatus) async {
-    final current = state.value;
-    if (current == null) return;
+    final merchant = await ref.read(merchantProvider.future);
+    if (merchant == null) {
+      throw const MerchantApiException(
+        statusCode: 0,
+        error: 'no_merchant',
+        message: 'No merchant is registered on this device.',
+      );
+    }
 
+    final token = await getIt<MerchantDeviceStorage>().token;
+    if (token == null || token.isEmpty) {
+      throw const MerchantApiException(
+        statusCode: 0,
+        error: 'not_registered',
+        message: 'This device is not registered yet.',
+      );
+    }
+
+    final result = await getIt<MerchantApi>().updateOrderStatus(
+      orderId: orderId,
+      status: newStatus,
+      token: token,
+    );
+
+    final event = result.event;
+    if (event != null) {
+      await applyLiveEvent(event, merchant.merchantId);
+      return;
+    }
+
+    // PATCH succeeded but echoed no usable event — write the status through
+    // locally so the card still reflects the change.
     await getIt<AppDatabase>()
         .orderEventsDao
         .updateOrderStatus(orderId, newStatus);
-
+    final current = state.value;
+    if (current == null) return;
     state = AsyncData(
       OrdersState(
         events: current.events
@@ -74,8 +118,46 @@ class OrdersNotifier extends AsyncNotifier<OrdersState> {
     );
   }
 
+  /// Cancels [orderId] — same endpoint, `status: 'cancelled'`.
   Future<void> cancelOrder(String orderId) =>
       updateStatus(orderId, 'cancelled');
+
+  /// Applies one live WebSocket event without a REST reload: upsert the local
+  /// row, then merge the event into the in-memory list. A DB failure is logged
+  /// but never blocks the UI update; if [build] has not resolved yet only the
+  /// DB write lands (the list catches up on the next fetch).
+  Future<void> applyLiveEvent(OrderEventDto event, String merchantId) async {
+    if (!_rememberApplied(event.eventId)) return;
+
+    try {
+      await getIt<AppDatabase>()
+          .orderEventsDao
+          .upsertLiveEvent(merchantId, event);
+    } catch (e, s) {
+      AppLogger.logError('OrdersNotifier.applyLiveEvent', e, s);
+    }
+
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncData(
+      OrdersState(
+        events: mergeLiveOrderEvent(current.events, event),
+        isStale: current.isStale,
+      ),
+    );
+  }
+
+  /// Adds [eventId] to the bounded applied-events ring. Returns false when it
+  /// was already present — a duplicate delivery or the socket echo of a change
+  /// we just made, which must not be folded in a second time.
+  bool _rememberApplied(String eventId) {
+    if (!_appliedEventIdSet.add(eventId)) return false;
+    _appliedEventIds.add(eventId);
+    if (_appliedEventIds.length > 200) {
+      _appliedEventIdSet.remove(_appliedEventIds.removeFirst());
+    }
+    return true;
+  }
 
   // ---------------------------------------------------------------------------
 
@@ -106,3 +188,13 @@ class OrdersNotifier extends AsyncNotifier<OrdersState> {
 
 final ordersProvider =
     AsyncNotifierProvider<OrdersNotifier, OrdersState>(OrdersNotifier.new);
+
+/// Merges one live event into the current in-memory list: drop any existing
+/// entry for the same order, then prepend the new event. Explicit by
+/// `data.id` so an `updated` / `cancelled` event replaces the row correctly,
+/// independent of `orders_body`'s id-based de-dupe.
+List<OrderEventDto> mergeLiveOrderEvent(
+  List<OrderEventDto> current,
+  OrderEventDto incoming,
+) =>
+    [incoming, ...current.where((e) => e.data.id != incoming.data.id)];

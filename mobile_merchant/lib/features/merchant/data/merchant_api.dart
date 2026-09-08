@@ -76,13 +76,19 @@ class MerchantApi {
 
   /// `POST /devices/token` — exchanges device credentials for a short-lived
   /// JWT used as the `Authorization: Bearer` header on the WebSocket handshake.
+  ///
+  /// [token] is the `/auth/token` webhook JWT, sent as the request's bearer.
   Future<DeviceTokenDto> fetchDeviceToken({
     required String deviceId,
     required String deviceSecret,
+    required String token,
   }) async {
     final response = await _apiClient.dio.post<dynamic>(
       ApiEndpoints.devicesToken,
       data: {'device_id': deviceId, 'device_secret': deviceSecret},
+      options: Options(
+        headers: {'Authorization': 'Bearer $token'},
+      ),
     );
     _assertSuccess(response, const {200});
     return DeviceTokenDto.fromJson(

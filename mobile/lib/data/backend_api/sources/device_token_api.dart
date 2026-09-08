@@ -16,10 +16,6 @@ class DeviceTokenApi with ApiCall {
 
   final Dio _httpClient;
 
-  /// `POST /devices/token` — exchanges the persisted device credentials for a
-  /// short-lived bearer token. Authenticates from the request body, so it runs
-  /// on a client without the `/auth/token` bearer interceptor. Throws an
-  /// `ApiException` on any failure.
   Future<DeviceTokenDto> fetchToken({
     required String deviceId,
     required String deviceSecret,

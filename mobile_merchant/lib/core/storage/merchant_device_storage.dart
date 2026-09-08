@@ -14,10 +14,12 @@ class MerchantDeviceStorage {
 
   static const _tokenKey = 'merchant_webhook_token';
   static const _tokenExpKey = 'merchant_webhook_token_exp';
+  static const _tokenMerchantIdKey = 'merchant_webhook_token_merchant_id';
   static const _deviceIdKey = 'merchant_device_id';
   static const _deviceSecretKey = 'merchant_device_secret';
   static const _installIdKey = 'merchant_install_id';
   static const _registeredMerchantIdKey = 'merchant_registered_merchant_id';
+  static const _deviceStatusKey = 'merchant_device_status';
 
   // Device WS token — short-lived JWT from POST /devices/token for WS bearer auth
   static const _deviceWsTokenKey = 'merchant_device_ws_token';
@@ -33,9 +35,15 @@ class MerchantDeviceStorage {
     return raw != null ? int.tryParse(raw) : null;
   }
 
-  Future<void> writeToken(String token, int exp) async {
+  /// The `merchant_id` the stored [token] is scoped to. A webhook JWT only
+  /// works for the merchant it was minted for, so callers must re-mint when
+  /// this no longer matches the merchant they're acting as.
+  Future<String?> get tokenMerchantId => _storage.read(_tokenMerchantIdKey);
+
+  Future<void> writeToken(String token, int exp, String merchantId) async {
     await _storage.write(_tokenKey, token);
     await _storage.write(_tokenExpKey, exp.toString());
+    await _storage.write(_tokenMerchantIdKey, merchantId);
   }
 
   // ── Device credentials ───────────────────────────────────────────────────
@@ -55,6 +63,14 @@ class MerchantDeviceStorage {
 
   Future<void> writeRegisteredMerchantId(String merchantId) =>
       _storage.write(_registeredMerchantIdKey, merchantId);
+
+  /// Last device-enrollment status seen from `POST /devices/register`
+  /// (`pending` | `approved` | `deactivated` | ...). Read synchronously on
+  /// launch as an optimistic gate for the order feed.
+  Future<String?> get deviceStatus => _storage.read(_deviceStatusKey);
+
+  Future<void> writeDeviceStatus(String status) =>
+      _storage.write(_deviceStatusKey, status);
 
   // ── Device WS Token ──────────────────────────────────────────────────────
 
@@ -103,9 +119,11 @@ class MerchantDeviceStorage {
   Future<void> clearForMerchantChange() async {
     await _storage.delete(_tokenKey);
     await _storage.delete(_tokenExpKey);
+    await _storage.delete(_tokenMerchantIdKey);
     await _storage.delete(_deviceIdKey);
     await _storage.delete(_deviceSecretKey);
     await _storage.delete(_registeredMerchantIdKey);
+    await _storage.delete(_deviceStatusKey);
     await _storage.delete(_deviceWsTokenKey);
     await _storage.delete(_deviceWsTokenExpKey);
     await _storage.delete(_deviceWsTokenMerchantIdKey);

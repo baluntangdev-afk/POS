@@ -1,6 +1,5 @@
 import '../entities/device_registration.dart';
 import '../entities/merchant.dart';
-import '../entities/webhook_token.dart';
 
 abstract interface class MerchantRepository {
   Future<Merchant?> getMerchant();
@@ -16,15 +15,21 @@ abstract interface class MerchantRepository {
     required String merchantName,
   });
 
-  /// Fetches a webhook token, registers the device, and persists the
-  /// resulting [WebhookToken] and [DeviceRegistration] to secure storage.
-  Future<void> activateDevice(String merchantId);
+  Future<DeviceRegistration> activateDevice(String merchantId);
 
-  /// Fetches a fresh webhook token for [merchantId] and persists it.
-  /// Used to refresh credentials on app launch without re-registering.
+  Future<DeviceRegistration> syncDeviceRegistration();
+
+  /// Returns a webhook JWT scoped to [merchantId], minting a fresh one when the
+  /// stored token is missing, near expiry, or scoped to a different merchant.
+  ///
+  /// A webhook JWT only authorises the merchant it was issued for, so every
+  /// caller acting as a specific merchant must go through this rather than
+  /// reading the stored token directly — otherwise a merchant switch leaves the
+  /// previous merchant's token in place and the backend rejects the request
+  /// ("merchant_id does not match the merchant this token is scoped to").
+  Future<String> ensureWebhookToken(String merchantId);
+
   Future<void> refreshToken(String merchantId);
 
-  /// Wipes all device credentials (token, device_id, device_secret) without
-  /// touching the stable install_id.
   Future<void> clearDeviceCredentials();
 }

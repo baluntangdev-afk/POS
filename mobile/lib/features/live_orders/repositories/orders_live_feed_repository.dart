@@ -9,14 +9,13 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../../../config/environment/app_env.dart';
 import '../entities/order_event.dart';
 
-final ordersLiveFeedRepositoryProvider = Provider<OrdersLiveFeedRepository>((ref) {
+final ordersLiveFeedRepositoryProvider = Provider<OrdersLiveFeedRepository>((
+  ref,
+) {
   final env = ref.watch(appEnvProvider);
   return OrdersLiveFeedRepositoryImpl(env.ordersLiveFeedWsUrl);
 });
 
-/// One connection attempt to the webhook-receiver's WS endpoint. `ready`
-/// resolves once the socket is actually open (or throws), so callers can
-/// tell a dead network apart from "still connecting" instead of hanging.
 class OrdersSocketSession {
   OrdersSocketSession(this._channel, this.events);
 
@@ -29,10 +28,6 @@ class OrdersSocketSession {
 }
 
 abstract class OrdersLiveFeedRepository {
-  /// Opens one WS connection scoped to [storeId] (sent as `merchant_id`),
-  /// authenticated with [bearerToken] (the `/devices/token` JWT) on the
-  /// handshake `Authorization` header. The caller owns reconnect/backoff —
-  /// this is a single attempt.
   OrdersSocketSession connect(String storeId, {String? bearerToken});
 }
 
@@ -43,17 +38,19 @@ class OrdersLiveFeedRepositoryImpl implements OrdersLiveFeedRepository {
 
   @override
   OrdersSocketSession connect(String storeId, {String? bearerToken}) {
-    final uri = Uri.parse('${_wsUrl(_baseUrl)}/ws').replace(queryParameters: {'merchant_id': storeId});
+    final uri = Uri.parse(
+      '${_wsUrl(_baseUrl)}/ws',
+    ).replace(queryParameters: {'merchant_id': storeId});
     final channel = IOWebSocketChannel.connect(
       uri,
-      headers: bearerToken == null
-          ? null
-          : {'Authorization': 'Bearer $bearerToken'},
+      headers:
+          bearerToken == null ? null : {'Authorization': 'Bearer $bearerToken'},
     );
-    final events = channel.stream
-        .map((raw) => _parse(raw))
-        .where((event) => event != null)
-        .cast<OrderEvent>();
+    final events =
+        channel.stream
+            .map((raw) => _parse(raw))
+            .where((event) => event != null)
+            .cast<OrderEvent>();
     final session = OrdersSocketSession(channel, events);
     unawaited(
       session.ready.then(
@@ -91,12 +88,16 @@ class OrdersLiveFeedRepositoryImpl implements OrdersLiveFeedRepository {
     try {
       json = jsonDecode(raw) as Map<String, dynamic>;
     } catch (e, st) {
-      debugPrint('[OrdersFeed] failed to decode WS message: $raw\nerror: $e\n$st');
+      debugPrint(
+        '[OrdersFeed] failed to decode WS message: $raw\nerror: $e\n$st',
+      );
       return null;
     }
     final event = OrderEvent.fromWireJson(json);
     if (event == null) {
-      debugPrint('[OrdersFeed] dropped unparseable/unrecognized WS message: $raw');
+      debugPrint(
+        '[OrdersFeed] dropped unparseable/unrecognized WS message: $raw',
+      );
     }
     return event;
   }

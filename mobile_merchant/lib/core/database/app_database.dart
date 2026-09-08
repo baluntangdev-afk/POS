@@ -29,7 +29,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.withExecutor(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -41,6 +41,11 @@ class AppDatabase extends _$AppDatabase {
           if (from < 3) {
             await m.createTable(orderEventsTable);
             await m.createTable(orderItemsTable);
+          }
+          if (from < 4) {
+            await m.addColumn(orderEventsTable, orderEventsTable.fulfillmentType);
+            await m.addColumn(orderEventsTable, orderEventsTable.facilityName);
+            await m.addColumn(orderEventsTable, orderEventsTable.districtName);
           }
         },
       );

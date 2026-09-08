@@ -7,11 +7,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../models/order_event_dto.dart';
 
-/// Parses one raw WebSocket frame into an [OrderEventDto]. Pure and top-level
-/// so it is directly unit-testable. Non-string frames, invalid JSON, a
-/// non-object payload, an unrecognized `event_type`, or a malformed `data`
-/// object all yield `null` (logged, never thrown) — a bad frame must never
-/// break the stream.
+const _pingInterval = Duration(seconds: 20);
+
 OrderEventDto? parseOrderEventFrame(Object? raw) {
   if (raw is! String) {
     debugPrint('[OrdersFeed] dropped non-string frame: $raw');
@@ -36,41 +33,41 @@ OrderEventDto? parseOrderEventFrame(Object? raw) {
   return event;
 }
 
-/// A single WebSocket connection attempt. `ready` resolves once the handshake
-/// succeeds (or throws), so callers can distinguish "dead network" from
-/// "still connecting" instead of hanging indefinitely.
 class OrdersSocketSession {
   OrdersSocketSession(this._channel, this.events);
 
   final WebSocketChannel _channel;
 
-  /// Parsed order events arriving on the socket. Bad frames are already
-  /// filtered out by [parseOrderEventFrame].
   final Stream<OrderEventDto> events;
 
   Future<void> get ready => _channel.ready;
 
+  int? get closeCode => _channel.closeCode;
+
+  String? get closeReason => _channel.closeReason;
+
   Future<void> close() => _channel.sink.close();
 }
 
-/// Opens a WebSocket connection to the orders feed endpoint. This is a single
-/// attempt — the caller owns reconnect / backoff logic.
 class OrdersLiveFeedRepository {
   const OrdersLiveFeedRepository(this._wsBaseUrl);
 
   final String _wsBaseUrl;
 
-  /// Connects to `{wsBaseUrl}/ws?merchant_id={merchantId}` with [bearerToken]
-  /// as the `Authorization: Bearer` handshake header.
   OrdersSocketSession connect(String merchantId, {String? bearerToken}) {
-    final uri = Uri.parse('$_wsBaseUrl/ws').replace(
-      queryParameters: {'merchant_id': merchantId},
+    final uri = Uri.parse(
+      '$_wsBaseUrl/ws',
+    ).replace(queryParameters: {'merchant_id': merchantId});
+    debugPrint(
+      '[OrdersFeed] handshake — uri: $uri | bearer: '
+      '${bearerToken == null ? 'NONE' : _peekJwt(bearerToken)}',
     );
     final channel = IOWebSocketChannel.connect(
       uri,
       headers: bearerToken == null
           ? null
           : {'Authorization': 'Bearer $bearerToken'},
+      pingInterval: _pingInterval,
     );
     final events = channel.stream
         .map(parseOrderEventFrame)
@@ -85,5 +82,18 @@ class OrdersLiveFeedRepository {
     );
 
     return OrdersSocketSession(channel, events);
+  }
+
+  static String _peekJwt(String jwt) {
+    try {
+      final parts = jwt.split('.');
+      if (parts.length != 3) return 'len=${jwt.length} (not a JWT)';
+      var p = parts[1].replaceAll('-', '+').replaceAll('_', '/');
+      p = p.padRight((p.length + 3) & ~3, '=');
+      final claims = jsonDecode(utf8.decode(base64.decode(p)));
+      return 'len=${jwt.length} claims=$claims';
+    } catch (e) {
+      return 'len=${jwt.length} (undecodable: $e)';
+    }
   }
 }

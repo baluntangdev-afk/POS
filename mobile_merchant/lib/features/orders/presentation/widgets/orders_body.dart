@@ -8,6 +8,7 @@ import '../../../../shared/widgets/app_button.dart';
 import '../../data/models/order_event_dto.dart';
 import '../../state/orders_notifier.dart';
 import 'order_card.dart';
+import 'order_detail_sheet.dart';
 
 class OrdersBody extends ConsumerStatefulWidget {
   const OrdersBody({super.key});
@@ -77,6 +78,7 @@ class _OrdersBodyState extends ConsumerState<OrdersBody> {
                           return OrderCard(
                             key: ValueKey(event.data.id),
                             event: event,
+                            onTap: () => showOrderDetailSheet(context, event),
                             onStatusChange: (newStatus) => ref
                                 .read(ordersProvider.notifier)
                                 .updateStatus(event.data.id, newStatus),

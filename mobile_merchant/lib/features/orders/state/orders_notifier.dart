@@ -7,6 +7,7 @@ import '../../../core/di/injection.dart';
 import '../../../core/storage/merchant_device_storage.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../merchant/data/merchant_api.dart';
+import '../../merchant/domain/repositories/merchant_repository.dart';
 import '../../merchant/state/merchant_notifier.dart';
 import '../data/models/order_data_dto.dart';
 import '../data/models/order_event_dto.dart';
@@ -40,12 +41,20 @@ class OrdersNotifier extends AsyncNotifier<OrdersState> {
     if (merchant == null) return const OrdersState(events: []);
 
     final storage = getIt<MerchantDeviceStorage>();
-    final token = await storage.token;
-    if (token == null || token.isEmpty) return const OrdersState(events: []);
+    // A merchant with no registered device has no token path yet — show empty
+    // rather than minting a throwaway token for a device that can't connect.
+    if (await storage.registeredMerchantId == null) {
+      return const OrdersState(events: []);
+    }
 
     final dao = getIt<AppDatabase>().orderEventsDao;
 
     try {
+      // Never reuse `storage.token` directly: after a merchant switch it may
+      // still be scoped to the previous merchant, which the backend rejects
+      // ("merchant_id does not match the merchant this token is scoped to").
+      final token = await getIt<MerchantRepository>()
+          .ensureWebhookToken(merchant.merchantId);
       final result = await getIt<MerchantApi>().fetchOrders(
         merchantId: merchant.merchantId,
         token: token,
@@ -80,14 +89,17 @@ class OrdersNotifier extends AsyncNotifier<OrdersState> {
       );
     }
 
-    final token = await getIt<MerchantDeviceStorage>().token;
-    if (token == null || token.isEmpty) {
+    if (await getIt<MerchantDeviceStorage>().registeredMerchantId == null) {
       throw const MerchantApiException(
         statusCode: 0,
         error: 'not_registered',
         message: 'This device is not registered yet.',
       );
     }
+
+    // Re-mint if the stored token is stale or scoped to another merchant.
+    final token = await getIt<MerchantRepository>()
+        .ensureWebhookToken(merchant.merchantId);
 
     final result = await getIt<MerchantApi>().updateOrderStatus(
       orderId: orderId,
@@ -181,6 +193,9 @@ class OrdersNotifier extends AsyncNotifier<OrdersState> {
         updatedAt: DateTime.now(),
         merchantId: d.merchantId,
         items: d.items,
+        fulfillmentType: d.fulfillmentType,
+        facilityName: d.facilityName,
+        districtName: d.districtName,
       ),
     );
   }

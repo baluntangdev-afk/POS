@@ -1,5 +1,40 @@
 import 'order_item_dto.dart';
 
+/// How an order is handed to the customer. Mirrors the webhook's
+/// `fulfillment_type`. `on_site` orders carry [OrderDataDto.facilityName];
+/// `pickup` / `delivery` never do.
+enum FulfillmentType {
+  onSite,
+  pickup,
+  delivery,
+  other;
+
+  /// Lenient on purpose — an unrecognized value (the webhook sandbox has been
+  /// observed sending `"TEST"`) falls back to [other] instead of throwing.
+  static FulfillmentType fromWire(String? value) {
+    switch (value) {
+      case 'on_site':
+        return FulfillmentType.onSite;
+      case 'pickup':
+        return FulfillmentType.pickup;
+      case 'delivery':
+        return FulfillmentType.delivery;
+      default:
+        return FulfillmentType.other;
+    }
+  }
+
+  /// Inverse of [fromWire] — used only when re-serializing for the local
+  /// cache, so a persisted-then-reloaded order round-trips through the same
+  /// value rather than drifting to [other].
+  String get wireValue => switch (this) {
+        FulfillmentType.onSite => 'on_site',
+        FulfillmentType.pickup => 'pickup',
+        FulfillmentType.delivery => 'delivery',
+        FulfillmentType.other => 'other',
+      };
+}
+
 class OrderDataDto {
   const OrderDataDto({
     required this.id,
@@ -13,6 +48,9 @@ class OrderDataDto {
     required this.updatedAt,
     required this.merchantId,
     required this.items,
+    this.fulfillmentType = FulfillmentType.other,
+    this.facilityName,
+    this.districtName,
   });
 
   final String id;
@@ -26,6 +64,9 @@ class OrderDataDto {
   final DateTime updatedAt;
   final String merchantId;
   final List<OrderItemDto> items;
+  final FulfillmentType fulfillmentType;
+  final String? facilityName;
+  final String? districtName;
 
   factory OrderDataDto.fromJson(Map<String, dynamic> json) => OrderDataDto(
         id: json['id'] as String,
@@ -41,6 +82,10 @@ class OrderDataDto {
         items: (json['items'] as List)
             .map((e) => OrderItemDto.fromJson(e as Map<String, dynamic>))
             .toList(),
+        fulfillmentType:
+            FulfillmentType.fromWire(json['fulfillment_type'] as String?),
+        facilityName: json['facility_name'] as String?,
+        districtName: json['district_name'] as String?,
       );
 
   /// Lenient parser for the live WebSocket payload. Only [id] is required
@@ -65,6 +110,10 @@ class OrderDataDto {
           .whereType<Map<String, dynamic>>()
           .map(OrderItemDto.fromWireJson)
           .toList(),
+      fulfillmentType:
+          FulfillmentType.fromWire(json['fulfillment_type']?.toString()),
+      facilityName: json['facility_name'] as String?,
+      districtName: json['district_name'] as String?,
     );
   }
 }

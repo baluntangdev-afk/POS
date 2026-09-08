@@ -21,29 +21,18 @@ final deviceTokenRepositoryProvider = Provider<DeviceTokenRepository>((ref) {
 const _expiryGuard = Duration(seconds: 30);
 
 abstract class DeviceTokenRepository {
-  /// Returns a valid `/devices/token` bearer for [merchantId], minting a fresh
-  /// one only when the cached token is missing, for a different merchant, or
-  /// (nearly) expired.
-  ///
-  /// Throws [DeviceTokenException] — `noDeviceCredentials` when the device
-  /// hasn't registered, or the mapped backend rejection otherwise.
+
   Future<String> ensureToken(String merchantId);
 
-  /// Unconditionally mints a fresh token for [merchantId] and caches it,
-  /// replacing any stored one. Throws [DeviceTokenException] on failure.
   Future<String> refreshToken(String merchantId);
 
-  /// Forgets the cached token so the next [ensureToken] re-mints. Used on a
-  /// WebSocket auth rejection and when the device credentials are cleared.
   Future<void> invalidate();
 }
 
 class DeviceTokenRepositoryImpl implements DeviceTokenRepository {
-  const DeviceTokenRepositoryImpl(
-    this._api,
-    this._storage,
-    this._deviceStorage,
-  );
+  const DeviceTokenRepositoryImpl(this._api,
+      this._storage,
+      this._deviceStorage,);
 
   final DeviceTokenApi _api;
   final DeviceTokenStorage _storage;
@@ -54,8 +43,8 @@ class DeviceTokenRepositoryImpl implements DeviceTokenRepository {
     final cached = await _tryLatest();
     final isFresh =
         cached != null &&
-        cached.merchantId == merchantId &&
-        cached.expiresAt.isAfter(DateTime.now().add(_expiryGuard));
+            cached.merchantId == merchantId &&
+            cached.expiresAt.isAfter(DateTime.now().add(_expiryGuard));
     if (isFresh) return cached.token;
 
     return refreshToken(merchantId);

@@ -94,6 +94,9 @@ class OrderEventsDao extends DatabaseAccessor<AppDatabase>
             currency: event.data.currency,
             orderCreatedAt: event.data.createdAt.toIso8601String(),
             orderUpdatedAt: event.data.updatedAt.toIso8601String(),
+            fulfillmentType: Value(event.data.fulfillmentType.wireValue),
+            facilityName: Value(event.data.facilityName),
+            districtName: Value(event.data.districtName),
           ),
         );
 
@@ -159,6 +162,9 @@ class OrderEventsDao extends DatabaseAccessor<AppDatabase>
             orderTotal: Value(event.data.total),
             currency: Value(event.data.currency),
             orderUpdatedAt: Value(event.data.updatedAt.toIso8601String()),
+            fulfillmentType: Value(event.data.fulfillmentType.wireValue),
+            facilityName: Value(event.data.facilityName),
+            districtName: Value(event.data.districtName),
           ),
         );
         await (delete(orderItemsTable)..where((t) => t.eventId.equals(rowId)))
@@ -181,6 +187,9 @@ class OrderEventsDao extends DatabaseAccessor<AppDatabase>
             currency: event.data.currency,
             orderCreatedAt: event.data.createdAt.toIso8601String(),
             orderUpdatedAt: event.data.updatedAt.toIso8601String(),
+            fulfillmentType: Value(event.data.fulfillmentType.wireValue),
+            facilityName: Value(event.data.facilityName),
+            districtName: Value(event.data.districtName),
           ),
         );
       }
@@ -222,6 +231,9 @@ class OrderEventsDao extends DatabaseAccessor<AppDatabase>
           createdAt: DateTime.parse(e.orderCreatedAt),
           updatedAt: DateTime.parse(e.orderUpdatedAt),
           merchantId: e.merchantId,
+          fulfillmentType: FulfillmentType.fromWire(e.fulfillmentType),
+          facilityName: e.facilityName,
+          districtName: e.districtName,
           items: items
               .map(
                 (i) => OrderItemDto(

@@ -29,6 +29,15 @@ class EnvConfig {
   static String get wsBaseUrl {
     final apiUri = Uri.parse(apiBaseUrl);
     final scheme = apiUri.scheme == 'https' ? 'wss' : 'ws';
-    return Uri(scheme: scheme, host: apiUri.host, port: apiUri.port).toString();
+    // Uri only strips a default port for http/https, not ws/wss — so drop the
+    // port ourselves when it matches the scheme default to avoid a redundant
+    // `:443` / `:80` in the serialized URL.
+    final isDefaultPort = (scheme == 'wss' && apiUri.port == 443) ||
+        (scheme == 'ws' && apiUri.port == 80);
+    return Uri(
+      scheme: scheme,
+      host: apiUri.host,
+      port: isDefaultPort ? null : apiUri.port,
+    ).toString();
   }
 }

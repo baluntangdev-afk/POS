@@ -5,6 +5,7 @@ import 'package:gap/gap.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../widgets/device_registration_status_card.dart';
 
 String generateMerchantId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -13,7 +14,8 @@ String generateMerchantId() {
 }
 
 /// Shared dialog for merchant registration (no existing merchant) and editing
-/// (settings). Controlled entirely via callbacks — no Riverpod dependency.
+/// (settings). The form itself is controlled via callbacks; in settings mode it
+/// also embeds [DeviceRegistrationStatusCard], which reads its own providers.
 ///
 /// [initialMerchantId] / [initialMerchantName] — pre-fill values for edit mode.
 /// [isRegistration] — when true the dialog is non-dismissible and the action
@@ -129,6 +131,10 @@ class _MerchantFormDialogState extends State<MerchantFormDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (!widget.isRegistration) ...[
+                  const DeviceRegistrationStatusCard(),
+                  const Gap(AppSpacing.lg),
+                ],
                 if (widget.isRegistration) ...[
                   const Text(
                     'Set up your merchant profile to get started. '

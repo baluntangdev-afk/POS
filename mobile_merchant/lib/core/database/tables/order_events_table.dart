@@ -26,4 +26,10 @@ class OrderEventsTable extends Table {
   TextColumn get currency => text()();
   TextColumn get orderCreatedAt => text()();
   TextColumn get orderUpdatedAt => text()();
+
+  // Added in schema v4. `fulfillmentType` stores FulfillmentType.wireValue;
+  // a pre-v4 row reads back null and heals on the next fetch.
+  TextColumn get fulfillmentType => text().nullable()();
+  TextColumn get facilityName => text().nullable()();
+  TextColumn get districtName => text().nullable()();
 }

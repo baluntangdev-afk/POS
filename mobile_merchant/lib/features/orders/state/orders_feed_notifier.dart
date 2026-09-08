@@ -9,6 +9,8 @@ import '../../../core/di/injection.dart';
 import '../../../core/providers/connectivity_provider.dart';
 import '../../../core/storage/merchant_device_storage.dart';
 import '../../merchant/data/merchant_api.dart';
+import '../../merchant/domain/entities/device_startup_result.dart';
+import '../../merchant/domain/repositories/merchant_repository.dart';
 import '../../merchant/state/merchant_notifier.dart';
 import '../../../core/notifications/order_toast.dart';
 import '../../../core/services/notifications/order_notifications_service.dart';
@@ -22,9 +24,6 @@ const _maxBackoff = Duration(seconds: 30);
 const _stableConnectionThreshold = Duration(seconds: 5);
 const _readyTimeout = Duration(seconds: 10);
 
-/// After the first successful connect, the upstream service replays a backlog
-/// of existing orders. Mute toasts + OS notifications for this window so that
-/// initial burst doesn't spam the merchant. The list and local DB still update.
 const _hydrationMuteWindow = Duration(seconds: 4);
 
 enum OrdersFeedConnection { connecting, connected, reconnecting, disconnected }
@@ -56,18 +55,14 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
   Duration _backoff = _initialBackoff;
   DateTime? _connectedAt;
   String? _merchantId;
+
+  String? _startupDeviceId;
+  String? _startupDeviceSecret;
   final Queue<String> _recentEventIds = Queue();
   final Set<String> _seenEventIds = {};
 
-  /// Bumped on every [_connect] entry and on every teardown/reset. An in-flight
-  /// connect whose captured generation no longer matches has been superseded
-  /// (e.g. by [checkConnection] racing the provider's own `build`) and must
-  /// abandon its socket instead of wiring it up.
   int _connectGeneration = 0;
 
-  /// True while a [_connect] attempt is running. Lets [checkConnection]
-  /// distinguish "nothing is happening, start a connect" from "a connect is
-  /// already in flight, leave it alone".
   bool _connecting = false;
 
   /// Whether the feed has completed its first successful connect this session.
@@ -95,13 +90,14 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
       );
     }
 
-    // Only connect when the device is registered (webhook token present).
-    final webhookToken = await getIt<MerchantDeviceStorage>().token;
-    if (webhookToken == null || webhookToken.isEmpty) {
+    final startup = await ref.watch(deviceStartupProvider.future);
+    if (!startup.isApproved) {
       return const OrdersFeedState(
         connection: OrdersFeedConnection.disconnected,
       );
     }
+    _startupDeviceId = startup.deviceId;
+    _startupDeviceSecret = startup.deviceSecret;
 
     unawaited(_connect(merchant.merchantId));
     return OrdersFeedState(
@@ -110,15 +106,23 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     );
   }
 
-  /// Call from the dashboard after a merchant change or token refresh to verify
-  /// the socket is targeting the right merchant and reconnect if needed.
   Future<void> checkConnection() async {
     final merchant = await ref.read(merchantProvider.future);
-    final webhookToken = await getIt<MerchantDeviceStorage>().token;
+    final storage = getIt<MerchantDeviceStorage>();
+    final webhookToken = await storage.token;
+    // Same rule as [build]: only an affirmatively cached non-approved status
+    // blocks the feed; an absent cache fails open.
+    final deviceStatus = await storage.deviceStatus;
+    final deviceBlocked =
+        deviceStatus != null && deviceStatus != DeviceStatus.approved;
 
-    // Mirror [build]'s guard: no merchant, or an unregistered device (no
-    // webhook token), means there's nothing to connect to.
-    if (merchant == null || webhookToken == null || webhookToken.isEmpty) {
+    // Mirror [build]'s guard: no merchant, an unregistered device (no webhook
+    // token), or a known non-approved enrollment means there's nothing to
+    // connect to.
+    if (merchant == null ||
+        webhookToken == null ||
+        webhookToken.isEmpty ||
+        deviceBlocked) {
       _teardown();
       state = const AsyncData(
         OrdersFeedState(connection: OrdersFeedConnection.disconnected),
@@ -198,7 +202,21 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     try {
       _merchantId = merchantId;
 
-      final deviceToken = await _deviceTokenRepo.ensureToken(merchantId);
+      // Same order as `mobile/`'s OrdersFeedNotifier: refresh the `/auth/token`
+      // webhook JWT, then mint the `/devices/token` bearer, then handshake.
+      await _ensureWebhookToken(merchantId);
+      if (generation != _connectGeneration) return;
+
+      final storage = getIt<MerchantDeviceStorage>();
+      final webhookToken = await storage.token;
+      if (webhookToken == null || webhookToken.isEmpty) {
+        throw StateError('no webhook token available for POST /devices/token');
+      }
+      final deviceToken = await _deviceTokenRepo.mint(
+        webhookToken: webhookToken,
+        deviceId: _startupDeviceId ?? await storage.deviceId ?? '',
+        deviceSecret: _startupDeviceSecret,
+      );
       if (generation != _connectGeneration) return;
 
       final repository = OrdersLiveFeedRepository(EnvConfig.wsBaseUrl);
@@ -247,6 +265,13 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     }
   }
 
+  Future<void> _ensureWebhookToken(String merchantId) async {
+    // Delegates the freshness / merchant-scope check to the repository so the
+    // "re-mint when the stored token belongs to a different merchant" rule
+    // lives in exactly one place.
+    await getIt<MerchantRepository>().ensureWebhookToken(merchantId);
+  }
+
   void _onEvent(OrderEventDto event) {
     // Drop duplicate deliveries. The upstream service can redeliver, and it
     // replays a backlog on every resubscribe — the ring survives reconnects
@@ -273,6 +298,13 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
 
   void _onDrop([Object? error, StackTrace? stackTrace]) {
     if (_subscription == null) return;
+    final uptime = _connectedAt == null
+        ? 'n/a'
+        : '${DateTime.now().difference(_connectedAt!).inSeconds}s';
+    debugPrint(
+      '[OrdersFeed] socket dropped — close ${_session?.closeCode} '
+      '"${_session?.closeReason ?? ''}" (error: $error) after $uptime',
+    );
     unawaited(_subscription?.cancel());
     _subscription = null;
     unawaited(_session?.close());
@@ -295,10 +327,7 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     _backoff = doubled > _maxBackoff ? _maxBackoff : doubled;
   }
 
-  void _setConnection(
-    OrdersFeedConnection connection, {
-    String? merchantId,
-  }) {
+  void _setConnection(OrdersFeedConnection connection, {String? merchantId}) {
     final current = state.value;
     if (current == null) return;
     state = AsyncData(
@@ -339,6 +368,8 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
   void _teardown() {
     _resetConnection();
     _merchantId = null;
+    _startupDeviceId = null;
+    _startupDeviceSecret = null;
     _recentEventIds.clear();
     _seenEventIds.clear();
     _hasHydrated = false;

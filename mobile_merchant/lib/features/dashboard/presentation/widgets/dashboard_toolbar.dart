@@ -6,7 +6,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
+import '../../../merchant/domain/entities/device_startup_result.dart';
 import '../../../merchant/domain/entities/merchant.dart';
+import '../../../merchant/presentation/dialogs/device_status_dialog.dart';
 import '../../../merchant/presentation/dialogs/merchant_form_dialog.dart';
 import '../../../merchant/state/merchant_notifier.dart';
 import 'connection_status_indicator.dart';
@@ -42,6 +44,7 @@ class DashboardToolbar extends ConsumerWidget {
                 child: _Brand(merchant: merchantAsync.value),
               ),
               const SizedBox(width: 12),
+              const _DeviceStatusButton(),
               ConnectionStatusIndicator(showLabel: w > 600),
               const SizedBox(width: 12),
               Container(width: 1, height: 28, color: AppColors.border),
@@ -75,6 +78,50 @@ class DashboardToolbar extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Shown only while the device is enrolled but not approved (`pending` /
+/// `deactivated`). Tapping re-opens [DeviceStatusDialog], whose "Check again"
+/// re-runs the approval probe — the merchant's only way back to that check
+/// once the startup dialog has been dismissed, short of restarting the app.
+class _DeviceStatusButton extends ConsumerWidget {
+  const _DeviceStatusButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final startup = ref.watch(deviceStartupProvider).value;
+    if (startup == null || startup.status == null || startup.isApproved) {
+      return const SizedBox.shrink();
+    }
+
+    final status = startup.status;
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: IconButton(
+        tooltip: status == DeviceStatus.deactivated
+            ? 'Device deactivated — tap for details'
+            : 'Waiting for approval — tap to re-check',
+        icon: Icon(
+          status == DeviceStatus.deactivated
+              ? Icons.block_rounded
+              : Icons.hourglass_top_rounded,
+          color: AppColors.warning,
+          size: 22,
+        ),
+        onPressed: () async {
+          final result = await DeviceStatusDialog.show(
+            context,
+            status: status,
+            merchantName: ref.read(merchantProvider).value?.merchantName,
+            reviewNote: startup.reviewNote,
+          );
+          if (result != null && result.isApproved && context.mounted) {
+            AppSnackbar.success(context, 'Device approved — you\'re all set.');
+          }
+        },
+      ),
     );
   }
 }

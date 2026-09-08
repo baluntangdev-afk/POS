@@ -1,7 +1,5 @@
 import 'package:logger/logger.dart';
 
-import '../config/env_config.dart';
-
 /// App-wide logging facade. Never use `print()` — always go through this.
 class AppLogger {
   const AppLogger._();

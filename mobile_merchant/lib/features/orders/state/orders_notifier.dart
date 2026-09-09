@@ -59,6 +59,8 @@ class OrdersNotifier extends AsyncNotifier<OrdersState> {
         merchantId: merchant.merchantId,
         token: token,
       );
+      // `result.events` is already current-state: MerchantOrdersDto applies
+      // `order.deleted` tombstones and drops unparseable events.
       await dao.replaceAll(merchant.merchantId, result.events);
       return OrdersState(events: result.events);
     } catch (e, s) {
@@ -141,6 +143,11 @@ class OrdersNotifier extends AsyncNotifier<OrdersState> {
   Future<void> applyLiveEvent(OrderEventDto event, String merchantId) async {
     if (!_rememberApplied(event.eventId)) return;
 
+    if (event.eventType == 'order.deleted') {
+      await _applyDeletedEvent(event, merchantId);
+      return;
+    }
+
     try {
       await getIt<AppDatabase>()
           .orderEventsDao
@@ -154,6 +161,32 @@ class OrdersNotifier extends AsyncNotifier<OrdersState> {
     state = AsyncData(
       OrdersState(
         events: mergeLiveOrderEvent(current.events, event),
+        isStale: current.isStale,
+      ),
+    );
+  }
+
+  /// Applies one live `order.deleted` event: drop the local row (and its line
+  /// items), then remove the order from the in-memory list. A DB failure is
+  /// logged but never blocks the UI update.
+  Future<void> _applyDeletedEvent(
+    OrderEventDto event,
+    String merchantId,
+  ) async {
+    try {
+      await getIt<AppDatabase>()
+          .orderEventsDao
+          .deleteOrder(merchantId, event.data.id);
+    } catch (e, s) {
+      AppLogger.logError('OrdersNotifier._applyDeletedEvent', e, s);
+    }
+
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncData(
+      OrdersState(
+        events:
+            current.events.where((e) => e.data.id != event.data.id).toList(),
         isStale: current.isStale,
       ),
     );

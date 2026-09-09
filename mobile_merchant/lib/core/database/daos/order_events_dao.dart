@@ -115,6 +115,25 @@ class OrderEventsDao extends DatabaseAccessor<AppDatabase>
     });
   }
 
+  /// Removes the cached event and its line items for [orderId] under
+  /// [merchantId] — the local side of an `order.deleted` live event. A no-op
+  /// when nothing matches. Runs in a single transaction.
+  Future<void> deleteOrder(String merchantId, String orderId) async {
+    await transaction(() async {
+      final rowIds = await (select(orderEventsTable)
+            ..where((t) =>
+                t.orderId.equals(orderId) & t.merchantId.equals(merchantId)))
+          .map((e) => e.id)
+          .get();
+
+      if (rowIds.isEmpty) return;
+
+      await (delete(orderItemsTable)..where((t) => t.eventId.isIn(rowIds)))
+          .go();
+      await (delete(orderEventsTable)..where((t) => t.id.isIn(rowIds))).go();
+    });
+  }
+
   /// Updates the `order_status` column for every event that belongs to [orderId].
   Future<void> updateOrderStatus(String orderId, String newStatus) =>
       (update(orderEventsTable)..where((t) => t.orderId.equals(orderId))).write(

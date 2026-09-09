@@ -14,6 +14,7 @@ import '../../../features/orders/data/models/order_event_dto.dart';
             '${d.items.length} item${d.items.length == 1 ? '' : 's'} · ${d.currency} ${d.total.toStringAsFixed(2)}',
       ),
     'order.cancelled' => (title: 'Order #${d.id} cancelled', body: ''),
+    'order.deleted' => (title: 'Order #${d.id} removed', body: ''),
     _ => (title: 'Order #${d.id} updated', body: 'Status: ${d.status}'),
   };
 }

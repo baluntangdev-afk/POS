@@ -68,25 +68,37 @@ class OrderDataDto {
   final String? facilityName;
   final String? districtName;
 
-  factory OrderDataDto.fromJson(Map<String, dynamic> json) => OrderDataDto(
-        id: json['id'] as String,
-        customerId: json['customer_id'] as String,
-        customerName: json['customer_name'] as String?,
-        customerEmail: json['customer_email'] as String?,
-        status: json['status'] as String,
-        total: (json['total'] as num).toDouble(),
-        currency: json['currency'] as String,
-        createdAt: DateTime.parse(json['created_at'] as String),
-        updatedAt: DateTime.parse(json['updated_at'] as String),
-        merchantId: json['merchant_id'] as String,
-        items: (json['items'] as List)
-            .map((e) => OrderItemDto.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        fulfillmentType:
-            FulfillmentType.fromWire(json['fulfillment_type'] as String?),
-        facilityName: json['facility_name'] as String?,
-        districtName: json['district_name'] as String?,
-      );
+  /// Parses one event's `data` object off the REST `GET /merchant/orders`
+  /// feed. Only [id] is required (its absence is a real error). Every other
+  /// field falls back to a default: the feed is an event *log* that mixes full
+  /// order events with identity-only `order.deleted` tombstones (no status /
+  /// total / currency / items), and one such event must not throw and abort
+  /// the whole order-list parse. Same leniency as [fromWireJson].
+  factory OrderDataDto.fromJson(Map<String, dynamic> json) {
+    final created = DateTime.tryParse(json['created_at']?.toString() ?? '');
+    final updated = DateTime.tryParse(json['updated_at']?.toString() ?? '');
+    final epoch = DateTime.fromMillisecondsSinceEpoch(0);
+    return OrderDataDto(
+      id: json['id'] as String,
+      customerId: json['customer_id']?.toString() ?? '',
+      customerName: json['customer_name'] as String?,
+      customerEmail: json['customer_email'] as String?,
+      status: json['status']?.toString() ?? 'unknown',
+      total: (json['total'] as num?)?.toDouble() ?? 0,
+      currency: json['currency']?.toString() ?? '',
+      createdAt: created ?? updated ?? epoch,
+      updatedAt: updated ?? created ?? epoch,
+      merchantId: json['merchant_id']?.toString() ?? '',
+      items: (json['items'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(OrderItemDto.fromWireJson)
+          .toList(),
+      fulfillmentType:
+          FulfillmentType.fromWire(json['fulfillment_type']?.toString()),
+      facilityName: json['facility_name'] as String?,
+      districtName: json['district_name'] as String?,
+    );
+  }
 
   /// Lenient parser for the live WebSocket payload. Only [id] is required
   /// (its absence throws, and the caller treats that as a dropped event);

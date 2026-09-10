@@ -213,7 +213,7 @@ class _UserGrid extends StatelessWidget {
         maxCrossAxisExtent: 160,
         mainAxisSpacing: AppSpacing.md,
         crossAxisSpacing: AppSpacing.md,
-        childAspectRatio: 1.0,
+        childAspectRatio: 0.85,
       ),
       itemCount: users.length,
       itemBuilder: (_, i) {
@@ -227,37 +227,49 @@ class _UserGrid extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               boxShadow: AppShadows.card,
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: AppGradients.primary,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    user.name[0].toUpperCase(),
-                    style: AppTextStyles.headingLg.copyWith(
-                      color: AppColors.textOnPrimary,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.sm,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: AppGradients.primary,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      user.name[0].toUpperCase(),
+                      style: AppTextStyles.headingLg.copyWith(
+                        color: AppColors.textOnPrimary,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  user.name,
-                  style: AppTextStyles.labelLg,
-                  textAlign: TextAlign.center,
-                ),
-                Text(
-                  user.role,
-                  style: AppTextStyles.labelMd.copyWith(
-                    color: AppColors.textSecondary,
+                  const SizedBox(height: AppSpacing.sm),
+                  Flexible(
+                    child: Text(
+                      user.name,
+                      style: AppTextStyles.labelLg,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              ],
+                  Text(
+                    user.role,
+                    style: AppTextStyles.labelMd.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ),
         );

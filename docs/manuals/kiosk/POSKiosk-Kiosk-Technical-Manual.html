@@ -1,0 +1,133 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>POS Kiosk — Technical Manual</title><style>
+:root{
+  --teal:#1B7A8C; --teal-d:#125863; --olive:#BCBE68; --olive-d:#8f9142;
+  --ink:#1f2733; --ink-soft:#45505f; --muted:#6b7685;
+  --bg:#ffffff; --panel:#f4f7f8; --panel-2:#eef3f4;
+  --line:#d7dee2; --line-soft:#e7ecee;
+  --warn-bg:#fff4e5; --warn-line:#e08a1e; --warn-ink:#8a4b00;
+  --note-bg:#e9f4f6; --note-line:#1B7A8C;
+  --ok-bg:#ecf6ec; --ok-line:#3f8f3f;
+  --code-bg:#f2f4f5;
+}
+*{box-sizing:border-box}
+html{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+body{font-family:"Segoe UI",Arial,Helvetica,sans-serif; color:var(--ink);
+  font-size:10.6pt; line-height:1.5; margin:0}
+h1,h2,h3,h4{font-family:"Segoe UI Semibold","Segoe UI",Arial,sans-serif; line-height:1.25}
+p{margin:.45em 0}
+a{color:var(--teal-d); text-decoration:none}
+small{color:var(--muted)}
+
+/* ---- cover ---- */
+.cover{height:247mm; display:flex; flex-direction:column; justify-content:center;
+  padding:0 22mm; background:linear-gradient(150deg,var(--teal) 0%,var(--teal-d) 62%,#0d454e 100%);
+  color:#fff; page-break-after:always}
+.cover .kicker{font-size:12pt; letter-spacing:.32em; text-transform:uppercase; color:var(--olive); font-weight:700}
+.cover h1{font-size:33pt; margin:.35em 0 .15em; font-weight:700; letter-spacing:-.01em}
+.cover .sub{font-size:15pt; color:#d8ecef; font-weight:400; max-width:150mm}
+.cover .aud{margin-top:26mm; font-size:11pt; color:#bfe0e4}
+.cover .aud b{display:block; font-size:16pt; color:#fff; letter-spacing:.02em; margin-top:2mm}
+.cover .meta{margin-top:auto; padding-top:14mm; border-top:2px solid rgba(255,255,255,.28);
+  font-size:9.5pt; color:#bcdde1; display:flex; justify-content:space-between}
+
+/* ---- running heads via @page not available in chrome print w/o header; use section rhythm ---- */
+.wrap{padding:16mm 18mm 20mm}
+
+/* ---- table of contents ---- */
+.toc{page-break-after:always; padding:16mm 18mm}
+.toc h2{color:var(--teal); font-size:20pt; border-bottom:2px solid var(--olive); padding-bottom:3mm; margin:0 0 6mm}
+.toc ol{list-style:none; margin:0; padding:0; counter-reset:toc}
+.toc li{counter-increment:toc; padding:2.1mm 0; border-bottom:1px solid var(--line-soft);
+  display:flex; gap:4mm; font-size:10.5pt}
+.toc li::before{content:counter(toc) "."; color:var(--olive-d); font-weight:700; min-width:9mm}
+.toc li .pg{margin-left:auto; color:var(--muted)}
+.toc li.sub{padding-left:13mm; font-size:9.7pt; color:var(--ink-soft); border-bottom:1px dotted var(--line-soft)}
+.toc li.sub::before{content:""}
+
+/* ---- headings ---- */
+section{page-break-before:always}
+section.cont{page-break-before:auto}
+h2.sec{color:#fff; background:var(--teal); border-left:6px solid var(--olive);
+  font-size:15.5pt; margin:0 0 5mm; padding:3.2mm 5mm; border-radius:2px}
+h3{color:var(--teal-d); font-size:12.6pt; margin:7mm 0 2mm; border-bottom:1px solid var(--olive);
+  padding-bottom:1.4mm}
+h4{color:var(--ink); font-size:10.9pt; margin:5mm 0 1mm}
+
+/* ---- lists ---- */
+ul,ol{margin:.4em 0; padding-left:6.5mm}
+li{margin:1.3mm 0}
+ol.steps{counter-reset:st; list-style:none; padding-left:0; margin:3mm 0}
+ol.steps>li{counter-increment:st; position:relative; padding:2.4mm 0 2.4mm 12mm; border-bottom:1px solid var(--line-soft)}
+ol.steps>li:last-child{border-bottom:none}
+ol.steps>li::before{content:counter(st); position:absolute; left:0; top:2.2mm;
+  width:8mm; height:8mm; background:var(--teal); color:#fff; border-radius:50%;
+  font-size:9pt; font-weight:700; display:flex; align-items:center; justify-content:center}
+
+/* ---- callouts ---- */
+.box{border-radius:3px; padding:3mm 4mm; margin:3.5mm 0; font-size:9.9pt; page-break-inside:avoid}
+.box b{text-transform:uppercase; letter-spacing:.04em; font-size:8.7pt}
+.box.note{background:var(--note-bg); border-left:4px solid var(--note-line)}
+.box.warn{background:var(--warn-bg); border-left:4px solid var(--warn-line); color:var(--warn-ink)}
+.box.ok{background:var(--ok-bg); border-left:4px solid var(--ok-line)}
+
+/* ---- tables ---- */
+table{border-collapse:collapse; width:100%; margin:3.5mm 0; font-size:9.6pt; page-break-inside:avoid}
+th,td{border:1px solid var(--line); padding:2mm 3mm; text-align:left; vertical-align:top}
+th{background:var(--panel-2); color:var(--teal-d); font-weight:700}
+tr:nth-child(even) td{background:var(--panel)}
+td code, p code, li code{background:var(--code-bg); padding:.5mm 1.4mm; border-radius:2px;
+  font-family:"Cascadia Mono",Consolas,monospace; font-size:8.8pt}
+pre{background:#1e2732; color:#e8edf2; padding:3.5mm 4mm; border-radius:3px; overflow:auto;
+  font-family:"Cascadia Mono",Consolas,monospace; font-size:8.6pt; line-height:1.45; margin:3mm 0;
+  page-break-inside:avoid}
+pre .c{color:#8aa0b4}
+
+.lead{font-size:11pt; color:var(--ink-soft); margin-bottom:5mm}
+.tag{display:inline-block; background:var(--olive); color:#31330f; font-size:8pt; font-weight:700;
+  padding:.6mm 2mm; border-radius:2px; letter-spacing:.03em; vertical-align:middle}
+.role{display:inline-block; border:1px solid var(--teal); color:var(--teal-d); font-size:8pt;
+  font-weight:700; padding:.4mm 1.8mm; border-radius:10px; margin-left:2mm}
+hr.soft{border:none; border-top:1px solid var(--line-soft); margin:6mm 0}
+.footer{margin-top:12mm; padding-top:4mm; border-top:1px solid var(--line);
+  color:var(--muted); font-size:8.4pt; text-align:center}
+</style></head><body>
+<div class="cover">
+  <div class="kicker">POS Kiosk System</div>
+  <h1>POS Kiosk — Technical Manual</h1>
+  <div class="sub">Architecture, environment setup, build, packaging and troubleshooting for the Flutter Windows kiosk app.</div>
+  <div class="aud">Written for<b>Developers, Integrators &amp; IT Staff</b></div>
+  <div class="meta"><span>Version 1.0 &nbsp;&middot;&nbsp; September 2026</span><span>Confidential &mdash; for authorized personnel</span></div>
+</div>
+<div class="toc"><h2>Contents</h2><ol><li>Overview &amp; architecture<span class='pg'></span></li><li>Prerequisites<span class='pg'></span></li><li>Environment configuration<span class='pg'></span></li><li>Install, generate, run<span class='pg'></span></li><li>Code generation<span class='pg'></span></li><li>Navigation &amp; routes<span class='pg'></span></li><li>Feature → backend endpoint map<span class='pg'></span></li><li>Windows specifics<span class='pg'></span></li><li>Building a release &amp; packaging<span class='pg'></span></li><li>Troubleshooting<span class='pg'></span></li></ol>
+<p style="margin-top:8mm;color:var(--muted);font-size:9pt">Section numbers above match the numbered banners in the body. Use your PDF reader's bookmarks / outline panel to jump between sections.</p>
+<div class='box note'><b>Note</b> &nbsp;Commands are shown for a Windows developer machine using PowerShell or Git Bash. The kiosk app lives in the <code>kiosk/</code> folder of the repository.</div>
+</div>
+<section><h2 class='sec'>1. Overview &amp; architecture</h2><p class='lead'>The kiosk is a Flutter desktop application targeting Windows (Android is also buildable). It is a thin client: all business logic and persistence live in the NestJS backend.</p><h3>1.1 Stack</h3><table><thead><tr><th>Concern</th><th>Choice</th></tr></thead><tbody><tr><td>UI toolkit</td><td>Flutter (Dart <code>^3.7.2</code>), pinned via FVM (<code>.fvmrc</code>)</td></tr><tr><td>State management</td><td>Hooks Riverpod (<code>hooks_riverpod</code> + <code>flutter_hooks</code>)</td></tr><tr><td>Navigation</td><td>GoRouter with typed routes (<code>go_router_builder</code> codegen)</td></tr><tr><td>Serialization</td><td><code>dart_mappable</code> (<code>*.mapper.dart</code>)</td></tr><tr><td>HTTP</td><td>Dio, with an auth interceptor</td></tr><tr><td>Config</td><td><code>envied</code> (compile-time env, <code>env.g.dart</code>)</td></tr><tr><td>Windows integration</td><td><code>window_manager</code>, <code>win32</code>, <code>screen_retriever</code>, <code>desktop_multi_window</code></td></tr><tr><td>Printing</td><td><code>esc_pos_utils_plus</code> (ESC/POS receipts)</td></tr><tr><td>Assets</td><td><code>flutter_gen</code> (<code>lib/gen/assets.gen.dart</code>)</td></tr></tbody></table><h3>1.2 Data flow</h3><pre>View (HookConsumerWidget)
+  -> Riverpod provider (state/)
+    -> Repository (repositories/)
+      -> API source (lib/data/backend_api/sources/)
+        -> Dio client (api_clients.dart, auth interceptor)
+          -> Backend  http://&lt;host>:3000/api/v1</pre><h3>1.3 Feature module layout</h3><pre>lib/features/&lt;feature>/
+  entities/       immutable domain models + .mapper.dart
+  repositories/   abstract interface + Impl calling the API layer
+  state/          Riverpod AsyncNotifier / StateNotifier providers
+  use_cases/      (optional) single-responsibility operations
+  view/           screens &amp; dialogs (HookConsumerWidget)</pre><h3>1.4 HTTP layer</h3><pre>lib/data/backend_api/
+  sources/        one class per backend resource (ProductsApi, ...)
+  schemas/        @MappableClass DTOs mirroring backend DTOs
+  mappers/        custom dart_mappable type mappers
+                  (ImageUrlMapper, DateTimeWithOffsetMapper, ...)
+  api_clients.dart  Dio provider wired with the auth interceptor</pre><div class='box note'><b>Note</b> &nbsp;Clean-architecture rule: <code>lib/data/</code> must never import <code>lib/features/</code>. Error translation (DioException &rarr; ApiException) belongs in the data layer.</div><div class='footer'>POS Kiosk — Technical Manual &nbsp;&middot;&nbsp; Version 1.0 &nbsp;&middot;&nbsp; September 2026</div></section><section><h2 class='sec'>2. Prerequisites</h2><table><thead><tr><th>Tool</th><th>Version</th><th>Notes</th></tr></thead><tbody><tr><td>Flutter SDK</td><td>3.x (stable), pinned by FVM</td><td><code>dart pub global activate fvm</code> then <code>fvm use stable</code></td></tr><tr><td>Dart SDK</td><td><code>^3.7.2</code></td><td>Bundled with Flutter</td></tr><tr><td>Node.js</td><td>18+</td><td>Only needed if you also build the backend / installer</td></tr><tr><td>Visual Studio (Desktop C++)</td><td>2022</td><td>Required by <code>flutter build windows</code></td></tr><tr><td>A running backend</td><td>—</td><td>The app checks <code>/api/v1/health/live</code> on start-up</td></tr></tbody></table><p>Confirm the toolchain with <code>fvm flutter doctor</code>.</p><div class='footer'>POS Kiosk — Technical Manual &nbsp;&middot;&nbsp; Version 1.0 &nbsp;&middot;&nbsp; September 2026</div></section><section><h2 class='sec'>3. Environment configuration</h2><p>Copy <code>kiosk/.env.sample</code> to <code>kiosk/.env</code> and fill every value. Variables are read at <b>compile time</b> by <code>envied</code>, so you must re-run code generation after changing them.</p><table><thead><tr><th>Variable</th><th>Purpose</th></tr></thead><tbody><tr><td><code>BACKEND_API_BASE_URL</code></td><td>Base URL of the NestJS API, including <code>/api/v1</code> (e.g. <code>http://localhost:3000/api/v1</code>).</td></tr><tr><td><code>SECURE_STORAGE_KEY</code></td><td>Key used to encrypt tokens in secure local storage.</td></tr><tr><td><code>ORDERS_LIVE_FEED_WS_URL</code></td><td>WebSocket URL for the live channel-orders feed (Orders board).</td></tr><tr><td><code>CARTIVO_AUTH_API_BASE_URL</code></td><td>Base URL for the external ordering-platform auth service.</td></tr><tr><td><code>ORDERS_EVENTS_API_BASE_URL</code></td><td>Base URL for the channel-order events / history API.</td></tr><tr><td><code>CLIENT_ID</code></td><td>Client identifier for the external orders integration.</td></tr><tr><td><code>WEBHOOK_SECRET</code></td><td>Shared secret used to verify inbound order webhooks.</td></tr></tbody></table><div class='box note'><b>Note</b> &nbsp;Every new variable must also be declared as an <code>@EnviedField()</code> on the <code>Env</code> class in <code>lib/config/environment/</code>, or the build will not see it.</div><div class='footer'>POS Kiosk — Technical Manual &nbsp;&middot;&nbsp; Version 1.0 &nbsp;&middot;&nbsp; September 2026</div></section><section><h2 class='sec'>4. Install, generate, run</h2><h3>4.1 First-time setup</h3><pre>cd kiosk
+dart pub global activate fvm            # once per machine
+fvm use stable                          # install the pinned Flutter
+cp .env.sample .env                     # then edit .env
+fvm flutter pub get
+fvm dart run build_runner build --delete-conflicting-outputs</pre><h3>4.2 Run</h3><pre>fvm flutter run -d windows              # desktop
+fvm flutter run -d android              # android (optional)</pre><p>In dev mode <code>main.dart</code> sizes the window to <b>1536&times;864</b>; in a release build it goes full-screen.</p><h3>4.3 Analyze</h3><pre>fvm dart analyze</pre><div class='box note'><b>Note</b> &nbsp;For <b>mobile-only</b> work in the sibling <code>mobile/</code> and <code>mobile_merchant/</code> apps, verify with <code>dart analyze</code> and do not run or modify <code>be/</code> or <code>kiosk/</code>.</div><div class='footer'>POS Kiosk — Technical Manual &nbsp;&middot;&nbsp; Version 1.0 &nbsp;&middot;&nbsp; September 2026</div></section><section><h2 class='sec'>5. Code generation</h2><p>Four generators run through <code>build_runner</code>. Re-run it after touching any annotated file. Never hand-edit generated output.</p><table><thead><tr><th>Generator</th><th>Produces</th><th>From</th></tr></thead><tbody><tr><td><code>dart_mappable</code></td><td><code>*.mapper.dart</code></td><td><code>@MappableClass</code> types (entities, API schemas)</td></tr><tr><td><code>envied_generator</code></td><td><code>env.g.dart</code></td><td>The <code>Env</code> class + <code>.env</code></td></tr><tr><td><code>go_router_builder</code></td><td><code>router.g.dart</code></td><td><code>@TypedGoRoute</code> route classes</td></tr><tr><td><code>flutter_gen</code></td><td><code>lib/gen/assets.gen.dart</code></td><td><code>pubspec.yaml</code> assets</td></tr></tbody></table><pre>fvm dart run build_runner build --delete-conflicting-outputs
+# or, while iterating:
+fvm dart run build_runner watch  --delete-conflicting-outputs</pre><div class='footer'>POS Kiosk — Technical Manual &nbsp;&middot;&nbsp; Version 1.0 &nbsp;&middot;&nbsp; September 2026</div></section><section><h2 class='sec'>6. Navigation &amp; routes</h2><p>Routes are defined as typed <code>GoRouteData</code> classes under <code>lib/navigation/</code> and assembled in <code>router.dart</code>. Initial location is <code>StartupRoute</code>.</p><table><thead><tr><th>Route</th><th>Path</th><th>Screen</th></tr></thead><tbody><tr><td>StartupRoute</td><td><code>/</code></td><td>Backend health poll, then redirects to Login</td></tr><tr><td>OnboardingRoute</td><td><code>/onboarding</code></td><td>Welcome / Touch To Start</td></tr><tr><td>LoginRoute</td><td><code>/login</code></td><td>Roster + PIN pad</td></tr><tr><td>SetupPinRoute</td><td><code>/setup-pin</code></td><td>Forced PIN change</td></tr><tr><td>MenuRoute</td><td><code>/menu</code></td><td>Main menu grid (role-filtered)</td></tr><tr><td>OrderingRoute</td><td><code>/ordering</code></td><td>New Order (product grid + order panel)</td></tr><tr><td>CartRoute / DiscountRoute / PaymentRoute / ReceiptRoute</td><td><code>/cart</code> &hellip;</td><td>Checkout flow</td></tr><tr><td>OrdersRoute</td><td><code>/orders</code></td><td>Channel-orders kanban board</td></tr><tr><td>TransactionsRoute</td><td><code>/transactions</code></td><td>Sales history + report launchers</td></tr><tr><td>RefundRoute</td><td><code>/refund</code></td><td>Process Refund</td></tr><tr><td>ProductsRoute (Inventory)</td><td><code>/inventory</code></td><td>Inventory Management (Products / Categories)</td></tr><tr><td>UserManagementRoute</td><td><code>/user-management</code></td><td>Employee accounts</td></tr><tr><td>DeviceTransferRoute</td><td><code>/device-transfer</code></td><td>Backup &amp; Transfer hub</td></tr><tr><td>CashierReportRoute / CashierDailyReportRoute / ZReadingRoute / CashierReportsRoute</td><td><code>/cashier-report</code>, <code>/z-reading</code>, &hellip;</td><td>X-Reading, Cashier Daily Report, Z-Reading, history (with <code>/history/:id</code> detail variants)</td></tr></tbody></table><div class='box note'><b>Note</b> &nbsp;A <code>WindowsTouchKeyboardObserver</code> is registered as a navigator observer to manage the on-screen keyboard.</div><div class='footer'>POS Kiosk — Technical Manual &nbsp;&middot;&nbsp; Version 1.0 &nbsp;&middot;&nbsp; September 2026</div></section><section><h2 class='sec'>7. Feature → backend endpoint map</h2><p>Which API each screen talks to (all under <code>/api/v1</code>). Keep DTO schemas in <code>lib/data/backend_api/schemas/</code> in sync with the backend.</p><table><thead><tr><th>Feature / screen</th><th>Primary endpoints</th></tr></thead><tbody><tr><td>Start-up</td><td><code>GET /health/live</code></td></tr><tr><td>Login roster / PIN</td><td><code>GET /users/roster</code>, <code>POST /auth/login/pin</code>, <code>POST /auth/refresh</code>, <code>GET /auth/me</code></td></tr><tr><td>PIN change</td><td><code>PATCH /users/:id</code>, <code>POST /users/verify-pin</code></td></tr><tr><td>Main menu / terminal gate</td><td><code>GET /pos-terminals/my-terminal</code></td></tr><tr><td>New Order (products)</td><td><code>GET /catalog/products</code>, <code>GET /catalog/categories</code>, <code>GET /products/:id</code>, <code>GET /product-variants/by-product/:id</code>, <code>GET /catalog/modifier-groups</code></td></tr><tr><td>Checkout / sale</td><td><code>POST /sales-orders</code>, <code>PATCH /sales-orders/:id/item/:itemId</code>, <code>PATCH /sales-orders/:id/discount</code>, <code>PATCH /sales-orders/:id/confirm</code>, <code>POST /payments</code></td></tr><tr><td>Transactions</td><td><code>GET /sales-orders</code>, <code>GET /sales-orders/:id/with-items</code></td></tr><tr><td>Void / Refund</td><td><code>PATCH /sales-orders/:id/void</code>, <code>POST /refunds</code>, <code>POST /users/verify-pin</code></td></tr><tr><td>Orders board</td><td>WS <code>ORDERS_LIVE_FEED_WS_URL</code>, <code>ORDERS_EVENTS_API_BASE_URL</code>, <code>CARTIVO_AUTH_API_BASE_URL</code></td></tr><tr><td>Inventory Management</td><td><code>GET/POST/PATCH /products</code>, <code>POST /products/import-csv</code>, <code>catalog/admin</code> category endpoints, <code>/product-variants</code>, <code>/modifier-groups</code></td></tr><tr><td>User management</td><td><code>GET/POST /users</code>, <code>PATCH/DELETE /users/:id</code>, <code>GET /users/authorizers</code></td></tr><tr><td>Settings / terminal</td><td><code>GET/PATCH /pos-terminals/my-terminal</code>, <code>POST /pos-terminals/register</code>, <code>.../my-terminal/payment-methods</code></td></tr><tr><td>X / Daily / Z readings</td><td><code>reports/cashier-x-reading*</code>, <code>reports/cashier-daily-report*</code>, <code>reports/z-reading*</code></td></tr><tr><td>Backup &amp; Transfer</td><td><code>POST /device-transfer/export</code>, <code>POST /device-transfer/import</code></td></tr></tbody></table><div class='footer'>POS Kiosk — Technical Manual &nbsp;&middot;&nbsp; Version 1.0 &nbsp;&middot;&nbsp; September 2026</div></section><section><h2 class='sec'>8. Windows specifics</h2><h3>8.1 Fullscreen &amp; DPI</h3><ul><li><code>main.dart</code> initialises <code>window_manager</code>; production builds go borderless full-screen, dev builds use 1536&times;864.</li><li><code>win32</code> is used for high-DPI awareness.</li></ul><h3>8.2 Customer display second window</h3><p><code>main.dart</code> checks the window argument: the normal engine runs the cashier app, a second engine (<code>desktop_multi_window</code>) runs the customer display. <code>screen_retriever</code> finds the non-primary monitor (falling back to visible-position comparison when a display reports an empty id) and positions the window there without stealing focus. <code>CustomerDisplayHost</code> in the cashier engine pushes debounced snapshots to it.</p><h3>8.3 On-screen keyboard</h3><p>Text fields use <code>KeyboardSuppress</code> helpers plus a <code>PhysicalKeyboardDetector</code> so that a hardware keyboard, when attached, disables the touch keyboard automatically.</p><h3>8.4 Printing</h3><p>Receipts and X/Z/daily reports are encoded to ESC/POS byte streams (<code>encode_esc_pos_*</code> use cases) and also rendered to PDF (<code>render_*_pdf</code>) for preview / archive.</p><div class='footer'>POS Kiosk — Technical Manual &nbsp;&middot;&nbsp; Version 1.0 &nbsp;&middot;&nbsp; September 2026</div></section><section><h2 class='sec'>9. Building a release &amp; packaging</h2><h3>9.1 Standalone Windows build</h3><pre>cd kiosk
+fvm flutter build windows --release
+# output: kiosk\build\windows\x64\runner\Release\
+#   pos_app.exe, *.dll, data\</pre><h3>9.2 As part of the one-click installer</h3><p>From the repo root, <code>build-installer.bat</code> runs Flutter codegen, then builds the Flutter app and the backend SEA in parallel, then compiles the Inno Setup installer. See the <i>Backend — Technical Manual</i> for the full installer walkthrough.</p><table><thead><tr><th>Installed component</th><th>Location</th><th>Runs as</th></tr></thead><tbody><tr><td>Flutter app (<code>pos_app.exe</code>)</td><td><code>C:\POSKiosk\</code></td><td>Desktop app / autostart</td></tr><tr><td>Backend SEA (<code>POSBackend.exe</code>)</td><td><code>C:\POSKiosk\backend\</code></td><td>Service <code>POSBackendService</code> (NSSM)</td></tr><tr><td>PostgreSQL 16</td><td><code>C:\POSKiosk\pgsql\</code></td><td>Service <code>POSPostgres</code></td></tr></tbody></table><div class='box note'><b>Note</b> &nbsp;Runtime kiosk identity on an installed machine comes from <code>C:\POSKiosk\settings.txt</code> (<code>kiosk.no=&lt;n&gt;</code>), written by the installer wizard — not from <code>.env</code>.</div><div class='footer'>POS Kiosk — Technical Manual &nbsp;&middot;&nbsp; Version 1.0 &nbsp;&middot;&nbsp; September 2026</div></section><section><h2 class='sec'>10. Troubleshooting</h2><table><thead><tr><th>Symptom</th><th>Cause / fix</th></tr></thead><tbody><tr><td>App stays on start-up screen</td><td>Health poll to <code>/health/live</code> failing. Check <code>POSBackendService</code> and <code>POSPostgres</code> are Running; check <code>BACKEND_API_BASE_URL</code>. On an installed machine run <code>C:\POSKiosk\scripts\recover-services.bat</code> as admin.</td></tr><tr><td><code>build_runner</code> errors after a pull</td><td>Run with <code>--delete-conflicting-outputs</code>; if still broken, <code>fvm flutter clean &amp;&amp; fvm flutter pub get</code> then regenerate.</td></tr><tr><td>Env value not picked up</td><td>It was added to <code>.env</code> but not to the <code>Env</code> class, or codegen wasn't re-run.</td></tr><tr><td>Blank product grid vs. real error</td><td>The grid distinguishes empty-category from load failure; a failure shows &ldquo;Could not load products&rdquo; with Retry — inspect the Dio error / token.</td></tr><tr><td>Customer display on wrong monitor</td><td>Empty display ids on some hardware; fix the Windows primary display or cabling and restart.</td></tr><tr><td>&ldquo;Internal server error&rdquo; creating a sale</td><td>Backend can't resolve the kiosk number — verify <code>settings.txt</code> and restart the backend service.</td></tr></tbody></table><h4>Log locations (installed machine)</h4><table><thead><tr><th>Log</th><th>Contents</th></tr></thead><tbody><tr><td><code>C:\POSKiosk\logs\backend-output.log</code> / <code>backend-error.log</code></td><td>Live NestJS stdout / stderr</td></tr><tr><td><code>C:\POSKiosk\logs\setup-postgres-install.log</code></td><td>DB init, service registration, migrations</td></tr><tr><td><code>C:\posdata\log\postgresql.log</code></td><td>PostgreSQL server log</td></tr><tr><td><code>customer-display-receiver.log</code></td><td>Customer-display sub-window diagnostics</td></tr></tbody></table><div class='footer'>POS Kiosk — Technical Manual &nbsp;&middot;&nbsp; Version 1.0 &nbsp;&middot;&nbsp; September 2026</div></section>
+</body></html>

@@ -149,6 +149,7 @@ void _showOrderToast(OrderEvent event) {
       ),
     OrderEventType.updated => ('Order #${data.id} updated · ${data.status}', AppColors.primary),
     OrderEventType.cancelled => ('Order #${data.id} cancelled', AppColors.error),
+    OrderEventType.deleted => ('Order #${data.id} removed', AppColors.error),
   };
 
   scaffoldMessengerKey.currentState

@@ -4,7 +4,8 @@
 enum OrderEventType {
   created,
   updated,
-  cancelled;
+  cancelled,
+  deleted;
 
   static OrderEventType? fromWire(String eventType) {
     switch (eventType) {
@@ -14,6 +15,8 @@ enum OrderEventType {
         return OrderEventType.updated;
       case 'order.cancelled':
         return OrderEventType.cancelled;
+      case 'order.deleted':
+        return OrderEventType.deleted;
       default:
         // Forward-compat: any unrecognized order.* type (e.g. order.fulfilled,
         // order.shipped) is treated as an update rather than silently dropped.
@@ -41,11 +44,11 @@ class OrderEventItem {
   /// whole order off the screen. `quantity` also tolerates a JSON number that
   /// decodes as a double.
   factory OrderEventItem.fromJson(Map<String, dynamic> json) => OrderEventItem(
-        productId: json['product_id']?.toString() ?? '',
-        productName: json['product_name']?.toString() ?? '',
-        quantity: (json['quantity'] as num?)?.toInt() ?? 1,
-        price: json['price'] as num? ?? 0,
-      );
+    productId: json['product_id']?.toString() ?? '',
+    productName: json['product_name']?.toString() ?? '',
+    quantity: (json['quantity'] as num?)?.toInt() ?? 1,
+    price: json['price'] as num? ?? 0,
+  );
 }
 
 enum FulfillmentType {
@@ -74,11 +77,11 @@ enum FulfillmentType {
   /// storage (see [OrderData.toJson]), so a persisted-then-reloaded order
   /// round-trips through the same values instead of drifting to [other].
   String get wireValue => switch (this) {
-        FulfillmentType.onSite => 'on_site',
-        FulfillmentType.pickup => 'pickup',
-        FulfillmentType.delivery => 'delivery',
-        FulfillmentType.other => 'other',
-      };
+    FulfillmentType.onSite => 'on_site',
+    FulfillmentType.pickup => 'pickup',
+    FulfillmentType.delivery => 'delivery',
+    FulfillmentType.other => 'other',
+  };
 }
 
 /// `on_site` orders are required to carry [OrderData.facilityId]/
@@ -138,15 +141,18 @@ class OrderData {
       currency: json['currency']?.toString() ?? '',
       districtId: json['district_id'] as String?,
       districtName: json['district_name'] as String?,
-      fulfillmentType: FulfillmentType.fromWire(json['fulfillment_type'] as String?),
+      fulfillmentType: FulfillmentType.fromWire(
+        json['fulfillment_type'] as String?,
+      ),
       facilityId: json['facility_id'] as String?,
       facilityName: json['facility_name'] as String?,
       createdAt: created ?? updated ?? epoch,
       updatedAt: updated ?? created ?? epoch,
-      items: (json['items'] as List<dynamic>? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .map(OrderEventItem.fromJson)
-          .toList(),
+      items:
+          (json['items'] as List<dynamic>? ?? const [])
+              .whereType<Map<String, dynamic>>()
+              .map(OrderEventItem.fromJson)
+              .toList(),
       merchantId: json['merchant_id']?.toString() ?? '',
     );
   }
@@ -154,30 +160,33 @@ class OrderData {
   /// Round-trips through [OrderEventsLocalRepository] storage — only the
   /// fields the Orders screen actually renders need to survive the trip.
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'customer_id': customerId,
-        'customer_name': customerName,
-        'customer_email': customerEmail,
-        'status': status,
-        'total': total,
-        'currency': currency,
-        'district_id': districtId,
-        'district_name': districtName,
-        'fulfillment_type': fulfillmentType.wireValue,
-        'facility_id': facilityId,
-        'facility_name': facilityName,
-        'created_at': createdAt.toIso8601String(),
-        'updated_at': updatedAt.toIso8601String(),
-        'items': items
-            .map((i) => {
-                  'product_id': i.productId,
-                  'product_name': i.productName,
-                  'quantity': i.quantity,
-                  'price': i.price,
-                })
+    'id': id,
+    'customer_id': customerId,
+    'customer_name': customerName,
+    'customer_email': customerEmail,
+    'status': status,
+    'total': total,
+    'currency': currency,
+    'district_id': districtId,
+    'district_name': districtName,
+    'fulfillment_type': fulfillmentType.wireValue,
+    'facility_id': facilityId,
+    'facility_name': facilityName,
+    'created_at': createdAt.toIso8601String(),
+    'updated_at': updatedAt.toIso8601String(),
+    'items':
+        items
+            .map(
+              (i) => {
+                'product_id': i.productId,
+                'product_name': i.productName,
+                'quantity': i.quantity,
+                'price': i.price,
+              },
+            )
             .toList(),
-        'merchant_id': merchantId,
-      };
+    'merchant_id': merchantId,
+  };
 }
 
 class OrderEvent {
@@ -201,13 +210,29 @@ class OrderEvent {
     try {
       final type = OrderEventType.fromWire(json['event_type'] as String);
       if (type == null) return null;
+      final dataJson = _normalizeData(json);
+      if (dataJson == null) return null;
       return OrderEvent(
         eventId: json['event_id'] as String,
         type: type,
-        data: OrderData.fromJson(json['data'] as Map<String, dynamic>),
+        data: OrderData.fromJson(dataJson),
       );
     } catch (_) {
       return null;
     }
+  }
+
+  /// `order.deleted` tombstones carry no order snapshot — the receiver has
+  /// been observed sending `data` as a full object, a bare order-id string,
+  /// or omitting it in favor of a top-level `order_id`. Normalize all three
+  /// to the map [OrderData.fromJson] expects, instead of letting the bare
+  /// cast in the try above throw and silently drop the deletion.
+  static Map<String, dynamic>? _normalizeData(Map<String, dynamic> json) {
+    final data = json['data'];
+    if (data is Map<String, dynamic>) return data;
+    if (data is String && data.isNotEmpty) return {'id': data};
+    final orderId = json['order_id'];
+    if (orderId is String && orderId.isNotEmpty) return {'id': orderId};
+    return null;
   }
 }

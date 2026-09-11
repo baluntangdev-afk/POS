@@ -31,6 +31,10 @@ abstract class OrderEventsLocalRepository {
   /// local table is rebuilt from the server response.
   Future<Result<void, AppError>> deleteOrdersForStore(String storeId);
 
+  /// Removes the persisted row for [orderId] under [storeId] — the local
+  /// side of a live `order.deleted` event.
+  Future<Result<void, AppError>> deleteOrder(String storeId, String orderId);
+
   /// Count of every persisted order for [storeId] — matches the length of
   /// [watchOrders]. No status filtering.
   Stream<int> watchOrderCount(String storeId);
@@ -81,6 +85,16 @@ class OrderEventsLocalRepositoryImpl implements OrderEventsLocalRepository {
   Future<Result<void, AppError>> deleteOrdersForStore(String storeId) async {
     try {
       await _dao.deleteOrdersForStore(storeId);
+      return const Success(null);
+    } catch (e) {
+      return Failure(DatabaseError(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void, AppError>> deleteOrder(String storeId, String orderId) async {
+    try {
+      await _dao.deleteOrder(storeId, orderId);
       return const Success(null);
     } catch (e) {
       return Failure(DatabaseError(e.toString()));

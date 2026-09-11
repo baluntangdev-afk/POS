@@ -3,7 +3,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../features/live_orders/entities/order_event.dart';
 
-final orderNotificationsServiceProvider = Provider<OrderNotificationsService>((ref) {
+final orderNotificationsServiceProvider = Provider<OrderNotificationsService>((
+    ref) {
   return OrderNotificationsService();
 });
 
@@ -28,11 +29,13 @@ class OrderNotificationsService {
       const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
       const iosInit = DarwinInitializationSettings();
       await _plugin.initialize(
-        settings: const InitializationSettings(android: androidInit, iOS: iosInit),
+        settings: const InitializationSettings(
+            android: androidInit, iOS: iosInit),
       );
 
       final androidPlugin = _plugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+          .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
       await androidPlugin?.createNotificationChannel(
         const AndroidNotificationChannel(
           _channelId,
@@ -50,12 +53,16 @@ class OrderNotificationsService {
   Future<void> notify(OrderEvent event) async {
     final data = event.data;
     final (title, body) = switch (event.type) {
-      OrderEventType.created => (
-          'New order #${data.id}',
-          '${data.items.length} item${data.items.length == 1 ? '' : 's'} · ${data.currency} ${data.total}',
-        ),
-      OrderEventType.updated => ('Order #${data.id} updated', 'Status: ${data.status}'),
+      OrderEventType.created =>
+      (
+      'New order #${data.id}',
+      '${data.items.length} item${data.items.length == 1 ? '' : 's'} · ${data
+          .currency} ${data.total}',
+      ),
+      OrderEventType.updated =>
+      ('Order #${data.id} updated', 'Status: ${data.status}'),
       OrderEventType.cancelled => ('Order #${data.id} cancelled', ''),
+      OrderEventType.deleted => ('Order #${data.id} removed', ''),
     };
 
     try {

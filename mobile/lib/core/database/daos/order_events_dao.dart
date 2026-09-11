@@ -63,4 +63,12 @@ class OrderEventsDao extends DatabaseAccessor<AppDatabase> with _$OrderEventsDao
     return (delete(orderEventsTable)..where((t) => t.storeId.equals(storeId)))
         .go();
   }
+
+  /// Removes the persisted row for [orderId] under [storeId] — the local
+  /// side of a live `order.deleted` event. A no-op when nothing matches.
+  Future<void> deleteOrder(String storeId, String orderId) {
+    return (delete(orderEventsTable)
+          ..where((t) => t.orderId.equals(orderId) & t.storeId.equals(storeId)))
+        .go();
+  }
 }

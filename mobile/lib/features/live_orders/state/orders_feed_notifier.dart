@@ -318,12 +318,15 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     // Persist every event type, not just `created` — `updated`/`cancelled`
     // must overwrite the stored order state so the pending-orders badge
     // (driven by "latest event isn't a cancellation") stays accurate.
+    // `deleted` is the exception: the order is removed locally rather than
+    // upserted, since its tombstone carries no real status/total/items.
     final storeId = _storeId;
     if (storeId != null) {
+      final repository = ref.read(orderEventsLocalRepositoryProvider);
       unawaited(
-        ref
-            .read(orderEventsLocalRepositoryProvider)
-            .save(event, storeId: storeId),
+        event.type == OrderEventType.deleted
+            ? repository.deleteOrder(storeId, event.data.id)
+            : repository.save(event, storeId: storeId),
       );
     }
 

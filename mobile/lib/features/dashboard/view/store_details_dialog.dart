@@ -116,9 +116,14 @@ class StoreDetailsDialog extends HookConsumerWidget {
                     children: [
                       TextFormField(
                         controller: storeIdCtrl,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Store ID',
-                          border: OutlineInputBorder(),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.refresh),
+                            tooltip: 'Generate a new ID',
+                            onPressed: () => storeIdCtrl.text = generateStoreId(),
+                          ),
                         ),
                         textCapitalization: TextCapitalization.characters,
                         validator:

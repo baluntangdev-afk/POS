@@ -49,10 +49,6 @@ class _OrdersBodyState extends ConsumerState<OrdersBody> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (ordersState.isStale)
-              _StaleBanner(
-                onRetry: () => ref.read(ordersProvider.notifier).refresh(),
-              ),
             _SectionHeader(
               onRefresh: () => ref.read(ordersProvider.notifier).refresh(),
             ),
@@ -270,59 +266,6 @@ class _TabsRow extends StatelessWidget {
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-class _StaleBanner extends StatelessWidget {
-  const _StaleBanner({required this.onRetry});
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        AppSpacing.sm,
-        AppSpacing.md,
-        0,
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFECEC),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.wifi_off_rounded,
-            size: 14,
-            color: AppColors.error,
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              "Couldn't refresh — showing cached data",
-              style:
-                  AppTextStyles.caption.copyWith(color: AppColors.error),
-            ),
-          ),
-          GestureDetector(
-            onTap: onRetry,
-            child: Text(
-              'Retry',
-              style: AppTextStyles.caption.copyWith(
-                color: AppColors.error,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

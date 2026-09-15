@@ -12,6 +12,7 @@ import '../../../core/services/backup/backup_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../auth/state/auth_providers.dart';
 import '../../inventory/state/inventory_notifier.dart';
 import '../../inventory/state/modifier_groups_notifier.dart';
 import '../../users/state/users_notifier.dart';
@@ -51,7 +52,8 @@ class RestoreBackupDialog extends HookConsumerWidget {
           content: const Text(
             'This will replace all data currently on this device with the '
             'contents of this backup. A safety backup of the current data '
-            'will be made first. Continue?',
+            'will be made first, and you will be logged out once the '
+            'restore completes. Continue?',
           ),
           actions: [
             TextButton(
@@ -88,14 +90,21 @@ class RestoreBackupDialog extends HookConsumerWidget {
         ref.invalidate(inventoryNotifierProvider);
         ref.invalidate(allModifierGroupsProvider);
 
+        // Grab the notifier itself (not just a context-bound `ref.read`
+        // call) before this dialog pops itself below — the notifier
+        // instance lives in the ProviderContainer and stays valid after
+        // this widget is disposed, unlike `context`/`ref` from here on.
+        final authNotifier = ref.read(authNotifierProvider.notifier);
+
         if (!context.mounted) return;
         Navigator.of(context).pop();
         await showDialog<void>(
           context: context,
+          barrierDismissible: false,
           builder: (context) => AlertDialog(
             title: const Text('Restore Complete'),
             content: const Text(
-              'Data has been restored.',
+              'Data has been restored. You will now be logged out.',
             ),
             actions: [
               FilledButton(
@@ -105,6 +114,11 @@ class RestoreBackupDialog extends HookConsumerWidget {
             ],
           ),
         );
+
+        // The restored data may no longer match the signed-in session (e.g.
+        // a different user set, or none at all), so every restore forces a
+        // fresh login rather than risk running on stale in-memory auth state.
+        authNotifier.logout();
       } on BackupArchiveException catch (e) {
         if (context.mounted) errorMessage.value = e.message;
       } catch (e) {

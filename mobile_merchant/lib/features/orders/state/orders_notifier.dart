@@ -13,12 +13,9 @@ import '../data/models/order_data_dto.dart';
 import '../data/models/order_event_dto.dart';
 
 class OrdersState {
-  const OrdersState({required this.events, this.isStale = false});
+  const OrdersState({required this.events});
 
   final List<OrderEventDto> events;
-
-  /// True when remote fetch failed and the list was loaded from local cache.
-  final bool isStale;
 }
 
 // ---------------------------------------------------------------------------
@@ -65,9 +62,10 @@ class OrdersNotifier extends AsyncNotifier<OrdersState> {
       return OrdersState(events: result.events);
     } catch (e, s) {
       AppLogger.logError('OrdersNotifier.build', e, s);
-      final cached = await dao.getEvents(merchant.merchantId);
-      if (cached.isEmpty) rethrow;
-      return OrdersState(events: cached, isStale: true);
+      // The network is the single source of truth — never fall back to the
+      // local cache here. Showing stale local data after a failed fetch could
+      // hide orders that were since deleted or updated server-side.
+      return const OrdersState(events: []);
     }
   }
 
@@ -127,7 +125,6 @@ class OrdersNotifier extends AsyncNotifier<OrdersState> {
         events: current.events
             .map((e) => e.data.id == orderId ? _withStatus(e, newStatus) : e)
             .toList(),
-        isStale: current.isStale,
       ),
     );
   }
@@ -159,10 +156,7 @@ class OrdersNotifier extends AsyncNotifier<OrdersState> {
     final current = state.value;
     if (current == null) return;
     state = AsyncData(
-      OrdersState(
-        events: mergeLiveOrderEvent(current.events, event),
-        isStale: current.isStale,
-      ),
+      OrdersState(events: mergeLiveOrderEvent(current.events, event)),
     );
   }
 
@@ -187,7 +181,6 @@ class OrdersNotifier extends AsyncNotifier<OrdersState> {
       OrdersState(
         events:
             current.events.where((e) => e.data.id != event.data.id).toList(),
-        isStale: current.isStale,
       ),
     );
   }

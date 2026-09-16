@@ -2,25 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../widgets/setup_prompt_dialog.dart';
-
-/// Normalised device-registration status buckets. `rejected` collapses into
-/// [DeviceRegistrationStatus.deactivated]; anything unrecognised (or null) is
-/// [DeviceRegistrationStatus.unknown].
-enum DeviceRegistrationStatus { pending, approved, deactivated, unknown }
-
-DeviceRegistrationStatus deviceRegistrationStatusFrom(String? raw) {
-  switch (raw?.trim().toLowerCase()) {
-    case 'pending':
-      return DeviceRegistrationStatus.pending;
-    case 'approved':
-      return DeviceRegistrationStatus.approved;
-    case 'deactivated':
-    case 'rejected':
-      return DeviceRegistrationStatus.deactivated;
-    default:
-      return DeviceRegistrationStatus.unknown;
-  }
-}
+import '../use_cases/device_registration_status.dart';
 
 /// Visual treatment + copy for a device-registration status, shared by the
 /// persistent status card and the one-time dialog.

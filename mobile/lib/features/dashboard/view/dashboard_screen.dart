@@ -16,6 +16,7 @@ import '../../live_orders/state/merchant_device_notifier.dart';
 import '../../live_orders/state/orders_feed_notifier.dart';
 import '../../live_orders/state/orders_count_provider.dart';
 import '../../live_orders/view/device_registration_prompt.dart';
+import '../../live_orders/view/device_registration_status_visual.dart';
 import '../../settings/state/store_info_notifier.dart';
 import '../../users/state/users_notifier.dart';
 import 'store_details_dialog.dart';
@@ -108,21 +109,11 @@ class DashboardScreen extends HookConsumerWidget {
     final user = authState is AuthAuthenticated ? authState.user : null;
     final isAdmin = user?.isAdminOrSupervisor ?? false;
 
-    // Boots the session-scoped live-orders socket (kept alive via
-    // ref.keepAlive in the notifier); it connects/disconnects itself as
-    // authNotifierProvider / storeInfoProvider change. Dashboard owns this
-    // connection — the Orders screen only observes it, never boots it.
     final feedConnection = ref.watch(
       ordersFeedNotifierProvider.select((s) => s.value?.connection),
     );
     final ordersCount = ref.watch(ordersCountProvider).value ?? 0;
 
-    // First-run setup runs as a strict chain: store details -> employees ->
-    // products. Only one prompt is ever visible, and each step is only offered
-    // once the previous one is satisfied. Without this gating all three checks
-    // fire from the same provider/post-frame pass and the dialogs stack on top
-    // of the store form. Store setup is mandatory; the employees and products
-    // steps are skippable and only prompt once per session.
     final isSetupDialogOpen = useRef(false);
     final hasShownEmployeesDialog = useRef(false);
     final hasShownProductsDialog = useRef(false);
@@ -131,10 +122,6 @@ class DashboardScreen extends HookConsumerWidget {
       if (user?.isAdmin != true) return;
       if (isSetupDialogOpen.value) return;
 
-      // Re-evaluates the chain once the current dialog closes. Needed because
-      // StoreDetailsDialog.onSave mutates storeInfoProvider *before* it pops,
-      // so the ref.listen fired by that change still sees isSetupDialogOpen ==
-      // true and bails — this callback is what advances to the next step.
       void open(Future<void> future) {
         isSetupDialogOpen.value = true;
         unawaited(
@@ -233,21 +220,27 @@ class DashboardScreen extends HookConsumerWidget {
     ref.listen(storeInfoProvider, (prev, next) => checkAndShowSetupFlow());
     ref.listen(usersProvider, (prev, next) => checkAndShowSetupFlow());
 
-    // Device-registration outcome (triggered from store-info save). Shows the
-    // "pending approval" dialog / a retry snackbar without interrupting setup.
     ref.listen(merchantDeviceNotifierProvider, (prev, next) {
-      handleMerchantDeviceOutcome(context, prev?.value, next.value);
+      final result = next.value;
+      if (result == null || result.isRegistering) return;
+      final prevResult = prev?.value;
+      if (prevResult != null &&
+          prevResult.status == result.status &&
+          prevResult.merchantName == result.merchantName) {
+        return;
+      }
+      final visual = DeviceRegistrationStatusVisual.of(
+        result.status,
+        result.merchantName,
+      );
+      final snackBar = SnackBar(content: Text(visual.body));
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
     });
     ref.listen(
       inventoryNotifierProvider,
       (prev, next) => checkAndShowSetupFlow(),
     );
 
-    // ref.listen only fires on state *changes*. If storeInfoProvider /
-    // usersProvider / inventoryNotifierProvider already resolved during an
-    // earlier session (they aren't autoDispose, so they stay cached across
-    // logout/login), re-checking must also happen against the value already
-    // in memory, not just future transitions.
     useEffect(() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         checkAndShowSetupFlow();
@@ -255,8 +248,6 @@ class DashboardScreen extends HookConsumerWidget {
       return null;
     }, const []);
 
-    // Runs once per screen mount so the tile grid animates in on arrival
-    // without replaying every time the 30s clock tick rebuilds the screen.
     final entrance = useAnimationController(
       duration: const Duration(milliseconds: 420),
     );
@@ -265,11 +256,11 @@ class DashboardScreen extends HookConsumerWidget {
       return null;
     }, const []);
 
-    // Explicit check every time Dashboard is shown — right after login, or
-    // navigating back to it later in the session. `ordersFeedNotifierProvider`
-    // already reconnects passively on its own state changes; this covers the
-    // case where the feed went quiet without one (e.g. a session kept alive
-    // from before the app was backgrounded).
+    // Device re-registration (`refreshStatus`) fires once, from the root
+    // App widget, on the login → authenticated transition — not here, since
+    // this screen remounts on every dashboard visit (go_router recreates it
+    // on each `context.go`), which would otherwise re-hit
+    // `POST /devices/register` on every visit instead of just after login.
     useEffect(() {
       ref.read(ordersFeedNotifierProvider.notifier).checkConnection();
       return null;

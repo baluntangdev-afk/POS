@@ -7,9 +7,6 @@ import '../entities/merchant_device_state.dart';
 import '../use_cases/device_registration_error.dart';
 import 'device_registration_status_visual.dart';
 
-// Module-level guards so that if more than one screen listens at once
-// (dashboard setup flow + settings store-info screen), only the first
-// reaction wins and dialogs never stack.
 String? _shownStatusKey; // '<deviceId>|<status>'
 DeviceRegistrationError? _shownError;
 
@@ -19,10 +16,6 @@ void handleMerchantDeviceOutcome(
   MerchantDeviceState? next,
 ) {
   if (next == null) return;
-
-  // Only surface the dialog for a status that arrived from a live
-  // register/refresh call this session — a `persistedStatus` rehydrated on
-  // startup is shown by the persistent status card, not a popup.
   final registration = next.registration;
   final status = registration?.status.trim().toLowerCase();
   final deviceId = registration?.deviceId;

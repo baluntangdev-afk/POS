@@ -124,6 +124,7 @@ class OrderingNotifier extends AsyncNotifier<OrderingData> {
 
   static bool _isSameItem(LineItem a, LineItem b) {
     if (a.productId != b.productId) return false;
+    if (a.variantName != b.variantName) return false;
     if (a.modifiers.length != b.modifiers.length) return false;
 
     final aGroups = [...a.modifiers]..sort((x, y) => x.groupId.compareTo(y.groupId));

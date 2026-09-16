@@ -10,17 +10,20 @@ import '../../../data/backend_api/sources/orders_history_api.dart';
 import '../../auth/state/auth_providers.dart';
 import '../../auth/state/auth_state.dart';
 import '../../settings/state/store_info_notifier.dart';
+import '../entities/merchant_device_state.dart';
 import '../entities/order_event.dart';
 import '../entities/orders_feed_state.dart';
 import '../repositories/device_token_repository.dart';
 import '../repositories/order_events_local_repository.dart';
 import '../repositories/orders_live_feed_repository.dart';
 import '../repositories/webhook_auth_repository.dart';
+import '../use_cases/device_registration_status.dart';
 import '../use_cases/device_token_error.dart';
 import '../use_cases/latest_event_per_order.dart';
 import '../use_cases/order_update_error.dart';
 import '../use_cases/webhook_auth_error.dart';
 import 'device_token_status_provider.dart';
+import 'merchant_device_notifier.dart';
 import 'webhook_auth_status_provider.dart';
 
 const _initialBackoff = Duration(seconds: 1);
@@ -60,10 +63,23 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     } catch (_) {
       storeId = '';
     }
+    // Re-runs whenever the device's registration status changes (a cached
+    // status rehydrated on launch, or a fresh one from a startup / manual
+    // `/devices/register` re-check) — the feed connects only once the
+    // device is a confirmed `approved` enrolment. A failed local read (e.g.
+    // secure storage) is treated as "not approved" rather than throwing —
+    // this is a local-only read, so a failure here shouldn't blow up the
+    // whole feed provider.
+    MerchantDeviceState deviceState;
+    try {
+      deviceState = await ref.watch(merchantDeviceNotifierProvider.future);
+    } catch (_) {
+      deviceState = const MerchantDeviceState();
+    }
     ref.onDispose(_teardown);
     ref.listen(isOnlineProvider, _onConnectivityChange);
 
-    if (!authed || storeId.isEmpty) {
+    if (!authed || storeId.isEmpty || !_isApproved(deviceState)) {
       _teardown();
       return const OrdersFeedState(
         connection: OrdersFeedConnection.disconnected,
@@ -83,8 +99,14 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     } catch (_) {
       storeId = '';
     }
+    MerchantDeviceState deviceState;
+    try {
+      deviceState = await ref.read(merchantDeviceNotifierProvider.future);
+    } catch (_) {
+      deviceState = const MerchantDeviceState();
+    }
 
-    if (!authed || storeId.isEmpty) {
+    if (!authed || storeId.isEmpty || !_isApproved(deviceState)) {
       _teardown();
       state = const AsyncData(
         OrdersFeedState(connection: OrdersFeedConnection.disconnected),
@@ -376,6 +398,15 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
       ),
     );
   }
+
+  /// Whether this device is a registered, backend-approved enrolment — the
+  /// gate the live-orders socket connects behind. `status` falls back to the
+  /// last value persisted on a previous launch when no live registration
+  /// call has completed yet this session.
+  bool _isApproved(MerchantDeviceState deviceState) =>
+      deviceState.isRegistered &&
+      deviceRegistrationStatusFrom(deviceState.status) ==
+          DeviceRegistrationStatus.approved;
 
   void _teardown() {
     _retryTimer?.cancel();

@@ -12,4 +12,5 @@ class RefundsTable extends Table {
   DateTimeColumn get createdAt => dateTime()();
   TextColumn get refundNumber => text().nullable()();
   TextColumn get method => text().withDefault(const Constant('Cash Refund'))();
+  DateTimeColumn get syncedAt => dateTime().nullable()();
 }

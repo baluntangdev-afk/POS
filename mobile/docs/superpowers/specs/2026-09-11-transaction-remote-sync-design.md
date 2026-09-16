@@ -1,7 +1,23 @@
 # Transaction remote sync — design
 
-**Date:** 2026-09-11
+**Date:** 2026-09-11 (backend contract finalized 2026-09-15; auth model reversed 2026-09-16)
 **Scope:** `mobile/` only (Flutter merchant POS app)
+**Companion:** `webhook-receiver/backend/docs/specs/2026-09-15-pos-transactions-sync-design.md`
+(the backend side — the endpoint this design calls is built there, not here)
+
+> **2026-09-16 update:** the original design (below) deliberately shipped
+> `POST /merchant/transactions/sync` with **no auth**, reasoning that a store
+> must be able to sync from the moment it's installed, before any operator
+> action. That premise is void: merchant/store-id provisioning on the backend
+> already requires an operator to create the `merchants` row first (see
+> `POST /auth/token`'s `merchant_not_registered` gate) — the exact same
+> prerequisite `POST /devices/register` already has. So this sync endpoint is
+> no more bootstrap-constrained than a feature that already ships. Sections
+> below are updated in place to require the same bearer-token flow every
+> other device-facing endpoint uses; the change is confined to the "API"
+> section, `TransactionSyncService`, error handling, and the "Backend
+> contract" section at the bottom — schema, DAO, scheduling, and backfill are
+> unchanged.
 
 ## Problem
 
@@ -66,6 +82,9 @@ New read methods, following the existing raw-map export style
 (`getTransactionsForExport`, `getSaleItemsForExport`):
 
 ```dart
+// Both `ORDER BY id ASC` — a large backlog (see "Backfill") drains
+// oldest-first, so an interrupted run leaves a monotonically advancing
+// high-water mark instead of gaps scattered through history.
 Future<List<int>> getUnsyncedSaleIds({int limit = 25});
 Future<List<int>> getUnsyncedRefundIds({int limit = 25});
 
@@ -145,14 +164,33 @@ path changes.
 
 ### 3. API — `lib/data/backend_api/sources/transaction_sync_api.dart`
 
-Reuses `dpoSocketApiClientProvider` — the existing Dio client already
-carries the device's bearer token via `WebhookTokenInterceptor` (merchant-
-scoped, auto-refreshes on 401), so no new auth work is needed.
+**(2026-09-16: reversed from "no auth" — see the update note at the top of
+this file.)** `POST /merchant/transactions/sync` now requires the same
+bearer-token auth as `POST /devices/register` and `GET /merchant/orders`:
+`Authorization: Bearer <token>`, a JWT minted by `POST /auth/token` and
+carrying a `merchant_id` claim the backend trusts over anything in the
+request body.
+
+Reuses `dpoSocketApiClientProvider` (the existing Dio client) exactly as the
+other authenticated calls do. `WebhookTokenInterceptor.onRequest` attaches
+the cached bearer token to every request on this client automatically; its
+`onError` path re-mints on a `401` and retries once. That's sufficient for
+steady-state (a device that's already opened the live-orders feed, or saved
+its Store ID, already has a cached token) but **not** for a device's very
+first sync tick if it has never made an authenticated call before — the
+interceptor only *attaches* a cached token, it doesn't mint one from
+nothing. So `TransactionSyncService.syncPending` (below) explicitly calls
+`ensureToken(storeId)` before every `pushBatch`, the same pattern
+`orders_feed_notifier.dart` already uses before its own calls.
 
 #### What the app sends — `POST /merchant/transactions/sync`
 
 Full request body (the `Authorization: Bearer <token>` header is added
-automatically by the existing interceptor, not by this code):
+automatically by the existing interceptor, not by this code). `store_id` is
+still sent — the backend validates it against the token's `merchant_id`
+claim rather than trusting it outright, see the companion backend spec — so
+this stays as an explicit, checked field rather than being dropped from the
+payload:
 
 ```jsonc
 {
@@ -229,7 +267,14 @@ before calling the API at all when there's nothing pending.
   not need a per-row rejection reason for this design; the retry is blind.
 - A non-2xx HTTP response (network error, 4xx, 5xx) is treated the same as
   "nothing was accepted" — no ids get marked synced, the whole batch is
-  retried next tick.
+  retried next tick. This now includes the auth-specific responses
+  `401 missing_bearer_token`, `401 invalid_or_expired_token`, and
+  `403 merchant_id_mismatch` — none of them get special handling; they fall
+  through the same blind-retry path as a network error or a `500`. A device
+  whose merchant hasn't been provisioned yet (`merchant_not_registered` /
+  `merchant_inactive`, surfaced when `ensureToken` itself fails — see below)
+  is handled the same way: the tick is skipped, nothing is marked synced,
+  and the next tick tries again once provisioning completes.
 - The server does not need to return the full stored transaction back, only
   which ids it accepted.
 
@@ -274,10 +319,23 @@ doesn't stop the rest of the batch from being marked synced.
 
 ```dart
 abstract final class TransactionSyncService {
-  static Future<void> syncPending(AppDatabase db, TransactionSyncApi api, String storeId) async {
+  static Future<void> syncPending(
+    AppDatabase db,
+    TransactionSyncApi api,
+    WebhookAuthRepository auth,
+    String storeId,
+  ) async {
     final saleIds = await db.salesDao.getUnsyncedSaleIds();
     final refundIds = await db.salesDao.getUnsyncedRefundIds();
     if (saleIds.isEmpty && refundIds.isEmpty) return;
+
+    // Mint/refresh the bearer token first — see "API" above for why this
+    // can't rely solely on the interceptor's passive attach-if-cached
+    // behavior. A failure here (merchant not yet provisioned, wrong
+    // webhook_secret, etc.) throws and the whole tick is skipped; every
+    // row stays unsynced and is retried next tick, same as an HTTP failure
+    // from pushBatch itself.
+    await auth.ensureToken(storeId);
 
     final sales = [for (final id in saleIds) await db.salesDao.getSaleSyncPayload(id)];
     final refunds = [for (final id in refundIds) await db.salesDao.getRefundSyncPayload(id)];
@@ -293,8 +351,9 @@ abstract final class TransactionSyncService {
 Batch size capped at 25 per table per run (via the `limit` param above) —
 on first run against a store with years of history, this just means more
 ticks, not a giant first request. A network/HTTP failure for the whole
-batch leaves every row's `synced_at` untouched, so it's naturally retried
-next tick with no special-casing.
+batch — including an auth failure from either `ensureToken` or `pushBatch`
+— leaves every row's `synced_at` untouched, so it's naturally retried next
+tick with no special-casing.
 
 ### 5. Scheduling
 
@@ -324,14 +383,34 @@ already populated during device registration — see
 Not a separate feature. Every sale/refund that existed before this ships has
 `synced_at = NULL` after the migration, which is indistinguishable from a
 brand-new unsynced row — the very first scheduled/reconnect sync run just
-starts working through the full backlog, batch by batch, using the exact
-same code path as ongoing day-to-day sync.
+starts working through the full backlog, batch by batch (oldest-first, per
+the `ORDER BY id ASC` note in "DAO" above), using the exact same code path
+as ongoing day-to-day sync.
+
+Because sync is now auth-gated (see the 2026-09-16 update at the top of this
+file), a device installed — or with years of local history — before its
+store's `merchant_id` is provisioned on the backend simply accumulates
+unsynced rows harmlessly: every tick's `ensureToken` call fails, the tick is
+skipped, nothing changes. There is no dead-letter state and no data loss —
+the moment an operator finishes provisioning the merchant, the very next
+tick (scheduled or reconnect-triggered) authenticates successfully and
+sweeps the entire backlog, old and new rows alike, through the same
+25-per-batch loop. No manual "resync" action is needed.
 
 ## Error handling
 
 - A batch HTTP failure (network error, 5xx) leaves all rows in that batch
   unsynced; retried on the next tick. No backoff/retry-count bookkeeping —
   the periodic schedule *is* the retry.
+- An auth failure — `ensureToken` throwing (`merchant_not_registered`,
+  `merchant_inactive`, wrong `webhook_secret`) or `pushBatch` returning
+  `401`/`403 merchant_id_mismatch` — is handled identically: the tick ends
+  with nothing marked synced, no UI is shown, and the next tick tries again.
+  This is a deliberate departure from `live_orders`, which surfaces auth
+  failures to the user via `webhookAuthStatusProvider` — transaction sync
+  stays a silent background job per its own non-goals, so a store owner
+  isn't shown a scary error for something an operator needs to fix on the
+  backend, not something the cashier can act on.
 - A partial failure (server rejects one row, accepts the rest) only marks
   the accepted ids synced; the rejected row stays `synced_at = NULL` and is
   resent next tick as-is. If it's rejected again and again, that's surfaced
@@ -371,13 +450,27 @@ the app's reconnect listener) sends them and sets `synced_at`.
 | `lib/core/workers/transaction_sync_worker.dart` | **new** |
 | `lib/main.dart` | register periodic task + reconnect listener |
 
-## Open questions for the backend side (not built here)
+## Backend contract (resolved 2026-09-15; auth model reversed 2026-09-16)
 
-- Exact path/shape of `POST /merchant/transactions/sync` — the request/
-  response shape above is what the mobile client needs; needs sign-off from
-  whoever implements the back-office endpoint.
-- Whether it lives on the same service as `dpoSocketApiClientProvider`
-  (assumed here, since that's the only backend the app already talks to and
-  already has a `merchant`/`store_id` concept) or a different one — if
-  different, `transaction_sync_api.dart` just points at a new Dio client
-  instead of the existing one; nothing else in this design changes.
+Previously open questions, now settled — see the companion backend spec for
+full detail:
+
+- **Path/shape confirmed unchanged.** `POST /merchant/transactions/sync` on
+  the same `dpoSocketApiClientProvider` backend, request/response exactly as
+  specified above.
+- **Bearer auth required (2026-09-16, reversing the 09-15 decision).** The
+  endpoint is now gated by `requireAuthToken`, same as `GET /merchant/orders`
+  and `POST /devices/register`. `merchant_id` is taken from the verified
+  JWT claim; a body `store_id` that disagrees with it is rejected with
+  `403 merchant_id_mismatch`. This does change this file's design in three
+  places: the "API" section (`ensureToken` before every call), the
+  `TransactionSyncService` code (new `WebhookAuthRepository` parameter), and
+  "Error handling" (auth failures added to the blind-retry list). Schema,
+  DAO shape, scheduling, and batching are unaffected.
+- **`store_id` is validated, not trusted outright.** A store still can't sync
+  before its merchant is provisioned — but that was already true of every
+  other backend-facing feature this app has (device registration, live
+  orders), so it's not a new constraint being introduced, just this
+  endpoint catching up to the same bar. No mobile change needed for the
+  field itself (still named `store_id`, still sourced from `storeInfoDao`,
+  per "Store identity" above) — only the auth wiring around it changed.

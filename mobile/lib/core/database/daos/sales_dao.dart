@@ -422,6 +422,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
           status: const Value('voided'),
           voidReason: Value(reason),
           voidedAt: Value(DateTime.now()),
+          syncedAt: const Value(null),
         ),
       );
 
@@ -1228,5 +1229,149 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         paymentMethods: paymentsByIds[sale.id] ?? [],
       );
     }).toList();
+  }
+
+  Future<Map<String, Object?>> getSaleSyncPayload(int saleId) async {
+    final saleRow = await (select(salesTable).join([
+      leftOuterJoin(usersTable, usersTable.id.equalsExp(salesTable.cashierId)),
+    ])
+          ..where(salesTable.id.equals(saleId)))
+        .getSingle();
+    final sale = saleRow.readTable(salesTable);
+    final user = saleRow.readTableOrNull(usersTable);
+
+    final itemRows = await (select(saleItemsTable).join([
+      leftOuterJoin(productsTable, productsTable.id.equalsExp(saleItemsTable.productId)),
+    ])
+          ..where(saleItemsTable.saleId.equals(saleId))
+          ..orderBy([OrderingTerm.asc(saleItemsTable.id)]))
+        .get();
+
+    final items = <Map<String, Object?>>[];
+    for (final row in itemRows) {
+      final item = row.readTable(saleItemsTable);
+      final product = row.readTableOrNull(productsTable);
+      final mods = await (select(saleItemModifiersTable)
+            ..where((t) => t.itemId.equals(item.id)))
+          .get();
+      items.add({
+        'product_name': product?.name ?? 'Unknown Product',
+        'variant_name': item.variantName,
+        'qty': item.qty,
+        'unit_price': item.unitPrice,
+        'discount_type': item.discountType,
+        'discount_amount': item.discountAmount,
+        'vat_exempt_amount': item.vatExemptAmount,
+        'modifiers': mods
+            .map((m) => {
+                  'name': m.modifierName,
+                  'additional_price': m.additionalPrice,
+                })
+            .toList(),
+      });
+    }
+
+    final payments =
+        await (select(paymentsTable)..where((t) => t.saleId.equals(saleId))).get();
+
+    return {
+      'local_id': sale.id,
+      'so_number': sale.soNumber,
+      'cashier_name': user?.name ?? 'Unknown',
+      'created_at': sale.createdAt.toUtc().toIso8601String(),
+      'type': sale.type,
+      'status': sale.status,
+      'total': sale.total,
+      'discount': sale.discount,
+      'void_reason': sale.voidReason,
+      'voided_at': sale.voidedAt?.toUtc().toIso8601String(),
+      'items': items,
+      'payments': payments
+          .map((p) => {
+                'method': p.method,
+                'amount': p.amount,
+                'cash_received': p.cashReceived,
+                'reference': p.reference,
+              })
+          .toList(),
+    };
+  }
+
+  Future<Map<String, Object?>> getRefundSyncPayload(int refundId) async {
+    final refund =
+        await (select(refundsTable)..where((t) => t.id.equals(refundId))).getSingle();
+    final sale =
+        await (select(salesTable)..where((t) => t.id.equals(refund.saleId))).getSingle();
+
+    final itemRows = await (select(saleItemsTable).join([
+      leftOuterJoin(productsTable, productsTable.id.equalsExp(saleItemsTable.productId)),
+    ])
+          ..where(saleItemsTable.saleId.equals(refund.saleId))
+          ..orderBy([OrderingTerm.asc(saleItemsTable.id)]))
+        .get();
+
+    final indexBySaleItemId = <int, int>{};
+    final productNameBySaleItemId = <int, String>{};
+    for (var i = 0; i < itemRows.length; i++) {
+      final item = itemRows[i].readTable(saleItemsTable);
+      final product = itemRows[i].readTableOrNull(productsTable);
+      indexBySaleItemId[item.id] = i;
+      productNameBySaleItemId[item.id] = product?.name ?? 'Unknown Product';
+    }
+
+    final refundItems = await (select(refundItemsTable)
+          ..where((t) => t.refundId.equals(refundId)))
+        .get();
+
+    return {
+      'local_id': refund.id,
+      'refund_number': refund.refundNumber,
+      'sale_local_id': sale.id,
+      'sale_so_number': sale.soNumber,
+      'reason': refund.reason,
+      'method': refund.method,
+      'total': refund.total,
+      'created_at': refund.createdAt.toUtc().toIso8601String(),
+      'items': refundItems
+          .map((ri) => {
+                'sale_item_index': indexBySaleItemId[ri.saleItemId] ?? 0,
+                'product_name':
+                    productNameBySaleItemId[ri.saleItemId] ?? 'Unknown Product',
+                'qty': ri.qty,
+                'amount': ri.amount,
+              })
+          .toList(),
+    };
+  }
+
+  Future<List<int>> getUnsyncedSaleIds({int limit = 15}) async {
+    final rows = await (select(salesTable)
+          ..where((t) => t.syncedAt.isNull())
+          ..where((t) => t.status.equals('pending').not())
+          ..orderBy([(t) => OrderingTerm.asc(t.id)])
+          ..limit(limit))
+        .get();
+    return rows.map((r) => r.id).toList();
+  }
+
+  Future<List<int>> getUnsyncedRefundIds({int limit = 15}) async {
+    final rows = await (select(refundsTable)
+          ..where((t) => t.syncedAt.isNull())
+          ..orderBy([(t) => OrderingTerm.asc(t.id)])
+          ..limit(limit))
+        .get();
+    return rows.map((r) => r.id).toList();
+  }
+
+  Future<void> markSalesSynced(List<int> ids) async {
+    if (ids.isEmpty) return;
+    await (update(salesTable)..where((t) => t.id.isIn(ids)))
+        .write(SalesTableCompanion(syncedAt: Value(DateTime.now())));
+  }
+
+  Future<void> markRefundsSynced(List<int> ids) async {
+    if (ids.isEmpty) return;
+    await (update(refundsTable)..where((t) => t.id.isIn(ids)))
+        .write(RefundsTableCompanion(syncedAt: Value(DateTime.now())));
   }
 }

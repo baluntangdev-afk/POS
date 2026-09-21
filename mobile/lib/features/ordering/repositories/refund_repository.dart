@@ -27,6 +27,7 @@ class RefundRepositoryImpl implements RefundRepository {
       items: refund.items
           .map((i) => (saleItemId: i.receiptItemId, qty: i.quantity, amount: i.refundAmount))
           .toList(),
+      now: refund.docDate,
     );
     return refund.copyWith(id: refundId, docNumber: 'RF-${refundId.toString().padLeft(6, '0')}');
   }

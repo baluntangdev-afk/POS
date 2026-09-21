@@ -17,10 +17,7 @@ void backupCallbackDispatcher() {
         await runTransactionSyncTick(db);
       }
     } catch (_) {
-      // A background job failing silently is fine here — the app-open
-      // safety net (see main.dart) retries as a normal foreground backup
-      // the next time the app is opened, and the transaction-sync reconnect
-      // listener retries the next time it gets a chance.
+
     } finally {
       await db.close();
     }
@@ -28,10 +25,6 @@ void backupCallbackDispatcher() {
   });
 }
 
-/// Registers WorkManager (once, for every periodic task the app has) and
-/// schedules the backup job to run roughly every 3 hours. Safe to call on
-/// every app startup — `ExistingPeriodicWorkPolicy.keep` means an
-/// already-registered job is left alone rather than being reset.
 Future<void> schedulePeriodicBackup() async {
   await Workmanager().initialize(backupCallbackDispatcher);
 

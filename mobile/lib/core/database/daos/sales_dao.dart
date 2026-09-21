@@ -97,12 +97,17 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   Future<int> insertRefundItem(RefundItemsTableCompanion companion) =>
       into(refundItemsTable).insert(companion);
 
-  Future<int> insertPendingSale({required int cashierId, required Sale sale}) {
+  // `now` is supplied by the caller (via `AppClock`, not `sale.createdAt`) so
+  // the recorded timestamp reflects when the transaction was actually
+  // finalized — corrected for device clock drift — not when the cart was
+  // opened (which could be much earlier, even the previous day).
+  Future<int> insertPendingSale({
+    required int cashierId,
+    required Sale sale,
+    required DateTime now,
+  }) {
     return transaction(() async {
-      // Use DateTime.now() here — not sale.createdAt — so the recorded timestamp
-      // reflects when the transaction was actually finalized, not when the cart
-      // was opened (which could be much earlier, even the previous day).
-      final now = DateTime.now();
+      final storeInfo = await attachedDatabase.storeInfoDao.getStoreInfo();
       final saleId = await insertSale(SalesTableCompanion.insert(
         cashierId: cashierId,
         total: sale.total,
@@ -110,6 +115,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         status: 'pending',
         type: sale.type,
         createdAt: now,
+        storeId: Value(storeInfo?.storeId ?? ''),
       ));
 
       for (final item in sale.items) {
@@ -192,13 +198,14 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     required String method,
     required double total,
     required List<({int saleItemId, int qty, double amount})> items,
+    required DateTime now,
   }) {
     return transaction(() async {
       final refundId = await insertRefund(RefundsTableCompanion.insert(
         saleId: saleId,
         reason: reason,
         total: total,
-        createdAt: DateTime.now(),
+        createdAt: now,
         method: Value(method),
       ));
       for (final item in items) {
@@ -416,12 +423,16 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     });
   }
 
-  Future<int> voidSale(int saleId, {String reason = 'Voided by cashier'}) =>
+  Future<int> voidSale(
+    int saleId, {
+    required DateTime now,
+    String reason = 'Voided by cashier',
+  }) =>
       (update(salesTable)..where((t) => t.id.equals(saleId))).write(
         SalesTableCompanion(
           status: const Value('voided'),
           voidReason: Value(reason),
-          voidedAt: Value(DateTime.now()),
+          voidedAt: Value(now),
           syncedAt: const Value(null),
         ),
       );
@@ -867,6 +878,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   }
 
   Future<List<TransactionSummary>> getTransactions({
+    String? storeId,
     DateTime? date,
     String? search,
     int? cashierId,
@@ -876,6 +888,8 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     final q = select(salesTable).join([
       leftOuterJoin(usersTable, usersTable.id.equalsExp(salesTable.cashierId)),
     ]);
+
+    if (storeId != null) q.where(salesTable.storeId.equals(storeId));
 
     if (date != null) {
       final from = DateTime(date.year, date.month, date.day);
@@ -899,6 +913,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       final sale = row.readTable(salesTable);
       final user = row.readTableOrNull(usersTable);
       return TransactionSummary(
+        storeId: sale.storeId,
         id: sale.id,
         soNumber: sale.soNumber,
         cashierName: user?.name ?? 'Unknown',
@@ -908,6 +923,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         status: sale.status,
         type: sale.type,
         refundedAmount: refundedByIds[sale.id] ?? 0,
+        syncedAt: sale.syncedAt,
       );
     }).toList();
   }
@@ -925,11 +941,14 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   }
 
   Future<int> getTransactionCount({
+    String? storeId,
     DateTime? date,
     String? search,
     int? cashierId,
   }) async {
     final q = selectOnly(salesTable)..addColumns([salesTable.id.count()]);
+
+    if (storeId != null) q.where(salesTable.storeId.equals(storeId));
 
     if (date != null) {
       final from = DateTime(date.year, date.month, date.day);
@@ -1344,23 +1363,59 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     };
   }
 
-  Future<List<int>> getUnsyncedSaleIds({int limit = 15}) async {
+  /// Only sales stamped with [storeId] are returned — a sale created under a
+  /// merchant this device has since been reassigned away from must not be
+  /// pushed under the currently-active one.
+  Future<List<int>> getUnsyncedSaleIds({
+    required String storeId,
+    int limit = 15,
+  }) async {
     final rows = await (select(salesTable)
           ..where((t) => t.syncedAt.isNull())
           ..where((t) => t.status.equals('pending').not())
+          ..where((t) => t.storeId.equals(storeId))
           ..orderBy([(t) => OrderingTerm.asc(t.id)])
           ..limit(limit))
         .get();
     return rows.map((r) => r.id).toList();
   }
 
-  Future<List<int>> getUnsyncedRefundIds({int limit = 15}) async {
-    final rows = await (select(refundsTable)
-          ..where((t) => t.syncedAt.isNull())
-          ..orderBy([(t) => OrderingTerm.asc(t.id)])
+  /// Only refunds of a sale stamped with [storeId] are returned — see
+  /// [getUnsyncedSaleIds].
+  Future<List<int>> getUnsyncedRefundIds({
+    required String storeId,
+    int limit = 15,
+  }) async {
+    final rows = await (select(refundsTable).join([
+      innerJoin(salesTable, salesTable.id.equalsExp(refundsTable.saleId)),
+    ])
+          ..where(refundsTable.syncedAt.isNull())
+          ..where(salesTable.storeId.equals(storeId))
+          ..orderBy([OrderingTerm.asc(refundsTable.id)])
           ..limit(limit))
         .get();
-    return rows.map((r) => r.id).toList();
+    return rows.map((r) => r.readTable(refundsTable).id).toList();
+  }
+
+  /// Total unsynced sale count for [storeId] — see [getUnsyncedSaleIds].
+  Future<int> getUnsyncedSaleCount({required String storeId}) async {
+    final q = selectOnly(salesTable)..addColumns([salesTable.id.count()]);
+    q.where(salesTable.syncedAt.isNull());
+    q.where(salesTable.status.equals('pending').not());
+    q.where(salesTable.storeId.equals(storeId));
+    final row = await q.getSingle();
+    return row.read(salesTable.id.count()) ?? 0;
+  }
+
+  /// Total unsynced refund count for [storeId] — see [getUnsyncedRefundIds].
+  Future<int> getUnsyncedRefundCount({required String storeId}) async {
+    final q = selectOnly(refundsTable).join([
+      innerJoin(salesTable, salesTable.id.equalsExp(refundsTable.saleId)),
+    ])..addColumns([refundsTable.id.count()]);
+    q.where(refundsTable.syncedAt.isNull());
+    q.where(salesTable.storeId.equals(storeId));
+    final row = await q.getSingle();
+    return row.read(refundsTable.id.count()) ?? 0;
   }
 
   Future<void> markSalesSynced(List<int> ids) async {
@@ -1373,5 +1428,40 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     if (ids.isEmpty) return;
     await (update(refundsTable)..where((t) => t.id.isIn(ids)))
         .write(RefundsTableCompanion(syncedAt: Value(DateTime.now())));
+  }
+
+  /// Resets every local sale to unsynced and stamps it with [storeId], so
+  /// the next sync pushes this device's full history to the now-active
+  /// merchant. Used by the "Transfer" prompt when local data predates any
+  /// verified store.
+  Future<void> markAllSalesUnsynced(String storeId) async {
+    await update(salesTable).write(
+      SalesTableCompanion(syncedAt: const Value(null), storeId: Value(storeId)),
+    );
+  }
+
+  /// Resets every local sale to unsynced without touching its store id.
+  /// Used by the manual "Unsync Transactions" action, which should only
+  /// force a re-upload, not reassign historical sales to whichever store
+  /// happens to be active right now.
+  Future<void> markAllSalesUnsyncedKeepingStoreId() async {
+    await update(
+      salesTable,
+    ).write(const SalesTableCompanion(syncedAt: Value(null)));
+  }
+
+  Future<void> markAllRefundsUnsynced() async {
+    await update(refundsTable)
+        .write(const RefundsTableCompanion(syncedAt: Value(null)));
+  }
+
+  /// True if this device has any local sale or refund at all, regardless of
+  /// sync state. Used to decide whether a verified store-id change is worth
+  /// offering to transfer existing history to.
+  Future<bool> hasAnyTransactions() async {
+    final sale = await (select(salesTable)..limit(1)).getSingleOrNull();
+    if (sale != null) return true;
+    final refund = await (select(refundsTable)..limit(1)).getSingleOrNull();
+    return refund != null;
   }
 }

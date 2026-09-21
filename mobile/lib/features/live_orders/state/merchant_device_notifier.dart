@@ -127,19 +127,35 @@ class MerchantDeviceNotifier extends AsyncNotifier<MerchantDeviceState> {
   /// replays the current record rather than creating a new enrollment. No-op
   /// when the device is not registered yet or has no stored store id.
   Future<void> refreshStatus() async {
+    final MerchantDeviceState loaded;
     try {
-      final loaded = await future;
-      if (loaded.isRegistering || !loaded.isRegistered) return;
-      final storeId = loaded.registeredStoreId?.trim() ?? '';
-      if (storeId.isEmpty) return;
+      loaded = await future;
+    } catch (error, stackTrace) {
+      debugPrint('[MerchantDevice] refreshStatus skipped: $error\n$stackTrace');
+      return;
+    }
+    if (loaded.isRegistering || !loaded.isRegistered) return;
+    final storeId = loaded.registeredStoreId?.trim() ?? '';
+    if (storeId.isEmpty) return;
 
+    try {
       final name = loaded.merchantName?.trim();
       final request = await ref
           .read(deviceIdentityProvider)
           .describe(name: name == null || name.isEmpty ? 'POS Device' : name);
       await register(request, storeId: storeId);
     } catch (error, stackTrace) {
-      debugPrint('[MerchantDevice] refreshStatus skipped: $error\n$stackTrace');
+      // Unlike a failure inside `register`, this happens before it sets its
+      // own error state (e.g. `describe` reading device info) — surface it
+      // the same way so the status card's listener can still show it.
+      debugPrint('[MerchantDevice] refreshStatus failed: $error\n$stackTrace');
+      final reason = deviceRegistrationErrorFrom(error);
+      state = AsyncData(
+        loaded.copyWith(
+          error: reason,
+          errorMessage: deviceRegistrationMessageFrom(error, reason),
+        ),
+      );
     }
   }
 

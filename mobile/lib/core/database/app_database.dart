@@ -58,7 +58,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'mobile_pos'));
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -275,6 +275,23 @@ class AppDatabase extends _$AppDatabase {
             }
             if (!await _hasColumn('refunds', 'synced_at')) {
               await m.addColumn(refundsTable, refundsTable.syncedAt);
+            }
+          }
+          if (from < 16) {
+            if (!await _hasColumn('sales', 'store_id')) {
+              await m.addColumn(salesTable, salesTable.storeId);
+              // Backfill: every sale created before this column existed was
+              // made under whatever store this device is currently
+              // configured for, since a device couldn't be reassigned to a
+              // different store before this migration.
+              final storeInfo = await storeInfoDao.getStoreInfo();
+              final currentStoreId = storeInfo?.storeId ?? '';
+              if (currentStoreId.isNotEmpty) {
+                await customStatement(
+                  "UPDATE sales SET store_id = ? WHERE store_id = ''",
+                  [currentStoreId],
+                );
+              }
             }
           }
         },

@@ -7,6 +7,7 @@ import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../state/merchant_device_notifier.dart';
+import 'device_registration_prompt.dart';
 import 'device_registration_status_visual.dart';
 
 /// Always-visible summary of this device's registration status, shown at the
@@ -14,6 +15,23 @@ import 'device_registration_status_visual.dart';
 /// registered at least once.
 class DeviceRegistrationStatusCard extends ConsumerWidget {
   const DeviceRegistrationStatusCard({super.key});
+
+  Future<void> _checkStatus(BuildContext context, WidgetRef ref) async {
+    await ref.read(merchantDeviceNotifierProvider.notifier).refreshStatus();
+    if (!context.mounted) return;
+    final result = ref.read(merchantDeviceNotifierProvider).value;
+    final toast = result == null ? null : deviceStatusToastFor(result);
+    if (toast == null) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(toast.message),
+          backgroundColor: toast.color,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -77,13 +95,7 @@ class DeviceRegistrationStatusCard extends ConsumerWidget {
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
-              onPressed:
-                  busy
-                      ? null
-                      : () =>
-                          ref
-                              .read(merchantDeviceNotifierProvider.notifier)
-                              .refreshStatus(),
+              onPressed: busy ? null : () => _checkStatus(context, ref),
               icon:
                   busy
                       ? const SizedBox(

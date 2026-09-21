@@ -11,6 +11,17 @@ import '../../live_orders/state/merchant_device_notifier.dart';
 import '../../live_orders/state/webhook_auth_status_provider.dart';
 import '../../live_orders/use_cases/webhook_auth_error.dart';
 
+class VerifiedMerchantLockedException implements Exception {
+  const VerifiedMerchantLockedException();
+
+  String get message =>
+      'This device is linked to a verified merchant and can\'t be '
+      'reassigned to a different store. Use Backup & Transfer instead.';
+
+  @override
+  String toString() => 'VerifiedMerchantLockedException()';
+}
+
 class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
   @override
   Future<StoreInfoTableData?> build() async {
@@ -19,7 +30,12 @@ class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
     return db.storeInfoDao.getStoreInfo();
   }
 
-  Future<void> save({
+  // [bypassVerifiedLock] skips the [VerifiedMerchantLockedException] guard
+  // once the caller has already confirmed the reassignment. Each sale is
+  // stamped with its own store_id at creation time (see
+  // `SalesDao.insertPendingSale`), so switching stores here doesn't touch
+  // pre-existing local data or its future sync eligibility.
+  Future<bool> save({
     required String storeId,
     required String storeName,
     required String address,
@@ -28,39 +44,80 @@ class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
     required String receiptFooter,
     required String tin,
     required String terminalName,
+    bool allowOfflineSetup = false,
+    bool bypassVerifiedLock = false,
   }) async {
-    final db = ref.read(databaseProvider);
     final existing = state.value;
     final previousStoreId = existing?.storeId.trim() ?? '';
+    final newStoreId = storeId.trim();
+    final storeIdChanged = newStoreId != previousStoreId;
+
+    if (storeIdChanged &&
+        previousStoreId.isNotEmpty &&
+        !bypassVerifiedLock &&
+        await _isVerified(previousStoreId)) {
+      throw const VerifiedMerchantLockedException();
+    }
+
+    var resolvedStoreName = storeName.trim();
+    var resolvedTerminalName = terminalName;
+    var verifiedOnline = true;
+
+    if (storeIdChanged && newStoreId.isNotEmpty) {
+      try {
+        final merchantName = (await _refreshToken(newStoreId))?.trim() ?? '';
+        if (merchantName.isNotEmpty) {
+          resolvedStoreName = merchantName;
+          resolvedTerminalName = merchantName;
+        }
+      } catch (error, stackTrace) {
+        final isUnreachable =
+            error is WebhookAuthException &&
+            error.reason == WebhookAuthError.network;
+        if (!allowOfflineSetup || !isUnreachable) {
+          debugPrint(
+            '[StoreInfo] store verification failed for $newStoreId: '
+            '$error\n$stackTrace',
+          );
+          rethrow;
+        }
+        debugPrint(
+          '[StoreInfo] backend unreachable, deferring verification for '
+          '$newStoreId until setup can be completed later',
+        );
+        verifiedOnline = false;
+      }
+    }
+
+    final db = ref.read(databaseProvider);
     await db.storeInfoDao.upsertStoreInfo(
       StoreInfoTableCompanion(
         id: existing != null ? Value(existing.id) : const Value.absent(),
-        storeId: Value(storeId),
-        storeName: Value(storeName),
+        storeId: Value(newStoreId),
+        storeName: Value(resolvedStoreName),
         address: Value(address),
         taxRate: Value(taxRate),
         currency: Value(currency),
         receiptFooter: Value(receiptFooter),
         tin: Value(tin),
-        terminalName: Value(terminalName),
+        terminalName: Value(resolvedTerminalName),
       ),
     );
-    // Reload without dropping the current value, so the screen keeps showing
-    // the form (with its own inline saving indicator) instead of flashing a
-    // full-screen spinner during this quick local re-read.
+
     state = await AsyncValue.guard(build);
 
-    final deviceName = storeName.trim();
-    final newStoreId = storeId.trim();
-    final storeIdChanged = newStoreId != previousStoreId;
-
-    unawaited(
-      _provisionForStore(
-        storeId: newStoreId,
-        deviceName: deviceName,
-        storeIdChanged: storeIdChanged,
-      ),
-    );
+    if (storeIdChanged && verifiedOnline) {
+      unawaited(
+        _registerDeviceForStore(
+          storeId: newStoreId,
+          deviceName:
+              resolvedStoreName.isNotEmpty
+                  ? resolvedStoreName
+                  : storeName.trim(),
+        ),
+      );
+    }
+    return verifiedOnline;
   }
 
   /// Applies the `merchant_name` the backend resolves on `/auth/token` to the
@@ -89,53 +146,53 @@ class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
     state = await AsyncValue.guard(build);
   }
 
-  Future<void> _provisionForStore({
+  /// Registers this device against [storeId] with the backend. Only called
+  /// once `/auth/token` has already confirmed the store/merchant exists (see
+  /// [save]), so a rejected ID never reaches this step.
+  Future<void> _registerDeviceForStore({
     required String storeId,
     required String deviceName,
-    required bool storeIdChanged,
   }) async {
     if (storeId.isEmpty) return;
 
     try {
-      if (storeIdChanged) {
-        // `/auth/token` runs before `/devices/register` and already resolves
-        // the merchant name — mirror it into the local store info and use it
-        // as the device name we register with.
-        final merchantName = (await _refreshToken(storeId))?.trim() ?? '';
-        if (merchantName.isNotEmpty) {
-          await applyMerchantName(merchantName);
-        }
-        await ref
-            .read(merchantDeviceNotifierProvider.notifier)
-            .registerIfNeeded(
-              name: merchantName.isNotEmpty ? merchantName : deviceName,
-            );
-        // `/devices/register` may resolve its own `merchant_name` — prefer it
-        // when present so the form matches what the backend has on file.
-        final registeredName =
-            ref
-                .read(merchantDeviceNotifierProvider)
-                .value
-                ?.registration
-                ?.merchantName
-                ?.trim() ??
-            '';
-        if (registeredName.isNotEmpty && registeredName != merchantName) {
-          await applyMerchantName(registeredName);
-        }
+      await ref
+          .read(merchantDeviceNotifierProvider.notifier)
+          .registerIfNeeded(name: deviceName);
+
+      final registeredName =
+          ref
+              .read(merchantDeviceNotifierProvider)
+              .value
+              ?.registration
+              ?.merchantName
+              ?.trim() ??
+          '';
+      if (registeredName.isNotEmpty && registeredName != deviceName) {
+        await applyMerchantName(registeredName);
       }
-      return;
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
       debugPrint(
-        '[StoreInfo] store provisioning failed for $storeId: '
+        '[StoreInfo] device registration failed for $storeId: '
         '$error\n$stackTrace',
       );
     }
   }
 
-  /// Mints a fresh `/auth/token` for [storeId] and returns the `merchant_name`
-  /// the backend resolved (or `null` when it sent none).
+  /// Mirrors `merchantVerificationProvider` but is called directly against
+  /// [webhookAuthRepositoryProvider] instead of reading that provider —
+  /// which watches `storeInfoProvider.future` and would create a circular
+  /// dependency if read from inside this notifier.
+  Future<bool> _isVerified(String storeId) async {
+    try {
+      await ref.read(webhookAuthRepositoryProvider).ensureToken(storeId);
+      return true;
+    } on WebhookAuthException {
+      return false;
+    }
+  }
+
   Future<String?> _refreshToken(String storeId) async {
     final status = ref.read(webhookAuthStatusProvider.notifier);
     try {

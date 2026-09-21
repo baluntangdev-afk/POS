@@ -1,18 +1,20 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/services/clock/app_clock.dart';
 import '../entities/receipt.dart';
 import '../entities/refund.dart';
 import '../entities/refund_item.dart';
 import '../repositories/refund_repository.dart';
 
 final processRefundProvider = Provider<ProcessRefund>((ref) {
-  return ProcessRefund(ref.watch(refundRepositoryProvider));
+  return ProcessRefund(ref.watch(refundRepositoryProvider), ref.watch(appClockProvider));
 });
 
 class ProcessRefund {
-  const ProcessRefund(this._refundRepository);
+  const ProcessRefund(this._refundRepository, this._appClock);
 
   final RefundRepository _refundRepository;
+  final AppClock _appClock;
 
   Future<Refund> call({
     required Receipt receipt,
@@ -39,7 +41,7 @@ class ProcessRefund {
     final refund = Refund(
       id: 0,
       docNumber: '',
-      docDate: DateTime.now(),
+      docDate: _appClock.now(),
       receiptId: receipt.id,
       reason: reason,
       method: refundMethod,

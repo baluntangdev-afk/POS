@@ -11,12 +11,13 @@ import '../../../widgets/setup_prompt_dialog.dart';
 import '../../auth/state/auth_providers.dart';
 import '../../auth/state/auth_state.dart';
 import '../../inventory/state/inventory_notifier.dart';
+import '../../live_orders/entities/merchant_device_state.dart';
 import '../../live_orders/entities/orders_feed_state.dart';
 import '../../live_orders/state/merchant_device_notifier.dart';
 import '../../live_orders/state/orders_feed_notifier.dart';
 import '../../live_orders/state/orders_count_provider.dart';
+import '../../live_orders/use_cases/device_registration_status.dart';
 import '../../live_orders/view/device_registration_prompt.dart';
-import '../../live_orders/view/device_registration_status_visual.dart';
 import '../../settings/state/store_info_notifier.dart';
 import '../../users/state/users_notifier.dart';
 import 'store_details_dialog.dart';
@@ -108,7 +109,6 @@ class DashboardScreen extends HookConsumerWidget {
     final authState = ref.watch(authNotifierProvider);
     final user = authState is AuthAuthenticated ? authState.user : null;
     final isAdmin = user?.isAdminOrSupervisor ?? false;
-
     final feedConnection = ref.watch(
       ordersFeedNotifierProvider.select((s) => s.value?.connection),
     );
@@ -117,6 +117,29 @@ class DashboardScreen extends HookConsumerWidget {
     final isSetupDialogOpen = useRef(false);
     final hasShownEmployeesDialog = useRef(false);
     final hasShownProductsDialog = useRef(false);
+    final hasShownDeviceStatusToast = useRef(false);
+
+    void maybeShowDeviceStatusToast(
+      MerchantDeviceState? result, {
+      bool skipIfApproved = false,
+    }) {
+      if (result == null || result.isRegistering) return;
+      if (hasShownDeviceStatusToast.value) return;
+      if (skipIfApproved &&
+          result.error == null &&
+          deviceRegistrationStatusFrom(result.status) ==
+              DeviceRegistrationStatus.approved) {
+        return;
+      }
+      final toast = deviceStatusToastFor(result);
+      if (toast == null) return;
+      hasShownDeviceStatusToast.value = true;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(content: Text(toast.message), backgroundColor: toast.color),
+        );
+    }
 
     void checkAndShowSetupFlow() {
       if (user?.isAdmin != true) return;
@@ -224,17 +247,13 @@ class DashboardScreen extends HookConsumerWidget {
       final result = next.value;
       if (result == null || result.isRegistering) return;
       final prevResult = prev?.value;
-      if (prevResult != null &&
-          prevResult.status == result.status &&
-          prevResult.merchantName == result.merchantName) {
-        return;
-      }
-      final visual = DeviceRegistrationStatusVisual.of(
-        result.status,
-        result.merchantName,
-      );
-      final snackBar = SnackBar(content: Text(visual.body));
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      final changed =
+          prevResult == null ||
+          prevResult.status != result.status ||
+          prevResult.merchantName != result.merchantName ||
+          prevResult.error != result.error;
+      if (changed) hasShownDeviceStatusToast.value = false;
+      maybeShowDeviceStatusToast(result);
     });
     ref.listen(
       inventoryNotifierProvider,
@@ -244,6 +263,10 @@ class DashboardScreen extends HookConsumerWidget {
     useEffect(() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         checkAndShowSetupFlow();
+        maybeShowDeviceStatusToast(
+          ref.read(merchantDeviceNotifierProvider).value,
+          skipIfApproved: true,
+        );
       });
       return null;
     }, const []);
@@ -256,11 +279,7 @@ class DashboardScreen extends HookConsumerWidget {
       return null;
     }, const []);
 
-    // Device re-registration (`refreshStatus`) fires once, from the root
-    // App widget, on the login → authenticated transition — not here, since
-    // this screen remounts on every dashboard visit (go_router recreates it
-    // on each `context.go`), which would otherwise re-hit
-    // `POST /devices/register` on every visit instead of just after login.
+
     useEffect(() {
       ref.read(ordersFeedNotifierProvider.notifier).checkConnection();
       return null;
@@ -356,12 +375,6 @@ class _Header extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final now = useState(DateTime.now());
-    useEffect(() {
-      final timer = Timer.periodic(const Duration(seconds: 30), (_) {
-        now.value = DateTime.now();
-      });
-      return timer.cancel;
-    }, const []);
 
     final greeting =
         firstName.isEmpty ? '' : '${_greetingFor(now.value)}, $firstName';
@@ -369,7 +382,6 @@ class _Header extends HookWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = constraints.maxWidth;
-        final showDateTime = w >= 480;
         final iconOnlySignOut = w < 420;
         final showGreeting = greeting.isNotEmpty && w >= 340;
         // +22 vs. the pre-live-orders heights, to fit the connection-status
@@ -400,16 +412,6 @@ class _Header extends HookWidget {
                       greeting: showGreeting ? greeting : '',
                       feedConnection: feedConnection,
                     ),
-                    if (showDateTime) ...[
-                      const SizedBox(width: 16),
-                      Container(
-                        width: 1,
-                        height: 28,
-                        color: const Color(0xFFE8E6E1),
-                      ),
-                      const SizedBox(width: 16),
-                      Flexible(child: _Clock(now: now.value)),
-                    ],
                   ],
                 ),
               ),
@@ -628,68 +630,6 @@ class _Brand extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Clock extends StatelessWidget {
-  final DateTime now;
-
-  const _Clock({required this.now});
-
-  @override
-  Widget build(BuildContext context) {
-    final hour = now.hour % 12 == 0 ? 12 : now.hour % 12;
-    final min = now.minute.toString().padLeft(2, '0');
-    final period = now.hour < 12 ? 'AM' : 'PM';
-
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final dayStr = days[now.weekday - 1];
-    final monStr = months[now.month - 1];
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '$hour:$min $period',
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF1A1A1A),
-            letterSpacing: -0.3,
-            height: 1.2,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        Text(
-          '$dayStr, $monStr ${now.day}',
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 11,
-            color: Color(0xFF9CA3AF),
-            fontWeight: FontWeight.w400,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
       ],
     );

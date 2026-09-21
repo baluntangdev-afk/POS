@@ -9,6 +9,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/database/app_database.dart';
+import '../../../core/services/clock/app_clock.dart';
+import '../../../main.dart';
 import '../../auth/state/auth_providers.dart';
 import '../../auth/state/auth_state.dart';
 import '../../settings/state/store_info_notifier.dart';
@@ -140,6 +142,20 @@ class PaymentScreen extends HookConsumerWidget {
         ref.invalidate(xReadingProvider);
         ref.invalidate(zReadingProvider);
         ref.invalidate(dailyReportProvider);
+
+        if (!ref.read(appClockProvider).isVerified) {
+          scaffoldMessengerKey.currentState
+            ?..clearSnackBars()
+            ..showSnackBar(
+              const SnackBar(
+                content: Text(
+                  "Device clock not verified — check this device's date & time settings.",
+                ),
+                backgroundColor: AppColors.warning,
+                duration: Duration(seconds: 5),
+              ),
+            );
+        }
 
         if (context.mounted) {
           context.go('/order/receipt/${receipt.id}');

@@ -20,11 +20,6 @@ abstract final class BackupService {
     return _writeBackup(data, at: at ?? DateTime.now());
   }
 
-  /// Same as [createBackup], but skips writing a new zip if nothing has
-  /// changed since the most recent backup (compares a hash of the dumped
-  /// data). Used only by the automatic periodic job and the app-open safety
-  /// net, to avoid piling up identical zips in Downloads/POS Backups when a
-  /// store has had no new activity. Returns null when skipped.
   static Future<File?> createBackupIfChanged(AppDatabase db, {DateTime? at}) async {
     final data = await BackupDataSerializer.dumpAllTables(db);
     final hash = BackupDataSerializer.hashData(data);

@@ -16,4 +16,5 @@ class SalesTable extends Table {
   TextColumn get voidReason => text().nullable()();
   DateTimeColumn get voidedAt => dateTime().nullable()();
   DateTimeColumn get syncedAt => dateTime().nullable()();
+  TextColumn get storeId => text().withDefault(const Constant(''))();
 }

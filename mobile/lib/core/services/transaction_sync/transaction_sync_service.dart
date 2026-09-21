@@ -2,30 +2,24 @@ import '../../database/app_database.dart';
 import '../../../data/backend_api/sources/transaction_sync_api.dart';
 import '../../../features/live_orders/repositories/webhook_auth_repository.dart';
 
-/// Upper bound on the random delay applied before every sync attempt
-/// (periodic tick and reconnect trigger alike), so devices whose ticks
-/// happen to align — or that all reconnect after a shared outage — don't
-/// all hit the sync endpoint in the same instant.
 const kTransactionSyncJitterMax = Duration(seconds: 15);
 
-/// One attempt to push everything currently unsynced, capped at
-/// [SalesDao.getUnsyncedSaleIds]/[getUnsyncedRefundIds]'s default 15-per-table
-/// limit. Called by both the periodic worker and the reconnect listener —
-/// this is the only place sync logic lives.
-///
-/// Throws on any failure (auth or network) so the caller decides how to
-/// react; per the design doc this is always "do nothing, let the next tick
-/// retry" — no row is marked synced unless the server actually accepted it.
+typedef TransactionSyncOutcome = ({int syncedSales, int syncedRefunds});
+
+typedef SyncAllProgress = ({int currentBatch, int totalBatches});
+
 abstract final class TransactionSyncService {
-  static Future<void> syncPending(
+  static Future<TransactionSyncOutcome> syncPending(
     AppDatabase db,
     TransactionSyncApi api,
     WebhookAuthRepository auth,
     String storeId,
   ) async {
-    final saleIds = await db.salesDao.getUnsyncedSaleIds();
-    final refundIds = await db.salesDao.getUnsyncedRefundIds();
-    if (saleIds.isEmpty && refundIds.isEmpty) return;
+    final saleIds = await db.salesDao.getUnsyncedSaleIds(storeId: storeId);
+    final refundIds = await db.salesDao.getUnsyncedRefundIds(storeId: storeId);
+    if (saleIds.isEmpty && refundIds.isEmpty) {
+      return (syncedSales: 0, syncedRefunds: 0);
+    }
 
     await auth.ensureToken(storeId);
 
@@ -45,6 +39,25 @@ abstract final class TransactionSyncService {
     await db.transaction(() async {
       await db.salesDao.markSalesSynced(result.acceptedSaleIds);
       await db.salesDao.markRefundsSynced(result.acceptedRefundIds);
+    });
+
+    return (
+      syncedSales: result.acceptedSaleIds.length,
+      syncedRefunds: result.acceptedRefundIds.length,
+    );
+  }
+
+  static Future<void> unsyncAll(AppDatabase db, String storeId) async {
+    await db.transaction(() async {
+      await db.salesDao.markAllSalesUnsynced(storeId);
+      await db.salesDao.markAllRefundsUnsynced();
+    });
+  }
+
+  static Future<void> unsyncAllKeepingStoreId(AppDatabase db) async {
+    await db.transaction(() async {
+      await db.salesDao.markAllSalesUnsyncedKeepingStoreId();
+      await db.salesDao.markAllRefundsUnsynced();
     });
   }
 }

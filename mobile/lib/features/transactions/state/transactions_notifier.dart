@@ -31,7 +31,9 @@ class TransactionsNotifier extends AsyncNotifier<TransactionsPage> {
   String? get search => _search;
 
   @override
-  Future<TransactionsPage> build() => _load();
+  Future<TransactionsPage> build() {
+    return _load();
+  }
 
   Future<TransactionsPage> _load({int offset = 0}) async {
     final db = ref.watch(databaseProvider);

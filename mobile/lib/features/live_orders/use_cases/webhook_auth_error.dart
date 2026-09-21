@@ -54,7 +54,8 @@ WebhookAuthError? _fromCode(String code) => switch (code) {
   'unauthorized_client' => WebhookAuthError.invalidClient,
   'invalid_request' ||
   'invalid_merchant' ||
-  'unknown_merchant' => WebhookAuthError.invalidRequest,
+  'unknown_merchant' ||
+  'merchant_not_registered' => WebhookAuthError.invalidRequest,
   'rate_limited' || 'too_many_requests' => WebhookAuthError.rateLimited,
   _ => null,
 };

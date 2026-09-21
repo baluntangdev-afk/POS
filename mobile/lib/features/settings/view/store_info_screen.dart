@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -7,17 +8,119 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mobile/features/live_orders/use_cases/webhook_auth_error.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/providers/database_provider.dart';
+import '../../../core/services/transaction_sync/transaction_sync_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../data/backend_api/errors/api_exception.dart';
 import '../../../widgets/payment_methods_card.dart';
 import '../../../widgets/section_card.dart';
+import '../../../widgets/setup_prompt_dialog.dart';
 import '../../live_orders/state/merchant_device_notifier.dart';
 import '../../live_orders/view/device_registration_prompt.dart';
 import '../../live_orders/view/device_registration_status_card.dart';
+import '../state/merchant_verification_provider.dart';
 import '../state/store_info_notifier.dart';
 
 const _storeIdAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+String storeSaveErrorMessage(Object error) => switch (error) {
+  ApiException(:final message) => message,
+  WebhookAuthException(:final message) => message,
+  VerifiedMerchantLockedException(:final message) => message,
+  _ => 'Could not save store info. Try again.',
+};
+
+void _showStoreSaveError(BuildContext context, Object error) {
+  final message = storeSaveErrorMessage(error);
+
+  if (error is WebhookAuthException &&
+      error.reason == WebhookAuthError.invalidRequest) {
+    unawaited(
+      showSetupPromptDialog(
+        context,
+        type: SetupPromptType.error,
+        title: 'Store Not Recognized',
+        message: message,
+        primaryButtonText: 'OK',
+        barrierDismissible: false,
+        onPrimaryPressed: () => Navigator.of(context).pop(),
+      ),
+    );
+    return;
+  }
+
+  ScaffoldMessenger.of(context)
+    ..clearSnackBars()
+    ..showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.error,
+        duration: const Duration(seconds: 5),
+      ),
+    );
+}
+
+Future<bool> shouldOfferDataTransfer(
+  WidgetRef ref, {
+  required String previousStoreId,
+  required String newStoreId,
+}) async {
+  if (previousStoreId.trim() == newStoreId.trim()) return false;
+  final previouslyVerified =
+      ref.read(merchantVerificationProvider).value ?? false;
+  if (previouslyVerified) return false;
+  return ref.read(databaseProvider).salesDao.hasAnyTransactions();
+}
+
+/// Shown when the user tries to change the Store ID away from a merchant
+/// the backend already recognizes as verified. Proceeding still verifies and
+/// registers the device against the new store ID as usual, but any local
+/// sale/refund still pending sync under the old merchant is excluded from
+/// the next sync batch first, so it isn't pushed under the new store.
+Future<bool> confirmReassignVerifiedStoreId(BuildContext context) async {
+  var proceed = false;
+  await showSetupPromptDialog(
+    context,
+    type: SetupPromptType.warning,
+    title: 'Verified Merchant',
+    message:
+        '${const VerifiedMerchantLockedException().message} '
+        'Proceeding will reassign this device to the new store; any local '
+        'sales data still pending sync will not be sent to it.',
+    primaryButtonText: 'Proceed',
+    secondaryButtonText: 'Cancel',
+    barrierDismissible: false,
+    onPrimaryPressed: () {
+      proceed = true;
+      Navigator.of(context).pop();
+    },
+    onSecondaryPressed: () => Navigator.of(context).pop(),
+  );
+  return proceed;
+}
+
+Future<void> maybeOfferDataTransfer(BuildContext context, WidgetRef ref) {
+  return showSetupPromptDialog(
+    context,
+    type: SetupPromptType.info,
+    title: 'Existing Data Found',
+    message:
+        'This device has local sales data. It will be transferred to the '
+        'now-active merchant on the next sync.',
+    primaryButtonText: 'Transfer',
+    secondaryButtonText: 'Not Now',
+    onPrimaryPressed: () async {
+      final storeId = ref.read(storeInfoProvider).value?.storeId ?? '';
+      await TransactionSyncService.unsyncAll(
+        ref.read(databaseProvider),
+        storeId,
+      );
+      if (context.mounted) Navigator.of(context).pop();
+    },
+    onSecondaryPressed: () => Navigator.of(context).pop(),
+  );
+}
 
 String generateStoreId() {
   final random = Random.secure();
@@ -36,27 +139,6 @@ class StoreInfoScreen extends HookConsumerWidget {
 
     ref.listen(merchantDeviceNotifierProvider, (prev, next) {
       handleMerchantDeviceOutcome(context, prev?.value, next.value);
-    });
-
-    ref.listen(storeInfoProvider, (prev, next) {
-      final error = next.error;
-      if (error == null || error == prev?.error) return;
-
-      final message = switch (error) {
-        ApiException(:final message) => message,
-        WebhookAuthException(:final message) => message,
-        _ => '',
-      };
-
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: AppColors.error,
-            duration: const Duration(seconds: 5),
-          ),
-        );
     });
 
     final info = infoAsync.value;
@@ -85,8 +167,10 @@ class StoreInfoScreen extends HookConsumerWidget {
 
     if (info == null || info.storeId.isEmpty) {
       return _StoreIdSetupGate(
-        onConfirm:
-            (storeId) => ref
+        onConfirm: (storeId) async {
+          bool verifiedOnline;
+          try {
+            verifiedOnline = await ref
                 .read(storeInfoProvider.notifier)
                 .save(
                   storeId: storeId,
@@ -97,7 +181,30 @@ class StoreInfoScreen extends HookConsumerWidget {
                   receiptFooter: info?.receiptFooter ?? '',
                   tin: info?.tin ?? '',
                   terminalName: info?.terminalName ?? '',
+                  // First-run only: a device with no network yet shouldn't
+                  // be stuck on this gate. A genuinely rejected store ID
+                  // still blocks — see `StoreInfoNotifier.save` doc.
+                  allowOfflineSetup: true,
+                );
+          } catch (error) {
+            if (context.mounted) _showStoreSaveError(context, error);
+            rethrow;
+          }
+          if (!verifiedOnline && context.mounted) {
+            ScaffoldMessenger.of(context)
+              ..clearSnackBars()
+              ..showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    "Saved. Couldn't reach the server to verify this store "
+                    "ID — you can finish setup later once you're back "
+                    "online.",
+                  ),
+                  duration: Duration(seconds: 6),
                 ),
+              );
+          }
+        },
       );
     }
 
@@ -120,22 +227,49 @@ class StoreInfoScreen extends HookConsumerWidget {
         tin,
         terminalName,
       ) async {
-        await ref
-            .read(storeInfoProvider.notifier)
-            .save(
-              storeId: storeId,
-              storeName: name,
-              address: address,
-              taxRate: taxRate,
-              currency: currency,
-              receiptFooter: footer,
-              tin: tin,
-              terminalName: terminalName,
-            );
+        var bypassVerifiedLock = false;
+        if (storeId.trim() != info.storeId.trim() &&
+            (ref.read(merchantVerificationProvider).value ?? false)) {
+          if (!context.mounted) return;
+          final proceed = await confirmReassignVerifiedStoreId(context);
+          if (!proceed) return;
+          bypassVerifiedLock = true;
+        }
+
+        final offerDataTransfer = await shouldOfferDataTransfer(
+          ref,
+          previousStoreId: info.storeId,
+          newStoreId: storeId,
+        );
+        bool verifiedOnline;
+        try {
+          verifiedOnline = await ref
+              .read(storeInfoProvider.notifier)
+              .save(
+                storeId: storeId,
+                storeName: name,
+                address: address,
+                taxRate: taxRate,
+                currency: currency,
+                receiptFooter: footer,
+                tin: tin,
+                terminalName: terminalName,
+                bypassVerifiedLock: bypassVerifiedLock,
+              );
+        } catch (error) {
+          // A rejected store ID (e.g. an unknown merchant) leaves the
+          // previous store info untouched — show why it wasn't saved
+          // instead of claiming success.
+          if (context.mounted) _showStoreSaveError(context, error);
+          return;
+        }
         if (context.mounted) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text('Store info saved')));
+        }
+        if (verifiedOnline && offerDataTransfer && context.mounted) {
+          await maybeOfferDataTransfer(context, ref);
         }
       },
     );
@@ -187,8 +321,14 @@ class _StoreIdInputDialog extends HookWidget {
     Future<void> confirm() async {
       if (!(formKey.currentState?.validate() ?? false)) return;
       saving.value = true;
-      await onConfirm(controller.text.trim());
-      if (context.mounted) Navigator.of(context).pop();
+      try {
+        await onConfirm(controller.text.trim());
+        if (context.mounted) Navigator.of(context).pop();
+      } catch (_) {
+        // Error already surfaced by onConfirm; keep the dialog open so the
+        // user can fix the ID and retry.
+        if (context.mounted) saving.value = false;
+      }
     }
 
     return PopScope(
@@ -295,6 +435,8 @@ class _StoreInfoForm extends HookConsumerWidget {
     );
     final formKey = useMemoized(GlobalKey<FormState>.new);
     final saving = useState(false);
+    final merchantVerified =
+        ref.watch(merchantVerificationProvider).value ?? false;
 
     Future<void> save() async {
       if (!(formKey.currentState?.validate() ?? false)) return;
@@ -323,8 +465,10 @@ class _StoreInfoForm extends HookConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
-          const DeviceRegistrationStatusCard(),
-          const Gap(AppSpacing.lg),
+          if (merchantVerified) ...[
+            const DeviceRegistrationStatusCard(),
+            const Gap(AppSpacing.lg),
+          ],
           SectionCard(
             title: 'Basic Info',
             children: [

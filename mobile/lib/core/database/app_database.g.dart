@@ -2868,6 +2868,18 @@ class $SalesTableTable extends SalesTable
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _storeIdMeta = const VerificationMeta(
+    'storeId',
+  );
+  @override
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
+    'store_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2881,6 +2893,7 @@ class $SalesTableTable extends SalesTable
     voidReason,
     voidedAt,
     syncedAt,
+    storeId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2967,6 +2980,12 @@ class $SalesTableTable extends SalesTable
         syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
       );
     }
+    if (data.containsKey('store_id')) {
+      context.handle(
+        _storeIdMeta,
+        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
+      );
+    }
     return context;
   }
 
@@ -3027,6 +3046,11 @@ class $SalesTableTable extends SalesTable
         DriftSqlType.dateTime,
         data['${effectivePrefix}synced_at'],
       ),
+      storeId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}store_id'],
+          )!,
     );
   }
 
@@ -3048,6 +3072,7 @@ class SalesTableData extends DataClass implements Insertable<SalesTableData> {
   final String? voidReason;
   final DateTime? voidedAt;
   final DateTime? syncedAt;
+  final String storeId;
   const SalesTableData({
     required this.id,
     required this.cashierId,
@@ -3060,6 +3085,7 @@ class SalesTableData extends DataClass implements Insertable<SalesTableData> {
     this.voidReason,
     this.voidedAt,
     this.syncedAt,
+    required this.storeId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3083,6 +3109,7 @@ class SalesTableData extends DataClass implements Insertable<SalesTableData> {
     if (!nullToAbsent || syncedAt != null) {
       map['synced_at'] = Variable<DateTime>(syncedAt);
     }
+    map['store_id'] = Variable<String>(storeId);
     return map;
   }
 
@@ -3111,6 +3138,7 @@ class SalesTableData extends DataClass implements Insertable<SalesTableData> {
           syncedAt == null && nullToAbsent
               ? const Value.absent()
               : Value(syncedAt),
+      storeId: Value(storeId),
     );
   }
 
@@ -3131,6 +3159,7 @@ class SalesTableData extends DataClass implements Insertable<SalesTableData> {
       voidReason: serializer.fromJson<String?>(json['voidReason']),
       voidedAt: serializer.fromJson<DateTime?>(json['voidedAt']),
       syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+      storeId: serializer.fromJson<String>(json['storeId']),
     );
   }
   @override
@@ -3148,6 +3177,7 @@ class SalesTableData extends DataClass implements Insertable<SalesTableData> {
       'voidReason': serializer.toJson<String?>(voidReason),
       'voidedAt': serializer.toJson<DateTime?>(voidedAt),
       'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+      'storeId': serializer.toJson<String>(storeId),
     };
   }
 
@@ -3163,6 +3193,7 @@ class SalesTableData extends DataClass implements Insertable<SalesTableData> {
     Value<String?> voidReason = const Value.absent(),
     Value<DateTime?> voidedAt = const Value.absent(),
     Value<DateTime?> syncedAt = const Value.absent(),
+    String? storeId,
   }) => SalesTableData(
     id: id ?? this.id,
     cashierId: cashierId ?? this.cashierId,
@@ -3175,6 +3206,7 @@ class SalesTableData extends DataClass implements Insertable<SalesTableData> {
     voidReason: voidReason.present ? voidReason.value : this.voidReason,
     voidedAt: voidedAt.present ? voidedAt.value : this.voidedAt,
     syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+    storeId: storeId ?? this.storeId,
   );
   SalesTableData copyWithCompanion(SalesTableCompanion data) {
     return SalesTableData(
@@ -3190,6 +3222,7 @@ class SalesTableData extends DataClass implements Insertable<SalesTableData> {
           data.voidReason.present ? data.voidReason.value : this.voidReason,
       voidedAt: data.voidedAt.present ? data.voidedAt.value : this.voidedAt,
       syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      storeId: data.storeId.present ? data.storeId.value : this.storeId,
     );
   }
 
@@ -3206,7 +3239,8 @@ class SalesTableData extends DataClass implements Insertable<SalesTableData> {
           ..write('soNumber: $soNumber, ')
           ..write('voidReason: $voidReason, ')
           ..write('voidedAt: $voidedAt, ')
-          ..write('syncedAt: $syncedAt')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('storeId: $storeId')
           ..write(')'))
         .toString();
   }
@@ -3224,6 +3258,7 @@ class SalesTableData extends DataClass implements Insertable<SalesTableData> {
     voidReason,
     voidedAt,
     syncedAt,
+    storeId,
   );
   @override
   bool operator ==(Object other) =>
@@ -3239,7 +3274,8 @@ class SalesTableData extends DataClass implements Insertable<SalesTableData> {
           other.soNumber == this.soNumber &&
           other.voidReason == this.voidReason &&
           other.voidedAt == this.voidedAt &&
-          other.syncedAt == this.syncedAt);
+          other.syncedAt == this.syncedAt &&
+          other.storeId == this.storeId);
 }
 
 class SalesTableCompanion extends UpdateCompanion<SalesTableData> {
@@ -3254,6 +3290,7 @@ class SalesTableCompanion extends UpdateCompanion<SalesTableData> {
   final Value<String?> voidReason;
   final Value<DateTime?> voidedAt;
   final Value<DateTime?> syncedAt;
+  final Value<String> storeId;
   const SalesTableCompanion({
     this.id = const Value.absent(),
     this.cashierId = const Value.absent(),
@@ -3266,6 +3303,7 @@ class SalesTableCompanion extends UpdateCompanion<SalesTableData> {
     this.voidReason = const Value.absent(),
     this.voidedAt = const Value.absent(),
     this.syncedAt = const Value.absent(),
+    this.storeId = const Value.absent(),
   });
   SalesTableCompanion.insert({
     this.id = const Value.absent(),
@@ -3279,6 +3317,7 @@ class SalesTableCompanion extends UpdateCompanion<SalesTableData> {
     this.voidReason = const Value.absent(),
     this.voidedAt = const Value.absent(),
     this.syncedAt = const Value.absent(),
+    this.storeId = const Value.absent(),
   }) : cashierId = Value(cashierId),
        total = Value(total),
        status = Value(status),
@@ -3296,6 +3335,7 @@ class SalesTableCompanion extends UpdateCompanion<SalesTableData> {
     Expression<String>? voidReason,
     Expression<DateTime>? voidedAt,
     Expression<DateTime>? syncedAt,
+    Expression<String>? storeId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -3309,6 +3349,7 @@ class SalesTableCompanion extends UpdateCompanion<SalesTableData> {
       if (voidReason != null) 'void_reason': voidReason,
       if (voidedAt != null) 'voided_at': voidedAt,
       if (syncedAt != null) 'synced_at': syncedAt,
+      if (storeId != null) 'store_id': storeId,
     });
   }
 
@@ -3324,6 +3365,7 @@ class SalesTableCompanion extends UpdateCompanion<SalesTableData> {
     Value<String?>? voidReason,
     Value<DateTime?>? voidedAt,
     Value<DateTime?>? syncedAt,
+    Value<String>? storeId,
   }) {
     return SalesTableCompanion(
       id: id ?? this.id,
@@ -3337,6 +3379,7 @@ class SalesTableCompanion extends UpdateCompanion<SalesTableData> {
       voidReason: voidReason ?? this.voidReason,
       voidedAt: voidedAt ?? this.voidedAt,
       syncedAt: syncedAt ?? this.syncedAt,
+      storeId: storeId ?? this.storeId,
     );
   }
 
@@ -3376,6 +3419,9 @@ class SalesTableCompanion extends UpdateCompanion<SalesTableData> {
     if (syncedAt.present) {
       map['synced_at'] = Variable<DateTime>(syncedAt.value);
     }
+    if (storeId.present) {
+      map['store_id'] = Variable<String>(storeId.value);
+    }
     return map;
   }
 
@@ -3392,7 +3438,8 @@ class SalesTableCompanion extends UpdateCompanion<SalesTableData> {
           ..write('soNumber: $soNumber, ')
           ..write('voidReason: $voidReason, ')
           ..write('voidedAt: $voidedAt, ')
-          ..write('syncedAt: $syncedAt')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('storeId: $storeId')
           ..write(')'))
         .toString();
   }
@@ -13903,6 +13950,7 @@ typedef $$SalesTableTableCreateCompanionBuilder =
       Value<String?> voidReason,
       Value<DateTime?> voidedAt,
       Value<DateTime?> syncedAt,
+      Value<String> storeId,
     });
 typedef $$SalesTableTableUpdateCompanionBuilder =
     SalesTableCompanion Function({
@@ -13917,6 +13965,7 @@ typedef $$SalesTableTableUpdateCompanionBuilder =
       Value<String?> voidReason,
       Value<DateTime?> voidedAt,
       Value<DateTime?> syncedAt,
+      Value<String> storeId,
     });
 
 final class $$SalesTableTableReferences
@@ -14053,6 +14102,11 @@ class $$SalesTableTableFilterComposer
 
   ColumnFilters<DateTime> get syncedAt => $composableBuilder(
     column: $table.syncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get storeId => $composableBuilder(
+    column: $table.storeId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -14214,6 +14268,11 @@ class $$SalesTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get storeId => $composableBuilder(
+    column: $table.storeId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$UsersTableTableOrderingComposer get cashierId {
     final $$UsersTableTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -14278,6 +14337,9 @@ class $$SalesTableTableAnnotationComposer
 
   GeneratedColumn<DateTime> get syncedAt =>
       $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get storeId =>
+      $composableBuilder(column: $table.storeId, builder: (column) => column);
 
   $$UsersTableTableAnnotationComposer get cashierId {
     final $$UsersTableTableAnnotationComposer composer = $composerBuilder(
@@ -14422,6 +14484,7 @@ class $$SalesTableTableTableManager
                 Value<String?> voidReason = const Value.absent(),
                 Value<DateTime?> voidedAt = const Value.absent(),
                 Value<DateTime?> syncedAt = const Value.absent(),
+                Value<String> storeId = const Value.absent(),
               }) => SalesTableCompanion(
                 id: id,
                 cashierId: cashierId,
@@ -14434,6 +14497,7 @@ class $$SalesTableTableTableManager
                 voidReason: voidReason,
                 voidedAt: voidedAt,
                 syncedAt: syncedAt,
+                storeId: storeId,
               ),
           createCompanionCallback:
               ({
@@ -14448,6 +14512,7 @@ class $$SalesTableTableTableManager
                 Value<String?> voidReason = const Value.absent(),
                 Value<DateTime?> voidedAt = const Value.absent(),
                 Value<DateTime?> syncedAt = const Value.absent(),
+                Value<String> storeId = const Value.absent(),
               }) => SalesTableCompanion.insert(
                 id: id,
                 cashierId: cashierId,
@@ -14460,6 +14525,7 @@ class $$SalesTableTableTableManager
                 voidReason: voidReason,
                 voidedAt: voidedAt,
                 syncedAt: syncedAt,
+                storeId: storeId,
               ),
           withReferenceMapper:
               (p0) =>

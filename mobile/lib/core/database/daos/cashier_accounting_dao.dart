@@ -42,13 +42,14 @@ class CashierAccountingDao extends DatabaseAccessor<AppDatabase> with _$CashierA
     required double lowestSale,
     required double cashCollected,
     required String paymentLedgersJson,
+    required DateTime generatedAt,
   }) =>
       into(xReadingsTable).insert(XReadingsTableCompanion.insert(
         cashierId: cashierId,
         cashierName: cashierName,
         periodStart: periodStart,
         periodEnd: periodEnd,
-        generatedAt: DateTime.now(),
+        generatedAt: generatedAt,
         totalSales: totalSales,
         transactionCount: transactionCount,
         voidedCount: voidedCount,
@@ -106,13 +107,14 @@ class CashierAccountingDao extends DatabaseAccessor<AppDatabase> with _$CashierA
     required int cashSalesCount,
     required String salesByProductJson,
     required String cashLedgerJson,
+    required DateTime generatedAt,
   }) =>
       into(dailyReportsTable).insert(DailyReportsTableCompanion.insert(
         cashierId: cashierId,
         cashierName: cashierName,
         periodStart: periodStart,
         periodEnd: periodEnd,
-        generatedAt: DateTime.now(),
+        generatedAt: generatedAt,
         grossSales: grossSales,
         vatableSales: vatableSales,
         vatAmount: vatAmount,
@@ -193,12 +195,13 @@ class CashierAccountingDao extends DatabaseAccessor<AppDatabase> with _$CashierA
     required String salesByCashierJson,
     required String discountsJson,
     required String paymentLedgersJson,
+    required DateTime generatedAt,
   }) =>
       into(zReadingsTable).insert(ZReadingsTableCompanion.insert(
         zCounter: zCounter,
         periodStart: periodStart,
         periodEnd: periodEnd,
-        generatedAt: DateTime.now(),
+        generatedAt: generatedAt,
         closedByUserId: closedByUserId,
         closedByName: closedByName,
         authorizedByUserId: authorizedByUserId,

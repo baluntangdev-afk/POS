@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../widgets/setup_prompt_dialog.dart';
 import '../entities/merchant_device_state.dart';
 import '../use_cases/device_registration_error.dart';
@@ -9,6 +10,24 @@ import 'device_registration_status_visual.dart';
 
 String? _shownStatusKey; // '<deviceId>|<status>'
 DeviceRegistrationError? _shownError;
+
+typedef DeviceStatusToast = ({String message, Color color});
+
+/// Toast content for the current device-registration [state]: the last
+/// failed attempt's message when there is one, otherwise the status copy
+/// (e.g. "waiting for approval"). `null` when the device has never
+/// registered. Unlike [handleMerchantDeviceOutcome]'s one-time dialog, this
+/// has no dedup — callers decide when it's shown (e.g. an explicit "Check
+/// status" tap, or once per screen visit).
+DeviceStatusToast? deviceStatusToastFor(MerchantDeviceState state) {
+  if (!state.isRegistered) return null;
+  final error = state.error;
+  if (error != null) {
+    return (message: state.errorMessage ?? error.message, color: AppColors.error);
+  }
+  final visual = DeviceRegistrationStatusVisual.of(state.status, state.merchantName);
+  return (message: visual.body, color: visual.color);
+}
 
 void handleMerchantDeviceOutcome(
   BuildContext context,

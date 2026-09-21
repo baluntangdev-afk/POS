@@ -9,9 +9,15 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../widgets/payment_methods_card.dart';
 import '../../../widgets/section_card.dart';
 import '../../settings/state/store_info_notifier.dart';
-import '../../settings/view/store_info_screen.dart' show generateStoreId;
+import '../../settings/view/store_info_screen.dart'
+    show
+        generateStoreId,
+        maybeOfferDataTransfer,
+        shouldOfferDataTransfer,
+        storeSaveErrorMessage;
 
-Future<void> showStoreDetailsDialog(BuildContext context, {
+Future<void> showStoreDetailsDialog(
+  BuildContext context, {
   required VoidCallback onSignOut,
 }) {
   return showDialog<void>(
@@ -28,15 +34,14 @@ class StoreDetailsDialog extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final info = ref
-        .read(storeInfoProvider)
-        .value;
+    final info = ref.read(storeInfoProvider).value;
 
     final formKey = useMemoized(GlobalKey<FormState>.new);
     final storeIdCtrl = useTextEditingController(
-      text: (info?.storeId.isNotEmpty ?? false)
-          ? info!.storeId
-          : generateStoreId(),
+      text:
+          (info?.storeId.isNotEmpty ?? false)
+              ? info!.storeId
+              : generateStoreId(),
     );
     final nameCtrl = useTextEditingController(text: info?.storeName ?? '');
     final addressCtrl = useTextEditingController(text: info?.address ?? '');
@@ -51,22 +56,33 @@ class StoreDetailsDialog extends HookConsumerWidget {
       if (!(formKey.currentState?.validate() ?? false)) return;
       isSubmitting.value = true;
       errorMessage.value = null;
+      final offerDataTransfer = await shouldOfferDataTransfer(
+        ref,
+        previousStoreId: info?.storeId ?? '',
+        newStoreId: storeIdCtrl.text.trim(),
+      );
       try {
         await ref
             .read(storeInfoProvider.notifier)
             .save(
-          storeId: storeIdCtrl.text.trim(),
-          storeName: nameCtrl.text.trim(),
-          address: addressCtrl.text.trim(),
-          tin: tinCtrl.text.trim(),
-          terminalName: terminalNameCtrl.text.trim(),
-          taxRate: info?.taxRate ?? 0.0,
-          currency: info?.currency ?? 'PHP',
-          receiptFooter: info?.receiptFooter ?? '',
-        );
+              storeId: storeIdCtrl.text.trim(),
+              storeName: nameCtrl.text.trim(),
+              address: addressCtrl.text.trim(),
+              tin: tinCtrl.text.trim(),
+              terminalName: terminalNameCtrl.text.trim(),
+              taxRate: info?.taxRate ?? 0.0,
+              currency: info?.currency ?? 'PHP',
+              receiptFooter: info?.receiptFooter ?? '',
+            );
+        // Show the transfer offer, if any, while this dialog is still on
+        // screen — popping first would leave `context` unmounted before
+        // maybeOfferDataTransfer could use it.
+        if (offerDataTransfer && context.mounted) {
+          await maybeOfferDataTransfer(context, ref);
+        }
         if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
       } catch (e) {
-        errorMessage.value = '$e';
+        errorMessage.value = storeSaveErrorMessage(e);
         isSubmitting.value = false;
       }
     }
@@ -77,10 +93,7 @@ class StoreDetailsDialog extends HookConsumerWidget {
       child: Container(
         width: 480,
         constraints: BoxConstraints(
-          maxHeight: MediaQuery
-              .of(context)
-              .size
-              .height * 0.85,
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
         decoration: BoxDecoration(
           color: AppColors.surface,
@@ -122,17 +135,16 @@ class StoreDetailsDialog extends HookConsumerWidget {
                           suffixIcon: IconButton(
                             icon: const Icon(Icons.refresh),
                             tooltip: 'Generate a new ID',
-                            onPressed: () => storeIdCtrl.text = generateStoreId(),
+                            onPressed:
+                                () => storeIdCtrl.text = generateStoreId(),
                           ),
                         ),
                         textCapitalization: TextCapitalization.characters,
                         validator:
                             (v) =>
-                        (v
-                            ?.trim()
-                            .isEmpty ?? true)
-                            ? 'Store ID is required'
-                            : null,
+                                (v?.trim().isEmpty ?? true)
+                                    ? 'Store ID is required'
+                                    : null,
                       ),
                       const Gap(AppSpacing.md),
                       TextFormField(
@@ -144,11 +156,9 @@ class StoreDetailsDialog extends HookConsumerWidget {
                         textCapitalization: TextCapitalization.words,
                         validator:
                             (v) =>
-                        (v
-                            ?.trim()
-                            .isEmpty ?? true)
-                            ? 'Store name is required'
-                            : null,
+                                (v?.trim().isEmpty ?? true)
+                                    ? 'Store name is required'
+                                    : null,
                       ),
                       const Gap(AppSpacing.md),
                       TextFormField(
@@ -160,11 +170,9 @@ class StoreDetailsDialog extends HookConsumerWidget {
                         maxLines: 2,
                         validator:
                             (v) =>
-                        (v
-                            ?.trim()
-                            .isEmpty ?? true)
-                            ? 'Address is required'
-                            : null,
+                                (v?.trim().isEmpty ?? true)
+                                    ? 'Address is required'
+                                    : null,
                       ),
                       const Gap(AppSpacing.md),
                       TextFormField(
@@ -176,11 +184,9 @@ class StoreDetailsDialog extends HookConsumerWidget {
                         ),
                         validator:
                             (v) =>
-                        (v
-                            ?.trim()
-                            .isEmpty ?? true)
-                            ? 'TIN is required'
-                            : null,
+                                (v?.trim().isEmpty ?? true)
+                                    ? 'TIN is required'
+                                    : null,
                       ),
                       const Gap(AppSpacing.md),
                       TextFormField(
@@ -222,15 +228,15 @@ class StoreDetailsDialog extends HookConsumerWidget {
                       Expanded(
                         child: OutlinedButton(
                           onPressed:
-                          isSubmitting.value
-                              ? null
-                              : () {
-                            Navigator.of(
-                              context,
-                              rootNavigator: true,
-                            ).pop();
-                            onSignOut();
-                          },
+                              isSubmitting.value
+                                  ? null
+                                  : () {
+                                    Navigator.of(
+                                      context,
+                                      rootNavigator: true,
+                                    ).pop();
+                                    onSignOut();
+                                  },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.error,
                             side: BorderSide(
@@ -265,19 +271,19 @@ class StoreDetailsDialog extends HookConsumerWidget {
                             ),
                           ),
                           child:
-                          isSubmitting.value
-                              ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                              : const Text(
-                            'Save',
-                            style: TextStyle(color: Colors.white),
-                          ),
+                              isSubmitting.value
+                                  ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                  : const Text(
+                                    'Save',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                         ),
                       ),
                     ],

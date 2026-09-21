@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../../../core/providers/database_provider.dart';
+import '../../../../core/services/clock/app_clock.dart';
 import '../../../auth/state/auth_providers.dart';
 import '../../../auth/state/auth_state.dart';
 import '../../../reports/entities/report_data.dart';
@@ -38,7 +39,7 @@ class XReadingNotifier extends AsyncNotifier<XReadingData> {
     // boundary with no transaction actually at that time, so it's only used
     // to scope the queries below, never shown directly to the user.
     final queryStart = await db.cashierAccountingDao.getXReadingPeriodStart(cashierId);
-    final periodEnd = DateTime.now();
+    final periodEnd = ref.watch(appClockProvider).now();
     final periodStart =
         await db.salesDao.getEarliestTransactionDateForCashier(queryStart, periodEnd, cashierId);
 
@@ -75,7 +76,7 @@ class XReadingNotifier extends AsyncNotifier<XReadingData> {
       cashierName: cashierName,
       periodStart: periodStart,
       periodEnd: periodEnd,
-      generatedAt: DateTime.now(),
+      generatedAt: ref.watch(appClockProvider).now(),
       totalSales: totalSales,
       transactionCount: transactionCount,
       voidedCount: statusCounts.voided,
@@ -147,6 +148,7 @@ class XReadingNotifier extends AsyncNotifier<XReadingData> {
       lowestSale: data.lowestSale,
       cashCollected: data.cashCollected,
       paymentLedgersJson: paymentLedgersJson,
+      generatedAt: ref.read(appClockProvider).now(),
     );
 
     ref.invalidate(xReadingHistoryProvider);

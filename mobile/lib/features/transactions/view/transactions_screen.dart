@@ -4,10 +4,18 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/providers/database_provider.dart';
+import '../../../core/services/transaction_sync/transaction_sync_progress_provider.dart';
+import '../../../core/services/transaction_sync/transaction_sync_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../data/backend_api/errors/api_exception.dart';
+import '../../../data/backend_api/sources/transaction_sync_api.dart';
+import '../../live_orders/repositories/webhook_auth_repository.dart';
+import '../../live_orders/use_cases/webhook_auth_error.dart';
+import '../../settings/state/store_info_notifier.dart';
 import '../entities/transaction_summary.dart';
 import '../state/transactions_notifier.dart';
 import 'void_transaction_dialog.dart';
@@ -21,6 +29,93 @@ class TransactionsScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pageAsync = ref.watch(transactionsProvider);
     final searchCtrl = useTextEditingController();
+    final syncProgress = ref.watch(transactionSyncProgressProvider);
+    final isSyncing = syncProgress != null;
+    final isUnsyncing = useState(false);
+
+    Future<void> handleManualSync() async {
+      if (isSyncing) return;
+      final storeId = ref.read(storeInfoProvider).value?.storeId ?? '';
+      if (storeId.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Set up store details before syncing.')),
+        );
+        return;
+      }
+
+      try {
+        final outcome = await ref
+            .read(transactionSyncProgressProvider.notifier)
+            .syncAll(
+              db: ref.read(databaseProvider),
+              api: ref.read(transactionSyncApiProvider),
+              auth: ref.read(webhookAuthRepositoryProvider),
+              storeId: storeId,
+            );
+        final total = outcome.syncedSales + outcome.syncedRefunds;
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              total == 0
+                  ? 'Everything is already synced.'
+                  : 'Synced $total transaction${total == 1 ? '' : 's'}.',
+            ),
+          ),
+        );
+        ref.read(transactionsProvider.notifier).refresh();
+      } on WebhookAuthException catch (error) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      } on ApiException catch (error) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    }
+
+    Future<void> handleManualUnsync() async {
+      if (isUnsyncing.value) return;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder:
+            (dialogContext) => AlertDialog(
+              title: const Text('Unsync Transactions'),
+              content: const Text(
+                'This marks all synced transactions on this device as not synced. '
+                'They will be re-uploaded on the next sync. Continue?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Unsync'),
+                ),
+              ],
+            ),
+      );
+      if (confirmed != true) return;
+
+      isUnsyncing.value = true;
+      try {
+        await TransactionSyncService.unsyncAllKeepingStoreId(
+          ref.read(databaseProvider),
+        );
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('All transactions marked as unsynced.')),
+        );
+        ref.read(transactionsProvider.notifier).refresh();
+      } finally {
+        if (context.mounted) isUnsyncing.value = false;
+      }
+    }
 
     return PopScope(
       canPop: false,
@@ -57,6 +152,55 @@ class TransactionsScreen extends HookConsumerWidget {
             ),
           ],
         ),
+        floatingActionButton: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            FloatingActionButton.extended(
+              heroTag: 'sync-transactions',
+              onPressed: isSyncing ? null : handleManualSync,
+              backgroundColor: const Color(0xFF1B7A8C),
+              foregroundColor: Colors.white,
+              icon:
+                  isSyncing
+                      ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          valueColor: AlwaysStoppedAnimation(Colors.white),
+                        ),
+                      )
+                      : const Icon(Icons.sync_rounded),
+              label: Text(
+                isSyncing
+                    ? 'Syncing ${syncProgress.currentBatch}/${syncProgress.totalBatches}…'
+                    : 'Sync All',
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            FloatingActionButton.extended(
+              heroTag: 'unsync-transactions',
+              onPressed: isUnsyncing.value ? null : handleManualUnsync,
+              backgroundColor: AppColors.surface,
+              foregroundColor: const Color(0xFF1B7A8C),
+              icon:
+                  isUnsyncing.value
+                      ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          valueColor: AlwaysStoppedAnimation(Color(0xFF1B7A8C)),
+                        ),
+                      )
+                      : const Icon(Icons.sync_disabled_rounded),
+              label: Text(
+                isUnsyncing.value ? 'Unsyncing…' : 'Unsync Transactions',
+              ),
+            ),
+          ],
+        ),
         body: Column(
           children: [
             Padding(
@@ -75,6 +219,7 @@ class TransactionsScreen extends HookConsumerWidget {
             ),
             Expanded(
               child: pageAsync.when(
+                skipLoadingOnReload: true,
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Center(child: Text('$e')),
                 data: (page) {
@@ -102,19 +247,23 @@ class TransactionsScreen extends HookConsumerWidget {
                           return _TransactionTile(
                             tx: tx,
                             onTap: () => context.push('/transactions/${tx.id}'),
-                            onVoid: tx.isVoided
-                                ? null
-                                : () async {
-                                    final voided = await VoidTransactionDialog.show(
-                                      context,
-                                      saleId: tx.id,
-                                      invoiceNumber: tx.invoiceNumber,
-                                      totalAmount: tx.netTotal,
-                                    );
-                                    if (voided) {
-                                      ref.read(transactionsProvider.notifier).refresh();
-                                    }
-                                  },
+                            onVoid:
+                                tx.isVoided
+                                    ? null
+                                    : () async {
+                                      final voided =
+                                          await VoidTransactionDialog.show(
+                                            context,
+                                            saleId: tx.id,
+                                            invoiceNumber: tx.invoiceNumber,
+                                            totalAmount: tx.netTotal,
+                                          );
+                                      if (voided) {
+                                        ref
+                                            .read(transactionsProvider.notifier)
+                                            .refresh();
+                                      }
+                                    },
                           );
                         },
                       ),
@@ -134,6 +283,7 @@ class _TransactionTile extends StatelessWidget {
   final TransactionSummary tx;
   final VoidCallback onTap;
   final VoidCallback? onVoid;
+
   const _TransactionTile({required this.tx, required this.onTap, this.onVoid});
 
   @override
@@ -164,11 +314,30 @@ class _TransactionTile extends StatelessWidget {
         color: Colors.transparent,
         child: ListTile(
           onTap: onTap,
-          title: Text(
-            tx.invoiceNumber,
-            style: AppTextStyles.headingSm,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  '${tx.storeId} - ${tx.invoiceNumber}',
+                  style: AppTextStyles.headingSm,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Tooltip(
+                message: tx.isSynced ? 'Synced' : 'Not yet synced',
+                child: Icon(
+                  tx.isSynced
+                      ? Icons.cloud_done_rounded
+                      : Icons.cloud_off_rounded,
+                  size: 16,
+                  color:
+                      tx.isSynced ? AppColors.success : AppColors.textSecondary,
+                ),
+              ),
+            ],
           ),
           subtitle: Text(
             '${tx.displayType} • ${tx.cashierName} • ${DateFormat('MMM d, h:mm a').format(tx.createdAt.toLocal())}',
@@ -191,10 +360,15 @@ class _TransactionTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: statusColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusFull,
+                      ),
                     ),
                     child: Text(
                       statusLabel,
@@ -209,7 +383,6 @@ class _TransactionTile extends StatelessWidget {
                   ),
                 ],
               ),
-
             ],
           ),
         ),

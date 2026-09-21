@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../../../core/providers/database_provider.dart';
+import '../../../../core/services/clock/app_clock.dart';
 import '../../../auth/state/auth_providers.dart';
 import '../../../auth/state/auth_state.dart';
 import '../../../reports/entities/report_data.dart';
@@ -33,7 +34,7 @@ class ZReadingNotifier extends AsyncNotifier<ZReadingData> {
     // boundary with no transaction actually at that time, so it's only used
     // to scope the queries below, never shown directly to the user.
     final queryStart = await db.cashierAccountingDao.getZReadingPeriodStart();
-    final periodEnd = DateTime.now();
+    final periodEnd = ref.watch(appClockProvider).now();
     final periodStart = await db.salesDao.getEarliestTransactionDate(queryStart, periodEnd);
     final nextZCounter = await db.cashierAccountingDao.getNextZCounter();
 
@@ -79,7 +80,7 @@ class ZReadingNotifier extends AsyncNotifier<ZReadingData> {
       zCounter: nextZCounter,
       periodStart: periodStart,
       periodEnd: periodEnd,
-      generatedAt: DateTime.now(),
+      generatedAt: ref.watch(appClockProvider).now(),
       closedByName: closedByName,
       authorizedByName: '',
       beginningBalance: beginningBalance,
@@ -172,6 +173,7 @@ class ZReadingNotifier extends AsyncNotifier<ZReadingData> {
       salesByCashierJson: salesByCashierJson,
       discountsJson: discountsJson,
       paymentLedgersJson: paymentLedgersJson,
+      generatedAt: ref.read(appClockProvider).now(),
     );
 
     ref.invalidate(zReadingHistoryProvider);

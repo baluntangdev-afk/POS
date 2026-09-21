@@ -12,11 +12,6 @@ import '../services/transaction_sync/transaction_sync_service.dart';
 
 const String kTransactionSyncTaskName = 'periodic_transaction_sync';
 
-/// Runs one sync attempt against [db]. A throwaway [ProviderContainer] gives
-/// access to the real `transactionSyncApiProvider`/`webhookAuthRepositoryProvider`
-/// wiring (Dio client, auth interceptor, token storage) without hand-duplicating
-/// it — only `appEnvProvider` needs overriding here, `databaseProvider` isn't on
-/// that provider chain since [db] is passed straight into the service call.
 Future<void> runTransactionSyncTick(AppDatabase db) async {
   final storeInfo = await db.storeInfoDao.getStoreInfo();
   final storeId = storeInfo?.storeId ?? '';
@@ -39,10 +34,6 @@ Future<void> runTransactionSyncTick(AppDatabase db) async {
   }
 }
 
-/// Safe to call on every app startup — `ExistingPeriodicWorkPolicy.keep`
-/// leaves an already-registered job alone. Does NOT call
-/// `Workmanager().initialize()` — that happens once, in `schedulePeriodicBackup()`,
-/// against the single shared `backupCallbackDispatcher`.
 Future<void> schedulePeriodicTransactionSync() async {
   await Workmanager().registerPeriodicTask(
     kTransactionSyncTaskName,

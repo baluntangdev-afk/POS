@@ -5,6 +5,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../config/feature_flags.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../widgets/setup_prompt_dialog.dart';
@@ -123,6 +124,7 @@ class DashboardScreen extends HookConsumerWidget {
       MerchantDeviceState? result, {
       bool skipIfApproved = false,
     }) {
+      if (kSkipDeviceRegistration) return;
       if (result == null || result.isRegistering) return;
       if (hasShownDeviceStatusToast.value) return;
       if (skipIfApproved &&

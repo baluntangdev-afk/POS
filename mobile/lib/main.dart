@@ -7,6 +7,7 @@ import 'package:media_store_plus/media_store_plus.dart';
 
 import 'config/environment/app_env.dart';
 import 'config/environment/env.dart';
+import 'config/feature_flags.dart';
 import 'core/connectivity/connectivity_status_provider.dart';
 import 'core/database/app_database.dart';
 import 'core/navigation/router.dart';
@@ -136,9 +137,11 @@ class _App extends ConsumerWidget {
     ref.listen(authNotifierProvider, (previous, next) {
       final wasAuthenticated = previous is AuthAuthenticated;
       if (!wasAuthenticated && next is AuthAuthenticated) {
-        unawaited(
-          ref.read(merchantDeviceNotifierProvider.notifier).refreshStatus(),
-        );
+        if (!kSkipDeviceRegistration) {
+          unawaited(
+            ref.read(merchantDeviceNotifierProvider.notifier).refreshStatus(),
+          );
+        }
         unawaited(_drainPendingSync(ref));
       }
     });

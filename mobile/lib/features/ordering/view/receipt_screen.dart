@@ -37,7 +37,9 @@ class ReceiptScreen extends HookConsumerWidget {
 
     useEffect(() {
       BuiltInPrinter.isAvailable().then((v) => builtInAvailable.value = v);
-      PrintService.getSavedMac().then((v) => bluetoothConnected.value = v != null);
+      PrintService.getSavedMac().then(
+        (v) => bluetoothConnected.value = v != null,
+      );
       return null;
     }, const []);
 
@@ -46,7 +48,9 @@ class ReceiptScreen extends HookConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            ok ? 'Receipt printed' : 'Couldn\'t print — check your printer and try again',
+            ok
+                ? 'Receipt printed'
+                : 'Couldn\'t print — check your printer and try again',
           ),
         ),
       );
@@ -54,14 +58,16 @@ class ReceiptScreen extends HookConsumerWidget {
 
     Future<void> printBuiltIn() async {
       printingBuiltIn.value = true;
-      final ok = await ref.read(receiptProvider(saleId).notifier).printBuiltIn();
+      final ok =
+          await ref.read(receiptProvider(saleId).notifier).printBuiltIn();
       printingBuiltIn.value = false;
       await showPrintResult(ok);
     }
 
     Future<void> printBluetooth() async {
       printingBluetooth.value = true;
-      final ok = await ref.read(receiptProvider(saleId).notifier).printBluetooth();
+      final ok =
+          await ref.read(receiptProvider(saleId).notifier).printBluetooth();
       printingBluetooth.value = false;
       await showPrintResult(ok);
     }
@@ -365,7 +371,7 @@ class _ReceiptPreview extends ConsumerWidget {
                 const _ReceiptDivider(char: '*'),
                 const Gap(16),
                 _ItemsView(
-                  items: receipt.items,
+                  categories: receipt.itemsByCategory,
                   refundedQuantities: receipt.refundedQuantities,
                 ),
                 const Gap(16),
@@ -535,9 +541,12 @@ class _DocumentInfoView extends StatelessWidget {
 }
 
 class _ItemsView extends StatelessWidget {
-  const _ItemsView({required this.items, this.refundedQuantities = const {}});
+  const _ItemsView({
+    required this.categories,
+    this.refundedQuantities = const {},
+  });
 
-  final List<ReceiptItem> items;
+  final List<({String name, List<ReceiptItem> items})> categories;
   final Map<int, int> refundedQuantities;
 
   @override
@@ -553,7 +562,22 @@ class _ItemsView extends StatelessWidget {
           ],
         ),
         const Gap(8),
-        for (final item in items) _buildItemRow(item),
+        for (final category in categories) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 2),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                category.name,
+                style: AppTextStyles.bodySm.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+          ),
+          for (final item in category.items) _buildItemRow(item),
+        ],
       ],
     );
   }

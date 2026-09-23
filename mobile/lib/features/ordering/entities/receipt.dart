@@ -88,4 +88,33 @@ class Receipt {
     final entries = grouped.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
     return entries.map((e) => e.value).toList();
   }
+
+  /// Receipt lines grouped by product category, for the receipt preview and
+  /// the printed receipt. Categories follow their menu sort order (then name),
+  /// uncategorized lines go last under "OTHERS", and each add-on stays right
+  /// under its main item. Entry order is kept within a category.
+  List<({String name, List<ReceiptItem> items})> get itemsByCategory {
+    const otherKey = 'OTHERS';
+    final groups = <String, ({int sortOrder, bool isOther, List<ReceiptItem> items})>{};
+    for (final unit in mainItemsWithAddOns) {
+      final main = unit.mainItem;
+      final name = main.categoryName?.trim();
+      final isOther = name == null || name.isEmpty;
+      final key = isOther ? otherKey : name.toUpperCase();
+      final group = groups.putIfAbsent(
+        key,
+        () => (sortOrder: main.categorySortOrder, isOther: isOther, items: <ReceiptItem>[]),
+      );
+      group.items
+        ..add(main)
+        ..addAll(unit.addOns);
+    }
+    final entries = groups.entries.toList()
+      ..sort((a, b) {
+        if (a.value.isOther != b.value.isOther) return a.value.isOther ? 1 : -1;
+        final bySort = a.value.sortOrder.compareTo(b.value.sortOrder);
+        return bySort != 0 ? bySort : a.key.compareTo(b.key);
+      });
+    return [for (final e in entries) (name: e.key, items: e.value.items)];
+  }
 }

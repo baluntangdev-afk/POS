@@ -261,6 +261,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
 
     final itemQ = select(saleItemsTable).join([
       leftOuterJoin(productsTable, productsTable.id.equalsExp(saleItemsTable.productId)),
+      leftOuterJoin(productGroupsTable, productGroupsTable.id.equalsExp(productsTable.groupId)),
     ]);
     itemQ.where(saleItemsTable.saleId.equals(saleId));
     final itemRows = await itemQ.get();
@@ -270,6 +271,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     for (final ir in itemRows) {
       final item = ir.readTable(saleItemsTable);
       final product = ir.readTableOrNull(productsTable);
+      final group = ir.readTableOrNull(productGroupsTable);
       final grossAmount = item.qty * item.unitPrice;
       final itemDiscountAmount = item.discountAmount ?? 0;
       final itemVatExemptAmount = item.vatExemptAmount ?? 0;
@@ -294,6 +296,8 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         discountBeneficiaryId: item.discountBeneficiaryId,
         discountBeneficiaryName: item.discountBeneficiaryName,
         vatExemptAmount: item.vatExemptAmount ?? 0,
+        categoryName: group?.name,
+        categorySortOrder: group?.sortOrder ?? 0,
       ));
 
       final mods = await (select(saleItemModifiersTable)
@@ -314,6 +318,8 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
           totalAmount: modTotal,
           isMain: false,
           vatExemptAmount: itemVatExemptAmount > 0 ? modGross.vatAmount : 0,
+          categoryName: group?.name,
+          categorySortOrder: group?.sortOrder ?? 0,
         ));
       }
       sequence++;

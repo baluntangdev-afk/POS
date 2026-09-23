@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../config/feature_flags.dart';
 import '../../../core/connectivity/connectivity_status_provider.dart';
 import '../../../core/result/result.dart';
 import '../../../data/backend_api/sources/orders_history_api.dart';
@@ -164,7 +165,8 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     try {
       _storeId = storeId;
       await _ensureToken(storeId);
-      final deviceToken = await _ensureDeviceToken(storeId);
+      final deviceToken =
+          kSkipDeviceRegistration ? null : await _ensureDeviceToken(storeId);
       await _syncHistory(storeId);
       final repository = ref.read(ordersLiveFeedRepositoryProvider);
       final session = repository.connect(storeId, bearerToken: deviceToken);
@@ -404,6 +406,7 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
   /// last value persisted on a previous launch when no live registration
   /// call has completed yet this session.
   bool _isApproved(MerchantDeviceState deviceState) =>
+      kSkipDeviceRegistration ||
       deviceState.isRegistered &&
       deviceRegistrationStatusFrom(deviceState.status) ==
           DeviceRegistrationStatus.approved;

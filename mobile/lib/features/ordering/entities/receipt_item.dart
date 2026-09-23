@@ -15,6 +15,11 @@ class ReceiptItem {
   final String? discountBeneficiaryName;
   final double vatExemptAmount;
 
+  /// Category (product group) of the product at print time; null when the
+  /// product or its category no longer exists. Add-ons carry their parent's.
+  final String? categoryName;
+  final int categorySortOrder;
+
   const ReceiptItem({
     required this.id,
     required this.sequence,
@@ -29,6 +34,8 @@ class ReceiptItem {
     this.discountBeneficiaryId,
     this.discountBeneficiaryName,
     this.vatExemptAmount = 0,
+    this.categoryName,
+    this.categorySortOrder = 0,
   });
 
   bool get isVatExempt => vatExemptAmount > 0;

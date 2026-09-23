@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../config/feature_flags.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
 import '../../live_orders/repositories/webhook_auth_repository.dart';
@@ -63,7 +64,9 @@ class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
     var resolvedTerminalName = terminalName;
     var verifiedOnline = true;
 
-    if (storeIdChanged && newStoreId.isNotEmpty) {
+    // With device registration skipped there's no merchant to verify
+    // against, so the store ID is saved locally as-is.
+    if (storeIdChanged && newStoreId.isNotEmpty && !kSkipDeviceRegistration) {
       try {
         final merchantName = (await _refreshToken(newStoreId))?.trim() ?? '';
         if (merchantName.isNotEmpty) {
@@ -153,7 +156,7 @@ class StoreInfoNotifier extends AsyncNotifier<StoreInfoTableData?> {
     required String storeId,
     required String deviceName,
   }) async {
-    if (storeId.isEmpty) return;
+    if (kSkipDeviceRegistration || storeId.isEmpty) return;
 
     try {
       await ref

@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 
 import '../../features/ordering/entities/receipt.dart';
+import '../../features/ordering/entities/receipt_item.dart';
 
 enum PrintAlign { left, center, right }
 
@@ -158,7 +159,18 @@ abstract final class ReceiptPrintDocument {
 
   static void _addItems(List<PrintInstruction> instructions, Receipt receipt) {
     final refundedQuantities = receipt.refundedQuantities;
-    for (final item in receipt.items) {
+    for (final category in receipt.itemsByCategory) {
+      instructions.add(PrintText(category.name, bold: true));
+      _addCategoryItems(instructions, category.items, refundedQuantities);
+    }
+  }
+
+  static void _addCategoryItems(
+    List<PrintInstruction> instructions,
+    List<ReceiptItem> items,
+    Map<int, int> refundedQuantities,
+  ) {
+    for (final item in items) {
       final prefix = item.isMain ? '' : '  ';
       instructions.add(
         PrintRow(

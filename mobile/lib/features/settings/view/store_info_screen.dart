@@ -7,6 +7,7 @@ import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mobile/features/live_orders/use_cases/webhook_auth_error.dart';
 
+import '../../../config/feature_flags.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
 import '../../../core/services/transaction_sync/transaction_sync_service.dart';
@@ -465,7 +466,7 @@ class _StoreInfoForm extends HookConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
-          if (merchantVerified) ...[
+          if (merchantVerified && !kSkipDeviceRegistration) ...[
             const DeviceRegistrationStatusCard(),
             const Gap(AppSpacing.lg),
           ],

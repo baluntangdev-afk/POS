@@ -41,5 +41,5 @@ class TransactionExportRow {
         _ => status,
       };
 
-  double get netTotal => (total - discount - refundedAmount).clamp(0.0, double.infinity);
+  double get netTotal => (total - refundedAmount).clamp(0.0, double.infinity);
 }

@@ -39,6 +39,18 @@ class RegisterDeviceRequestMapper
     'name',
     _$name,
   );
+  static String _$appName(RegisterDeviceRequest v) => v.appName;
+  static const Field<RegisterDeviceRequest, String> _f$appName = Field(
+    'appName',
+    _$appName,
+    key: r'app_name',
+  );
+  static String _$packageName(RegisterDeviceRequest v) => v.packageName;
+  static const Field<RegisterDeviceRequest, String> _f$packageName = Field(
+    'packageName',
+    _$packageName,
+    key: r'package_name',
+  );
   static String _$appVersion(RegisterDeviceRequest v) => v.appVersion;
   static const Field<RegisterDeviceRequest, String> _f$appVersion = Field(
     'appVersion',
@@ -73,6 +85,8 @@ class RegisterDeviceRequestMapper
     #platform: _f$platform,
     #installId: _f$installId,
     #name: _f$name,
+    #appName: _f$appName,
+    #packageName: _f$packageName,
     #appVersion: _f$appVersion,
     #platformVersion: _f$platformVersion,
     #deviceModel: _f$deviceModel,
@@ -84,6 +98,8 @@ class RegisterDeviceRequestMapper
       platform: data.dec(_f$platform),
       installId: data.dec(_f$installId),
       name: data.dec(_f$name),
+      appName: data.dec(_f$appName),
+      packageName: data.dec(_f$packageName),
       appVersion: data.dec(_f$appVersion),
       platformVersion: data.dec(_f$platformVersion),
       deviceModel: data.dec(_f$deviceModel),
@@ -167,6 +183,8 @@ abstract class RegisterDeviceRequestCopyWith<
     String? platform,
     String? installId,
     String? name,
+    String? appName,
+    String? packageName,
     String? appVersion,
     String? platformVersion,
     String? deviceModel,
@@ -197,6 +215,8 @@ class _RegisterDeviceRequestCopyWithImpl<$R, $Out>
     String? platform,
     String? installId,
     String? name,
+    String? appName,
+    String? packageName,
     String? appVersion,
     String? platformVersion,
     String? deviceModel,
@@ -206,6 +226,8 @@ class _RegisterDeviceRequestCopyWithImpl<$R, $Out>
       if (platform != null) #platform: platform,
       if (installId != null) #installId: installId,
       if (name != null) #name: name,
+      if (appName != null) #appName: appName,
+      if (packageName != null) #packageName: packageName,
       if (appVersion != null) #appVersion: appVersion,
       if (platformVersion != null) #platformVersion: platformVersion,
       if (deviceModel != null) #deviceModel: deviceModel,
@@ -217,6 +239,8 @@ class _RegisterDeviceRequestCopyWithImpl<$R, $Out>
     platform: data.get(#platform, or: $value.platform),
     installId: data.get(#installId, or: $value.installId),
     name: data.get(#name, or: $value.name),
+    appName: data.get(#appName, or: $value.appName),
+    packageName: data.get(#packageName, or: $value.packageName),
     appVersion: data.get(#appVersion, or: $value.appVersion),
     platformVersion: data.get(#platformVersion, or: $value.platformVersion),
     deviceModel: data.get(#deviceModel, or: $value.deviceModel),

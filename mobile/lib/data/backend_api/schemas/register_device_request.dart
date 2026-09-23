@@ -9,6 +9,8 @@ class RegisterDeviceRequest with RegisterDeviceRequestMappable {
     required this.platform,
     required this.installId,
     required this.name,
+    required this.appName,
+    required this.packageName,
     required this.appVersion,
     required this.platformVersion,
     required this.deviceModel,
@@ -23,6 +25,12 @@ class RegisterDeviceRequest with RegisterDeviceRequestMappable {
 
   /// Human-readable device label shown to the merchant reviewer.
   final String name;
+
+  /// App display name, e.g. `Cartivo Merchant`.
+  final String appName;
+
+  /// App package/bundle identifier, e.g. `com.cartivo.merchant`.
+  final String packageName;
 
   /// App version string, e.g. `1.4.0`.
   final String appVersion;

@@ -43,11 +43,15 @@ class ReportsNotifier extends AsyncNotifier<ReportData> {
     final db = ref.watch(databaseProvider);
     final (from, to) = _periodDates();
 
-    final totalSales = await db.salesDao.getTotalSalesForDateRange(from, to);
-    final transactionCount = await db.salesDao.getTransactionCountForDateRange(from, to);
-    final paymentRows = await db.salesDao.getPaymentBreakdown(from, to);
-    final topProductRows = await db.salesDao.getTopProducts(from, to, limit: 5);
-    final recentSales = await db.salesDao.getSalesByDateRange(from, to);
+    final storeInfo = await db.storeInfoDao.getStoreInfo();
+    final storeId = (storeInfo?.storeId.isNotEmpty ?? false) ? storeInfo!.storeId : null;
+
+    final totalSales = await db.salesDao.getTotalSalesForDateRange(from, to, storeId: storeId);
+    final transactionCount =
+        await db.salesDao.getTransactionCountForDateRange(from, to, storeId: storeId);
+    final paymentRows = await db.salesDao.getPaymentBreakdown(from, to, storeId: storeId);
+    final topProductRows = await db.salesDao.getTopProducts(from, to, limit: 5, storeId: storeId);
+    final recentSales = await db.salesDao.getSalesByDateRange(from, to, storeId: storeId);
 
     final totalPaid =
         paymentRows.fold(0.0, (s, r) => s + (r['total'] as double? ?? 0));

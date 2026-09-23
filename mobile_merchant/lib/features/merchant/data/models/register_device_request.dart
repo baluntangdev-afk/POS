@@ -9,6 +9,8 @@ abstract class RegisterDeviceRequest with _$RegisterDeviceRequest {
     required String platform,
     @JsonKey(name: 'install_id') required String installId,
     required String name,
+    @JsonKey(name: 'app_name') required String appName,
+    @JsonKey(name: 'package_name') required String packageName,
     @JsonKey(name: 'app_version') required String appVersion,
     @JsonKey(name: 'platform_version') required String platformVersion,
     @JsonKey(name: 'device_model') required String deviceModel,

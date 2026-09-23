@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../merchant/domain/entities/device_registration.dart';
 import '../../../merchant/domain/entities/device_startup_result.dart';
+import '../../../merchant/presentation/device_status_visual.dart';
 import '../../../merchant/presentation/dialogs/device_status_dialog.dart';
 import '../../../merchant/presentation/dialogs/merchant_form_dialog.dart';
 import '../../../merchant/state/merchant_notifier.dart';
@@ -33,6 +34,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   bool _startupComplete = false;
   bool _recheckInFlight = false;
   bool _statusDialogVisible = false;
+  bool _pendingSnackbarShown = false;
   Timer? _approvalPoll;
 
   @override
@@ -176,11 +178,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     }
   }
 
-  /// Toast on a fresh approval, dismissible dialog for every other state,
-  /// silence when token minting failed (`status == null`) or the device is
-  /// already approved. If the merchant taps "Check again" in the dialog, the
-  /// fresh result is folded back in — a snackbar on approval, or the dialog
-  /// again while still pending.
+  /// Toast on a fresh approval, a one-time snackbar while pending, dismissible
+  /// dialog for every other (non-approved, non-pending) state, and silence
+  /// when token minting failed (`status == null`) or the device is already
+  /// approved. If the merchant taps "Check again" in the dialog, the fresh
+  /// result is folded back in — a snackbar on approval, or the dialog again
+  /// for a still-unresolved status.
   Future<void> _handleDeviceStatus(
     String? status,
     bool justApproved,
@@ -190,6 +193,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
     if (status == DeviceStatus.approved) {
       _stopApprovalPoll();
+      _pendingSnackbarShown = false;
       // A poll tick (or the resume probe) may land approval while the
       // "waiting for approval" dialog is still on screen — close it so the
       // merchant just sees the dashboard connect.
@@ -202,8 +206,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       return;
     }
 
-    // The 15s poll routes back through here on every pending tick; don't stack
-    // a second dialog on top of the one already showing.
+    if (status == DeviceStatus.pending) {
+      // The 15s poll (and the resume probe) route back through here on every
+      // still-pending tick — show the toast once, not on every tick.
+      if (!_pendingSnackbarShown) {
+        _pendingSnackbarShown = true;
+        AppSnackbar.info(
+          context,
+          DeviceStatusVisual.of(
+            status,
+            ref.read(merchantProvider).value?.merchantName,
+          ).body,
+        );
+      }
+      return;
+    }
+    _pendingSnackbarShown = false;
+
+    // A poll tick (or the resume probe) may re-enter here while the dialog
+    // for this status is already showing; don't stack a second one.
     if (_statusDialogVisible) return;
 
     _statusDialogVisible = true;

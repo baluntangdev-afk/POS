@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 import '../app_database.dart';
 import '../tables/sales_table.dart';
@@ -78,6 +80,17 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
 
   // TODO: replace with a per-terminal/store code once multi-terminal support lands.
   static const _terminalCode = '001';
+
+  final _onSyncNeededController = StreamController<void>.broadcast();
+
+  /// Fires right after a sale/refund/void commits into a syncable state, so
+  /// listeners (see `salesSyncTriggerProvider`) can push it immediately
+  /// instead of waiting for the next reconnect edge or WorkManager tick.
+  Stream<void> get onSyncNeeded => _onSyncNeededController.stream;
+
+  void _notifySyncNeeded() {
+    if (!_onSyncNeededController.isClosed) _onSyncNeededController.add(null);
+  }
 
   Future<int> insertSale(SalesTableCompanion companion) =>
       into(salesTable).insert(companion);
@@ -188,9 +201,11 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     return 'SO-$_terminalCode-$year-${sequence.toString().padLeft(4, '0')}';
   }
 
-  Future<void> completeSale(int saleId) =>
-      (update(salesTable)..where((t) => t.id.equals(saleId)))
-          .write(const SalesTableCompanion(status: Value('completed')));
+  Future<void> completeSale(int saleId) async {
+    await (update(salesTable)..where((t) => t.id.equals(saleId)))
+        .write(const SalesTableCompanion(status: Value('completed')));
+    _notifySyncNeeded();
+  }
 
   Future<int> insertRefundRecord({
     required int saleId,
@@ -199,8 +214,8 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     required double total,
     required List<({int saleItemId, int qty, double amount})> items,
     required DateTime now,
-  }) {
-    return transaction(() async {
+  }) async {
+    final refundId = await transaction(() async {
       final refundId = await insertRefund(RefundsTableCompanion.insert(
         saleId: saleId,
         reason: reason,
@@ -229,6 +244,8 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
 
       return refundId;
     });
+    _notifySyncNeeded();
+    return refundId;
   }
 
   Future<Receipt?> getReceiptById(int saleId) async {
@@ -421,26 +438,31 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
             .write(const SalesTableCompanion(status: Value('refunded')));
       }
     });
+    _notifySyncNeeded();
   }
 
   Future<int> voidSale(
     int saleId, {
     required DateTime now,
     String reason = 'Voided by cashier',
-  }) =>
-      (update(salesTable)..where((t) => t.id.equals(saleId))).write(
-        SalesTableCompanion(
-          status: const Value('voided'),
-          voidReason: Value(reason),
-          voidedAt: Value(now),
-          syncedAt: const Value(null),
-        ),
-      );
+  }) async {
+    final rows = await (update(salesTable)..where((t) => t.id.equals(saleId))).write(
+      SalesTableCompanion(
+        status: const Value('voided'),
+        voidReason: Value(reason),
+        voidedAt: Value(now),
+        syncedAt: const Value(null),
+      ),
+    );
+    _notifySyncNeeded();
+    return rows;
+  }
 
-  Future<List<SalesTableData>> getSalesByDateRange(DateTime from, DateTime to) =>
+  Future<List<SalesTableData>> getSalesByDateRange(DateTime from, DateTime to, {String? storeId}) =>
       (select(salesTable)
             ..where((t) => t.createdAt.isBetweenValues(from, to))
             ..where((t) => t.status.equals('completed'))
+            ..where((t) => storeId == null ? const Constant(true) : t.storeId.equals(storeId))
             ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
           .get();
 
@@ -459,43 +481,49 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
             ..limit(limit))
           .get();
 
-  Future<double> getTotalSalesForDateRange(DateTime from, DateTime to) async {
+  Future<double> getTotalSalesForDateRange(DateTime from, DateTime to, {String? storeId}) async {
+    final storeFilter = (storeId != null) ? ' AND store_id = ?' : '';
     final result = await customSelect(
       'SELECT COALESCE(SUM(total), 0) as sum FROM sales '
-      'WHERE created_at BETWEEN ? AND ? AND status = ?',
+      'WHERE created_at BETWEEN ? AND ? AND status = ?$storeFilter',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable},
     ).getSingle();
     return result.read<double>('sum');
   }
 
-  Future<int> getTransactionCountForDateRange(DateTime from, DateTime to) async {
+  Future<int> getTransactionCountForDateRange(DateTime from, DateTime to, {String? storeId}) async {
+    final storeFilter = (storeId != null) ? ' AND store_id = ?' : '';
     final result = await customSelect(
-      'SELECT COUNT(*) as cnt FROM sales WHERE created_at BETWEEN ? AND ? AND status = ?',
+      'SELECT COUNT(*) as cnt FROM sales WHERE created_at BETWEEN ? AND ? AND status = ?$storeFilter',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable},
     ).getSingle();
     return result.read<int>('cnt');
   }
 
-  Future<List<Map<String, Object?>>> getPaymentBreakdown(DateTime from, DateTime to) async {
+  Future<List<Map<String, Object?>>> getPaymentBreakdown(DateTime from, DateTime to, {String? storeId}) async {
+    final storeFilter = (storeId != null) ? ' AND s.store_id = ?' : '';
     final rows = await customSelect(
       'SELECT p.method, COALESCE(SUM(p.amount), 0) as total '
       'FROM payments p JOIN sales s ON s.id = p.sale_id '
-      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$storeFilter '
       'GROUP BY p.method',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable, paymentsTable},
     ).get();
@@ -505,18 +533,25 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     }).toList();
   }
 
-  Future<List<Map<String, Object?>>> getTopProducts(DateTime from, DateTime to, {int limit = 5}) async {
+  Future<List<Map<String, Object?>>> getTopProducts(
+    DateTime from,
+    DateTime to, {
+    int limit = 5,
+    String? storeId,
+  }) async {
+    final storeFilter = (storeId != null) ? ' AND s.store_id = ?' : '';
     final rows = await customSelect(
       'SELECT p.name, SUM(si.qty) as qty, SUM(si.qty * si.unit_price) as amount '
       'FROM sale_items si '
       'JOIN products p ON p.id = si.product_id '
       'JOIN sales s ON s.id = si.sale_id '
-      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$storeFilter '
       'GROUP BY p.id, p.name ORDER BY amount DESC LIMIT ?',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
+        if (storeId != null) Variable.withString(storeId),
         Variable.withInt(limit),
       ],
     ).get();
@@ -527,10 +562,15 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     }).toList();
   }
 
-  Future<StatusCounts> getStatusCountsForDateRange(DateTime from, DateTime to) async {
+  Future<StatusCounts> getStatusCountsForDateRange(DateTime from, DateTime to, {String? storeId}) async {
+    final storeFilter = (storeId != null) ? ' AND store_id = ?' : '';
     final rows = await customSelect(
-      'SELECT status, COUNT(*) as cnt FROM sales WHERE created_at BETWEEN ? AND ? GROUP BY status',
-      variables: [Variable.withDateTime(from), Variable.withDateTime(to)],
+      'SELECT status, COUNT(*) as cnt FROM sales WHERE created_at BETWEEN ? AND ?$storeFilter GROUP BY status',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        if (storeId != null) Variable.withString(storeId),
+      ],
       readsFrom: {salesTable},
     ).get();
     var completed = 0, voided = 0, refunded = 0;
@@ -549,69 +589,103 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     return StatusCounts(completed: completed, voided: voided, refunded: refunded);
   }
 
-  Future<double> getTotalSalesForDateRangeAndCashier(DateTime from, DateTime to, int cashierId) async {
+  Future<double> getTotalSalesForDateRangeAndCashier(
+    DateTime from,
+    DateTime to,
+    int cashierId, {
+    String? storeId,
+  }) async {
+    final storeFilter = (storeId != null) ? ' AND store_id = ?' : '';
     final result = await customSelect(
       'SELECT COALESCE(SUM(total), 0) as sum FROM sales '
-      'WHERE created_at BETWEEN ? AND ? AND status = ? AND cashier_id = ?',
+      'WHERE created_at BETWEEN ? AND ? AND status = ? AND cashier_id = ?$storeFilter',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
         Variable.withInt(cashierId),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable},
     ).getSingle();
     return result.read<double>('sum');
   }
 
-  /// The earliest transaction (any status) within [from, to] store-wide, or
-  /// null if none exists — used to display the true start of a report period
-  /// instead of the internal query lower bound (which may be a synthetic
-  /// epoch/last-close boundary with no transaction actually at that time).
-  Future<DateTime?> getEarliestTransactionDate(DateTime from, DateTime to) async {
+  /// The earliest transaction (any status) within [from, to], optionally
+  /// scoped to [storeId], or null if none exists — used to display the true
+  /// start of a report period instead of the internal query lower bound
+  /// (which may be a synthetic epoch/last-close boundary with no
+  /// transaction actually at that time).
+  Future<DateTime?> getEarliestTransactionDate(DateTime from, DateTime to, {String? storeId}) async {
+    final storeFilter = (storeId != null) ? ' AND store_id = ?' : '';
     final result = await customSelect(
-      'SELECT MIN(created_at) as min_date FROM sales WHERE created_at BETWEEN ? AND ?',
-      variables: [Variable.withDateTime(from), Variable.withDateTime(to)],
+      'SELECT MIN(created_at) as min_date FROM sales WHERE created_at BETWEEN ? AND ?$storeFilter',
+      variables: [
+        Variable.withDateTime(from),
+        Variable.withDateTime(to),
+        if (storeId != null) Variable.withString(storeId),
+      ],
       readsFrom: {salesTable},
     ).getSingle();
     return result.read<DateTime?>('min_date');
   }
 
   /// Same as [getEarliestTransactionDate], scoped to a single cashier.
-  Future<DateTime?> getEarliestTransactionDateForCashier(DateTime from, DateTime to, int cashierId) async {
+  Future<DateTime?> getEarliestTransactionDateForCashier(
+    DateTime from,
+    DateTime to,
+    int cashierId, {
+    String? storeId,
+  }) async {
+    final storeFilter = (storeId != null) ? ' AND store_id = ?' : '';
     final result = await customSelect(
-      'SELECT MIN(created_at) as min_date FROM sales WHERE created_at BETWEEN ? AND ? AND cashier_id = ?',
+      'SELECT MIN(created_at) as min_date FROM sales WHERE created_at BETWEEN ? AND ? AND cashier_id = ?$storeFilter',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withInt(cashierId),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable},
     ).getSingle();
     return result.read<DateTime?>('min_date');
   }
 
-  Future<int> getTransactionCountForDateRangeAndCashier(DateTime from, DateTime to, int cashierId) async {
+  Future<int> getTransactionCountForDateRangeAndCashier(
+    DateTime from,
+    DateTime to,
+    int cashierId, {
+    String? storeId,
+  }) async {
+    final storeFilter = (storeId != null) ? ' AND store_id = ?' : '';
     final result = await customSelect(
-      'SELECT COUNT(*) as cnt FROM sales WHERE created_at BETWEEN ? AND ? AND status = ? AND cashier_id = ?',
+      'SELECT COUNT(*) as cnt FROM sales WHERE created_at BETWEEN ? AND ? AND status = ? AND cashier_id = ?$storeFilter',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
         Variable.withInt(cashierId),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable},
     ).getSingle();
     return result.read<int>('cnt');
   }
 
-  Future<StatusCounts> getStatusCountsForDateRangeAndCashier(DateTime from, DateTime to, int cashierId) async {
+  Future<StatusCounts> getStatusCountsForDateRangeAndCashier(
+    DateTime from,
+    DateTime to,
+    int cashierId, {
+    String? storeId,
+  }) async {
+    final storeFilter = (storeId != null) ? ' AND store_id = ?' : '';
     final rows = await customSelect(
-      'SELECT status, COUNT(*) as cnt FROM sales WHERE created_at BETWEEN ? AND ? AND cashier_id = ? GROUP BY status',
+      'SELECT status, COUNT(*) as cnt FROM sales WHERE created_at BETWEEN ? AND ? AND cashier_id = ?$storeFilter GROUP BY status',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withInt(cashierId),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable},
     ).get();
@@ -631,17 +705,24 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     return StatusCounts(completed: completed, voided: voided, refunded: refunded);
   }
 
-  Future<List<Map<String, Object?>>> getPaymentBreakdownForCashier(DateTime from, DateTime to, int cashierId) async {
+  Future<List<Map<String, Object?>>> getPaymentBreakdownForCashier(
+    DateTime from,
+    DateTime to,
+    int cashierId, {
+    String? storeId,
+  }) async {
+    final storeFilter = (storeId != null) ? ' AND s.store_id = ?' : '';
     final rows = await customSelect(
       'SELECT p.method, COALESCE(SUM(p.amount), 0) as total '
       'FROM payments p JOIN sales s ON s.id = p.sale_id '
-      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ? '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ?$storeFilter '
       'GROUP BY p.method',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
         Variable.withInt(cashierId),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable, paymentsTable},
     ).get();
@@ -656,19 +737,22 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     DateTime to,
     int cashierId, {
     int limit = 5,
+    String? storeId,
   }) async {
+    final storeFilter = (storeId != null) ? ' AND s.store_id = ?' : '';
     final rows = await customSelect(
       'SELECT p.name, SUM(si.qty) as qty, SUM(si.qty * si.unit_price) as amount '
       'FROM sale_items si '
       'JOIN products p ON p.id = si.product_id '
       'JOIN sales s ON s.id = si.sale_id '
-      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ? '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ?$storeFilter '
       'GROUP BY p.id, p.name ORDER BY amount DESC LIMIT ?',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
         Variable.withInt(cashierId),
+        if (storeId != null) Variable.withString(storeId),
         Variable.withInt(limit),
       ],
     ).get();
@@ -679,16 +763,18 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     }).toList();
   }
 
-  Future<List<CashierSales>> getSalesByCashier(DateTime from, DateTime to) async {
+  Future<List<CashierSales>> getSalesByCashier(DateTime from, DateTime to, {String? storeId}) async {
+    final storeFilter = (storeId != null) ? ' AND s.store_id = ?' : '';
     final rows = await customSelect(
       'SELECT u.name as cashier_name, COALESCE(SUM(s.total), 0) as total, COUNT(*) as cnt '
       'FROM sales s JOIN users u ON u.id = s.cashier_id '
-      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$storeFilter '
       'GROUP BY u.id, u.name',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable, usersTable},
     ).get();
@@ -701,19 +787,21 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         .toList();
   }
 
-  Future<List<ProductGroupSales>> getSalesByProductGroup(DateTime from, DateTime to) async {
+  Future<List<ProductGroupSales>> getSalesByProductGroup(DateTime from, DateTime to, {String? storeId}) async {
+    final storeFilter = (storeId != null) ? ' AND s.store_id = ?' : '';
     final rows = await customSelect(
       'SELECT pg.name as group_name, COALESCE(SUM(si.qty * si.unit_price), 0) as total '
       'FROM sale_items si '
       'JOIN products p ON p.id = si.product_id '
       'JOIN product_groups pg ON pg.id = p.group_id '
       'JOIN sales s ON s.id = si.sale_id '
-      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$storeFilter '
       'GROUP BY pg.id, pg.name',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable, saleItemsTable, productsTable, productGroupsTable},
     ).get();
@@ -729,6 +817,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     DateTime from,
     DateTime to, {
     required String granularity,
+    String? storeId,
   }) async {
     final format = switch (granularity) {
       'hour' => '%Y-%m-%d %H',
@@ -742,15 +831,17 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     // relying on 'localtime' support).
     final offsetMinutes = DateTime.now().timeZoneOffset.inMinutes;
     final offsetModifier = '${offsetMinutes >= 0 ? '+' : ''}$offsetMinutes minutes';
+    final storeFilter = (storeId != null) ? ' AND s.store_id = ?' : '';
     final rows = await customSelect(
       "SELECT strftime('$format', s.created_at, 'unixepoch', '$offsetModifier') as bucket, COALESCE(SUM(s.total), 0) as total "
       'FROM sales s '
-      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$storeFilter '
       "GROUP BY strftime('$format', s.created_at, 'unixepoch', '$offsetModifier') ORDER BY bucket",
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable},
     ).get();
@@ -762,17 +853,24 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         .toList();
   }
 
-  Future<int> getTotalQtySoldForDateRangeAndCashier(DateTime from, DateTime to, int cashierId) async {
+  Future<int> getTotalQtySoldForDateRangeAndCashier(
+    DateTime from,
+    DateTime to,
+    int cashierId, {
+    String? storeId,
+  }) async {
+    final storeFilter = (storeId != null) ? ' AND s.store_id = ?' : '';
     final result = await customSelect(
       'SELECT COALESCE(SUM(si.qty), 0) as qty '
       'FROM sale_items si '
       'JOIN sales s ON s.id = si.sale_id '
-      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ?',
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ?$storeFilter',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
         Variable.withInt(cashierId),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable, saleItemsTable},
     ).getSingle();
@@ -780,17 +878,23 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   }
 
   Future<({double total, int count})> getCashSalesForDateRangeAndCashier(
-      DateTime from, DateTime to, int cashierId) async {
+    DateTime from,
+    DateTime to,
+    int cashierId, {
+    String? storeId,
+  }) async {
+    final storeFilter = (storeId != null) ? ' AND s.store_id = ?' : '';
     final result = await customSelect(
       'SELECT COUNT(DISTINCT s.id) as cnt, COALESCE(SUM(p.amount), 0) as total '
       'FROM sales s JOIN payments p ON p.sale_id = s.id AND p.method = ? '
-      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ?',
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ?$storeFilter',
       variables: [
         Variable.withString('cash'),
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
         Variable.withInt(cashierId),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable, paymentsTable},
     ).getSingle();
@@ -798,17 +902,23 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   }
 
   Future<List<CashLedgerRow>> getCashLedgerForDateRangeAndCashier(
-      DateTime from, DateTime to, int cashierId) async {
+    DateTime from,
+    DateTime to,
+    int cashierId, {
+    String? storeId,
+  }) async {
+    final storeFilter = (storeId != null) ? ' AND s.store_id = ?' : '';
     final rows = await customSelect(
       "SELECT date(s.created_at, 'unixepoch') as day, COALESCE(SUM(s.total), 0) as total "
       'FROM sales s '
-      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ? '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ?$storeFilter '
       "GROUP BY date(s.created_at, 'unixepoch') ORDER BY day",
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
         Variable.withInt(cashierId),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable},
     ).get();
@@ -820,46 +930,56 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         .toList();
   }
 
-  Future<double> getDiscountTotalForDateRange(DateTime from, DateTime to) async {
+  Future<double> getDiscountTotalForDateRange(DateTime from, DateTime to, {String? storeId}) async {
+    final storeFilter = (storeId != null) ? ' AND store_id = ?' : '';
     final result = await customSelect(
       'SELECT COALESCE(SUM(discount), 0) as sum FROM sales '
-      'WHERE created_at BETWEEN ? AND ? AND status = ?',
+      'WHERE created_at BETWEEN ? AND ? AND status = ?$storeFilter',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable},
     ).getSingle();
     return result.read<double>('sum');
   }
 
-  Future<int> getTotalQtySoldForDateRange(DateTime from, DateTime to) async {
+  Future<int> getTotalQtySoldForDateRange(DateTime from, DateTime to, {String? storeId}) async {
+    final storeFilter = (storeId != null) ? ' AND s.store_id = ?' : '';
     final result = await customSelect(
       'SELECT COALESCE(SUM(si.qty), 0) as qty '
       'FROM sale_items si '
       'JOIN sales s ON s.id = si.sale_id '
-      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?',
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$storeFilter',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable, saleItemsTable},
     ).getSingle();
     return result.read<int>('qty');
   }
 
-  Future<({double total, int count})> getCashSalesForDateRange(DateTime from, DateTime to) async {
+  Future<({double total, int count})> getCashSalesForDateRange(
+    DateTime from,
+    DateTime to, {
+    String? storeId,
+  }) async {
+    final storeFilter = (storeId != null) ? ' AND s.store_id = ?' : '';
     final result = await customSelect(
       'SELECT COUNT(DISTINCT s.id) as cnt, COALESCE(SUM(p.amount), 0) as total '
       'FROM sales s JOIN payments p ON p.sale_id = s.id AND p.method = ? '
-      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?',
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$storeFilter',
       variables: [
         Variable.withString('cash'),
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable, paymentsTable},
     ).getSingle();
@@ -997,19 +1117,22 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     DateTime from,
     DateTime to, {
     int? cashierId,
+    String? storeId,
   }) async {
     final rows = await customSelect(
       'SELECT si.discount_type as name, COALESCE(SUM(si.discount_amount), 0) as amount '
       'FROM sale_items si JOIN sales s ON s.id = si.sale_id '
       'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? '
       'AND si.discount_type IS NOT NULL'
-      '${cashierId != null ? ' AND s.cashier_id = ?' : ''} '
+      '${cashierId != null ? ' AND s.cashier_id = ?' : ''}'
+      '${storeId != null ? ' AND s.store_id = ?' : ''} '
       'GROUP BY si.discount_type',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
         if (cashierId != null) Variable.withInt(cashierId),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable, saleItemsTable},
     ).get();
@@ -1018,18 +1141,25 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         .toList();
   }
 
-  Future<List<NameAmount>> getDiscountBreakdownForCashier(DateTime from, DateTime to, int cashierId) =>
-      _getDiscountBreakdown(from, to, cashierId: cashierId);
+  Future<List<NameAmount>> getDiscountBreakdownForCashier(
+    DateTime from,
+    DateTime to,
+    int cashierId, {
+    String? storeId,
+  }) =>
+      _getDiscountBreakdown(from, to, cashierId: cashierId, storeId: storeId);
 
-  Future<List<NameAmount>> getDiscountBreakdownForDateRange(DateTime from, DateTime to) =>
-      _getDiscountBreakdown(from, to);
+  Future<List<NameAmount>> getDiscountBreakdownForDateRange(DateTime from, DateTime to, {String? storeId}) =>
+      _getDiscountBreakdown(from, to, storeId: storeId);
 
   Future<({double vatableSales, double vatAmount, double vatExemptSales})> _getVatBreakdown(
     DateTime from,
     DateTime to, {
     int? cashierId,
+    String? storeId,
   }) async {
     final cashierFilter = cashierId != null ? ' AND s.cashier_id = ?' : '';
+    final storeFilter = storeId != null ? ' AND s.store_id = ?' : '';
     final taxRow = await customSelect(
       'SELECT '
       "COALESCE(SUM(CASE WHEN si.vat_exempt_amount IS NULL OR si.vat_exempt_amount = 0 "
@@ -1038,19 +1168,20 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       'THEN (si.qty * si.unit_price - COALESCE(si.discount_amount, 0)) '
       '- (si.qty * si.unit_price - COALESCE(si.discount_amount, 0)) / 1.12 ELSE 0 END), 0) as vat_amount '
       'FROM sale_items si JOIN sales s ON s.id = si.sale_id '
-      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$cashierFilter',
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$cashierFilter$storeFilter',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
         if (cashierId != null) Variable.withInt(cashierId),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable, saleItemsTable},
     ).getSingle();
 
     final exemptRow = await customSelect(
       'SELECT COALESCE(SUM(s.total), 0) as vat_exempt_sales FROM sales s '
-      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$cashierFilter '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$cashierFilter$storeFilter '
       'AND s.id IN (SELECT DISTINCT sale_id FROM sale_items '
       'WHERE vat_exempt_amount IS NOT NULL AND vat_exempt_amount > 0)',
       variables: [
@@ -1058,6 +1189,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         Variable.withDateTime(to),
         Variable.withString('completed'),
         if (cashierId != null) Variable.withInt(cashierId),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable, saleItemsTable},
     ).getSingle();
@@ -1072,30 +1204,35 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   Future<({double vatableSales, double vatAmount, double vatExemptSales})> getVatBreakdownForCashier(
     DateTime from,
     DateTime to,
-    int cashierId,
-  ) =>
-      _getVatBreakdown(from, to, cashierId: cashierId);
+    int cashierId, {
+    String? storeId,
+  }) =>
+      _getVatBreakdown(from, to, cashierId: cashierId, storeId: storeId);
 
   Future<({double vatableSales, double vatAmount, double vatExemptSales})> getVatBreakdownForDateRange(
     DateTime from,
-    DateTime to,
-  ) =>
-      _getVatBreakdown(from, to);
+    DateTime to, {
+    String? storeId,
+  }) =>
+      _getVatBreakdown(from, to, storeId: storeId);
 
   Future<({double average, double highest, double lowest})> getSaleStatsForCashier(
     DateTime from,
     DateTime to,
-    int cashierId,
-  ) async {
+    int cashierId, {
+    String? storeId,
+  }) async {
+    final storeFilter = (storeId != null) ? ' AND store_id = ?' : '';
     final result = await customSelect(
       'SELECT COALESCE(AVG(total), 0) as avg_sale, COALESCE(MAX(total), 0) as max_sale, '
       'COALESCE(MIN(total), 0) as min_sale FROM sales '
-      'WHERE created_at BETWEEN ? AND ? AND status = ? AND cashier_id = ?',
+      'WHERE created_at BETWEEN ? AND ? AND status = ? AND cashier_id = ?$storeFilter',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
         Variable.withInt(cashierId),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable},
     ).getSingle();
@@ -1110,18 +1247,21 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     DateTime from,
     DateTime to, {
     int? cashierId,
+    String? storeId,
   }) async {
     final cashierFilter = cashierId != null ? ' AND s.cashier_id = ?' : '';
+    final storeFilter = storeId != null ? ' AND s.store_id = ?' : '';
     final rows = await customSelect(
       'SELECT p.method, p.created_at as time, p.reference as reference, p.amount as amount '
       'FROM payments p JOIN sales s ON s.id = p.sale_id '
-      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$cashierFilter '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$cashierFilter$storeFilter '
       'ORDER BY p.method, p.created_at',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
         if (cashierId != null) Variable.withInt(cashierId),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable, paymentsTable},
     ).get();
@@ -1145,21 +1285,28 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         .toList();
   }
 
-  Future<List<PaymentLedger>> getPaymentLedgerForCashier(DateTime from, DateTime to, int cashierId) =>
-      _getPaymentLedger(from, to, cashierId: cashierId);
+  Future<List<PaymentLedger>> getPaymentLedgerForCashier(
+    DateTime from,
+    DateTime to,
+    int cashierId, {
+    String? storeId,
+  }) =>
+      _getPaymentLedger(from, to, cashierId: cashierId, storeId: storeId);
 
-  Future<List<PaymentLedger>> getPaymentLedgerForDateRange(DateTime from, DateTime to) =>
-      _getPaymentLedger(from, to);
+  Future<List<PaymentLedger>> getPaymentLedgerForDateRange(DateTime from, DateTime to, {String? storeId}) =>
+      _getPaymentLedger(from, to, storeId: storeId);
 
   Future<List<CashLedgerEntryRow>> getCashLedgerEntriesForCashier(
     DateTime from,
     DateTime to,
-    int cashierId,
-  ) async {
+    int cashierId, {
+    String? storeId,
+  }) async {
+    final storeFilter = (storeId != null) ? ' AND s.store_id = ?' : '';
     final rows = await customSelect(
       'SELECT p.created_at as time, p.reference as reference, p.amount as amount '
       'FROM payments p JOIN sales s ON s.id = p.sale_id '
-      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ? AND p.method = ? '
+      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ? AND p.method = ?$storeFilter '
       'ORDER BY p.created_at',
       variables: [
         Variable.withDateTime(from),
@@ -1167,6 +1314,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         Variable.withString('completed'),
         Variable.withInt(cashierId),
         Variable.withString('cash'),
+        if (storeId != null) Variable.withString(storeId),
       ],
       readsFrom: {salesTable, paymentsTable},
     ).get();
@@ -1279,6 +1427,8 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         'qty': item.qty,
         'unit_price': item.unitPrice,
         'discount_type': item.discountType,
+        'discount_beneficiary_id': item.discountBeneficiaryId,
+        'discount_beneficiary_name': item.discountBeneficiaryName,
         'discount_amount': item.discountAmount,
         'vat_exempt_amount': item.vatExemptAmount,
         'modifiers': mods

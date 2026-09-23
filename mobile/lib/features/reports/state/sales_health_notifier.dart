@@ -49,10 +49,14 @@ class SalesHealthNotifier extends AsyncNotifier<SalesHealthData> {
     final db = ref.watch(databaseProvider);
     final (from, to) = _periodDates();
 
-    final paymentRows = await db.salesDao.getPaymentBreakdown(from, to);
-    final salesByCashier = await db.salesDao.getSalesByCashier(from, to);
-    final salesByCategory = await db.salesDao.getSalesByProductGroup(from, to);
-    final timeSeries = await db.salesDao.getSalesTimeSeries(from, to, granularity: _granularity);
+    final storeInfo = await db.storeInfoDao.getStoreInfo();
+    final storeId = (storeInfo?.storeId.isNotEmpty ?? false) ? storeInfo!.storeId : null;
+
+    final paymentRows = await db.salesDao.getPaymentBreakdown(from, to, storeId: storeId);
+    final salesByCashier = await db.salesDao.getSalesByCashier(from, to, storeId: storeId);
+    final salesByCategory = await db.salesDao.getSalesByProductGroup(from, to, storeId: storeId);
+    final timeSeries =
+        await db.salesDao.getSalesTimeSeries(from, to, granularity: _granularity, storeId: storeId);
 
     // Same percentage-mapping formula as ReportsNotifier._load() — kept
     // identical on purpose to avoid two divergent formulas in the codebase.

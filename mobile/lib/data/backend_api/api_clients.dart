@@ -13,10 +13,32 @@ import 'webhook_token_interceptor.dart';
 // which is compiled out entirely in profile/release builds and is otherwise
 // prone to being dropped by Android's logcat rate limiter under the volume
 // this interceptor produces. `debugPrint` avoids both.
+//
+// A request/response body prints as a single line, and Android's logcat
+// truncates any line past ~4KB — so long bodies still get cut off even with
+// `debugPrint`. Splitting on existing newlines and re-chunking anything still
+// oversized keeps the full body readable.
+const _kLogChunkSize = 800;
+
+void _debugPrintChunked(String text) {
+  for (final line in text.split('\n')) {
+    if (line.length <= _kLogChunkSize) {
+      debugPrint(line);
+      continue;
+    }
+    for (var i = 0; i < line.length; i += _kLogChunkSize) {
+      final end = i + _kLogChunkSize < line.length ? i + _kLogChunkSize : line.length;
+      debugPrint(line.substring(i, end));
+    }
+  }
+}
+
 LogInterceptor _apiLogInterceptor() => LogInterceptor(
+  requestHeader: true,
   requestBody: true,
+  responseHeader: true,
   responseBody: true,
-  logPrint: (o) => debugPrint(o.toString()),
+  logPrint: (o) => _debugPrintChunked(o.toString()),
 );
 
 /// Every backend response carries a standard HTTP `date` header — reading it

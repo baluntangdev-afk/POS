@@ -14,27 +14,37 @@ class DeviceIdentity {
 
   Future<RegisterDeviceRequest> describe({String name = ''}) async {
     final installId = await _storage.ensureInstallId();
-    final appVersion = await _appVersion();
+    final pkg = await _packageInfo();
     final info = await _platformInfo();
 
     return RegisterDeviceRequest(
       platform: info.platform,
       installId: installId,
       name: name.trim().isEmpty ? 'Merchant App' : name.trim(),
-      appVersion: appVersion,
+      appName: pkg.appName,
+      packageName: pkg.packageName,
+      appVersion: pkg.appVersion,
       platformVersion: info.version,
       deviceModel: info.model,
       platformDetails: info.details,
     );
   }
 
-  Future<String> _appVersion() async {
+  Future<_PackageInfo> _packageInfo() async {
     try {
       final pkg = await PackageInfo.fromPlatform();
-      return pkg.version.isEmpty ? 'unknown' : pkg.version;
+      return _PackageInfo(
+        appName: pkg.appName.isEmpty ? 'unknown' : pkg.appName,
+        packageName: pkg.packageName.isEmpty ? 'unknown' : pkg.packageName,
+        appVersion: pkg.version.isEmpty ? 'unknown' : pkg.version,
+      );
     } catch (e, s) {
       debugPrint('[DeviceIdentity] package info failed: $e\n$s');
-      return 'unknown';
+      return const _PackageInfo(
+        appName: 'unknown',
+        packageName: 'unknown',
+        appVersion: 'unknown',
+      );
     }
   }
 
@@ -67,6 +77,18 @@ class DeviceIdentity {
       details: const {},
     );
   }
+}
+
+class _PackageInfo {
+  const _PackageInfo({
+    required this.appName,
+    required this.packageName,
+    required this.appVersion,
+  });
+
+  final String appName;
+  final String packageName;
+  final String appVersion;
 }
 
 class _PlatformInfo {

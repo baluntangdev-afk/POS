@@ -3,7 +3,16 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../data/backend_api/sources/transaction_sync_api.dart';
 import '../../../features/live_orders/repositories/webhook_auth_repository.dart';
 import '../../database/app_database.dart';
+import '../../providers/database_provider.dart';
 import 'transaction_sync_service.dart';
+
+/// Fires whenever a sale/refund/void commits locally into a syncable state
+/// (see `SalesDao.onSyncNeeded`), so the app can push it within seconds
+/// instead of waiting for the next reconnect edge or 15-minute WorkManager
+/// tick.
+final salesSyncTriggerProvider = StreamProvider<void>((ref) {
+  return ref.watch(databaseProvider).salesDao.onSyncNeeded;
+});
 
 /// Drains every pending sale/refund batch-by-batch, publishing [SyncAllProgress]
 /// as it goes so any screen — not just the one that started the run — can show
@@ -14,13 +23,23 @@ class TransactionSyncProgressNotifier extends Notifier<SyncAllProgress?> {
   @override
   SyncAllProgress? build() => null;
 
+  // Guards re-entrancy independently of [state]. `state` isn't set until
+  // after the first pending-count queries resolve, which leaves a window
+  // (two awaits wide) where a second trigger — reconnect edge, login,
+  // the Transactions screen's mount-time catch-up, or the per-transaction
+  // `salesSyncTriggerProvider` stream — can also see `state == null` and
+  // start its own concurrent drain. Flipping this flag synchronously, before
+  // any await, closes that window: only the first caller ever proceeds.
+  bool _isRunning = false;
+
   Future<TransactionSyncOutcome> syncAll({
     required AppDatabase db,
     required TransactionSyncApi api,
     required WebhookAuthRepository auth,
     required String storeId,
   }) async {
-    if (state != null) return (syncedSales: 0, syncedRefunds: 0);
+    if (_isRunning) return (syncedSales: 0, syncedRefunds: 0);
+    _isRunning = true;
 
     var total = (syncedSales: 0, syncedRefunds: 0);
     try {
@@ -58,11 +77,10 @@ class TransactionSyncProgressNotifier extends Notifier<SyncAllProgress?> {
       }
     } finally {
       state = null;
+      _isRunning = false;
     }
     return total;
   }
-
-
 }
 
 final transactionSyncProgressProvider =

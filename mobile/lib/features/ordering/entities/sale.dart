@@ -23,7 +23,7 @@ class Sale {
 
   double get subtotal => items.fold(0.0, (s, i) => s + i.lineSubtotal);
   double get totalDiscount => items.fold(0.0, (s, i) => s + i.discountAmount);
-  double get total => subtotal - totalDiscount;
+  double get total => items.fold(0.0, (s, i) => s + i.lineTotal);
   int get totalQuantity => items.fold(0, (s, i) => s + i.quantity);
 
   double get vatableAmount =>

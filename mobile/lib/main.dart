@@ -96,13 +96,17 @@ Future<void> _syncTransactionsNow(WidgetRef ref) async {
   }
 }
 
-/// Drains every pending batch (not just one) right after login, via the same
-/// shared notifier the Transactions screen's "Sync All" button uses — so the
-/// Dashboard's progress pill reflects it as soon as the user lands there.
-/// Skipped for an unverified merchant (same check gating device-approval on
-/// the Store Information screen) rather than letting it fail quietly inside
-/// [TransactionSyncService.syncPending]'s own `ensureToken` call.
-Future<void> _syncAllOnLogin(WidgetRef ref) async {
+/// Drains every pending batch (not just one), via the same shared notifier
+/// the Transactions screen's "Sync All" button uses — so the Dashboard's
+/// progress pill reflects it wherever it's triggered from: right after
+/// login, or right after a sale/refund/void commits locally (see
+/// [salesSyncTriggerProvider]), so pending transactions reach the backend
+/// within seconds instead of waiting for the next reconnect edge or the
+/// 15-minute WorkManager tick. Skipped for an unverified merchant (same
+/// check gating device-approval on the Store Information screen) rather
+/// than letting it fail quietly inside [TransactionSyncService.syncPending]'s
+/// own `ensureToken` call.
+Future<void> _drainPendingSync(WidgetRef ref) async {
   try {
     final storeId = (await ref.read(storeInfoProvider.future))?.storeId ?? '';
     if (storeId.isEmpty) return;
@@ -135,7 +139,7 @@ class _App extends ConsumerWidget {
         unawaited(
           ref.read(merchantDeviceNotifierProvider.notifier).refreshStatus(),
         );
-        unawaited(_syncAllOnLogin(ref));
+        unawaited(_drainPendingSync(ref));
       }
     });
 
@@ -150,6 +154,9 @@ class _App extends ConsumerWidget {
       final isOnline = next.value ?? false;
       if (wasOnline != false || !isOnline) return;
       unawaited(_syncTransactionsNow(ref));
+    });
+    ref.listen(salesSyncTriggerProvider, (previous, next) {
+      if (next.hasValue) unawaited(_drainPendingSync(ref));
     });
     ref.listen(transactionSyncProgressProvider, (previous, next) {
       if (next != null && previous == null) {
@@ -219,6 +226,18 @@ void _showSyncProgressToast() {
         content: Consumer(
           builder: (context, ref, _) {
             final progress = ref.watch(transactionSyncProgressProvider);
+            // The run this toast was raised for may already have finished by
+            // the time this Consumer gets its first build (fast batch, LAN
+            // backend) — `next != null && previous == null` fires the show
+            // a frame before this paints, so `progress` here can already be
+            // back to null. Rather than fall back to a bogus "0/0", close
+            // the toast on the next frame instead of rendering it.
+            if (progress == null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
+              });
+              return const SizedBox.shrink();
+            }
             return Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -231,9 +250,7 @@ void _showSyncProgressToast() {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  'Syncing transactions ${progress?.currentBatch ?? 0}/${progress?.totalBatches ?? 0}',
-                ),
+                Text('Syncing transactions ${progress.currentBatch}/${progress.totalBatches}'),
               ],
             );
           },

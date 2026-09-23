@@ -19,27 +19,37 @@ class DeviceIdentity {
 
   Future<RegisterDeviceRequest> describe({required String name}) async {
     final installId = await _storage.ensureInstallId();
-    final appVersion = await _appVersion();
+    final packageInfo = await _packageInfo();
     final platform = await _platform();
 
     return RegisterDeviceRequest(
       platform: platform.platform,
       installId: installId,
       name: name.trim().isEmpty ? 'POS Device' : name.trim(),
-      appVersion: appVersion,
+      appName: packageInfo.appName,
+      packageName: packageInfo.packageName,
+      appVersion: packageInfo.version,
       platformVersion: platform.version,
       deviceModel: platform.model,
       platformDetails: platform.details,
     );
   }
 
-  Future<String> _appVersion() async {
+  Future<_PackageInfo> _packageInfo() async {
     try {
       final info = await PackageInfo.fromPlatform();
-      return info.version.isEmpty ? 'unknown' : info.version;
+      return _PackageInfo(
+        appName: info.appName.isEmpty ? 'unknown' : info.appName,
+        packageName: info.packageName.isEmpty ? 'unknown' : info.packageName,
+        version: info.version.isEmpty ? 'unknown' : info.version,
+      );
     } catch (error, stackTrace) {
       debugPrint('[DeviceIdentity] package info failed: $error\n$stackTrace');
-      return 'unknown';
+      return const _PackageInfo(
+        appName: 'unknown',
+        packageName: 'unknown',
+        version: 'unknown',
+      );
     }
   }
 
@@ -86,6 +96,18 @@ class DeviceIdentity {
       details: const {},
     );
   }
+}
+
+class _PackageInfo {
+  const _PackageInfo({
+    required this.appName,
+    required this.packageName,
+    required this.version,
+  });
+
+  final String appName;
+  final String packageName;
+  final String version;
 }
 
 class _PlatformInfo {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -32,6 +34,35 @@ class TransactionsScreen extends HookConsumerWidget {
     final syncProgress = ref.watch(transactionSyncProgressProvider);
     final isSyncing = syncProgress != null;
     final isUnsyncing = useState(false);
+
+    // Best-effort catch-up the moment the screen is visited, so anything
+    // missed by the reconnect-edge/WorkManager/post-write triggers still
+    // shows up as synced without the user having to tap "Sync All". Silent
+    // on failure — same fallback pattern as those other triggers.
+    useEffect(() {
+      final storeId = ref.read(storeInfoProvider).value?.storeId ?? '';
+      if (storeId.isNotEmpty) {
+        unawaited(() async {
+          try {
+            final outcome = await ref
+                .read(transactionSyncProgressProvider.notifier)
+                .syncAll(
+                  db: ref.read(databaseProvider),
+                  api: ref.read(transactionSyncApiProvider),
+                  auth: ref.read(webhookAuthRepositoryProvider),
+                  storeId: storeId,
+                );
+            if (outcome.syncedSales + outcome.syncedRefunds > 0) {
+              ref.read(transactionsProvider.notifier).refresh();
+            }
+          } catch (_) {
+            // Retried on the next reconnect edge, WorkManager tick, or
+            // manual Sync All.
+          }
+        }());
+      }
+      return null;
+    }, const []);
 
     Future<void> handleManualSync() async {
       if (isSyncing) return;

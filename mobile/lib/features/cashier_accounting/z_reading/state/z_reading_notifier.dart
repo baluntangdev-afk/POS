@@ -30,31 +30,41 @@ class ZReadingNotifier extends AsyncNotifier<ZReadingData> {
     final db = ref.watch(databaseProvider);
     final closedByName = _currentUserName;
 
+    final storeInfo = await db.storeInfoDao.getStoreInfo();
+    final storeId = (storeInfo?.storeId.isNotEmpty ?? false) ? storeInfo!.storeId : null;
+
     // Lower bound for "unreported since" — may be a synthetic epoch/last-close
     // boundary with no transaction actually at that time, so it's only used
     // to scope the queries below, never shown directly to the user.
     final queryStart = await db.cashierAccountingDao.getZReadingPeriodStart();
     final periodEnd = ref.watch(appClockProvider).now();
-    final periodStart = await db.salesDao.getEarliestTransactionDate(queryStart, periodEnd);
+    final periodStart =
+        await db.salesDao.getEarliestTransactionDate(queryStart, periodEnd, storeId: storeId);
     final nextZCounter = await db.cashierAccountingDao.getNextZCounter();
 
-    final totalSales = await db.salesDao.getTotalSalesForDateRange(queryStart, periodEnd);
-    final transactionCount = await db.salesDao.getTransactionCountForDateRange(queryStart, periodEnd);
-    final statusCounts = await db.salesDao.getStatusCountsForDateRange(queryStart, periodEnd);
-    final discountTotal = await db.salesDao.getDiscountTotalForDateRange(queryStart, periodEnd);
-    final totalQtySold = await db.salesDao.getTotalQtySoldForDateRange(queryStart, periodEnd);
-    final cashSales = await db.salesDao.getCashSalesForDateRange(queryStart, periodEnd);
-    final paymentRows = await db.salesDao.getPaymentBreakdown(queryStart, periodEnd);
-    final cashierRows = await db.salesDao.getSalesByCashier(queryStart, periodEnd);
-    final discounts = await db.salesDao.getDiscountBreakdownForDateRange(queryStart, periodEnd);
-    final vatBreakdown = await db.salesDao.getVatBreakdownForDateRange(queryStart, periodEnd);
+    final totalSales =
+        await db.salesDao.getTotalSalesForDateRange(queryStart, periodEnd, storeId: storeId);
+    final transactionCount =
+        await db.salesDao.getTransactionCountForDateRange(queryStart, periodEnd, storeId: storeId);
+    final statusCounts =
+        await db.salesDao.getStatusCountsForDateRange(queryStart, periodEnd, storeId: storeId);
+    final discountTotal =
+        await db.salesDao.getDiscountTotalForDateRange(queryStart, periodEnd, storeId: storeId);
+    final totalQtySold =
+        await db.salesDao.getTotalQtySoldForDateRange(queryStart, periodEnd, storeId: storeId);
+    final cashSales = await db.salesDao.getCashSalesForDateRange(queryStart, periodEnd, storeId: storeId);
+    final paymentRows = await db.salesDao.getPaymentBreakdown(queryStart, periodEnd, storeId: storeId);
+    final cashierRows = await db.salesDao.getSalesByCashier(queryStart, periodEnd, storeId: storeId);
+    final discounts =
+        await db.salesDao.getDiscountBreakdownForDateRange(queryStart, periodEnd, storeId: storeId);
+    final vatBreakdown =
+        await db.salesDao.getVatBreakdownForDateRange(queryStart, periodEnd, storeId: storeId);
     final beginningBalance = await db.cashierAccountingDao.getLastZReadingEndingBalance();
-    final paymentLedgers = await db.salesDao.getPaymentLedgerForDateRange(queryStart, periodEnd);
+    final paymentLedgers =
+        await db.salesDao.getPaymentLedgerForDateRange(queryStart, periodEnd, storeId: storeId);
 
-    final storeInfo = await db.storeInfoDao.getStoreInfo();
-    final taxRate = storeInfo?.taxRate ?? 0.0;
-    final vatableSales = totalSales / (1 + taxRate);
-    final vatAmount = totalSales - vatableSales;
+    final vatableSales = vatBreakdown.vatableSales;
+    final vatAmount = vatBreakdown.vatAmount;
     final vatExemptSales = vatBreakdown.vatExemptSales;
 
     final totalPaid = paymentRows.fold(0.0, (s, r) => s + (r['total'] as double? ?? 0));

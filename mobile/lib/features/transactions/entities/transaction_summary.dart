@@ -29,12 +29,11 @@ class TransactionSummary {
 
   bool get isVoided => status == 'voided';
 
-  double get netTotal =>
-      (total - discount - refundedAmount).clamp(0.0, double.infinity);
+  double get netTotal => (total - refundedAmount).clamp(0.0, double.infinity);
 
   bool get hasRefunds => refundedAmount > 0;
 
-  bool get isFullyRefunded => refundedAmount >= (total - discount) - 0.001;
+  bool get isFullyRefunded => refundedAmount >= total - 0.001;
 
   String get invoiceNumber => soNumber ?? '#${id.toString().padLeft(6, '0')}';
 

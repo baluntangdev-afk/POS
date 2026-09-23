@@ -35,30 +35,34 @@ class DailyReportNotifier extends AsyncNotifier<DailyReportData> {
     final cashierId = _currentUserId;
     final cashierName = _currentUserName;
 
+    final storeInfo = await db.storeInfoDao.getStoreInfo();
+    final storeId = (storeInfo?.storeId.isNotEmpty ?? false) ? storeInfo!.storeId : null;
+
     // Lower bound for "unreported since" — may be a synthetic epoch/last-close
     // boundary with no transaction actually at that time, so it's only used
     // to scope the queries below, never shown directly to the user.
     final queryStart = await db.cashierAccountingDao.getDailyReportPeriodStart(cashierId);
     final periodEnd = ref.watch(appClockProvider).now();
-    final periodStart =
-        await db.salesDao.getEarliestTransactionDateForCashier(queryStart, periodEnd, cashierId);
+    final periodStart = await db.salesDao
+        .getEarliestTransactionDateForCashier(queryStart, periodEnd, cashierId, storeId: storeId);
 
-    final grossSales = await db.salesDao.getTotalSalesForDateRangeAndCashier(queryStart, periodEnd, cashierId);
-    final transactionCount =
-        await db.salesDao.getTransactionCountForDateRangeAndCashier(queryStart, periodEnd, cashierId);
-    final totalQtySold =
-        await db.salesDao.getTotalQtySoldForDateRangeAndCashier(queryStart, periodEnd, cashierId);
-    final cashSales = await db.salesDao.getCashSalesForDateRangeAndCashier(queryStart, periodEnd, cashierId);
-    final topProductRows =
-        await db.salesDao.getTopProductsForCashier(queryStart, periodEnd, cashierId, limit: 1000);
-    final ledgerRows =
-        await db.salesDao.getCashLedgerEntriesForCashier(queryStart, periodEnd, cashierId);
-    final vatBreakdown = await db.salesDao.getVatBreakdownForCashier(queryStart, periodEnd, cashierId);
+    final grossSales = await db.salesDao
+        .getTotalSalesForDateRangeAndCashier(queryStart, periodEnd, cashierId, storeId: storeId);
+    final transactionCount = await db.salesDao
+        .getTransactionCountForDateRangeAndCashier(queryStart, periodEnd, cashierId, storeId: storeId);
+    final totalQtySold = await db.salesDao
+        .getTotalQtySoldForDateRangeAndCashier(queryStart, periodEnd, cashierId, storeId: storeId);
+    final cashSales = await db.salesDao
+        .getCashSalesForDateRangeAndCashier(queryStart, periodEnd, cashierId, storeId: storeId);
+    final topProductRows = await db.salesDao
+        .getTopProductsForCashier(queryStart, periodEnd, cashierId, limit: 1000, storeId: storeId);
+    final ledgerRows = await db.salesDao
+        .getCashLedgerEntriesForCashier(queryStart, periodEnd, cashierId, storeId: storeId);
+    final vatBreakdown = await db.salesDao
+        .getVatBreakdownForCashier(queryStart, periodEnd, cashierId, storeId: storeId);
 
-    final storeInfo = await db.storeInfoDao.getStoreInfo();
-    final taxRate = storeInfo?.taxRate ?? 0.0;
-    final vatableSales = grossSales / (1 + taxRate);
-    final vatAmount = grossSales - vatableSales;
+    final vatableSales = vatBreakdown.vatableSales;
+    final vatAmount = vatBreakdown.vatAmount;
     final vatExemptSales = vatBreakdown.vatExemptSales;
     final netOfTax = grossSales - vatAmount;
 

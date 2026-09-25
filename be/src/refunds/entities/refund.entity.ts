@@ -60,6 +60,10 @@ export class Refund {
   @OneToMany(() => RefundItem, (refundItem) => refundItem.refund)
   refundItems: RefundItem[];
 
+  /** When the external orders service accepted this refund; null = pending sync. */
+  @Column({ type: 'timestamp', nullable: true, name: 'synced_at' })
+  syncedAt: Date | null;
+
   @ManyToOne(() => User, (user) => user.id)
   @JoinColumn({ name: 'created_by' })
   createdBy: User;

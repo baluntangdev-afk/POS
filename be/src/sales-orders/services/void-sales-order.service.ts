@@ -67,6 +67,8 @@ export class VoidSalesOrderService {
         voidReason: dto.reason,
         voidedBy: authorizer,
         voidedAt: new Date(),
+        // Re-queue for transaction sync so the void reaches the orders service.
+        syncedAt: null,
       }),
     );
 

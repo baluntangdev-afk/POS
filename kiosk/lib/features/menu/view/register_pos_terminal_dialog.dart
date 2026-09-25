@@ -3,7 +3,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../data/backend_api/enums/payment_method.dart';
-import '../../../data/backend_api/sources/pos_terminals_api.dart';
 import '../../../exceptions/exception_extension.dart';
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
@@ -12,9 +11,10 @@ import '../../../utils/physical_keyboard_detector.dart';
 import '../../../utils/windows_touch_keyboard.dart';
 import '../../../widgets/onscreen_keyboard/keyboard_suppress.dart';
 import '../../../widgets/onscreen_keyboard/onscreen_keyboard.dart';
+import '../../settings/use_cases/register_pos_terminal.dart';
+import '../../settings/view/kiosk_id_field.dart';
+import '../../settings/view/kiosk_id_prompts.dart';
 import '../state/pos_terminal_notifier.dart';
-
-typedef _PendingMethod = ({PaymentMethod method, String? methodName, String? number});
 
 Future<void> showRegisterPosTerminalDialog(BuildContext context, WidgetRef ref) {
   return showDialog<void>(
@@ -46,10 +46,11 @@ class RegisterPosTerminalDialog extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final formKey = useRef(GlobalKey<FormState>());
+    final kioskIdController = useTextEditingController();
     final legalNameController = useTextEditingController();
     final addressController = useTextEditingController();
     final tinController = useTextEditingController();
-    final pendingMethods = useState<List<_PendingMethod>>([]);
+    final pendingMethods = useState<List<PendingPaymentMethod>>([]);
     final isSubmitting = useState(false);
     final errorMessage = useState<String?>(null);
 
@@ -74,22 +75,20 @@ class RegisterPosTerminalDialog extends HookConsumerWidget {
       isSubmitting.value = true;
       errorMessage.value = null;
       try {
-        final api = ref.read(posTerminalsApiProvider);
-        await api.registerMyTerminal(
-          legalName: legalNameController.text.trim(),
-          address: addressController.text.trim(),
-          tinNumber: tinController.text.trim(),
-        );
-        for (final pm in pendingMethods.value) {
-          await api.addPaymentMethod(
-            paymentMethod: pm.method,
-            paymentMethodName: pm.methodName,
-            paymentNumber: pm.number,
-          );
-        }
+        await ref
+            .read(registerPosTerminalProvider)
+            .call(
+              kioskId: kioskIdController.text,
+              legalName: legalNameController.text,
+              address: addressController.text,
+              tinNumber: tinController.text,
+              paymentMethods: pendingMethods.value,
+            );
         onSuccess();
       } catch (e) {
-        errorMessage.value = e.message;
+        // A rejected Kiosk ID (e.g. an unknown merchant) creates nothing —
+        // show why so the user can correct it.
+        errorMessage.value = posTerminalSaveErrorMessage(e);
         isSubmitting.value = false;
       }
     }
@@ -117,6 +116,8 @@ class RegisterPosTerminalDialog extends HookConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      KioskIdField(controller: kioskIdController, hint: 'Enter your Kiosk ID'),
+                      const SizedBox(height: 16),
                       _PosFormField(
                         label: 'Legal Name',
                         controller: legalNameController,
@@ -230,7 +231,7 @@ class _PendingPaymentMethodsSection extends StatelessWidget {
     required this.onRemove,
   });
 
-  final List<_PendingMethod> methods;
+  final List<PendingPaymentMethod> methods;
   final VoidCallback onAdd;
   final void Function(int index) onRemove;
 

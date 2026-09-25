@@ -17,6 +17,7 @@ import { SalesOrderItemBuildService } from './sales-order-item-build.service';
 import { SalesOrderInventoryValidationService } from './sales-order-inventory-validation.service';
 import { SalesOrderItemsPersistenceService } from './sales-order-items-persistence.service';
 import { SalesOrderDiscountPersistenceService } from './sales-order-discount-persistence.service';
+import { PosTerminal } from '../../pos-terminals/entities/pos-terminal.entity';
 
 @Injectable()
 export class CreateSalesOrderService {
@@ -84,6 +85,11 @@ export class CreateSalesOrderService {
   }
 
   private async saveSalesOrder(salesOrder: SalesOrder, t: EntityManager) {
+    // Stamp the merchant this sale is made under, so transaction sync only
+    // ever pushes it to that merchant — even if the Kiosk ID changes later.
+    // This deployment has a single POS terminal (see PosTerminalsService).
+    const [terminal] = await t.getRepository(PosTerminal).find({ order: { id: 'ASC' }, take: 1 });
+    salesOrder.storeId = terminal?.kioskId ?? null;
     return t.save(salesOrder);
   }
 

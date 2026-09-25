@@ -3,6 +3,7 @@ import 'package:decimal/decimal.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/transaction_sync/sales_sync_signal.dart';
 import '../../../data/backend_api/enums/payment_method.dart';
 import '../../../data/backend_api/enums/sales_order_type.dart';
 import '../../../data/backend_api/schemas/confirm_sales_order_dto.dart';
@@ -53,6 +54,7 @@ final receiptRepositoryProvider = Provider<ReceiptRepository>((ref) {
     ref.watch(paymentsApiProvider),
     ref.watch(refundsApiProvider),
     ref.watch(posTerminalsApiProvider),
+    syncSignal: ref.watch(salesSyncSignalProvider),
   );
 });
 
@@ -62,19 +64,23 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
     this._usersApi,
     this._paymentsApi,
     this._refundsApi,
-    this._posTerminalsApi,
-  );
+    this._posTerminalsApi, {
+    SalesSyncSignal? syncSignal,
+  }) : _syncSignal = syncSignal;
 
   final SalesOrdersApi _salesOrdersApi;
   final UserApi _usersApi;
   final PaymentsApi _paymentsApi;
   final RefundsApi _refundsApi;
   final PosTerminalsApi _posTerminalsApi;
+  final SalesSyncSignal? _syncSignal;
 
   @override
   Future<Receipt> save(Receipt receipt) async {
     final confirmRequestDto = _createConfirmSalesOrderDtoFromReceipt(receipt);
     final confirmResponseDto = await _salesOrdersApi.confirm(receipt.id, confirmRequestDto);
+    // A confirmed (paid) sale becomes eligible for transaction sync.
+    _syncSignal?.notify();
 
     final (userDto, paginatedPaymentDto) =
         await (

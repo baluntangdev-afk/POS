@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../config/feature_flags.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../navigation/router.dart';
 import '../../../widgets/resposive_wrap_container.dart';
+import '../../orders/entities/merchant_device_state.dart';
+import '../../orders/state/merchant_device_notifier.dart';
 import '../../orders/state/pending_orders_count_provider.dart';
+import '../../orders/use_cases/device_registration_status.dart';
+import '../../orders/view/device_registration_prompt.dart';
 import '../../settings/view/pos_terminal_details_dialog.dart';
 import '../entities/menu_item.dart';
 import '../enums/menu_type.dart';
 import '../enums/role.dart';
 import 'menu_item_card.dart';
 
-class MenuGrid extends ConsumerWidget {
+class MenuGrid extends HookConsumerWidget {
   const MenuGrid({super.key, required this.role});
 
   final Role role;
@@ -26,6 +32,53 @@ class MenuGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Device registration runs in the background after a Kiosk ID save (the
+    // POS Terminal Details dialog is opened from here and may already be
+    // closed), so its one-time outcome dialog is shown from this screen.
+    final hasShownDeviceStatusToast = useRef(false);
+
+    // Status toast, mirroring the mobile dashboard: once on landing (unless
+    // the device is already approved), then again whenever the status,
+    // merchant or error changes.
+    void maybeShowDeviceStatusToast(MerchantDeviceState? result, {bool skipIfApproved = false}) {
+      if (kSkipDeviceRegistration) return;
+      if (result == null || result.isRegistering) return;
+      if (hasShownDeviceStatusToast.value) return;
+      if (skipIfApproved &&
+          result.error == null &&
+          deviceRegistrationStatusFrom(result.status) == DeviceRegistrationStatus.approved) {
+        return;
+      }
+      final toast = deviceStatusToastFor(result);
+      if (toast == null) return;
+      hasShownDeviceStatusToast.value = true;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(content: Text(toast.message), backgroundColor: toast.color));
+    }
+
+    ref.listen(merchantDeviceNotifierProvider, (prev, next) {
+      handleMerchantDeviceOutcome(context, prev?.value, next.value);
+      final result = next.value;
+      if (result == null || result.isRegistering) return;
+      final prevResult = prev?.value;
+      final changed =
+          prevResult == null ||
+          prevResult.status != result.status ||
+          prevResult.merchantName != result.merchantName ||
+          prevResult.error != result.error;
+      if (changed) hasShownDeviceStatusToast.value = false;
+      maybeShowDeviceStatusToast(result);
+    });
+
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        maybeShowDeviceStatusToast(ref.read(merchantDeviceNotifierProvider).value, skipIfApproved: true);
+      });
+      return null;
+    }, const []);
+
     final pendingOrdersCount = ref.watch(pendingOrdersCountProvider).value ?? 0;
     final menuItems = _menuItems(pendingOrdersCount);
     return LayoutBuilder(

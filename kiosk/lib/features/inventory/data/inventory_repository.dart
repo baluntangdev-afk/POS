@@ -215,4 +215,13 @@ class InventoryRepository {
     );
     return ImportProductsCsvResult.fromJson(response.data as Map<String, dynamic>);
   }
+
+  /// Downloads every product as a CSV in the same format [importProductsCsv] accepts.
+  Future<Uint8List> exportProductsCsv() async {
+    final response = await _secureClient.get<List<int>>(
+      '/api/v1/products/export-csv',
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return Uint8List.fromList(response.data!);
+  }
 }

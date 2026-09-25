@@ -11,6 +11,9 @@ import {
   UseGuards,
   Req,
   BadRequestException,
+  Header,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,6 +23,7 @@ import {
   ApiCreatedResponse,
   ApiOkResponse,
   ApiConsumes,
+  ApiProduces,
 } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -32,7 +36,7 @@ import { PaginatedResponse } from '../utils/pagination/dto';
 import { ProductDetailsDto } from './dto/product-details/product-details.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { File } from 'multer';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { AdminOrSupervisorGuard } from '../auth/guards/admin-or-supervisor.guard';
 import { getBaseUrl } from '../utils/image-storage.helper';
 import { ImportProductsCsvDto } from './dto/import-products-csv.dto';
@@ -101,6 +105,23 @@ export class ProductsController {
       throw new BadRequestException('A CSV file is required.');
     }
     return this.productsService.importCsv(file.buffer.toString('utf-8'), body.mode ?? 'upsert');
+  }
+
+  // Declared before `:id` so "export-csv" is not captured as a product ID.
+  @Get('export-csv')
+  @UseGuards(AdminOrSupervisorGuard)
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @ApiOperation({
+    summary: 'Export all products as a CSV in the same format accepted by import-csv',
+  })
+  @ApiProduces('text/csv')
+  @ApiOkResponse({ description: 'CSV file of every category/product/variant.' })
+  async exportCsv(@Res({ passthrough: true }) res: Response): Promise<StreamableFile> {
+    const csv = await this.productsService.exportCsv();
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    res.set('Content-Disposition', `attachment; filename="products-export-${stamp}.csv"`);
+    // UTF-8 BOM so Excel opens accented names correctly; the importer strips it.
+    return new StreamableFile(Buffer.from(`﻿${csv}`, 'utf-8'));
   }
 
   @Get()

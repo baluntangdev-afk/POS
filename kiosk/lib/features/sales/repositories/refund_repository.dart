@@ -1,5 +1,6 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/transaction_sync/sales_sync_signal.dart';
 import '../../../data/backend_api/enums/payment_method.dart';
 import '../../../data/backend_api/schemas/create_refund_dto.dart';
 import '../../../data/backend_api/schemas/create_refund_item_dto.dart';
@@ -14,18 +15,20 @@ abstract class RefundRepository {
 
 final refundRepositoryProvider = Provider<RefundRepository>((ref) {
   final api = ref.watch(refundsApiProvider);
-  return RefundRepositoryImpl(api);
+  return RefundRepositoryImpl(api, syncSignal: ref.watch(salesSyncSignalProvider));
 });
 
 class RefundRepositoryImpl implements RefundRepository {
-  const RefundRepositoryImpl(this._refundsApi);
+  const RefundRepositoryImpl(this._refundsApi, {SalesSyncSignal? syncSignal}) : _syncSignal = syncSignal;
 
   final RefundsApi _refundsApi;
+  final SalesSyncSignal? _syncSignal;
 
   @override
   Future<Refund> save(Refund refund) async {
     final request = _createRefundDtoFromRefund(refund);
     final response = await _refundsApi.create(request);
+    _syncSignal?.notify();
     return refund.copyWith(id: '${response.id}', docNumber: response.refundNumber);
   }
 

@@ -5,7 +5,7 @@ import '../../config/environment/app_env.dart';
 import '../secure_storage/schemas/webhook_auth_doc.dart';
 import '../secure_storage/sources/webhook_auth_storage.dart';
 import 'api_clients.dart';
-import 'sources/orders_history_api.dart';
+import 'sources/orders_auth_api.dart';
 
 final webhookTokenInterceptorProvider = Provider<WebhookTokenInterceptor>((ref) {
   final storage = ref.watch(webhookAuthStorageProvider);
@@ -63,7 +63,7 @@ class WebhookTokenInterceptor extends QueuedInterceptor {
   }
 
   Future<WebhookAuthDoc> _refreshToken(String merchantId) async {
-    final dto = await OrdersHistoryApi(_refreshClient, _env).fetchToken(merchantId);
+    final dto = await OrdersAuthApi(_refreshClient, _env).fetchToken(merchantId);
     final doc = WebhookAuthDoc(
       merchantId: dto.merchantId,
       token: dto.token,

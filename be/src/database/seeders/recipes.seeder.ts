@@ -28,13 +28,19 @@ export class RecipesSeeder implements Seeder {
     const variantsFromFixture = new Set(
       PRODUCT_VARIANTS_FIXTURE.flatMap((f) => f.variants.map((v) => `${f.productName}:${v.name}`)),
     );
-    const relevantVariants = variants.filter((v) => variantsFromFixture.has(variantKey(v)));
+    // A live variant can still belong to a soft-deleted product, which loads as null.
+    const relevantVariants = variants.filter(
+      (v) => v.product != null && variantsFromFixture.has(variantKey(v)),
+    );
 
-    const existingRecipes = await recipeRepo.find({
-      relations: { productVariant: true },
-      select: { id: true, productVariant: { id: true } },
-    });
-    const existingVariantIds = new Set(existingRecipes.map((r) => r.productVariant.id));
+    // Read the raw FK (including soft-deleted recipes/variants): joining the relation
+    // yields null for soft-deleted variants, and product_variant_id is unique anyway.
+    const existingRecipes = await recipeRepo
+      .createQueryBuilder('r')
+      .withDeleted()
+      .select('r.product_variant_id', 'variantId')
+      .getRawMany<{ variantId: number }>();
+    const existingVariantIds = new Set(existingRecipes.map((r) => r.variantId));
     const toInsertVariants = relevantVariants.filter((v) => !existingVariantIds.has(v.id));
     if (toInsertVariants.length === 0) {
       console.log('Recipes already seeded, skip');

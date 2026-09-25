@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_app/config/environment/app_env.dart';
+import 'package:pos_app/data/backend_api/errors/api_exception.dart';
+import 'package:pos_app/data/backend_api/sources/orders_auth_api.dart';
 import 'package:pos_app/data/backend_api/sources/orders_history_api.dart';
 
 class _FakeAppEnv implements AppEnv {
@@ -101,7 +103,7 @@ void main() {
     });
 
     test('fetches, decodes, and drops unrecognized event types', () async {
-      final api = OrdersHistoryApi(dio, _FakeAppEnv());
+      final api = OrdersHistoryApi(dio);
 
       final events = await api.fetchEvents('merch_1');
 
@@ -115,19 +117,19 @@ void main() {
       final failingAdapter = _FakeHttpClientAdapter('Internal Server Error', statusCode: 500);
       final failingDio = Dio(BaseOptions(baseUrl: 'https://orders-history.test'))
         ..httpClientAdapter = failingAdapter;
-      final api = OrdersHistoryApi(failingDio, _FakeAppEnv());
+      final api = OrdersHistoryApi(failingDio);
 
       expect(() => api.fetchEvents('merch_1'), throwsA(isA<DioException>()));
     });
   });
 
-  group('OrdersHistoryApi.fetchToken', () {
+  group('OrdersAuthApi.fetchToken', () {
     test('posts webhook credentials and decodes the returned token', () async {
       final adapter = _FakeHttpClientAdapter(
         jsonEncode({'merchant_id': 'merch_1', 'token': 'eyJ...', 'exp': 1787544197}),
       );
       final dio = Dio(BaseOptions(baseUrl: 'https://orders-history.test'))..httpClientAdapter = adapter;
-      final api = OrdersHistoryApi(dio, _FakeAppEnv());
+      final api = OrdersAuthApi(dio, _FakeAppEnv());
 
       final dto = await api.fetchToken('merch_1');
 
@@ -146,9 +148,9 @@ void main() {
       final failingAdapter = _FakeHttpClientAdapter('Internal Server Error', statusCode: 500);
       final failingDio = Dio(BaseOptions(baseUrl: 'https://orders-history.test'))
         ..httpClientAdapter = failingAdapter;
-      final api = OrdersHistoryApi(failingDio, _FakeAppEnv());
+      final api = OrdersAuthApi(failingDio, _FakeAppEnv());
 
-      expect(() => api.fetchToken('merch_1'), throwsA(isA<DioException>()));
+      expect(() => api.fetchToken('merch_1'), throwsA(isA<ApiException>()));
     });
   });
 }

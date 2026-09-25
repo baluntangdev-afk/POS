@@ -18,6 +18,7 @@ import {
   ImportProductsCsvService,
 } from './services/import-products-csv.service';
 import { ProductsCsvSeedSummary } from '../database/seeders/csv/products-csv.seeder';
+import { ExportProductsCsvService } from './services/export-products-csv.service';
 
 @Injectable()
 export class ProductsService {
@@ -29,6 +30,7 @@ export class ProductsService {
     private readonly updateProductService: UpdateProductService,
     private readonly findProductDetailsService: FindProductDetailsService,
     private readonly importProductsCsvService: ImportProductsCsvService,
+    private readonly exportProductsCsvService: ExportProductsCsvService,
   ) {}
 
   async create(
@@ -68,5 +70,9 @@ export class ProductsService {
     mode: ImportProductsCsvMode,
   ): Promise<ProductsCsvSeedSummary> {
     return this.importProductsCsvService.execute(fileContent, mode);
+  }
+
+  async exportCsv(): Promise<string> {
+    return this.exportProductsCsvService.execute();
   }
 }

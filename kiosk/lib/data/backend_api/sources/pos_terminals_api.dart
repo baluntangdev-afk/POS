@@ -24,19 +24,20 @@ class PosTerminalsApi {
     return PosTerminalDto.fromJson(json);
   }
 
+  /// Partial update — only the fields passed are sent.
   Future<PosTerminalDto> updateMyTerminal({
-    required String legalName,
-    required String address,
-    required String tinNumber,
+    String? legalName,
+    String? address,
+    String? tinNumber,
     String? kioskId,
   }) async {
     final response = await _secureClient.patch<dynamic>(
       '/api/v1/pos-terminals/my-terminal',
       data: {
         if (kioskId != null) 'kioskId': kioskId,
-        'legalName': legalName,
-        'address': address,
-        'tinNumber': tinNumber,
+        if (legalName != null) 'legalName': legalName,
+        if (address != null) 'address': address,
+        if (tinNumber != null) 'tinNumber': tinNumber,
       },
     );
     final json = jsonEncode(response.data);
@@ -44,6 +45,7 @@ class PosTerminalsApi {
   }
 
   Future<PosTerminalDto> registerMyTerminal({
+    required String kioskId,
     required String legalName,
     required String address,
     required String tinNumber,
@@ -51,6 +53,7 @@ class PosTerminalsApi {
     final response = await _secureClient.post<dynamic>(
       '/api/v1/pos-terminals/register',
       data: {
+        'kioskId': kioskId,
         'legalName': legalName,
         'address': address,
         'tinNumber': tinNumber,

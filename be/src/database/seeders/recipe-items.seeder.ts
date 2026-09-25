@@ -34,8 +34,11 @@ export class RecipeItemsSeeder implements Seeder {
     const recipes = await recipeRepo.find({
       relations: { productVariant: { product: true } },
     });
-    const relevantRecipes = recipes.filter((r) =>
-      variantKeySet.has(`${r.productVariant.product.name}:${r.productVariant.name}`),
+    // Recipes whose variant or product is soft-deleted load those relations as null — skip them.
+    const relevantRecipes = recipes.filter(
+      (r) =>
+        r.productVariant?.product != null &&
+        variantKeySet.has(`${r.productVariant.product.name}:${r.productVariant.name}`),
     );
 
     if (relevantRecipes.length === 0) {

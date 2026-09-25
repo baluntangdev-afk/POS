@@ -34,6 +34,7 @@ class InventoryProductsNotifier extends AsyncNotifier<InventoryProductsData> {
   static final saveAction = Mutation<InventoryProduct>();
   static final toggleAvailabilityAction = Mutation<void>();
   static final importCsvAction = Mutation<ImportProductsCsvResult>();
+  static final exportCsvAction = Mutation<String?>();
 
   @override
   Future<InventoryProductsData> build() async {
@@ -137,6 +138,10 @@ class InventoryProductsNotifier extends AsyncNotifier<InventoryProductsData> {
     final current = state.value;
     await getResults(categoryId: current?.categoryId, search: current?.search);
     return result;
+  }
+
+  Future<Uint8List> exportCsv() {
+    return ref.read(inventoryRepositoryProvider).exportProductsCsv();
   }
 
   Future<void> toggleAvailability(InventoryProduct product) async {

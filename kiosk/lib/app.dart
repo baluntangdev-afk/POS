@@ -1,13 +1,24 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'config/feature_flags.dart';
+import 'core/connectivity/connectivity_status_provider.dart';
+import 'core/transaction_sync/sales_sync_signal.dart';
+import 'features/auth/state/login_state_notifier.dart';
 import 'features/orders/entities/order_event.dart';
 import 'features/orders/entities/orders_feed_state.dart';
+import 'features/orders/state/device_token_status_provider.dart';
+import 'features/orders/state/merchant_device_notifier.dart';
 import 'features/orders/state/orders_feed_notifier.dart';
+import 'features/orders/state/webhook_auth_status_provider.dart';
+import 'features/transaction_sync/state/transaction_sync_progress_notifier.dart';
+import 'features/transaction_sync/state/transaction_sync_ticker_provider.dart';
 import 'navigation/router.dart';
 import 'styles/color_set.dart';
 import 'styles/fallback_theme.dart';
@@ -33,6 +44,42 @@ class App extends ConsumerWidget {
     ref.watch(ordersFeedNotifierProvider);
     ref.listen(ordersFeedNotifierProvider, _onOrdersFeedStateChange);
     ref.listen(ordersFeedNotifierProvider, _onNewOrderCreated);
+    ref.listen(loginStateProvider, (previous, next) {
+      final wasLoggedIn = previous?.value != null;
+      if (wasLoggedIn || next.value == null) return;
+      if (!kSkipDeviceRegistration) {
+        unawaited(ref.read(merchantDeviceNotifierProvider.notifier).refreshStatus());
+      }
+      unawaited(ref.read(transactionSyncProgressProvider.notifier).drainPending());
+    });
+    ref.listen(webhookAuthStatusProvider, (previous, next) {
+      if (next != null && next != previous) _showAuthToast(next.message);
+    });
+    ref.listen(deviceTokenStatusProvider, (previous, next) {
+      if (next != null && next != previous) _showAuthToast(next.message);
+    });
+    // Back online → push anything that piled up, jittered so a fleet of
+    // kiosks regaining the network together doesn't stampede the service.
+    ref.listen(isOnlineProvider, (previous, next) {
+      final wasOnline = previous?.value;
+      final isOnline = next.value ?? false;
+      // Only a real offline → online edge (not the first emission) triggers.
+      if ((wasOnline ?? true) || !isOnline) return;
+      unawaited(_drainPendingSyncJittered(ref));
+    });
+    ref.listen(salesSyncTriggerProvider, (previous, next) {
+      if (next.hasValue) unawaited(ref.read(transactionSyncProgressProvider.notifier).drainPending());
+    });
+    ref.listen(transactionSyncTickerProvider, (previous, next) {
+      if (next.hasValue) unawaited(ref.read(transactionSyncProgressProvider.notifier).drainPending());
+    });
+    ref.listen(transactionSyncProgressProvider, (previous, next) {
+      if (next != null && previous == null) {
+        _showSyncProgressToast();
+      } else if (next == null && previous != null) {
+        scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
+      }
+    });
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: scaffoldMessengerKey,
@@ -124,6 +171,57 @@ class _WindowCloseGuardState extends State<_WindowCloseGuard> with WindowListene
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+Future<void> _drainPendingSyncJittered(WidgetRef ref) async {
+  await Future<void>.delayed(Duration(seconds: Random().nextInt(_syncJitterMaxSeconds)));
+  await ref.read(transactionSyncProgressProvider.notifier).drainPending();
+}
+
+const _syncJitterMaxSeconds = 15;
+
+void _showAuthToast(String message) {
+  scaffoldMessengerKey.currentState
+    ?..clearSnackBars()
+    ..showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: ColorSet.danger,
+        duration: const Duration(seconds: 5),
+      ),
+    );
+}
+
+/// Live batch progress for any transaction-sync run, shown app-wide for as
+/// long as the run lasts (hidden by the listener in [App.build] when it ends).
+void _showSyncProgressToast() {
+  scaffoldMessengerKey.currentState
+    ?..clearSnackBars()
+    ..showSnackBar(
+      SnackBar(
+        duration: const Duration(days: 1),
+        backgroundColor: ColorSet.primary,
+        content: Consumer(
+          builder: (context, ref, _) {
+            final progress = ref.watch(transactionSyncProgressProvider);
+            final label = progress == null
+                ? 'Syncing transactions…'
+                : 'Syncing transactions… batch ${progress.currentBatch} of ${progress.totalBatches}';
+            return Row(
+              children: [
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text(label)),
+              ],
+            );
+          },
+        ),
+      ),
+    );
 }
 
 /// Toasts once per new `order.created` event. The feed prepends new events,

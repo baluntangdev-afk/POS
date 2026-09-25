@@ -70,7 +70,15 @@ export class PosTerminalsService {
       throw new ConflictException('A POS terminal is already assigned to your account.');
     }
 
+    const kioskIdTaken = await this.posTerminalRepository.findOne({
+      where: { kioskId: dto.kioskId },
+    });
+    if (kioskIdTaken) {
+      throw new ConflictException('This Kiosk ID is already in use.');
+    }
+
     const terminal = this.posTerminalRepository.create({
+      kioskId: dto.kioskId,
       legalName: dto.legalName,
       address: dto.address,
       tinNumber: dto.tinNumber,

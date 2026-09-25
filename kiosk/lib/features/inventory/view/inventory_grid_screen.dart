@@ -21,6 +21,7 @@ import '../data/models/category.dart';
 import '../data/models/product.dart';
 import '../state/inventory_categories_notifier.dart';
 import '../state/inventory_products_notifier.dart';
+import 'export_products_csv_button.dart';
 import 'import_products_csv_dialog.dart';
 import 'product_dialogs.dart';
 
@@ -136,6 +137,7 @@ class _FilterBar extends StatelessWidget {
           ),
           if (isAdminOrSupervisor)
             if (isPhone) ...[
+              const ExportProductsCsvButton(compact: true),
               OutlinedButton(
                 onPressed: () => showImportProductsCsvDialog(context),
                 style: OutlinedButton.styleFrom(
@@ -153,6 +155,7 @@ class _FilterBar extends StatelessWidget {
                 child: const Icon(Icons.add, size: 20),
               ),
             ] else ...[
+              const ExportProductsCsvButton(),
               Button.outlined(
                 label: const Text('Import CSV'),
                 leading: const Icon(Icons.upload_file_rounded),

@@ -1,7 +1,13 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreatePosTerminalDto {
+  @ApiProperty({ example: '019fe9c9-93e3-7d53-8f34-c1819751a318' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  kioskId: string;
+
   @ApiProperty({ example: 'ABC Corporation' })
   @IsString()
   @IsNotEmpty()

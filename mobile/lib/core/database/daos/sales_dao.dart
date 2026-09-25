@@ -1415,6 +1415,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
 
     final itemRows = await (select(saleItemsTable).join([
       leftOuterJoin(productsTable, productsTable.id.equalsExp(saleItemsTable.productId)),
+      leftOuterJoin(productGroupsTable, productGroupsTable.id.equalsExp(productsTable.groupId)),
     ])
           ..where(saleItemsTable.saleId.equals(saleId))
           ..orderBy([OrderingTerm.asc(saleItemsTable.id)]))
@@ -1424,11 +1425,13 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     for (final row in itemRows) {
       final item = row.readTable(saleItemsTable);
       final product = row.readTableOrNull(productsTable);
+      final group = row.readTableOrNull(productGroupsTable);
       final mods = await (select(saleItemModifiersTable)
             ..where((t) => t.itemId.equals(item.id)))
           .get();
       items.add({
         'product_name': product?.name ?? 'Unknown Product',
+        'category_name': group?.name,
         'variant_name': item.variantName,
         'qty': item.qty,
         'unit_price': item.unitPrice,
@@ -1480,6 +1483,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
 
     final itemRows = await (select(saleItemsTable).join([
       leftOuterJoin(productsTable, productsTable.id.equalsExp(saleItemsTable.productId)),
+      leftOuterJoin(productGroupsTable, productGroupsTable.id.equalsExp(productsTable.groupId)),
     ])
           ..where(saleItemsTable.saleId.equals(refund.saleId))
           ..orderBy([OrderingTerm.asc(saleItemsTable.id)]))
@@ -1487,11 +1491,14 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
 
     final indexBySaleItemId = <int, int>{};
     final productNameBySaleItemId = <int, String>{};
+    final categoryNameBySaleItemId = <int, String?>{};
     for (var i = 0; i < itemRows.length; i++) {
       final item = itemRows[i].readTable(saleItemsTable);
       final product = itemRows[i].readTableOrNull(productsTable);
+      final group = itemRows[i].readTableOrNull(productGroupsTable);
       indexBySaleItemId[item.id] = i;
       productNameBySaleItemId[item.id] = product?.name ?? 'Unknown Product';
+      categoryNameBySaleItemId[item.id] = group?.name;
     }
 
     final refundItems = await (select(refundItemsTable)
@@ -1512,6 +1519,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
                 'sale_item_index': indexBySaleItemId[ri.saleItemId] ?? 0,
                 'product_name':
                     productNameBySaleItemId[ri.saleItemId] ?? 'Unknown Product',
+                'category_name': categoryNameBySaleItemId[ri.saleItemId],
                 'qty': ri.qty,
                 'amount': ri.amount,
               })

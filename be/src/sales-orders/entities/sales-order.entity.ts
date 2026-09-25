@@ -183,6 +183,14 @@ export class SalesOrder extends UuidIdEntity {
   @Column({ name: 'done_z_reading', type: 'boolean', default: false })
   doneZReading: boolean;
 
+  /** Merchant (POS terminal Kiosk ID) this sale was made under — see migration 1785200000000. */
+  @Column({ type: 'varchar', length: 100, nullable: true, name: 'store_id' })
+  storeId: string | null;
+
+  /** When the external orders service accepted this sale; null = pending sync. */
+  @Column({ type: 'timestamp', nullable: true, name: 'synced_at' })
+  syncedAt: Date | null;
+
   @ManyToOne(() => ZReading, { nullable: true })
   @JoinColumn({ name: 'z_reading_id' })
   zReading: ZReading | null;

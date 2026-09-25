@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -15,8 +14,14 @@ import '../../../utils/physical_keyboard_detector.dart';
 import '../../../utils/windows_touch_keyboard.dart';
 import '../../../widgets/onscreen_keyboard/keyboard_suppress.dart';
 import '../../../widgets/onscreen_keyboard/onscreen_keyboard.dart';
+import '../../../config/feature_flags.dart';
 import '../../menu/state/pos_terminal_notifier.dart';
+import '../../orders/state/merchant_verification_provider.dart';
 import '../../orders/state/orders_feed_notifier.dart';
+import '../../orders/view/device_registration_status_card.dart';
+import '../use_cases/save_pos_terminal.dart';
+import 'kiosk_id_field.dart';
+import 'kiosk_id_prompts.dart';
 
 Future<void> showPosTerminalDetailsDialog(BuildContext context) {
   return showDialog<void>(
@@ -41,6 +46,10 @@ class PosTerminalDetailsDialog extends HookConsumerWidget {
     final isInitialized = useState(false);
 
     final posTerminalAsync = ref.watch(posTerminalProvider);
+    // Whether the current Kiosk ID is a merchant the orders service knows.
+    // Watched (not just read on save) so it's resolved by the time the user
+    // saves, and to gate the device-registration card.
+    final merchantVerified = ref.watch(merchantVerificationProvider).value ?? false;
 
     useEffect(() {
       if (posTerminalAsync case AsyncData(value: final terminal)) {
@@ -59,29 +68,53 @@ class PosTerminalDetailsDialog extends HookConsumerWidget {
       if (!formKey.value.currentState!.validate()) return;
       isSubmitting.value = true;
       errorMessage.value = null;
+      final previousKioskId = switch (ref.read(posTerminalProvider)) {
+        AsyncData(:final value) => value.kioskId,
+        _ => '',
+      };
+      final newKioskId = kioskIdController.text.trim();
+      final kioskIdChanged = previousKioskId.trim() != newKioskId;
+
       try {
-        final api = ref.read(posTerminalsApiProvider);
-        final previousKioskId = switch (ref.read(posTerminalProvider)) {
-          AsyncData(:final value) => value.kioskId,
-          _ => null,
-        };
-        final newKioskId = kioskIdController.text.trim();
-        await api.updateMyTerminal(
-          kioskId: newKioskId,
-          legalName: legalNameController.text.trim(),
-          address: addressController.text.trim(),
-          tinNumber: tinController.text.trim(),
-        );
+        var bypassVerifiedLock = false;
+        if (kioskIdChanged && (ref.read(merchantVerificationProvider).value ?? false)) {
+          final proceed = await confirmReassignVerifiedKioskId(context);
+          if (!proceed) {
+            isSubmitting.value = false;
+            return;
+          }
+          bypassVerifiedLock = true;
+        }
+
+        final offerDataTransfer =
+            kioskIdChanged &&
+            await shouldOfferDataTransfer(ref, previousKioskId: previousKioskId, newKioskId: newKioskId);
+
+        await ref
+            .read(savePosTerminalProvider)
+            .call(
+              previousKioskId: previousKioskId,
+              kioskId: newKioskId,
+              legalName: legalNameController.text.trim(),
+              address: addressController.text.trim(),
+              tinNumber: tinController.text.trim(),
+              bypassVerifiedLock: bypassVerifiedLock,
+            );
         ref.invalidate(posTerminalProvider);
-        if (previousKioskId != null && previousKioskId != newKioskId) {
+        if (kioskIdChanged) {
           // The live orders socket is opened with kioskId as `merchant_id`;
           // force it to rebuild and reconnect with the new id instead of
           // silently staying connected under the old one.
           ref.invalidate(ordersFeedNotifierProvider);
         }
+        if (offerDataTransfer && context.mounted) {
+          await maybeOfferDataTransfer(context, ref, newKioskId: newKioskId);
+        }
         if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
       } catch (e) {
-        errorMessage.value = e.message;
+        // A rejected Kiosk ID (e.g. an unknown merchant) leaves the terminal
+        // untouched — show why it wasn't saved instead of claiming success.
+        errorMessage.value = posTerminalSaveErrorMessage(e);
         isSubmitting.value = false;
       }
     }
@@ -188,13 +221,19 @@ class PosTerminalDetailsDialog extends HookConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _DialogHeader(),
+                  _DialogHeader(
+                    onClose: isSubmitting.value ? null : () => Navigator.of(context, rootNavigator: true).pop(),
+                  ),
                   Padding(
                     padding: const EdgeInsets.all(24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _KioskIdField(controller: kioskIdController),
+                        if (merchantVerified && !kSkipDeviceRegistration) ...[
+                          const DeviceRegistrationStatusCard(),
+                          const SizedBox(height: 16),
+                        ],
+                        KioskIdField(controller: kioskIdController),
                         const SizedBox(height: 16),
                         _PosFormField(
                           label: 'Legal Name',
@@ -724,6 +763,10 @@ class _PaymentMethodFormDialog extends HookWidget {
 // ── Shared widgets ────────────────────────────────────────────────────────────
 
 class _DialogHeader extends StatelessWidget {
+  const _DialogHeader({required this.onClose});
+
+  final VoidCallback? onClose;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -773,103 +816,14 @@ class _DialogHeader extends StatelessWidget {
               ],
             ),
           ),
+          IconButton(
+            onPressed: onClose,
+            tooltip: 'Close',
+            icon: const Icon(Icons.close_rounded, color: POSColors.textSecondary),
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          ),
         ],
       ),
-    );
-  }
-}
-
-class _KioskIdField extends HookWidget {
-  const _KioskIdField({required this.controller});
-
-  final TextEditingController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final justCopied = useState(false);
-
-    useEffect(() {
-      if (!justCopied.value) return null;
-      final timer = Timer(const Duration(seconds: 2), () {
-        justCopied.value = false;
-      });
-      return timer.cancel;
-    }, [justCopied.value]);
-
-    Future<void> onCopy() async {
-      await Clipboard.setData(ClipboardData(text: controller.text));
-      justCopied.value = true;
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Row(
-          children: [
-            Icon(Icons.fingerprint_rounded, size: 14, color: POSColors.textTertiary),
-            SizedBox(width: 6),
-            Text(
-              'Kiosk ID',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: POSColors.textSecondary,
-                letterSpacing: 0.2,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        ValueListenableBuilder<bool>(
-          valueListenable: PhysicalKeyboardDetector.attached,
-          builder: (context, hasPhysicalKeyboard, _) => TextFormField(
-            controller: controller,
-            readOnly: KeyboardSuppress.readOnly(hasPhysicalKeyboard),
-            showCursor: KeyboardSuppress.showCursor(hasPhysicalKeyboard),
-            keyboardType: KeyboardSuppress.type(null, hasPhysicalKeyboard),
-            contextMenuBuilder: KeyboardSuppress.contextMenuBuilder(hasPhysicalKeyboard),
-            onTap: KeyboardSuppress.onTap,
-            onTapOutside: (_) {
-              FocusManager.instance.primaryFocus?.unfocus();
-              OnScreenKeyboard.hide();
-              WindowsTouchKeyboard.dismiss();
-            },
-            style: const TextStyle(fontSize: 12, fontFamily: 'monospace', color: POSColors.textSecondary),
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Kiosk ID is required' : null,
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: POSColors.surfaceSubtle,
-              suffixIcon: IconButton(
-                icon: Icon(
-                  justCopied.value ? Icons.check_rounded : Icons.copy_rounded,
-                  size: 16,
-                  color: justCopied.value ? ColorSet.primary : POSColors.textTertiary,
-                ),
-                tooltip: 'Copy Kiosk ID',
-                onPressed: onCopy,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(POSRadius.md),
-                borderSide: const BorderSide(color: POSColors.borderDefault),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(POSRadius.md),
-                borderSide: const BorderSide(color: POSColors.borderDefault),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(POSRadius.md),
-                borderSide: const BorderSide(color: ColorSet.primary, width: 1.5),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(POSRadius.md),
-                borderSide: const BorderSide(color: ColorSet.danger),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -6,14 +6,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-import '../../../config/environment/app_env.dart';
+import '../../../config/environment/orders_server_url.dart';
 import '../entities/order_event.dart';
 
 final ordersLiveFeedRepositoryProvider = Provider<OrdersLiveFeedRepository>((
   ref,
 ) {
-  final env = ref.watch(appEnvProvider);
-  return OrdersLiveFeedRepositoryImpl(env.ordersLiveFeedWsUrl);
+  return OrdersLiveFeedRepositoryImpl(ref.watch(ordersServerUrlProvider));
 });
 
 class OrdersSocketSession {

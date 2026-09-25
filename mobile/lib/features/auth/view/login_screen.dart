@@ -3,11 +3,13 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../config/feature_flags.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../server_settings/view/orders_server_settings_flow.dart';
 import '../entities/user_entity.dart';
 import '../state/auth_providers.dart';
 import '../state/auth_state.dart';
@@ -112,7 +114,36 @@ class LoginScreen extends HookConsumerWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 40),
+                          SizedBox(
+                            width: 40,
+                            child:
+                                !kSkipDeviceRegistration &&
+                                        selectedUser.value == null
+                                    ? IconButton(
+                                      style: IconButton.styleFrom(
+                                        fixedSize: const Size.square(40),
+                                        padding: EdgeInsets.zero,
+                                        backgroundColor:
+                                            AppColors.surfaceVariant,
+                                        foregroundColor:
+                                            AppColors.textSecondary,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            AppSpacing.radiusMd,
+                                          ),
+                                        ),
+                                      ),
+                                      onPressed:
+                                          () =>
+                                              showOrdersServerSettings(context),
+                                      icon: const Icon(
+                                        Icons.settings_outlined,
+                                        size: 20,
+                                      ),
+                                      tooltip: 'Server settings',
+                                    )
+                                    : null,
+                          ),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.lg),

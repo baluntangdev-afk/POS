@@ -51,6 +51,9 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
   @override
   Future<OrdersFeedState> build() async {
     ref.keepAlive();
+    // Rebuilds (tearing down the old socket via onDispose) when the orders
+    // server address is changed from the login screen's server settings.
+    ref.watch(ordersLiveFeedRepositoryProvider);
     final authed = ref.watch(authNotifierProvider) is AuthAuthenticated;
     // A failed store-info provisioning (e.g. an unrecognized merchant/store ID)
     // leaves storeInfoProvider in an error state whose retained value is still

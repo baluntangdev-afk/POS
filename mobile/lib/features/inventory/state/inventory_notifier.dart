@@ -5,31 +5,35 @@ import '../../../core/database/app_database.dart';
 import '../../../core/providers/database_provider.dart';
 import '../entities/inventory_product.dart';
 
+enum InventoryStatusFilter { all, onMenu, hidden }
+
 class InventoryState {
   final List<InventoryGroup> groups;
   final List<InventoryProduct> products;
   final int? selectedGroupId;
   final String? search;
+  final InventoryStatusFilter statusFilter;
 
   const InventoryState({
     this.groups = const [],
     this.products = const [],
     this.selectedGroupId,
     this.search,
+    this.statusFilter = InventoryStatusFilter.all,
   });
 
+  int get availableCount => products.where((p) => p.isAvailable).length;
+
+  /// Keeps the DAO's sort order — rows must not jump when an item is
+  /// toggled; the status filter is how users isolate hidden items.
   List<InventoryProduct> get filtered {
-    var list = products;
-    if (selectedGroupId != null) {
-      list = list.where((p) => p.groupId == selectedGroupId).toList();
-    }
     final q = search?.trim().toLowerCase();
-    if (q != null && q.isNotEmpty) {
-      list = list.where((p) => p.name.toLowerCase().contains(q)).toList();
-    }
-    list = list.toList()
-      ..sort((a, b) => a.isAvailable == b.isAvailable ? 0 : (a.isAvailable ? -1 : 1));
-    return list;
+    return products.where((p) {
+      if (selectedGroupId != null && p.groupId != selectedGroupId) return false;
+      if (statusFilter == InventoryStatusFilter.onMenu && !p.isAvailable) return false;
+      if (statusFilter == InventoryStatusFilter.hidden && p.isAvailable) return false;
+      return q == null || q.isEmpty || p.name.toLowerCase().contains(q);
+    }).toList();
   }
 
   InventoryState copyWith({
@@ -37,12 +41,14 @@ class InventoryState {
     List<InventoryProduct>? products,
     int? Function()? selectedGroupId,
     String? Function()? search,
+    InventoryStatusFilter? statusFilter,
   }) =>
       InventoryState(
         groups: groups ?? this.groups,
         products: products ?? this.products,
         selectedGroupId: selectedGroupId != null ? selectedGroupId() : this.selectedGroupId,
         search: search != null ? search() : this.search,
+        statusFilter: statusFilter ?? this.statusFilter,
       );
 }
 
@@ -90,15 +96,74 @@ class InventoryNotifier extends AsyncNotifier<InventoryState> {
     state = state.whenData((s) => s.copyWith(search: () => query?.isEmpty == true ? null : query));
   }
 
-  Future<void> toggleAvailability(InventoryProduct product) async {
+  void setStatusFilter(InventoryStatusFilter filter) {
+    state = state.whenData((s) => s.copyWith(statusFilter: filter));
+  }
+
+  Future<void> toggleAvailability(InventoryProduct product) =>
+      setAvailability([product.id], isAvailable: !product.isAvailable);
+
+  /// Applied optimistically so the switch flips instantly and the list keeps
+  /// its scroll position; a failed write reloads the true DB state.
+  Future<void> setAvailability(List<int> productIds, {required bool isAvailable}) async {
+    if (productIds.isEmpty) return;
+    final ids = productIds.toSet();
+    state = state.whenData((s) => s.copyWith(
+          products: [
+            for (final p in s.products)
+              ids.contains(p.id) ? p.copyWith(isAvailable: isAvailable) : p,
+          ],
+        ));
+    try {
+      final db = ref.read(databaseProvider);
+      await db.productsDao.setProductsAvailability(ids.toList(), isAvailable: isAvailable);
+    } catch (_) {
+      await refresh();
+      rethrow;
+    }
+  }
+
+  /// Moves products to another category. Refuses the whole move when any
+  /// name would collide inside the target category (names are unique per
+  /// category — see [createProduct]).
+  Future<void> moveToCategory(List<int> productIds, int groupId) async {
+    final current = state.value;
+    if (current == null || productIds.isEmpty) return;
+    final ids = productIds.toSet();
+    final moving = current.products.where((p) => ids.contains(p.id) && p.groupId != groupId);
+
     final db = ref.read(databaseProvider);
-    await db.productsDao.toggleProductAvailability(product.id, isAvailable: !product.isAvailable);
+    final seen = <String>{};
+    final conflicts = <String>[];
+    for (final p in moving) {
+      final key = p.name.toLowerCase();
+      if (!seen.add(key) || await db.productsDao.isProductNameTaken(groupId, p.name)) {
+        conflicts.add(p.name);
+      }
+    }
+    if (conflicts.isNotEmpty) {
+      throw StateError('Target category already has: ${conflicts.join(', ')}');
+    }
+
+    await db.productsDao.moveProductsToGroup(moving.map((p) => p.id).toList(), groupId);
     await refresh();
   }
 
+  /// Reloads from the DB without flashing a loading state, keeping the
+  /// user's search / category / status filters.
   Future<void> refresh() async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(_load);
+    final prev = state.value;
+    if (prev == null) state = const AsyncValue.loading();
+    final next = await AsyncValue.guard(_load);
+    state = next.whenData((s) {
+      if (prev == null) return s;
+      final groupStillExists = s.groups.any((g) => g.id == prev.selectedGroupId);
+      return s.copyWith(
+        selectedGroupId: () => groupStillExists ? prev.selectedGroupId : null,
+        search: () => prev.search,
+        statusFilter: prev.statusFilter,
+      );
+    });
   }
 
   /// Creates the product row only (no variants) and returns its new id — the

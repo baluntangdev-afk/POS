@@ -10,10 +10,6 @@ final class Env implements AppEnv {
 
   @EnviedField()
   @override
-  final String ordersLiveFeedWsUrl = _Env.ordersLiveFeedWsUrl;
-
-  @EnviedField()
-  @override
   final String ordersEventsApiBaseUrl = _Env.ordersEventsApiBaseUrl;
 
   @EnviedField()
@@ -35,4 +31,11 @@ final class Env implements AppEnv {
   @EnviedField(defaultValue: '', obfuscate: true)
   @override
   final String senderAppPassword = _Env.senderAppPassword;
+
+  /// Gates the orders-server settings dialog on the login screen (only shown
+  /// when `SKIP_DEVICE_REGISTRATION` is off). Empty = the dialog can't be
+  /// unlocked.
+  @EnviedField(defaultValue: '', obfuscate: true)
+  @override
+  final String settingsPassword = _Env.settingsPassword;
 }

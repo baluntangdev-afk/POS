@@ -7,6 +7,7 @@ import 'package:media_store_plus/media_store_plus.dart';
 
 import 'config/environment/app_env.dart';
 import 'config/environment/env.dart';
+import 'config/environment/orders_server_url.dart';
 import 'config/feature_flags.dart';
 import 'core/connectivity/connectivity_status_provider.dart';
 import 'core/database/app_database.dart';
@@ -47,6 +48,7 @@ void main() async {
   final db = AppDatabase();
   await AdminSeeder(db).seed();
   final appClock = await AppClock.load();
+  final savedOrdersServerUrl = await loadSavedOrdersServerUrl();
 
   await schedulePeriodicBackup();
   await schedulePeriodicTransactionSync();
@@ -60,6 +62,7 @@ void main() async {
       overrides: [
         databaseProvider.overrideWithValue(db),
         appEnvProvider.overrideWithValue(Env()),
+        savedOrdersServerUrlProvider.overrideWithValue(savedOrdersServerUrl),
         orderNotificationsServiceProvider.overrideWithValue(orderNotifications),
         appClockProvider.overrideWithValue(appClock),
       ],

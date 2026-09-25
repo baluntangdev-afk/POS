@@ -15,9 +15,6 @@ class _FakeAppEnv implements AppEnv {
   final String webhookSecret = 'shh';
 
   @override
-  final String ordersLiveFeedWsUrl = '';
-
-  @override
   final String ordersEventsApiBaseUrl = '';
 
   @override
@@ -28,6 +25,9 @@ class _FakeAppEnv implements AppEnv {
 
   @override
   final String senderAppPassword = '';
+
+  @override
+  final String settingsPassword = '';
 }
 
 class _FakeHttpClientAdapter implements HttpClientAdapter {

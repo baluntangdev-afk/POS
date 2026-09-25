@@ -52,14 +52,59 @@ if (-not (Test-Path "$BeDir\.env.prod")) {
     Write-Fail ".env.prod not found at be\.env.prod. Copy .env.example and fill in values."
     exit 1
 }
+
+function Get-EnvKeys([string]$path) {
+    Get-Content $path | ForEach-Object {
+        if ($_ -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=') { $Matches[1] }
+    }
+}
+function Get-EnvValue([string]$path, [string]$key) {
+    $line = Get-Content $path | Where-Object { $_ -match "^\s*$key\s*=" } | Select-Object -First 1
+    if ($line) { ($line -split '=', 2)[1].Trim() } else { "" }
+}
+
+# .env.prod must declare every key in .env.example (values may be blank) --
+# the installer never overwrites an installed .env, so a key forgotten here
+# silently falls back to code defaults on every kiosk.
+$missingBeKeys = Get-EnvKeys "$BeDir\.env.example" |
+                 Where-Object { (Get-EnvKeys "$BeDir\.env.prod") -notcontains $_ }
+if ($missingBeKeys) {
+    Write-Fail "be\.env.prod is missing keys from .env.example: $($missingBeKeys -join ', ')"
+    exit 1
+}
+
+# envied compiles kiosk\.env into pos_app.exe at build time.
+if (-not (Test-Path "$KioskDir\.env")) {
+    Write-Fail "kiosk\.env not found. Copy kiosk\.env.sample and fill in values."
+    exit 1
+}
+foreach ($key in @("BACKEND_API_BASE_URL", "SECURE_STORAGE_KEY")) {
+    if (-not (Get-EnvValue "$KioskDir\.env" $key)) {
+        Write-Fail "kiosk\.env has no value for $key."
+        exit 1
+    }
+}
+
+# Use the fvm-pinned Flutter SDK (kiosk\.fvmrc) when fvm is installed.
+$UseFvm = [bool](Get-Command fvm -ErrorAction SilentlyContinue)
+function Invoke-Flutter { if ($UseFvm) { & fvm flutter @args } else { & flutter @args } }
+function Invoke-Dart    { if ($UseFvm) { & fvm dart @args }    else { & dart @args } }
+if ($UseFvm) {
+    Write-Ok "Using fvm-pinned Flutter SDK."
+} else {
+    Write-Host "    [WARN] fvm not found - using 'flutter' from PATH." -ForegroundColor Yellow
+}
 Write-Ok "All prerequisites present."
 
 # ── Optional version bump ─────────────────────────────────────────────────────
 if ($Version -ne "") {
     Write-Step "Bumping version to $Version..."
-    $iss = Get-Content $IssPath -Raw
+    # Read/write explicitly as UTF-8: Windows PowerShell's Get-Content decodes a
+    # BOM-less file as ANSI, and writing that back re-encodes every non-ASCII char.
+    $utf8Bom = New-Object System.Text.UTF8Encoding $true
+    $iss = [System.IO.File]::ReadAllText($IssPath, $utf8Bom)
     $iss = $iss -replace '(#define MyAppVersion\s+")[^"]+(")', "`${1}$Version`$2"
-    Set-Content $IssPath $iss -Encoding UTF8
+    [System.IO.File]::WriteAllText($IssPath, $iss, $utf8Bom)
     Write-Ok "installer.iss updated to version $Version."
 }
 
@@ -71,10 +116,10 @@ Write-Host "`nBuilding version: $currentVersion ($Mode, SKIP_DEVICE_REGISTRATION
 # ── Flutter pre-build setup (must run before jobs) ───────────────────────────
 Write-Step "Preparing Flutter environment..."
 Push-Location $KioskDir
-flutter config --enable-native-assets | Out-Null
-flutter pub get
+Invoke-Flutter config --enable-native-assets | Out-Null
+Invoke-Flutter pub get
 if ($LASTEXITCODE -ne 0) { Write-Fail "flutter pub get failed."; exit 1 }
-dart run build_runner build --delete-conflicting-outputs
+Invoke-Dart run build_runner build --delete-conflicting-outputs
 if ($LASTEXITCODE -ne 0) { Write-Fail "build_runner failed."; exit 1 }
 Pop-Location
 Write-Ok "Flutter code generation done."
@@ -82,17 +127,26 @@ Write-Ok "Flutter code generation done."
 # ── Build backend + Flutter in parallel ──────────────────────────────────────
 Write-Step "Building backend (npm run build:sea) and Flutter app in parallel..."
 
+# A job whose native command exits non-zero still ends as "Completed", so each
+# job throws on a non-zero $LASTEXITCODE to surface as "Failed" instead.
 $beJob = Start-Job -Name "Backend" -ScriptBlock {
     param($dir)
     Set-Location $dir
     npm run build:sea 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "npm run build:sea exited with code $LASTEXITCODE" }
 } -ArgumentList $BeDir
 
 $flutterJob = Start-Job -Name "Flutter" -ScriptBlock {
-    param($dir, $skipDeviceRegistration)
+    param($dir, $skipDeviceRegistration, $useFvm)
     Set-Location $dir
-    flutter build windows "--dart-define=SKIP_DEVICE_REGISTRATION=$skipDeviceRegistration" 2>&1
-} -ArgumentList $KioskDir, $skipDeviceRegistration
+    $defineArg = "--dart-define=SKIP_DEVICE_REGISTRATION=$skipDeviceRegistration"
+    if ($useFvm) {
+        fvm flutter build windows --release $defineArg 2>&1
+    } else {
+        flutter build windows --release $defineArg 2>&1
+    }
+    if ($LASTEXITCODE -ne 0) { throw "flutter build windows exited with code $LASTEXITCODE" }
+} -ArgumentList $KioskDir, $skipDeviceRegistration, $UseFvm
 
 # Stream progress while waiting
 $done = @{}
@@ -105,7 +159,7 @@ while ($done.Count -lt 2) {
                 Write-Ok "$($job.Name) build finished."
             } else {
                 Write-Fail "$($job.Name) build failed."
-                Receive-Job $job | Write-Host
+                Receive-Job $job -ErrorAction Continue 2>&1 | Write-Host
                 Remove-Job $beJob, $flutterJob -Force -ErrorAction SilentlyContinue
                 exit 1
             }
@@ -113,21 +167,7 @@ while ($done.Count -lt 2) {
     }
 }
 
-# Collect output — surface any errors
-$beOut     = Receive-Job $beJob
-$flutterOut = Receive-Job $flutterJob
 Remove-Job $beJob, $flutterJob
-
-if ($beOut -match "error|Error|FAIL") {
-    Write-Fail "Backend build reported errors:"
-    $beOut | Where-Object { $_ -match "error|Error|FAIL" } | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
-    exit 1
-}
-if ($flutterOut -match "Error|FAIL" -and $flutterOut -notmatch "Built build\\windows") {
-    Write-Fail "Flutter build reported errors:"
-    $flutterOut | Where-Object { $_ -match "Error|FAIL" } | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
-    exit 1
-}
 
 # ── Verify build outputs exist ────────────────────────────────────────────────
 Write-Step "Verifying build outputs..."
@@ -165,6 +205,10 @@ if ($LASTEXITCODE -ne 0) {
 # ── Done ──────────────────────────────────────────────────────────────────────
 $outFile = Get-ChildItem $OutputDir -Filter "POSKiosk-Setup-*-$Mode.exe" |
            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if (-not $outFile) {
+    Write-Fail "ISCC succeeded but no POSKiosk-Setup-*-$Mode.exe was found in $OutputDir."
+    exit 1
+}
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green

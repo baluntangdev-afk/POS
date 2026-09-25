@@ -35,10 +35,6 @@ class TransactionsScreen extends HookConsumerWidget {
     final isSyncing = syncProgress != null;
     final isUnsyncing = useState(false);
 
-    // Best-effort catch-up the moment the screen is visited, so anything
-    // missed by the reconnect-edge/WorkManager/post-write triggers still
-    // shows up as synced without the user having to tap "Sync All". Silent
-    // on failure — same fallback pattern as those other triggers.
     useEffect(() {
       final storeId = ref.read(storeInfoProvider).value?.storeId ?? '';
       if (storeId.isNotEmpty) {

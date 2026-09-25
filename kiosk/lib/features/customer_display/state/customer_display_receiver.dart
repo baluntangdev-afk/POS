@@ -7,6 +7,7 @@ import 'package:window_manager/window_manager.dart';
 import '../entities/customer_display_catalog.dart';
 import '../entities/customer_display_snapshot.dart';
 import 'customer_display_log.dart';
+import 'customer_display_placement.dart';
 
 final customerDisplaySnapshotProvider =
     NotifierProvider<CustomerDisplaySnapshotNotifier, CustomerDisplaySnapshot>(
@@ -42,10 +43,12 @@ class CustomerDisplayCatalogNotifier extends Notifier<CustomerDisplayCatalog?> {
 /// [CustomerDisplayHost] (running in the cashier engine) and writes them into
 /// [customerDisplaySnapshotProvider]. A thank-you snapshot is shown for 5
 /// seconds and then this reverts to the last known idle snapshot locally,
-/// without waiting for another push from the host. Also handles
-/// `window_close_request`, sent by the host when the monitor count drops
-/// back to 1 — this window closes itself via `window_manager` (which is
-/// engine-scoped, so this call only ever affects this window).
+/// without waiting for another push from the host. Also handles `hide` (sent
+/// when the monitor count drops back to 1) and `reshow` (sent when a second
+/// monitor returns). The window is never destroyed from here: on Windows,
+/// `windowManager.destroy()` is `PostQuitMessage(0)`, which quits the whole
+/// process's message loop — cashier window included — and crashes
+/// `pos_app.exe` with an access violation while this engine is torn down.
 class CustomerDisplayReceiver {
   CustomerDisplayReceiver(this._container);
 
@@ -73,8 +76,12 @@ class CustomerDisplayReceiver {
           } catch (e, s) {
             unawaited(_log.write('recv: catalogSync DECODE FAILED: $e\n$s'));
           }
-        case 'window_close_request':
-          await windowManager.destroy();
+        case 'hide':
+          unawaited(_log.write('recv: hide'));
+          await windowManager.hide();
+        case 'reshow':
+          unawaited(_log.write('recv: reshow'));
+          await placeOnCustomerMonitor(_log);
       }
       return null;
     });

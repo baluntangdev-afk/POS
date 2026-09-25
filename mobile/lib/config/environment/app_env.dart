@@ -1,13 +1,13 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 abstract class AppEnv {
-  String get ordersLiveFeedWsUrl;
   String get ordersEventsApiBaseUrl;
   String get clientId;
   String get webhookSecret;
   String get csvExportPassword;
   String get senderEmail;
   String get senderAppPassword;
+  String get settingsPassword;
 }
 
 /// Overridden in main() with the concrete env (Env, backed by .env via

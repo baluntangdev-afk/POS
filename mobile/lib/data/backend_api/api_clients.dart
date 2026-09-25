@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../config/environment/app_env.dart';
+import '../../config/environment/orders_server_url.dart';
 import '../../core/services/clock/app_clock.dart';
 import 'webhook_token_interceptor.dart';
 
@@ -60,17 +60,17 @@ InterceptorsWrapper _serverTimeInterceptor(AppClock appClock) => InterceptorsWra
 );
 
 final dpoSocketApiClientProvider = Provider<Dio>((ref) {
-  final env = ref.watch(appEnvProvider);
+  final baseUrl = ref.watch(ordersServerUrlProvider);
   final appClock = ref.watch(appClockProvider);
-  return Dio(BaseOptions(baseUrl: env.ordersEventsApiBaseUrl))
+  return Dio(BaseOptions(baseUrl: baseUrl))
     ..interceptors.add(ref.watch(webhookTokenInterceptorProvider))
     ..interceptors.add(_serverTimeInterceptor(appClock))
     ..interceptors.add(_apiLogInterceptor());
 });
 
 final ordersAuthRefreshApiClientProvider = Provider<Dio>((ref) {
-  final env = ref.watch(appEnvProvider);
-  return Dio(BaseOptions(baseUrl: env.ordersEventsApiBaseUrl))
+  final baseUrl = ref.watch(ordersServerUrlProvider);
+  return Dio(BaseOptions(baseUrl: baseUrl))
     ..interceptors.add(_apiLogInterceptor());
 });
 
@@ -78,7 +78,7 @@ final ordersAuthRefreshApiClientProvider = Provider<Dio>((ref) {
 /// that endpoint authenticates from its request body and the interceptor's
 /// 401 → `/auth/token` refresh-and-retry would be wrong here.
 final deviceTokenApiClientProvider = Provider<Dio>((ref) {
-  final env = ref.watch(appEnvProvider);
-  return Dio(BaseOptions(baseUrl: env.ordersEventsApiBaseUrl))
+  final baseUrl = ref.watch(ordersServerUrlProvider);
+  return Dio(BaseOptions(baseUrl: baseUrl))
     ..interceptors.add(_apiLogInterceptor());
 });

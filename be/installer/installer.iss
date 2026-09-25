@@ -1,8 +1,13 @@
-﻿; POS Kiosk â€" Inno Setup Installer Script
+﻿; POS Kiosk — Inno Setup Installer Script
 ; Bundles: Flutter kiosk app + NestJS backend (POSBackend.exe) + Portable PostgreSQL 16
 ;
-; â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-; BEFORE COMPILING â€" complete all steps in this order:
+; ═══════════════════════════════════════════════════════════════════════
+; BEFORE COMPILING — the normal path is the one-click builder from the repo root,
+; which does steps 1, 2 and 5 below (and checks the rest):
+;      .\build-installer.bat
+;      .\build-installer.ps1 -Version 1.1.0 -Mode Offline
+;
+; Manual steps, in this order:
 ;
 ;   0. Verify migrations and seeders are up to date  (cd be)
 ;      npm run migration:sync-index       <- sync migrations-index.ts with all migration files
@@ -18,23 +23,24 @@
 ;
 ;   2. Build Flutter Windows app
 ;      cd kiosk
-;      flutter build windows --release
+;      flutter build windows --release --dart-define=SKIP_DEVICE_REGISTRATION=false
 ;                                         -> kiosk\build\windows\x64\runner\Release\
+;      (true for the Offline flavor; kiosk\.env is compiled into the binary)
 ;
 ;   3. NSSM is at C:\nssm\nssm.exe (already in place)
 ;
 ;   4. Portable PostgreSQL 16 binaries are at C:\pgsql\
-;      (already downloaded â€" contains bin\, lib\, share\, etc.)
+;      (already downloaded — contains bin\, lib\, share\, etc.)
 ;
 ;   5. Install Inno Setup 6 and run:
-;      ISCC.exe be\installer\installer.iss
-;      Output: be\installer\output\POSKiosk-Setup-1.0.0.exe
+;      ISCC.exe /DMyAppFlavor=Online be\installer\installer.iss
+;      Output: be\installer\output\POSKiosk-Setup-<version>-<Online|Offline>.exe
 ;
-; â"€â"€ What the installer does â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+; ── What the installer does ────────────────────────────────────────────
 ;   1. Extracts Flutter app, backend exe, PostgreSQL binaries, NSSM
 ;   2. Initializes PostgreSQL data at C:\posdata (no spaces = no quoting issues)
 ;   3. Registers PostgreSQL as a native Windows service via pg_ctl
-;      (runs as NT AUTHORITY\NetworkService â€" PostgreSQL rejects admin accounts)
+;      (runs as NT AUTHORITY\NetworkService — PostgreSQL rejects admin accounts)
 ;   4. Waits for PostgreSQL to be ready, then creates pos_db
 ;   5. Runs TypeORM migrations
 ;   6. Seeds initial data (admin user + reference data; idempotent, always runs)
@@ -43,13 +49,13 @@
 ;      {app}\Backups (see backup-database.ps1 / register-backup-task.ps1)
 ;   9. Creates desktop shortcut and offers to launch the kiosk
 ;
-; â"€â"€ Install location â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
-;   App : C:\POSKiosk      (no spaces â€" required for pg_ctl service registration)
-;   Data: C:\posdata        (no spaces â€" avoids postgres argument-splitting bug)
+; ── Install location ───────────────────────────────────────────────────
+;   App : C:\POSKiosk      (no spaces — required for pg_ctl service registration)
+;   Data: C:\posdata        (no spaces — avoids postgres argument-splitting bug)
 ;   Logs: C:\POSKiosk\logs\ (setup-postgres-install.log, run-migrations-install.log,
 ;                             install-backend-service-install.log,
 ;                             backend-output.log, backend-error.log)
-; â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+; ═══════════════════════════════════════════════════════════════════════
 
 #define MyAppName    "POS Kiosk"
 #define MyAppVersion "4.0.0"
@@ -69,7 +75,7 @@ AppId={{B2C3D4E5-F6A7-4B5C-9D0E-1F2A3B4C5D6E}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-; No spaces in install path â€" required so pg_ctl can register postgres.exe as a service
+; No spaces in install path — required so pg_ctl can register postgres.exe as a service
 DefaultDirName=C:\POSKiosk
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
@@ -104,33 +110,36 @@ Name: "{app}\Backups\config"
 Name: "{app}\History"
 
 [Files]
-; â"€â"€ Flutter kiosk app â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+; ── Flutter kiosk app ──────────────────────────────────────────────────
 Source: "..\..\kiosk\build\windows\x64\runner\Release\{#KioskExe}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\kiosk\build\windows\x64\runner\Release\*.dll";        DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\kiosk\build\windows\x64\runner\Release\data\*";       DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs createallsubdirs
 
-; â"€â"€ NestJS backend â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+; ── NestJS backend ─────────────────────────────────────────────────────
 Source: "..\{#BackendExe}"; DestDir: "{app}\backend"; Flags: ignoreversion
-; .env.prod copied as .env â€" onlyifdoesntexist preserves custom config on upgrades
+; .env.prod copied as .env — onlyifdoesntexist preserves custom config on upgrades
 Source: "..\.env.prod"; DestDir: "{app}\backend"; DestName: ".env"; Flags: ignoreversion onlyifdoesntexist
+; On upgrades the existing .env is kept, so append any keys added to .env.prod
+; since then (existing values are never touched). Must stay after the entry above.
+Source: "..\.env.prod"; DestDir: "{tmp}"; DestName: "env.prod.template"; Flags: ignoreversion deleteafterinstall; AfterInstall: MergeMissingEnvKeys
 ; Static assets (product images) served by the backend at /static/*. AppDirectory
 ; for POSBackendService is {app}\backend, so process.cwd()\public resolves here.
 Source: "..\public\*"; DestDir: "{app}\backend\public"; Flags: ignoreversion recursesubdirs createallsubdirs
 
-; â"€â"€ Visual C++ 2015-2022 Redistributable (x64) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+; ── Visual C++ 2015-2022 Redistributable (x64) ────────────────────────
 Source: "redist\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: ignoreversion deleteafterinstall
 
-; â"€â"€ NSSM (service manager for the NestJS backend) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+; ── NSSM (service manager for the NestJS backend) ─────────────────────
 Source: "C:\nssm\nssm.exe"; DestDir: "{app}\nssm"; Flags: ignoreversion
 
-; â"€â"€ Portable PostgreSQL 16 (bin/lib/share only â€" no pgAdmin) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+; ── Portable PostgreSQL 16 (bin/lib/share only — no pgAdmin) ──────────
 ; pg_ctl registers postgres.exe as a Windows service; the install path must
 ; have no spaces or the SCM binary-path entry will be malformed.
 Source: "C:\pgsql\bin\*";   DestDir: "{app}\pgsql\bin";   Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "C:\pgsql\lib\*";   DestDir: "{app}\pgsql\lib";   Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "C:\pgsql\share\*"; DestDir: "{app}\pgsql\share"; Flags: ignoreversion recursesubdirs createallsubdirs
 
-; â"€â"€ Installer helper scripts â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+; ── Installer helper scripts ───────────────────────────────────────────
 Source: "scripts\setup-postgres.ps1";          DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\setup-postgres.bat";          DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\run-migrations.ps1";          DestDir: "{app}\scripts"; Flags: ignoreversion
@@ -271,6 +280,107 @@ Type: filesandordirs; Name: "{app}\data"
 [Code]
 var
   KioskNoPage: TInputQueryWizardPage;
+  KioskNoPrefilled: Boolean;
+
+// Reads "kiosk.no=<n>" from an existing {app}\settings.txt (upgrade/reinstall).
+// Returns '' on a fresh install. Only valid once {app} is known (after wpSelectDir).
+function ReadExistingKioskNo(): String;
+var
+  Lines: TArrayOfString;
+  i: Integer;
+  Line: String;
+begin
+  Result := '';
+  if not LoadStringsFromFile(ExpandConstant('{app}\settings.txt'), Lines) then Exit;
+  for i := 0 to GetArrayLength(Lines) - 1 do
+  begin
+    Line := Trim(Lines[i]);
+    if Pos('kiosk.no=', Lowercase(Line)) = 1 then
+    begin
+      Result := Trim(Copy(Line, Length('kiosk.no=') + 1, Length(Line)));
+      Exit;
+    end;
+  end;
+end;
+
+// Pre-fills the kiosk number with the machine's current one so clicking through
+// an upgrade can't silently renumber the terminal (order numbers embed it).
+procedure PrefillKioskNo();
+var
+  Existing: String;
+begin
+  if KioskNoPrefilled then Exit;
+  KioskNoPrefilled := True;
+  Existing := ReadExistingKioskNo();
+  if Existing <> '' then
+    KioskNoPage.Values[0] := Existing;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if CurPageID = KioskNoPage.ID then
+    PrefillKioskNo();
+end;
+
+// Returns the KEY part of a "KEY=value" line, or '' for comments/blank lines.
+function EnvLineKey(Line: String): String;
+var
+  EqPos: Integer;
+begin
+  Result := '';
+  Line := Trim(Line);
+  if (Line = '') or (Copy(Line, 1, 1) = '#') then Exit;
+  EqPos := Pos('=', Line);
+  if EqPos > 1 then
+    Result := Trim(Copy(Line, 1, EqPos - 1));
+end;
+
+// AfterInstall for the env.prod.template entry: appends every key present in
+// the bundled .env.prod but missing from the installed {app}\backend\.env.
+// Existing keys/values are left exactly as they are.
+procedure MergeMissingEnvKeys();
+var
+  EnvPath: String;
+  Template, Existing, ToAppend: TArrayOfString;
+  i, j, Count: Integer;
+  Key: String;
+  Found: Boolean;
+begin
+  EnvPath := ExpandConstant('{app}\backend\.env');
+  if not LoadStringsFromFile(ExpandConstant('{tmp}\env.prod.template'), Template) then Exit;
+  if not LoadStringsFromFile(EnvPath, Existing) then Exit;
+
+  Count := 0;
+  for i := 0 to GetArrayLength(Template) - 1 do
+  begin
+    Key := EnvLineKey(Template[i]);
+    if Key = '' then Continue;
+    Found := False;
+    for j := 0 to GetArrayLength(Existing) - 1 do
+      if CompareText(EnvLineKey(Existing[j]), Key) = 0 then
+      begin
+        Found := True;
+        Break;
+      end;
+    if not Found then
+    begin
+      if Count = 0 then
+      begin
+        // Leading blank line guards against an existing file with no trailing newline.
+        SetArrayLength(ToAppend, 2);
+        ToAppend[0] := '';
+        ToAppend[1] := '# Added by installer {#MyAppVersion}';
+        Count := 2;
+      end;
+      SetArrayLength(ToAppend, Count + 1);
+      ToAppend[Count] := Trim(Template[i]);
+      Count := Count + 1;
+    end;
+  end;
+
+  if Count > 0 then
+    SaveStringsToFile(EnvPath, ToAppend, True);
+end;
 
 // Guard for the optional seeding step — skips silently if the exe wasn't extracted.
 function BackendExeExists(): Boolean;
@@ -320,7 +430,7 @@ begin
     wpSelectTasks,
     'Kiosk Configuration',
     'Identify this terminal',
-    'Enter a unique kiosk number (1â€"999) for this machine. ' +
+    'Enter a unique kiosk number (1-999) for this machine. ' +
     'It appears in all sales order numbers generated here, e.g. SO-001-2026-0001.'
   );
   KioskNoPage.Add('Kiosk Number:', False);
@@ -367,6 +477,8 @@ var
   SettingsPath: String;
 begin
   if CurStep = ssPostInstall then begin
+    // Silent installs never show the kiosk page — keep the existing number then.
+    PrefillKioskNo();
     SettingsPath := ExpandConstant('{app}\settings.txt');
     SaveStringToFile(SettingsPath, 'kiosk.no=' + Trim(KioskNoPage.Values[0]), False);
 

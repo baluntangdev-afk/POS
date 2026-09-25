@@ -113,6 +113,14 @@ class ProductsDao extends DatabaseAccessor<AppDatabase> with _$ProductsDaoMixin 
       (update(productsTable)..where((t) => t.id.equals(productId)))
           .write(ProductsTableCompanion(isAvailable: Value(isAvailable)));
 
+  Future<int> setProductsAvailability(List<int> productIds, {required bool isAvailable}) =>
+      (update(productsTable)..where((t) => t.id.isIn(productIds)))
+          .write(ProductsTableCompanion(isAvailable: Value(isAvailable)));
+
+  Future<int> moveProductsToGroup(List<int> productIds, int groupId) =>
+      (update(productsTable)..where((t) => t.id.isIn(productIds)))
+          .write(ProductsTableCompanion(groupId: Value(groupId)));
+
   /// True when `productId` appears in any sale — deleting it would corrupt
   /// transaction history, so callers must keep the row (deactivated) instead.
   Future<bool> productHasSaleHistory(int productId) async {

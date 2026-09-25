@@ -42,6 +42,9 @@ class CustomerDisplayHost with ScreenListener {
   Timer? _catalogTimer;
   CustomerDisplayCatalog? _lastCatalog;
   bool _disposed = false;
+  bool _hidden = false;
+  bool _syncing = false;
+  bool _syncPending = false;
 
   /// Starts the host for [container], the cashier's own `ProviderContainer`.
   /// No-op (returns null) on anything other than Windows.
@@ -122,6 +125,7 @@ class CustomerDisplayHost with ScreenListener {
       final stillAlive = all.any((c) => c.windowId == controller.windowId);
       if (!stillAlive) {
         _controller = null;
+        _hidden = false;
         await _syncWindowToDisplays();
       }
     } catch (_) {
@@ -130,7 +134,27 @@ class CustomerDisplayHost with ScreenListener {
     }
   }
 
+  /// Serializes [_doSyncWindowToDisplays]. Monitor sleep/wake and hot-plug
+  /// fire screen events in bursts; running syncs concurrently could create
+  /// two sub-windows or hide/show out of order. Calls arriving while one is
+  /// in flight collapse into a single follow-up run.
   Future<void> _syncWindowToDisplays() async {
+    if (_syncing) {
+      _syncPending = true;
+      return;
+    }
+    _syncing = true;
+    try {
+      do {
+        _syncPending = false;
+        await _doSyncWindowToDisplays();
+      } while (_syncPending && !_disposed);
+    } finally {
+      _syncing = false;
+    }
+  }
+
+  Future<void> _doSyncWindowToDisplays() async {
     if (_disposed) return;
 
     List<Display> displays;
@@ -143,20 +167,34 @@ class CustomerDisplayHost with ScreenListener {
 
     unawaited(_log.write('sync: ${displays.length} display(s) found'));
 
+    // The sub-window is never closed once created — only hidden and re-shown.
+    // Destroying it from its own engine quits the whole process (see
+    // CustomerDisplayReceiver), and create/destroy churn on every monitor
+    // sleep is exactly where desktop_multi_window is fragile.
+    final existing = _controller;
     if (displays.length < 2) {
-      final stale = _controller;
-      if (stale != null) {
-        _controller = null;
+      if (existing != null && !_hidden) {
+        _hidden = true;
         try {
-          await stale.invokeMethod('window_close_request');
-        } catch (_) {
-          // Already gone or unreachable — nothing further to do.
+          await existing.invokeMethod('hide');
+        } catch (e) {
+          unawaited(_log.write('sync: hide FAILED: $e'));
         }
       }
       return;
     }
 
-    if (_controller != null) return;
+    if (existing != null) {
+      if (_hidden) {
+        _hidden = false;
+        try {
+          await existing.invokeMethod('reshow');
+        } catch (e) {
+          unawaited(_log.write('sync: reshow FAILED: $e'));
+        }
+      }
+      return;
+    }
 
     try {
       unawaited(_log.write('sync: creating customer-display sub-window'));

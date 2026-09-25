@@ -96,6 +96,19 @@ class _CashPaymentContent extends HookWidget {
     useListenable(cashController);
 
     final cashReceived = Decimal.tryParse(cashController.text.replaceAll(',', '')) ?? Decimal.zero;
+    final isExact = cashReceived == collectibleAmount;
+
+    void setCashReceived(Decimal amount) {
+      final newText = amount.toString();
+      cashController.value = cashInputFormatter.formatEditUpdate(
+        cashController.value,
+        TextEditingValue(
+          text: newText,
+          selection: TextSelection.collapsed(offset: newText.length),
+        ),
+      );
+    }
+
     final bottomInset = Platform.isAndroid ? MediaQuery.of(context).viewPadding.bottom : 0.0;
 
     return Form(
@@ -218,6 +231,31 @@ class _CashPaymentContent extends HookWidget {
                   ),
                 ],
               ),
+              Material(
+                color: isExact ? ColorSet.primary : ColorSet.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(POSRadius.md),
+                child: InkWell(
+                  onTap: () => setCashReceived(collectibleAmount),
+                  borderRadius: BorderRadius.circular(POSRadius.md),
+                  child: AnimatedContainer(
+                    duration: POSAnimation.fast,
+                    height: context.responsive.value(kiosk: 64, tablet: 52, phone: 48),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: ColorSet.primary.withValues(alpha: 0.4)),
+                      borderRadius: BorderRadius.circular(POSRadius.md),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Exact  ·  ${collectibleAmount.withCommas}',
+                      style: TextStyle(
+                        fontSize: context.responsive.value(kiosk: 24, tablet: 20, phone: 16),
+                        fontWeight: FontWeight.w700,
+                        color: isExact ? Colors.white : ColorSet.primary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               ResponsiveWrapContainer(
                 spacing: context.responsive.value(kiosk: 16, tablet: 12, phone: 8),
                 equalWidth: true,
@@ -229,21 +267,7 @@ class _CashPaymentContent extends HookWidget {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(POSRadius.md),
                         child: InkWell(
-                          onTap: () {
-                            final current =
-                                Decimal.tryParse(cashController.text.replaceAll(',', '')) ??
-                                Decimal.zero;
-                            final newAmount = current + Decimal.fromInt(denomination);
-                            final newText = newAmount.toString();
-                            final newValue = cashInputFormatter.formatEditUpdate(
-                              cashController.value,
-                              TextEditingValue(
-                                text: newText,
-                                selection: TextSelection.collapsed(offset: newText.length),
-                              ),
-                            );
-                            cashController.value = newValue;
-                          },
+                          onTap: () => setCashReceived(cashReceived + Decimal.fromInt(denomination)),
                           borderRadius: BorderRadius.circular(POSRadius.md),
                           child: Container(
                             width: context.responsive.value(kiosk: 120, tablet: 96, phone: 96),

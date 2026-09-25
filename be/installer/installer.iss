@@ -58,6 +58,11 @@
 #define BackendExe   "POSBackend.exe"
 #define BackendSvc   "POSBackendService"
 #define PostgresSvc  "POSPostgres"
+; Build flavor - passed by build-installer.ps1 as /DMyAppFlavor=Offline|Online.
+; Only affects the output filename; the Flutter binary is compiled per flavor.
+#ifndef MyAppFlavor
+  #define MyAppFlavor "Online"
+#endif
 
 [Setup]
 AppId={{B2C3D4E5-F6A7-4B5C-9D0E-1F2A3B4C5D6E}
@@ -69,7 +74,7 @@ DefaultDirName=C:\POSKiosk
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=output
-OutputBaseFilename=POSKiosk-Setup-{#MyAppVersion}
+OutputBaseFilename=POSKiosk-Setup-{#MyAppVersion}-{#MyAppFlavor}
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern

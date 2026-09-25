@@ -84,14 +84,9 @@ export class SalesOrderItemBuildService {
           throw new Error(`Discount not found for id ${product.discount.id}`);
         }
 
-        const amounts = ApplyDiscountToItemMapper.computeItemDiscountAmounts(
+        const { amounts, appliedAmount } = ApplyDiscountToItemMapper.computeLineDiscount(
           discount,
-          Number(salesOrderItem.vatExclusiveAmount),
-        );
-        const appliedAmount = ApplyDiscountToItemMapper.computeAppliedAmount(
-          Number(salesOrderItem.vatExclusiveAmount),
-          amounts.discountedUnitPrice,
-          Number(salesOrderItem.qty),
+          lineAmounts(salesOrderItem),
         );
 
         ApplyDiscountToItemMapper.applyDiscountAmountsToItem(
@@ -119,9 +114,9 @@ export class SalesOrderItemBuildService {
       if (product.discount && itemDiscount) {
         const discount = discountMap.get(product.discount.id)!;
         for (const addOnItem of addOnItems) {
-          const amounts = ApplyDiscountToItemMapper.computeItemDiscountAmounts(
+          const { amounts, appliedAmount } = ApplyDiscountToItemMapper.computeLineDiscount(
             discount,
-            Number(addOnItem.vatExclusiveAmount),
+            lineAmounts(addOnItem),
           );
           ApplyDiscountToItemMapper.applyDiscountAmountsToItem(
             addOnItem,
@@ -131,11 +126,6 @@ export class SalesOrderItemBuildService {
             { idNumber: product.discount.idNumber, beneficiaryName: product.discount.beneficiaryName },
           );
 
-          const appliedAmount = ApplyDiscountToItemMapper.computeAppliedAmount(
-            Number(addOnItem.vatExclusiveAmount),
-            amounts.discountedUnitPrice,
-            Number(addOnItem.qty),
-          );
 
           const addOnDiscount = SalesOrderDiscountMapper.toEntityWithAppliedAmount(
             '', // soId will be set later during persistence
@@ -306,24 +296,17 @@ export class SalesOrderItemBuildService {
 
     const soId = existingItem.salesOrder.id;
     const unitPrice = Number(existingItem.unitPrice);
-    let vatExclusiveAmount = Number(existingItem.vatExclusiveAmount);
+    const vatExclusiveAmount = Number(existingItem.vatExclusiveAmount);
     const qty = Number(existingItem.qty);
     const discountValue = parseFloat(discount.value);
 
-    if (discount.name === 'Senior Citizen / PWD') {
-      vatExclusiveAmount = unitPrice;
-    }
-
-    const amounts = ApplyDiscountToItemMapper.computeItemDiscountAmounts(
-      discount,
+    // Senior Citizen / PWD is taken off the VAT-inclusive price of just the
+    // discounted quantity (the rest of a partial line is split off).
+    const { amounts, appliedAmount } = ApplyDiscountToItemMapper.computeLineDiscount(discount, {
       vatExclusiveAmount,
-    );
-
-    const appliedAmount = ApplyDiscountToItemMapper.computeAppliedAmount(
-      vatExclusiveAmount,
-      amounts.discountedUnitPrice,
+      grossAmount: unitPrice * Number(item.qty),
       qty,
-    );
+    });
 
     return {
       existingItem,
@@ -410,6 +393,20 @@ export class SalesOrderItemBuildService {
 
     return items;
   }
+}
+
+/** A built line's amounts, as [ApplyDiscountToItemMapper.computeLineDiscount] takes them. */
+function lineAmounts(item: SalesOrderItem): {
+  vatExclusiveAmount: number;
+  grossAmount: number;
+  qty: number;
+} {
+  const qty = Number(item.qty);
+  return {
+    vatExclusiveAmount: Number(item.vatExclusiveAmount),
+    grossAmount: qty * Number(item.unitPrice),
+    qty,
+  };
 }
 
 /** Collects all modifier option IDs from products for lookup. */

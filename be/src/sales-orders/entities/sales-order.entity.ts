@@ -191,6 +191,14 @@ export class SalesOrder extends UuidIdEntity {
   @Column({ type: 'timestamp', nullable: true, name: 'synced_at' })
   syncedAt: Date | null;
 
+  /**
+   * Positive integer sent as `local_id` to the orders service, which rejects
+   * UUIDs. Assigned by the DB sequence (migration 1785300000000); never
+   * written by the app.
+   */
+  @Column({ type: 'integer', name: 'sync_id', insert: false, update: false })
+  syncId: number;
+
   @ManyToOne(() => ZReading, { nullable: true })
   @JoinColumn({ name: 'z_reading_id' })
   zReading: ZReading | null;

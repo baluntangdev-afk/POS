@@ -8,11 +8,13 @@ import 'package:mobile/core/database/tables/sales_table.dart';
 import 'package:mobile/core/database/tables/store_info_table.dart';
 import 'package:mobile/core/database/tables/users_table.dart';
 import 'package:mobile/core/providers/database_provider.dart';
+import 'package:mobile/core/services/clock/app_clock.dart';
 import 'package:mobile/features/auth/entities/user_entity.dart';
 import 'package:mobile/features/auth/state/auth_notifier.dart';
 import 'package:mobile/features/auth/state/auth_providers.dart';
 import 'package:mobile/features/auth/state/auth_state.dart';
 import 'package:mobile/features/cashier_accounting/daily_report/state/daily_report_notifier.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeAuthNotifier extends AuthNotifier {
   final UserEntity user;
@@ -23,6 +25,13 @@ class _FakeAuthNotifier extends AuthNotifier {
 }
 
 void main() {
+  late AppClock appClock;
+
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    appClock = await AppClock.load();
+  });
+
   Future<int> _seedCashier(AppDatabase db, String name) => db.into(db.usersTable).insert(
         UsersTableCompanion.insert(name: name, role: 'cashier', pinHash: 'x'),
       );
@@ -42,6 +51,9 @@ void main() {
         total: 112, type: 'dine_in', cashierId: cashierId, status: 'completed', createdAt: DateTime.now()));
     await db.salesDao.insertPayment(PaymentsTableCompanion.insert(
         saleId: saleId, method: 'cash', amount: 112, createdAt: DateTime.now()));
+    // VAT is computed per sale item, so the sale needs its line.
+    await db.salesDao.insertSaleItem(SaleItemsTableCompanion.insert(
+        saleId: saleId, productId: 1, variantName: '', qty: 1, unitPrice: 112));
 
     // Sale by a different cashier should not count toward this cashier's Daily Report.
     final otherSaleId = await db.salesDao.insertSale(SalesTableCompanion.insert(
@@ -51,6 +63,7 @@ void main() {
 
     final container = ProviderContainer(overrides: [
       databaseProvider.overrideWithValue(db),
+      appClockProvider.overrideWithValue(appClock),
       authNotifierProvider.overrideWith(() => _FakeAuthNotifier(UserEntity(id: cashierId, name: 'Ana', role: 'cashier'))),
     ]);
     addTearDown(() {
@@ -68,7 +81,7 @@ void main() {
     expect(data.vatExemptSales, 0);
     expect(data.netOfTax, closeTo(100, 0.01));
     expect(data.transactionCount, 1);
-    expect(data.totalQtySold, 0);
+    expect(data.totalQtySold, 1);
     expect(data.cashSalesTotal, 112);
     expect(data.cashSalesCount, 1);
   });
@@ -88,6 +101,7 @@ void main() {
 
     final container = ProviderContainer(overrides: [
       databaseProvider.overrideWithValue(db),
+      appClockProvider.overrideWithValue(appClock),
       authNotifierProvider.overrideWith(() => _FakeAuthNotifier(UserEntity(id: cashierId, name: 'Ana', role: 'cashier'))),
     ]);
     addTearDown(container.dispose);

@@ -93,6 +93,7 @@ import { ErpReportPush1784246700000 } from './migrations/1784246700000-erp-repor
 import { SoItemsDiscountBeneficiary1785000000000 } from './migrations/1785000000000-so-items-discount-beneficiary';
 import { PosTerminalsKioskIdVarchar1785100000000 } from './migrations/1785100000000-pos-terminals-kiosk-id-varchar';
 import { TransactionSyncState1785200000000 } from './migrations/1785200000000-transaction-sync-state';
+import { SalesOrdersSyncId1785300000000 } from './migrations/1785300000000-sales-orders-sync-id';
 
 /**
  * Migration classes for POSBackend.exe --migrate (same as npm run migration:up).
@@ -192,5 +193,6 @@ export const migrations: Array<new () => MigrationInterface> = [
   ErpReportPush1784246700000,
   SoItemsDiscountBeneficiary1785000000000,
   PosTerminalsKioskIdVarchar1785100000000,
-  TransactionSyncState1785200000000
+  TransactionSyncState1785200000000,
+  SalesOrdersSyncId1785300000000
 ];

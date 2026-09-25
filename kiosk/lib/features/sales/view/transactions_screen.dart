@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:decimal/decimal.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +8,7 @@ import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../exceptions/exception_extension.dart';
 import '../../../navigation/router.dart';
 import '../../../styles/color_set.dart';
 import '../../../styles/responsive/breakpoint.dart';
@@ -15,13 +18,18 @@ import '../../../theme/pos_design.dart';
 import '../../../utils/debounce.dart';
 import '../../../utils/decimal_formatter.dart';
 import '../../../widgets/android_scaffold.dart';
+import '../../../widgets/message_dialog.dart';
 import '../../../widgets/resposive_wrap_container.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
+import '../../auth/state/login_state_notifier.dart';
 import '../../cashier_report/state/cashier_daily_report_notifier.dart';
 import '../../cashier_report/state/cashier_x_reading_notifier.dart';
 import '../../cashier_report/state/z_reading_notifier.dart';
+import '../../orders/use_cases/webhook_auth_error.dart';
+import '../../transaction_sync/repositories/transaction_sync_repository.dart';
+import '../../transaction_sync/state/transaction_sync_progress_notifier.dart';
 import '../entities/receipt.dart';
 import '../state/receipt_notifier.dart';
 import '../state/transactions_notifier.dart';
@@ -59,6 +67,32 @@ class TransactionsScreen extends HookConsumerWidget {
       });
       return null;
     }, [page.value, limit.value, search.value, soDate.value, sort.value]);
+
+    void refresh() {
+      ref
+          .read(transactionsProvider.notifier)
+          .getResults(
+            page: page.value,
+            limit: limit.value,
+            search: search.value,
+            soDate: soDate.value,
+            sort: sort.value,
+          );
+    }
+
+    // Best-effort catch-up the moment the screen is visited, so anything the
+    // background triggers missed shows up as synced without tapping "Sync
+    // All". Quiet on failure, same as those triggers.
+    useEffect(() {
+      unawaited(ref.read(transactionSyncProgressProvider.notifier).drainPending());
+      return null;
+    }, const []);
+
+    // Any sync run ending (this screen's or a background one) may have
+    // flipped rows to synced, so reload the current page.
+    ref.listen(transactionSyncProgressProvider, (previous, next) {
+      if (previous != null && next == null) refresh();
+    });
 
     final isAndroid = context.breakpoint.isAndroid;
     final isPhone = context.breakpoint.isPhone;
@@ -103,7 +137,11 @@ class TransactionsScreen extends HookConsumerWidget {
         ],
       ),
     );
-    return WindowsScaffold(backgroundColor: ColorSet.background, body: body);
+    return WindowsScaffold(
+      backgroundColor: ColorSet.background,
+      floatingActionButton: _SyncActionButtons(onTransactionsChanged: refresh),
+      body: body,
+    );
   }
 }
 
@@ -687,6 +725,7 @@ class _TransactionsTable extends ConsumerWidget {
                   );
                 }
                 return ListView.builder(
+                  padding: EdgeInsets.only(bottom: _fabClearance(context)),
                   itemCount: data.data.length,
                   itemBuilder: (context, index) {
                     return _TransactionRow(receipt: data.data[index]);
@@ -827,16 +866,30 @@ class _TransactionRow extends HookWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          receipt.docNumber,
-                          style: TextStyle(
-                            fontSize: r.value<double>(kiosk: 13, tablet: 13, phone: 12),
-                            fontWeight: FontWeight.w600,
-                            color:
-                                receipt.isVoided ? POSColors.textTertiary : POSColors.textPrimary,
-                            decoration: receipt.isVoided ? TextDecoration.lineThrough : null,
-                          ),
-                          textAlign: TextAlign.center,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                receipt.docNumber,
+                                style: TextStyle(
+                                  fontSize: r.value<double>(kiosk: 13, tablet: 13, phone: 12),
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      receipt.isVoided
+                                          ? POSColors.textTertiary
+                                          : POSColors.textPrimary,
+                                  decoration: receipt.isVoided ? TextDecoration.lineThrough : null,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            const Gap(6),
+                            _SyncStatusIcon(
+                              isSynced: receipt.isSynced,
+                              size: r.value<double>(kiosk: 16, tablet: 15, phone: 14),
+                            ),
+                          ],
                         ),
                         if (receipt.isVoided)
                           Container(
@@ -1110,6 +1163,7 @@ class _TransactionsMobileList extends ConsumerWidget {
           );
         }
         return ListView.builder(
+          padding: EdgeInsets.only(bottom: _fabClearance(context)),
           itemCount: data.data.length,
           itemBuilder: (context, index) => _TransactionCard(receipt: data.data[index]),
         );
@@ -1177,6 +1231,8 @@ class _TransactionCard extends HookConsumerWidget {
                                   ),
                                 ),
                               ),
+                              const Gap(6),
+                              _SyncStatusIcon(isSynced: receipt.isSynced, size: 15),
                               if (receipt.isVoided) ...[
                                 const Gap(6),
                                 Container(
@@ -1594,6 +1650,171 @@ class _ExpandedItems extends ConsumerWidget {
                 },
               )
               : const SizedBox.shrink(),
+    );
+  }
+}
+
+// ── Transaction sync ──────────────────────────────────────────────────────────
+
+/// Bottom list padding that lets the last row scroll clear of
+/// [_SyncActionButtons].
+double _fabClearance(BuildContext context) =>
+    context.responsive.value<double>(kiosk: 150, tablet: 140, phone: 130);
+
+class _SyncStatusIcon extends StatelessWidget {
+  const _SyncStatusIcon({required this.isSynced, required this.size});
+
+  final bool isSynced;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: isSynced ? 'Synced' : 'Not yet synced',
+      child: Icon(
+        isSynced ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+        size: size,
+        color: isSynced ? ColorSet.success : POSColors.textTertiary,
+      ),
+    );
+  }
+}
+
+/// "Sync All" and (admin/supervisor only) "Unsync Transactions", stacked as
+/// floating action buttons like the mobile app's Transactions screen.
+class _SyncActionButtons extends HookConsumerWidget {
+  const _SyncActionButtons({required this.onTransactionsChanged});
+
+  /// Reloads the current page after an unsync.
+  final VoidCallback onTransactionsChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final r = context.responsive;
+    final syncProgress = ref.watch(transactionSyncProgressProvider);
+    final isSyncing = syncProgress != null;
+    final isUnsyncing = useState(false);
+    final canUnsync = ref.watch(
+      loginStateProvider.select((auth) => auth.value?.isAdminOrSupervisor ?? false),
+    );
+
+    final iconSize = r.value<double>(kiosk: 20, tablet: 18, phone: 18);
+    final labelStyle = TextStyle(
+      fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+      fontWeight: FontWeight.w600,
+    );
+
+    void showSnack(String message, {bool isError = false}) {
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: isError ? ColorSet.danger : null,
+            // Sits under the FAB column rather than floating over it.
+            behavior: SnackBarBehavior.fixed,
+          ),
+        );
+    }
+
+    Future<void> handleSync() async {
+      if (isSyncing) return;
+      try {
+        final outcome = await ref.read(transactionSyncProgressProvider.notifier).syncNow();
+        final total = outcome.syncedSales + outcome.syncedRefunds;
+        if (!context.mounted) return;
+        final synced = 'Synced $total transaction${total == 1 ? '' : 's'}.';
+        showSnack(switch (outcome) {
+          (cancelled: true, syncedSales: _, syncedRefunds: _) =>
+            total == 0 ? 'Sync cancelled.' : 'Sync cancelled. $synced The rest stay pending.',
+          _ when total == 0 => 'Everything is already synced.',
+          _ => synced,
+        });
+      } catch (error) {
+        if (!context.mounted) return;
+        final message = switch (error) {
+          TransactionSyncNotConfiguredException(:final message) => message,
+          WebhookAuthException(:final message) => message,
+          _ => 'Sync failed: ${error.message}',
+        };
+        showSnack(message, isError: true);
+      }
+    }
+
+    Future<void> handleUnsync() async {
+      if (isUnsyncing.value) return;
+      var confirmed = false;
+      await showMessageDialog(
+        context,
+        type: DialogType.warning,
+        title: 'Unsync Transactions',
+        message:
+            'This marks all synced transactions on this device as not synced. '
+            'They will be re-uploaded on the next sync. Continue?',
+        primaryButtonText: 'Unsync',
+        secondaryButtonText: 'Cancel',
+        onPrimaryPressed: () {
+          confirmed = true;
+          Navigator.of(context, rootNavigator: true).pop();
+        },
+        onSecondaryPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+      );
+      if (!confirmed) return;
+
+      isUnsyncing.value = true;
+      try {
+        await ref.read(transactionSyncRepositoryProvider).unsyncAll();
+        if (!context.mounted) return;
+        showSnack('All transactions marked as unsynced.');
+        onTransactionsChanged();
+      } catch (error) {
+        if (context.mounted) showSnack('Unsync failed: ${error.message}', isError: true);
+      } finally {
+        if (context.mounted) isUnsyncing.value = false;
+      }
+    }
+
+    Widget spinner(Color color) => SizedBox(
+      width: iconSize,
+      height: iconSize,
+      child: CircularProgressIndicator(strokeWidth: 2.2, color: color),
+    );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        FloatingActionButton.extended(
+          heroTag: 'sync-transactions',
+          onPressed: isSyncing ? null : handleSync,
+          backgroundColor: ColorSet.primary,
+          foregroundColor: Colors.white,
+          icon: isSyncing ? spinner(Colors.white) : Icon(Icons.sync_rounded, size: iconSize),
+          label: Text(
+            isSyncing
+                ? 'Syncing ${syncProgress.currentBatch}/${syncProgress.totalBatches}…'
+                : 'Sync All',
+            style: labelStyle,
+          ),
+        ),
+        if (canUnsync) ...[
+          Gap(r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
+          FloatingActionButton.extended(
+            heroTag: 'unsync-transactions',
+            onPressed: isUnsyncing.value ? null : handleUnsync,
+            backgroundColor: Colors.white,
+            foregroundColor: ColorSet.primary,
+            icon:
+                isUnsyncing.value
+                    ? spinner(ColorSet.primary)
+                    : Icon(Icons.sync_disabled_rounded, size: iconSize),
+            label: Text(
+              isUnsyncing.value ? 'Unsyncing…' : 'Unsync Transactions',
+              style: labelStyle,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

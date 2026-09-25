@@ -51,11 +51,11 @@ void main() {
       ],
     );
 
-    final saleId = await db.salesDao.insertPendingSale(cashierId: cashierId, sale: sale);
+    final saleId = await db.salesDao.insertPendingSale(cashierId: cashierId, sale: sale, now: DateTime(2026, 5, 1, 10));
     final row = await db.salesDao.getSaleById(saleId);
 
     expect(row!.status, 'pending');
-    expect(row.soNumber, 'SO-${saleId.toString().padLeft(6, '0')}');
+    expect(row.soNumber, 'SO-001-2026-${saleId.toString().padLeft(4, '0')}');
     final items = await db.salesDao.getItemsForSale(saleId);
     expect(items, hasLength(1));
     final payments = await db.salesDao.getPaymentsForSale(saleId);
@@ -89,7 +89,7 @@ void main() {
         ),
       ],
     );
-    final saleId = await db.salesDao.insertPendingSale(cashierId: cashierId, sale: sale);
+    final saleId = await db.salesDao.insertPendingSale(cashierId: cashierId, sale: sale, now: DateTime(2026, 5, 1, 10));
 
     await db.salesDao.completeSale(saleId);
     final receipt = await db.salesDao.getReceiptById(saleId);
@@ -99,7 +99,7 @@ void main() {
     expect(receipt.items, hasLength(2)); // main item + 1 modifier add-on
     expect(receipt.items.where((i) => i.isMain).single.description, 'Burger');
     expect(receipt.items.where((i) => !i.isMain).single.id, isNegative);
-    expect(receipt.docNumber, 'SO-${saleId.toString().padLeft(6, '0')}');
+    expect(receipt.docNumber, 'SO-001-2026-${saleId.toString().padLeft(4, '0')}');
   });
 
   test('getReceiptById reports the actual cash tendered and change, not just the total', () async {
@@ -120,7 +120,7 @@ void main() {
         ),
       ],
     );
-    final saleId = await db.salesDao.insertPendingSale(cashierId: cashierId, sale: sale);
+    final saleId = await db.salesDao.insertPendingSale(cashierId: cashierId, sale: sale, now: DateTime.now());
     await db.salesDao.completeSale(saleId);
 
     final receipt = await db.salesDao.getReceiptById(saleId);
@@ -137,7 +137,7 @@ void main() {
       type: 'dine_in',
       createdAt: DateTime.now(),
     ));
-    await db.salesDao.voidSale(saleId, reason: 'Customer changed mind');
+    await db.salesDao.voidSale(saleId, now: DateTime.now(), reason: 'Customer changed mind');
     final receipt = await db.salesDao.getReceiptById(saleId);
     expect(receipt!.isVoided, isTrue);
     expect(receipt.voidReason, 'Customer changed mind');
@@ -173,6 +173,7 @@ void main() {
       cashierName: 'Cashier',
       periodStart: DateTime.utc(1970),
       periodEnd: DateTime(2026, 1, 1, 12),
+      generatedAt: DateTime(2026, 1, 1, 12),
       totalSales: 50,
       transactionCount: 1,
       voidedCount: 0,
@@ -223,6 +224,7 @@ void main() {
       method: 'Cash Refund',
       total: 50,
       items: [(saleItemId: itemId, qty: 1, amount: 50.0)],
+      now: DateTime.now(),
     );
 
     final refunds = await (db.select(db.refundsTable)

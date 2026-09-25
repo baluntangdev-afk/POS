@@ -6,7 +6,23 @@ import '../../orders/repositories/webhook_auth_repository.dart';
 import '../../orders/use_cases/webhook_auth_error.dart';
 import '../repositories/transaction_sync_repository.dart';
 
-typedef SyncAllProgress = ({int currentBatch, int totalBatches});
+/// A manual sync was requested before this terminal was given a Kiosk ID.
+class TransactionSyncNotConfiguredException implements Exception {
+  const TransactionSyncNotConfiguredException();
+
+  String get message => 'Set up the Kiosk ID before syncing.';
+
+  @override
+  String toString() => 'TransactionSyncNotConfiguredException()';
+}
+
+/// [cancelling] is set once [TransactionSyncProgressNotifier.cancel] was
+/// called and the run is finishing its in-flight batch.
+typedef SyncAllProgress = ({int currentBatch, int totalBatches, bool cancelling});
+
+/// What a sync run pushed; [cancelled] when it was stopped before draining
+/// everything.
+typedef SyncAllOutcome = ({int syncedSales, int syncedRefunds, bool cancelled});
 
 const _batchSize = 15;
 
@@ -25,6 +41,19 @@ class TransactionSyncProgressNotifier extends Notifier<SyncAllProgress?> {
   // closes that window: only the first caller ever proceeds.
   bool _isRunning = false;
 
+  bool _cancelRequested = false;
+
+  /// Stops the running sync once its in-flight batch completes. The batch
+  /// itself isn't aborted: records the orders service already accepted must
+  /// still be marked synced, or they'd be re-sent next run. Whatever is left
+  /// stays pending for the next trigger.
+  void cancel() {
+    final current = state;
+    if (!_isRunning || current == null || current.cancelling) return;
+    _cancelRequested = true;
+    state = (currentBatch: current.currentBatch, totalBatches: current.totalBatches, cancelling: true);
+  }
+
   /// Resolves the current Kiosk ID and drains its pending transactions.
   /// Skipped for an unverified merchant (an unknown Kiosk ID) rather than
   /// letting it fail quietly inside the sync's own token mint. Quiet on
@@ -42,21 +71,37 @@ class TransactionSyncProgressNotifier extends Notifier<SyncAllProgress?> {
     }
   }
 
-  Future<TransactionSyncOutcome> syncAll({required String storeId}) async {
-    if (_isRunning) return (syncedSales: 0, syncedRefunds: 0);
+  /// The Transactions screen's manual "Sync All": same as [drainPending], but
+  /// failures propagate so the caller can tell the user what went wrong.
+  ///
+  /// Throws [TransactionSyncNotConfiguredException] when this terminal has no
+  /// Kiosk ID, and [WebhookAuthException] when the orders service rejects it.
+  Future<SyncAllOutcome> syncNow() async {
+    if (_isRunning) return (syncedSales: 0, syncedRefunds: 0, cancelled: false);
+    final terminal = await ref.read(posTerminalsApiProvider).getMyTerminal();
+    final storeId = terminal.kioskId.trim();
+    if (storeId.isEmpty) throw const TransactionSyncNotConfiguredException();
+    await ref.read(webhookAuthRepositoryProvider).ensureToken(storeId);
+    return syncAll(storeId: storeId);
+  }
+
+  Future<SyncAllOutcome> syncAll({required String storeId}) async {
+    if (_isRunning) return (syncedSales: 0, syncedRefunds: 0, cancelled: false);
     _isRunning = true;
+    _cancelRequested = false;
 
     final repository = ref.read(transactionSyncRepositoryProvider);
     var total = (syncedSales: 0, syncedRefunds: 0);
     try {
       var batch = 0;
-      while (true) {
+      while (!_cancelRequested) {
         final pending = await repository.countPending(storeId);
         if (pending.sales == 0 && pending.refunds == 0) break;
+        if (_cancelRequested) break;
 
         batch++;
         final remaining = pending.sales > pending.refunds ? pending.sales : pending.refunds;
-        state = (currentBatch: batch, totalBatches: batch + ((remaining - 1) ~/ _batchSize));
+        state = (currentBatch: batch, totalBatches: batch + ((remaining - 1) ~/ _batchSize), cancelling: false);
 
         final outcome = await repository.syncPending(storeId);
         total = (
@@ -71,7 +116,9 @@ class TransactionSyncProgressNotifier extends Notifier<SyncAllProgress?> {
       state = null;
       _isRunning = false;
     }
-    return total;
+    final cancelled = _cancelRequested;
+    _cancelRequested = false;
+    return (syncedSales: total.syncedSales, syncedRefunds: total.syncedRefunds, cancelled: cancelled);
   }
 
   Future<bool> _isVerified(String storeId) async {

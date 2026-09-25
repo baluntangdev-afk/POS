@@ -89,7 +89,7 @@ void main() {
 
   test('getRefundTotalForDateRange sums refund amounts within range', () async {
     final cashierId = await _seedCashier('Ana');
-    // recordRefund stamps createdAt with DateTime.now(), so the range must
+    // the refund is stamped with DateTime.now(), so the range must
     // bracket "now" rather than a fixed historical date.
     final from = DateTime.now().subtract(const Duration(minutes: 5));
     final to = DateTime.now().add(const Duration(minutes: 5));
@@ -102,11 +102,14 @@ void main() {
     );
     final items = await db.salesDao.getRefundableItems(saleId);
 
-    await db.salesDao.recordRefund(
-      saleId: saleId,
-      total: 200,
-      items: [(saleItemId: items.first.saleItemId, qty: 2)],
-    );
+    await db.salesDao.insertRefundRecord(
+   saleId: saleId,
+   reason: 'Refund',
+   method: 'cash',
+   total: 200,
+   items: [(saleItemId: items.first.saleItemId, qty: 2, amount: 200)],
+   now: DateTime.now(),
+ );
 
     final total = await db.salesDao.getRefundTotalForDateRange(from, to);
     expect(total, 200);

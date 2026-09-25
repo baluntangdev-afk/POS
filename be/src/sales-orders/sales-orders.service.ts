@@ -113,6 +113,7 @@ export class SalesOrdersService {
         finalTotalAmount: true,
         voidReason: true,
         voidedAt: true,
+        syncedAt: true,
         createdBy: { id: true },
         salesOrderItems: {
           id: true,
@@ -191,6 +192,7 @@ export class SalesOrdersService {
         finalTotalAmount: true,
         voidReason: true,
         voidedAt: true,
+        syncedAt: true,
         createdBy: { id: true },
         salesOrderItems: {
           id: true,

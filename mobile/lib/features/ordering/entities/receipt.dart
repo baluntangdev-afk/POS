@@ -33,15 +33,19 @@ class Receipt {
     this.voidLocked = false,
   });
 
-  double get grossAmount => items.fold(0.0, (s, i) => s + i.grossAmount);
-  double get discountAmount => items.fold(0.0, (s, i) => s + i.discountAmount);
-  double get totalAmount => items.fold(0.0, (s, i) => s + i.totalAmount);
+  // A main item's stored unit price already includes its modifiers, so add-on
+  // rows are informational only — totals are summed over main items.
+  Iterable<ReceiptItem> get _mainItems => items.where((i) => i.isMain);
+
+  double get grossAmount => _mainItems.fold(0.0, (s, i) => s + i.grossAmount);
+  double get discountAmount => _mainItems.fold(0.0, (s, i) => s + i.discountAmount);
+  double get totalAmount => _mainItems.fold(0.0, (s, i) => s + i.totalAmount);
 
   double get vatableAmount =>
-      items.where((i) => !i.isVatExempt).fold(0.0, (s, i) => s + i.vatExclusiveAmount);
-  double get vatAmount => items.fold(0.0, (s, i) => s + i.vatAmount);
+      _mainItems.where((i) => !i.isVatExempt).fold(0.0, (s, i) => s + i.vatExclusiveAmount);
+  double get vatAmount => _mainItems.fold(0.0, (s, i) => s + i.vatAmount);
   double get vatExemptSales =>
-      items.where((i) => i.isVatExempt).fold(0.0, (s, i) => s + i.vatExclusiveAmount);
+      _mainItems.where((i) => i.isVatExempt).fold(0.0, (s, i) => s + i.vatExclusiveAmount);
 
   bool get hasRefunds => refunds.isNotEmpty;
 

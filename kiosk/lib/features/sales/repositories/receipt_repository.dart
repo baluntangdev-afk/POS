@@ -261,6 +261,7 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
       isVoided: dto.status == 'Cancelled',
       voidReason: dto.voidReason,
       voidedAt: dto.voidedAt,
+      syncedAt: dto.syncedAt,
     );
   }
 

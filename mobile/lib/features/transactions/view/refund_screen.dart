@@ -87,7 +87,7 @@ class RefundScreen extends ConsumerWidget {
     if (data == null) return 'Refund Selected Items';
     final total = data.form.selectedQuantities.entries.fold(0.0, (sum, entry) {
       final item = data.receipt.items.firstWhere((i) => i.id == entry.key);
-      return sum + item.unitPrice * entry.value;
+      return sum + item.refundAmountFor(entry.value);
     });
     return total > 0 ? 'Refund ₱${total.toStringAsFixed(2)}' : 'Refund Selected Items';
   }
@@ -164,7 +164,7 @@ class _RefundItemRow extends StatelessWidget {
                 Text(
                   isRefunded
                       ? 'Fully refunded'
-                      : 'Available: $maxQuantity × ₱${item.unitPrice.toStringAsFixed(2)}',
+                      : 'Available: $maxQuantity × ₱${item.netUnitPrice.toStringAsFixed(2)}',
                   style: AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
                 ),
               ],

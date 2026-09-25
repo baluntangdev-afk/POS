@@ -88,11 +88,11 @@ class FinalizeSale {
       _ => null,
     };
 
-    final isVatExempt = lineItem.isVatExempt;
+    // VAT is on what's actually paid; vatExclusiveAmount stays the
+    // undiscounted price net of VAT, as the backend stores it.
+    final totalAmount = grossAmount - discountAmount;
     final vatExclusiveAmount = grossAmount.vatableAmount;
-    final vatAmount = isVatExempt ? Decimal.zero : grossAmount.vatAmount;
-
-    final totalAmount = vatExclusiveAmount + vatAmount - discountAmount;
+    final vatAmount = totalAmount.vatAmount;
 
     return ReceiptItem(
       id: id,
@@ -146,11 +146,11 @@ class FinalizeSale {
         final discount => discount?.calculateAmount(grossAmount) ?? Decimal.zero,
       };
 
-      final isVatExempt = lineItem.isVatExempt;
+      // VAT is on what's actually paid; vatExclusiveAmount stays the
+      // undiscounted price net of VAT, as the backend stores it.
+      final totalAmount = grossAmount - discountAmount;
       final vatExclusiveAmount = grossAmount.vatableAmount;
-      final vatAmount = isVatExempt ? Decimal.zero : grossAmount.vatAmount;
-
-      final totalAmount = vatExclusiveAmount + vatAmount - discountAmount;
+      final vatAmount = totalAmount.vatAmount;
 
       return ReceiptItem(
         id: id,

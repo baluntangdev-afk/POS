@@ -1056,11 +1056,30 @@ class _CartItemRow extends HookConsumerWidget {
                     ),
                   ),
                   if (item.discount != null) ...[
-                    Text(
-                      'Discount: PHP ${item.discountAmount.toStringAsFixed(2)}',
-                      style: AppTextStyles.labelMd.copyWith(
-                        color: AppColors.warning,
-                      ),
+                    const Gap(AppSpacing.xs),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Discount: PHP ${item.discountAmount.toStringAsFixed(2)}',
+                            style: AppTextStyles.labelMd.copyWith(
+                              color: AppColors.warning,
+                            ),
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () => notifier.removeDiscount(item.id),
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            size: 16,
+                          ),
+                          label: const Text('Remove Discount'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.error,
+                            minimumSize: const Size(0, 36),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ],

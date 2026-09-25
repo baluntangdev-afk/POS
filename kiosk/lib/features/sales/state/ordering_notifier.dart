@@ -241,29 +241,30 @@ class OrderingNotifier extends AsyncNotifier<OrderingData> {
     state = AsyncData(state.requireValue.copyWith(sale: sale.copyWith(items: lineItems)));
   }
 
-  void clearDiscount({required int index}) {
+  /// Takes the discount off the line [lineItemId]. When an identical
+  /// undiscounted line already exists (same product, variant and modifiers —
+  /// e.g. the rest of a partial-quantity discount that was split off), the
+  /// quantity is folded back into it and the discounted line is deleted;
+  /// otherwise the discount is just cleared in place.
+  void removeDiscount(String lineItemId) {
     if (!state.hasValue) return;
     final sale = state.requireValue.sale;
     final items = sale.items;
+
+    final index = items.indexWhere((it) => it.id == lineItemId);
+    if (index == -1 || items[index].discount == null) return;
     final cleared = items[index].copyWith(discount: null);
 
-    var mergeIndex = -1;
-    for (var i = 0; i < items.length; i++) {
-      if (i == index) continue;
-      if (items[i].discount == null && _isSameItem(items[i], cleared)) {
-        mergeIndex = i;
-        break;
-      }
-    }
+    final mergeIndex = items.indexWhere(
+      (it) => it.id != lineItemId && it.discount == null && _isSameItem(it, cleared),
+    );
 
-    IList<LineItem> updatedItems;
+    final IList<LineItem> updatedItems;
     if (mergeIndex != -1) {
-      final merged = items[mergeIndex].copyWith(
-        quantity: items[mergeIndex].quantity + cleared.quantity,
-      );
-      updatedItems = items.removeAt(index);
-      final adjustedMergeIndex = mergeIndex > index ? mergeIndex - 1 : mergeIndex;
-      updatedItems = updatedItems.replace(adjustedMergeIndex, merged);
+      final merge = items[mergeIndex];
+      updatedItems = items
+          .replace(mergeIndex, merge.copyWith(quantity: merge.quantity + cleared.quantity))
+          .removeAt(index);
     } else {
       updatedItems = items.replace(index, cleared);
     }

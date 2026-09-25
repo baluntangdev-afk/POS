@@ -153,6 +153,13 @@ export class SalesOrderWithItemsResponseDto {
   @ApiPropertyOptional({ description: 'Voided at timestamp', nullable: true, example: null })
   voidedAt: Date | null;
 
+  @ApiPropertyOptional({
+    description: 'When the orders service accepted this sale; null while pending sync',
+    nullable: true,
+    example: null,
+  })
+  syncedAt: Date | null;
+
   @ApiProperty({
     description: 'Sales order line items',
     type: [SalesOrderItemResponseDto],

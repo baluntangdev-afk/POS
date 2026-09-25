@@ -27,6 +27,7 @@ class Receipt with ReceiptMappable {
     this.isVoided = false,
     this.voidReason,
     this.voidedAt,
+    this.syncedAt,
   });
 
   final String id;
@@ -43,12 +44,21 @@ class Receipt with ReceiptMappable {
   final String? voidReason;
   final DateTime? voidedAt;
 
+  /// When the orders service accepted this sale; `null` while pending sync.
+  final DateTime? syncedAt;
+
+  bool get isSynced => syncedAt != null;
+
   Decimal get grossAmount => items.fold(Decimal.zero, (total, item) => total + item.grossAmount);
 
+  /// The VAT-exclusive part of what was paid for VATable items (total − VAT),
+  /// so a discounted line counts only its discounted price.
   Decimal get vatableSales => items
       .where((item) => item.vatAmount > Decimal.zero)
-      .fold(Decimal.zero, (total, item) => total + item.vatExclusiveAmount);
+      .fold(Decimal.zero, (total, item) => total + item.totalAmount - item.vatAmount);
 
+  /// Only sales saved while Senior Citizen / PWD was still VAT-exempt have
+  /// zero-VAT items; newer sales are fully VATable.
   Decimal get vatExemptSales => items
       .where((item) => item.vatAmount == Decimal.zero)
       .fold(Decimal.zero, (total, item) => total + item.vatExclusiveAmount);

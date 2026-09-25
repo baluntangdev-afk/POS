@@ -607,7 +607,9 @@ class _ItemsView extends StatelessWidget {
                   style: lineStyle,
                 ),
               ),
-              Text(item.totalAmount.toStringAsFixed(2), style: lineStyle),
+              // Add-on prices are already included in the main item's amount.
+              if (item.isMain)
+                Text(item.totalAmount.toStringAsFixed(2), style: lineStyle),
             ],
           ),
           if (item.isMain &&

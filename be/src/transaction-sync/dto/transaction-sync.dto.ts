@@ -7,7 +7,6 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUUID,
   Max,
   Min,
 } from 'class-validator';
@@ -35,11 +34,14 @@ export class StoreIdQueryDto {
 }
 
 export class MarkTransactionsSyncedDto {
-  @ApiProperty({ type: [String], description: '`accepted_sale_ids` from the orders service' })
+  @ApiProperty({
+    type: [Number],
+    description: '`accepted_sale_ids` from the orders service (sale `syncId`s)',
+  })
   @IsArray()
   @ArrayMaxSize(1000)
-  @IsUUID('all', { each: true })
-  saleIds: string[];
+  @IsInt({ each: true })
+  saleIds: number[];
 
   @ApiProperty({ type: [Number], description: '`accepted_refund_ids` from the orders service' })
   @IsArray()

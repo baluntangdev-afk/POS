@@ -71,4 +71,15 @@ export class TransactionSyncController {
   transfer(@Body() dto: TransferTransactionsDto) {
     return this.transactionSyncService.transfer(dto.storeId);
   }
+
+  @Post('unsync')
+  @UseGuards(AdminOrSupervisorGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Re-queue every sale/refund for re-upload, keeping their store ids',
+  })
+  @ApiNoContentResponse()
+  unsync() {
+    return this.transactionSyncService.unsync();
+  }
 }

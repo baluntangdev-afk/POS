@@ -8,6 +8,7 @@ import { TransactionSyncService } from './transaction-sync.service';
 import { FindPendingTransactionsService } from './services/find-pending-transactions.service';
 import { MarkTransactionsSyncedService } from './services/mark-transactions-synced.service';
 import { TransferTransactionsService } from './services/transfer-transactions.service';
+import { UnsyncTransactionsService } from './services/unsync-transactions.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([SalesOrder, SalesOrderItem, Refund])],
@@ -17,6 +18,7 @@ import { TransferTransactionsService } from './services/transfer-transactions.se
     FindPendingTransactionsService,
     MarkTransactionsSyncedService,
     TransferTransactionsService,
+    UnsyncTransactionsService,
   ],
 })
 export class TransactionSyncModule {}

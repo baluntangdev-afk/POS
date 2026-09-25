@@ -26,7 +26,7 @@ class ProcessRefund {
     for (final entry in selectedQuantities.entries) {
       if (entry.value <= 0) continue;
       final receiptItem = receipt.items.firstWhere((i) => i.id == entry.key);
-      final refundAmount = receiptItem.unitPrice * entry.value;
+      final refundAmount = receiptItem.refundAmountFor(entry.value);
       refundItems.add(RefundItem(
         id: 0,
         receiptItemId: receiptItem.id,

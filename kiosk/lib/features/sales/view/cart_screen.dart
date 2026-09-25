@@ -17,6 +17,7 @@ import '../../../widgets/product_image_placeholder.dart';
 import '../../../widgets/windows_scaffold.dart';
 import '../state/ordering_notifier.dart';
 import 'line_item_dialog.dart';
+import 'remove_discount_button.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -170,12 +171,12 @@ class _CartSummaryPanel extends ConsumerWidget {
         final sale = it.value?.sale;
         if (sale == null) return <({String label, Decimal amount})>[];
         return [
-          (label: 'VATable Sales', amount: sale.vatableAmount),
-          if (sale.vatExemptSales > Decimal.zero)
-            (label: 'VAT-Exempt Sales', amount: sale.vatExemptSales),
-          (label: 'VAT', amount: sale.vatAmount),
+          // Subtotal − Discount = Total; VATable Sales + VAT split that total.
+          (label: 'Subtotal', amount: sale.grossAmount),
           if (sale.discountAmount > Decimal.zero)
             (label: 'Discount', amount: -sale.discountAmount),
+          (label: 'VATable Sales', amount: sale.vatableAmount),
+          (label: 'VAT', amount: sale.vatAmount),
           (label: 'Total', amount: sale.totalAmount),
         ];
       }),
@@ -579,14 +580,10 @@ class _LineItemListView extends ConsumerWidget {
                       letterSpacing: -0.3,
                     ),
                   ),
-                  if (lineItem.discount != null)
+                  if (lineItem.discount != null) ...[
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: GestureDetector(
-                        onTap: () => ref
-                            .read(orderingProvider.notifier)
-                            .clearDiscount(index: index),
-                        child: Container(
+                      child: Container(
                           padding: EdgeInsets.symmetric(
                             horizontal: r.value<double>(kiosk: 7, tablet: 6, phone: 5),
                             vertical: 2,
@@ -609,17 +606,23 @@ class _LineItemListView extends ConsumerWidget {
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              const SizedBox(width: 4),
-                              Icon(
-                                Icons.close_rounded,
-                                size: r.value<double>(kiosk: 11, tablet: 10, phone: 9),
-                                color: ColorSet.danger,
-                              ),
                             ],
                           ),
                         ),
-                      ),
                     ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        DiscountAmountText((-lineItem.discountAmount).pesoFormatted),
+                        SizedBox(width: r.value<double>(kiosk: 8, tablet: 6, phone: 6)),
+                        RemoveDiscountButton(
+                          onPressed: () =>
+                              ref.read(orderingProvider.notifier).removeDiscount(lineItem.id),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -747,12 +750,12 @@ class _SummaryView extends ConsumerWidget {
         final sale = it.value?.sale;
         if (sale == null) return <({String label, Decimal amount})>[];
         return [
-          (label: 'VATable Sales', amount: sale.vatableAmount),
-          if (sale.vatExemptSales > Decimal.zero)
-            (label: 'VAT-Exempt Sales', amount: sale.vatExemptSales),
-          (label: 'VAT', amount: sale.vatAmount),
+          // Subtotal − Discount = Total; VATable Sales + VAT split that total.
+          (label: 'Subtotal', amount: sale.grossAmount),
           if (sale.discountAmount > Decimal.zero)
             (label: 'Discount', amount: -sale.discountAmount),
+          (label: 'VATable Sales', amount: sale.vatableAmount),
+          (label: 'VAT', amount: sale.vatAmount),
           (label: 'Total', amount: sale.totalAmount),
         ];
       }),

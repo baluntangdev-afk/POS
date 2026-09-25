@@ -24,8 +24,11 @@ void main() {
     );
 
     expect(sale.subtotal, 100);
-    // 20% of the VAT-exclusive amount: (100 / 1.12) * 0.20 ≈ 17.86
-    expect(sale.totalDiscount, closeTo(17.86, 0.01));
-    expect(sale.total, closeTo(82.14, 0.01));
+    // Senior/PWD is 20% of the gross price, no VAT exemption.
+    expect(sale.totalDiscount, 20);
+    expect(sale.total, 80);
+    // VAT is carried on the net amount paid: 80 - 80 / 1.12.
+    expect(sale.vatAmount, closeTo(8.57, 0.01));
+    expect(sale.vatExemptSales, 0);
   });
 }

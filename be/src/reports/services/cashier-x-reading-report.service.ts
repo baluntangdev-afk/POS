@@ -9,7 +9,10 @@ import { Payment } from '../../payments/entities/payment.entity';
 import { User } from '../../users/entities/user.entity';
 import { SalesOrderStatus } from '../../sales-orders/sales-orders.enum';
 import { CashierXReading } from '../entities/cashier-x-reading.entity';
-import { VAT_EXEMPT_DISCOUNT_NAME_PATTERNS } from '../../sales-orders/services/sales-order-calculation.service';
+import {
+  LEGACY_VAT_EXEMPT_SALE_SQL,
+  VAT_EXEMPT_DISCOUNT_NAME_PATTERNS,
+} from '../../sales-orders/services/sales-order-calculation.service';
 import { STATUS_FILTER } from '../reports.constants';
 import {
   CashierXReadingHistoryItemDto,
@@ -299,14 +302,14 @@ export class CashierXReadingReportService extends BaseReportService<
     return manager
       .createQueryBuilder(SalesOrderItem, 'soi')
       .innerJoin('soi.salesOrder', 'so')
-      .select('SUM(soi.vat_exclusive_amount)', 'vatSales')
+      .select('SUM(COALESCE(soi.item_subtotal, soi.vat_exclusive_amount))', 'vatSales')
       .addSelect('SUM(soi.vat_amount)', 'vatAmount')
       .where('so.status IN (:...statusFilter)', { statusFilter: STATUS_FILTER })
       .andWhere('so.created_by = :userId', { userId })
       .andWhere('so.done_x_reading = :doneXReading', { doneXReading: false })
       .andWhere('so.so_date <= :requestTime', { requestTime })
       .andWhere(
-        `NOT EXISTS (SELECT 1 FROM so_discounts sod INNER JOIN discounts d ON d.id = sod.discount_id WHERE sod.sales_order_id = so.id AND d.name = :vatExemptName)`,
+        `NOT (${LEGACY_VAT_EXEMPT_SALE_SQL})`,
         { vatExemptName: VAT_EXEMPT_DISCOUNT_NAME_PATTERNS },
       )
       .getRawOne<CashierTaxRawRow>();
@@ -325,7 +328,7 @@ export class CashierXReadingReportService extends BaseReportService<
       .andWhere('so.done_x_reading = :doneXReading', { doneXReading: false })
       .andWhere('so.so_date <= :requestTime', { requestTime })
       .andWhere(
-        `EXISTS (SELECT 1 FROM so_discounts sod INNER JOIN discounts d ON d.id = sod.discount_id WHERE sod.sales_order_id = so.id AND d.name = :vatExemptName)`,
+        LEGACY_VAT_EXEMPT_SALE_SQL,
         { vatExemptName: VAT_EXEMPT_DISCOUNT_NAME_PATTERNS },
       )
       .getRawOne<CashierVatExemptRawRow>();

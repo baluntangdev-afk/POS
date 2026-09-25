@@ -47,6 +47,7 @@ Receipt _receipt({
 }) {
   return Receipt(
     id: 1,
+    cashierId: 1,
     storeName: 'Test Store',
     cashierName: 'Jane Cashier',
     docNumber: 'SI-0001',
@@ -58,6 +59,30 @@ Receipt _receipt({
     isVoided: isVoided,
     voidReason: voidReason,
   );
+}
+
+/// Summary/payment amounts print as a label line followed by a
+/// right-aligned amount line (not a two-column [PrintRow]).
+bool _hasAmountLine(
+  List<PrintInstruction> instructions,
+  String label,
+  String amount, {
+  bool bold = false,
+}) {
+  for (var i = 0; i < instructions.length - 1; i++) {
+    final a = instructions[i];
+    final b = instructions[i + 1];
+    if (a is PrintText &&
+        b is PrintText &&
+        a.text == label &&
+        a.bold == bold &&
+        b.text == amount &&
+        b.align == PrintAlign.right &&
+        b.bold == bold) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void main() {
@@ -83,15 +108,8 @@ void main() {
       );
       expect(texts.any((t) => t.text == 'Terminal: POS-1'), isTrue);
 
-      final rows = instructions.whereType<PrintRow>().toList();
       expect(
-        rows.any(
-          (r) =>
-              r.columns[0].text == 'Total' &&
-              r.columns[1].text == '100.00' &&
-              r.columns[0].bold &&
-              r.columns[1].bold,
-        ),
+        _hasAmountLine(instructions, 'Total', '100.00', bold: true),
         isTrue,
       );
 
@@ -207,12 +225,8 @@ void main() {
         _receipt(payment: const SalePayment(method: 'cash', amountPaid: 100, cashReceived: 150)),
       );
 
-      final rows = instructions.whereType<PrintRow>().toList();
-      expect(rows.any((r) => r.columns[0].text == 'Cash' && r.columns[1].text == '150.00'), isTrue);
-      expect(
-        rows.any((r) => r.columns[0].text == 'Change' && r.columns[1].text == '50.00'),
-        isTrue,
-      );
+      expect(_hasAmountLine(instructions, 'Cash', '150.00'), isTrue);
+      expect(_hasAmountLine(instructions, 'Change', '50.00'), isTrue);
     });
 
     test('renders method + centered Ref row for non-cash payments with a reference', () {
@@ -227,8 +241,7 @@ void main() {
         ),
       );
 
-      final rows = instructions.whereType<PrintRow>().toList();
-      expect(rows.any((r) => r.columns[0].text == 'Card' && r.columns[1].text == '100.00'), isTrue);
+      expect(_hasAmountLine(instructions, 'Card', '100.00'), isTrue);
       final texts = instructions.whereType<PrintText>().toList();
       expect(
         texts.any((t) => t.text == 'Ref: REF-999' && t.align == PrintAlign.center),

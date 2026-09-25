@@ -58,8 +58,12 @@ export class FindPendingTransactionsService {
       refunds.map((refund) => refund.originalSalesOrder.id),
     );
 
+    const refundedBySaleId = await this.loadRefundedAmounts(sales.map((sale) => sale.id));
+
     return {
-      sales: sales.map((sale) => TransactionSyncPayloadMapper.toSalePayload(sale)),
+      sales: sales.map((sale) =>
+        TransactionSyncPayloadMapper.toSalePayload(sale, refundedBySaleId.get(sale.id) ?? 0),
+      ),
       refunds: refunds.map((refund) =>
         TransactionSyncPayloadMapper.toRefundPayload(
           refund,
@@ -94,6 +98,19 @@ export class FindPendingTransactionsService {
       storeId,
       status: Not(SalesOrderStatus.PENDING),
     };
+  }
+
+  /** Total refunded per sale, so a fully refunded sale is sent as `refunded`. */
+  private async loadRefundedAmounts(saleIds: string[]): Promise<Map<string, number>> {
+    if (saleIds.length === 0) return new Map();
+    const rows: { saleId: string; total: string }[] = await this.refundRepository
+      .createQueryBuilder('refund')
+      .select('refund.original_sales_order_id', 'saleId')
+      .addSelect('SUM(refund.total_refund_amount)', 'total')
+      .where('refund.original_sales_order_id IN (:...saleIds)', { saleIds })
+      .groupBy('refund.original_sales_order_id')
+      .getRawMany();
+    return new Map(rows.map((row) => [row.saleId, Number(row.total)]));
   }
 
   private async loadSaleItems(saleIds: string[]): Promise<Map<string, SalesOrderItem[]>> {

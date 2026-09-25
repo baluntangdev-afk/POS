@@ -26,8 +26,23 @@ loads the backup verbatim, including receipt/OR sequence positions.
 5. Wait for "Backup Saved". Copy the file somewhere safe as well — treat it like
    a list of everyone's PINs, because it contains them (encrypted).
 
-The old machine is untouched by an export; you can keep trading on it until the
-new one is ready.
+The old machine is untouched by an export. **Stop trading on it once you have
+exported** — see *One kiosk per Kiosk ID* below.
+
+### One kiosk per Kiosk ID
+
+The backup carries the old machine's POS-terminal config, so the new machine
+syncs sales to the orders service under the **same Kiosk ID**, continuing the
+same sync numbering. If both machines keep trading and syncing after the export:
+
+- sales the old machine syncs after the export are still marked unsynced in the
+  backup, so the new machine pushes them again;
+- both machines hand out the same sync numbers to different sales under the same
+  Kiosk ID, so the orders service rejects or overwrites one of them.
+
+So: export, stop selling on the old machine, import, and retire the old machine.
+If both must stay in service, give one of them a new Kiosk ID before it trades
+again.
 
 ## 2. Prepare the NEW machine
 
@@ -71,6 +86,15 @@ Caveats:
   backup has no value for.
 - Because it is still a full replace of everything else, take the same care as a
   normal import and verify thoroughly afterwards (step 4).
+- Backups from a version without transaction sync have no merchant or sync state
+  on their sales. The import assigns those sales to the restored terminal's Kiosk
+  ID (the "Restore Complete" warnings say how many), so **every historical sale
+  from that backup is pushed to the orders service once** on the next sync.
+- A backup from before the Kiosk ID became free text may have `pos_terminals`
+  skipped entirely (listed on the "Restore Complete" screen). Then no terminal is
+  registered, the sales above stay unassigned, and nothing syncs. Register the
+  terminal again, then set its Kiosk ID in **Settings** and choose to transfer
+  existing transactions to it when prompted.
 - Prefer matching versions whenever you can; partial restore is the fallback.
 
 ## 4. Finish
@@ -86,7 +110,7 @@ Caveats:
      (ring up a test sale, then void it).
 3. Retire the old machine. If it kept trading after the export, those extra
    sales are **not** in the backup — reconcile or re-export before switching
-   over for real.
+   over for real (see *One kiosk per Kiosk ID*).
 
 ## Notes
 

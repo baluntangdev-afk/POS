@@ -3,12 +3,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mobile/core/database/app_database.dart';
 import 'package:mobile/core/providers/database_provider.dart';
+import 'package:mobile/core/services/clock/app_clock.dart';
 import 'package:mobile/features/ordering/entities/line_item.dart';
 import 'package:mobile/features/ordering/entities/sale.dart';
 import 'package:mobile/features/ordering/entities/sale_payment.dart';
 import 'package:mobile/features/ordering/use_cases/finalize_sale.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  late AppClock appClock;
+
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    appClock = await AppClock.load();
+  });
+
   test('FinalizeSale saves the sale as pending then flips it to completed via the receipt', () async {
     final db = AppDatabase(NativeDatabase.memory());
     final cashierId = await db.into(db.usersTable).insert(
@@ -20,7 +29,10 @@ void main() {
     await db.into(db.productsTable).insert(
           ProductsTableCompanion.insert(groupId: groupId, name: 'Burger'),
         );
-    final container = ProviderContainer(overrides: [databaseProvider.overrideWithValue(db)]);
+    final container = ProviderContainer(overrides: [
+      databaseProvider.overrideWithValue(db),
+      appClockProvider.overrideWithValue(appClock),
+    ]);
     addTearDown(() {
       container.dispose();
       db.close();
@@ -65,7 +77,10 @@ void main() {
     await db.into(db.productsTable).insert(
           ProductsTableCompanion.insert(groupId: groupId, name: 'Burger'),
         );
-    final container = ProviderContainer(overrides: [databaseProvider.overrideWithValue(db)]);
+    final container = ProviderContainer(overrides: [
+      databaseProvider.overrideWithValue(db),
+      appClockProvider.overrideWithValue(appClock),
+    ]);
     addTearDown(() {
       container.dispose();
       db.close();

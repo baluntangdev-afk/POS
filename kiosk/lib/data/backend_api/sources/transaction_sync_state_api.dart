@@ -48,7 +48,7 @@ class TransactionSyncStateApi {
     return (response.data as Map<String, dynamic>)['hasTransactions'] as bool;
   }
 
-  Future<void> markSynced({required List<String> saleIds, required List<int> refundIds}) async {
+  Future<void> markSynced({required List<int> saleIds, required List<int> refundIds}) async {
     if (saleIds.isEmpty && refundIds.isEmpty) return;
     await _httpClient.post<dynamic>(
       '/api/v1/transaction-sync/mark-synced',
@@ -60,5 +60,11 @@ class TransactionSyncStateApi {
   /// next sync pushes this device's full history to that merchant.
   Future<void> transfer(String storeId) async {
     await _httpClient.post<dynamic>('/api/v1/transaction-sync/transfer', data: {'storeId': storeId});
+  }
+
+  /// Re-queues every sale/refund for re-upload without changing any sale's
+  /// store. Admin/supervisor only.
+  Future<void> unsync() async {
+    await _httpClient.post<dynamic>('/api/v1/transaction-sync/unsync');
   }
 }

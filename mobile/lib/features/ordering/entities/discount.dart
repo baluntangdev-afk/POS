@@ -23,8 +23,10 @@ class SeniorPwdDiscount extends Discount {
   final String beneficiaryId;
   final String beneficiaryName;
 
+  // Senior/PWD is a plain 20% discount on the gross price; the line stays
+  // VATable (no VAT exemption).
   @override
-  bool get isVatExempt => true;
+  bool get isVatExempt => false;
 
   @override
   String get code => 'Senior Citizen / PWD';
@@ -32,10 +34,8 @@ class SeniorPwdDiscount extends Discount {
   static const rate = 20;
 
   @override
-  double calculateAmount(double originalAmount) {
-    final vatExclusive = originalAmount.vatExclusiveAmount;
-    return ((vatExclusive * rate / 100) * 100).round() / 100;
-  }
+  double calculateAmount(double originalAmount) =>
+      ((originalAmount * rate / 100) * 100).round() / 100;
 }
 
 class PromoDiscount extends Discount {

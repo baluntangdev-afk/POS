@@ -48,16 +48,19 @@ void main() {
     return saleId;
   }
 
-  test('recordRefund marks sale as refunded once fully refunded', () async {
+  test('insertRefundRecord marks sale as refunded once fully refunded', () async {
     final saleId = await _seedSaleWithOneItem(qty: 2, unitPrice: 100);
     final items = await db.salesDao.getRefundableItems(saleId);
     expect(items, hasLength(1));
 
-    await db.salesDao.recordRefund(
-      saleId: saleId,
-      total: 200,
-      items: [(saleItemId: items.first.saleItemId, qty: 2)],
-    );
+    await db.salesDao.insertRefundRecord(
+   saleId: saleId,
+   reason: 'Refund',
+   method: 'cash',
+   total: 200,
+   items: [(saleItemId: items.first.saleItemId, qty: 2, amount: 200)],
+   now: DateTime.now(),
+ );
 
     final sale = await db.salesDao.getSaleById(saleId);
     expect(sale!.status, 'refunded');
@@ -66,15 +69,18 @@ void main() {
     expect(remaining, isEmpty);
   });
 
-  test('recordRefund leaves sale status completed on partial refund', () async {
+  test('insertRefundRecord leaves sale status completed on partial refund', () async {
     final saleId = await _seedSaleWithOneItem(qty: 2, unitPrice: 100);
     final items = await db.salesDao.getRefundableItems(saleId);
 
-    await db.salesDao.recordRefund(
-      saleId: saleId,
-      total: 100,
-      items: [(saleItemId: items.first.saleItemId, qty: 1)],
-    );
+    await db.salesDao.insertRefundRecord(
+   saleId: saleId,
+   reason: 'Refund',
+   method: 'cash',
+   total: 100,
+   items: [(saleItemId: items.first.saleItemId, qty: 1, amount: 100)],
+   now: DateTime.now(),
+ );
 
     final sale = await db.salesDao.getSaleById(saleId);
     expect(sale!.status, 'completed');
@@ -84,16 +90,19 @@ void main() {
     expect(remaining.first.qty, 1);
   });
 
-  test('recordRefund throws when refunding more than available', () async {
+  test('insertRefundRecord throws when refunding more than available', () async {
     final saleId = await _seedSaleWithOneItem(qty: 2, unitPrice: 100);
     final items = await db.salesDao.getRefundableItems(saleId);
 
     expect(
-      () => db.salesDao.recordRefund(
-        saleId: saleId,
-        total: 300,
-        items: [(saleItemId: items.first.saleItemId, qty: 3)],
-      ),
+      () => db.salesDao.insertRefundRecord(
+   saleId: saleId,
+   reason: 'Refund',
+   method: 'cash',
+   total: 300,
+   items: [(saleItemId: items.first.saleItemId, qty: 3, amount: 300)],
+   now: DateTime.now(),
+ ),
       throwsA(isA<ArgumentError>()),
     );
   });

@@ -26,6 +26,7 @@ export class SalesOrderWithItemsMapper {
       totalRefundAmount,
       voidReason: salesOrder.voidReason ?? null,
       voidedAt: salesOrder.voidedAt ?? null,
+      syncedAt: salesOrder.syncedAt ?? null,
       salesOrderItems: salesOrder.salesOrderItems.map(SalesOrderWithItemsMapper.toItemResponse),
     };
   }

@@ -5,11 +5,13 @@ import 'package:mobile/core/database/app_database.dart';
 import 'package:mobile/core/database/tables/sales_table.dart';
 import 'package:mobile/core/database/tables/users_table.dart';
 import 'package:mobile/core/providers/database_provider.dart';
+import 'package:mobile/core/services/clock/app_clock.dart';
 import 'package:mobile/features/auth/entities/user_entity.dart';
 import 'package:mobile/features/auth/state/auth_notifier.dart';
 import 'package:mobile/features/auth/state/auth_providers.dart';
 import 'package:mobile/features/auth/state/auth_state.dart';
 import 'package:mobile/features/cashier_accounting/z_reading/state/z_reading_notifier.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeAuthNotifier extends AuthNotifier {
   final UserEntity user;
@@ -20,6 +22,13 @@ class _FakeAuthNotifier extends AuthNotifier {
 }
 
 void main() {
+  late AppClock appClock;
+
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    appClock = await AppClock.load();
+  });
+
   Future<int> _seedUser(AppDatabase db, String name, {String role = 'cashier'}) =>
       db.into(db.usersTable).insert(
             UsersTableCompanion.insert(name: name, role: role, pinHash: 'x'),
@@ -40,6 +49,7 @@ void main() {
 
     final container = ProviderContainer(overrides: [
       databaseProvider.overrideWithValue(db),
+      appClockProvider.overrideWithValue(appClock),
       authNotifierProvider.overrideWith(() => _FakeAuthNotifier(UserEntity(id: adminId, name: 'Admin', role: 'admin'))),
     ]);
     addTearDown(() {
@@ -72,6 +82,7 @@ void main() {
 
     final container = ProviderContainer(overrides: [
       databaseProvider.overrideWithValue(db),
+      appClockProvider.overrideWithValue(appClock),
       authNotifierProvider.overrideWith(() => _FakeAuthNotifier(UserEntity(id: cashierId, name: 'Ana', role: 'cashier'))),
     ]);
     addTearDown(container.dispose);

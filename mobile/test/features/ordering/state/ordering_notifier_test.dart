@@ -3,12 +3,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mobile/core/database/app_database.dart';
 import 'package:mobile/core/providers/database_provider.dart';
+import 'package:mobile/core/services/clock/app_clock.dart';
 import 'package:mobile/features/ordering/entities/discount.dart';
 import 'package:mobile/features/ordering/entities/line_item.dart';
 import 'package:mobile/features/ordering/state/ordering_notifier.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  test('confirmSale saves the cart as a completed Sale and clears the cart', () async {
+  late AppClock appClock;
+
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    appClock = await AppClock.load();
+  });
+
+  test('confirmSale saves the cart as a completed Sale', () async {
     final db = AppDatabase(NativeDatabase.memory());
     final cashierId = await db.into(db.usersTable).insert(
           UsersTableCompanion.insert(name: 'Cashier', role: 'cashier', pinHash: 'hash'),
@@ -23,7 +32,10 @@ void main() {
           ProductVariantsTableCompanion.insert(productId: productId, name: 'Regular', price: 50),
         );
 
-    final container = ProviderContainer(overrides: [databaseProvider.overrideWithValue(db)]);
+    final container = ProviderContainer(overrides: [
+      databaseProvider.overrideWithValue(db),
+      appClockProvider.overrideWithValue(appClock),
+    ]);
     addTearDown(() {
       container.dispose();
       db.close();
@@ -53,14 +65,19 @@ void main() {
     final row = await db.salesDao.getSaleById(receipt.id);
     expect(row!.status, 'completed');
 
+    // Clearing the cart is the caller's job (PaymentScreen does it after
+    // navigating to the receipt), so confirmSale leaves it untouched.
     final cart = container.read(orderingProvider).value!;
-    expect(cart.sale.items, isEmpty);
+    expect(cart.sale.items, hasLength(1));
   });
 
   test('applyDiscount splits a partially-selected line item and discounts only the selected qty',
       () async {
     final db = AppDatabase(NativeDatabase.memory());
-    final container = ProviderContainer(overrides: [databaseProvider.overrideWithValue(db)]);
+    final container = ProviderContainer(overrides: [
+      databaseProvider.overrideWithValue(db),
+      appClockProvider.overrideWithValue(appClock),
+    ]);
     addTearDown(() {
       container.dispose();
       db.close();

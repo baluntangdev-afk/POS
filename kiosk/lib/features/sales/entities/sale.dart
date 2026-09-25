@@ -37,25 +37,13 @@ class Sale with SaleMappable {
 
   Decimal get grossAmount => items.fold(Decimal.zero, (sum, item) => sum + item.grossAmount);
 
-  Decimal get vatableAmount =>
-      items
-          .where((item) => !item.isVatExempt)
-          .fold(Decimal.zero, (sum, item) => sum + item.totalAmount)
-          .vatableAmount;
+  /// VAT is worked out on what the customer pays (after discounts):
+  /// VATable = total / 1.12, VAT = total − VATable. No sale is VAT-exempt.
+  Decimal get vatableAmount => totalAmount.vatableAmount;
 
-  Decimal get vatAmount =>
-      items
-          .where((item) => !item.isVatExempt)
-          .fold(Decimal.zero, (sum, item) => sum + item.totalAmount)
-          .vatAmount;
+  Decimal get vatAmount => totalAmount.vatAmount;
 
   Decimal get discountAmount => items.fold(Decimal.zero, (sum, item) => sum + item.discountAmount);
-
-  Decimal get vatExemptSales =>
-      items
-          .where((item) => item.isVatExempt)
-          .fold(Decimal.zero, (sum, item) => sum + item.grossAmount)
-          .vatableAmount;
 
   Decimal get totalAmount => items.fold(Decimal.zero, (sum, item) => sum + item.totalAmount);
 }

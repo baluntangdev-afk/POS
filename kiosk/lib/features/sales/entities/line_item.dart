@@ -2,7 +2,6 @@ import 'package:dart_mappable/dart_mappable.dart';
 import 'package:decimal/decimal.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 
-import '../../../utils/tax_calculator.dart';
 import '../enums/sale_type.dart';
 import 'discount.dart';
 import 'selected_modifier.dart';
@@ -46,15 +45,23 @@ class LineItem with LineItemMappable {
     return Decimal.fromInt(quantity) * (variant.price + modifiersPrice);
   }
 
-  bool get isVatExempt => discount?.isVatExempt ?? false;
+  /// The main item and each add-on option are discounted (and rounded)
+  /// separately, the same way the receipt and backend split them; a fixed
+  /// amount applies once, to the main item.
+  Decimal get discountAmount {
+    final discount = this.discount;
+    if (discount == null) return Decimal.zero;
+    if (discount is FixedAmountDiscount) return discount.calculateAmount(grossAmount);
 
-  Decimal get discountAmount => discount?.calculateAmount(grossAmount) ?? Decimal.zero;
-
-  Decimal get totalAmount {
-    if (isVatExempt) {
-      final vatable = grossAmount.vatableAmount;
-      return vatable - discountAmount;
-    }
-    return grossAmount - discountAmount;
+    final qty = Decimal.fromInt(quantity);
+    return modifiers
+        .expand((modifier) => modifier.options)
+        .fold(
+          discount.calculateAmount(qty * variant.price),
+          (total, option) => total + discount.calculateAmount(qty * option.price),
+        );
   }
+
+  /// What the customer pays for this line: [grossAmount] − [discountAmount].
+  Decimal get totalAmount => grossAmount - discountAmount;
 }

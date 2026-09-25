@@ -2,7 +2,6 @@ import 'package:dart_mappable/dart_mappable.dart';
 import 'package:decimal/decimal.dart';
 
 import '../../../utils/decimal_rounding.dart';
-import '../../../utils/tax_calculator.dart';
 
 part 'discount.mapper.dart';
 
@@ -10,19 +9,17 @@ part 'discount.mapper.dart';
 sealed class Discount with DiscountMappable {
   const Discount();
 
-  bool get isVatExempt;
-
   String get code;
 
   Decimal calculateAmount(Decimal originalAmount);
 }
 
 @MappableClass()
+/// Senior Citizen / PWD: a flat 20% off the full (VAT-inclusive) price. It is
+/// *not* VAT-exempt — VAT is carried by what the customer pays, e.g.
+/// ₱112.00 − ₱22.40 = ₱89.60 (VATable ₱80.00 + VAT ₱9.60).
 class SeniorPwdDiscount extends Discount with SeniorPwdDiscountMappable {
   const SeniorPwdDiscount({required this.beneficiaryId, required this.beneficiaryName});
-
-  @override
-  bool get isVatExempt => true;
 
   @override
   String get code => 'Senior Citizen / PWD';
@@ -34,7 +31,7 @@ class SeniorPwdDiscount extends Discount with SeniorPwdDiscountMappable {
 
   @override
   Decimal calculateAmount(Decimal originalAmount) {
-    return (originalAmount.vatableAmount * rate / Decimal.fromInt(100))
+    return (originalAmount * rate / Decimal.fromInt(100))
         .toDecimal(scaleOnInfinitePrecision: 2)
         .toPrecision(2);
   }
@@ -43,9 +40,6 @@ class SeniorPwdDiscount extends Discount with SeniorPwdDiscountMappable {
 @MappableClass()
 class PercentageDiscount extends Discount with PercentageDiscountMappable {
   const PercentageDiscount({required this.code, required this.rate});
-
-  @override
-  bool get isVatExempt => false;
 
   @override
   final String code;
@@ -63,9 +57,6 @@ class PercentageDiscount extends Discount with PercentageDiscountMappable {
 @MappableClass()
 class FixedAmountDiscount extends Discount with FixedAmountDiscountMappable {
   const FixedAmountDiscount({required this.code, required this.amount});
-
-  @override
-  bool get isVatExempt => false;
 
   @override
   final String code;

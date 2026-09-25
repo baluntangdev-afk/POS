@@ -84,6 +84,9 @@ class DiscountScreen extends HookConsumerWidget {
               selectableItems: selectableItems,
               selectedQuantities: selectedQuantities.value,
               onChanged: (v) => selectedQuantities.value = v,
+              onRemoveDiscount:
+                  (id) =>
+                      ref.read(orderingProvider.notifier).removeDiscount(id),
             ),
           ),
           Flexible(
@@ -113,12 +116,14 @@ class _ItemSelectionList extends StatelessWidget {
     required this.selectableItems,
     required this.selectedQuantities,
     required this.onChanged,
+    required this.onRemoveDiscount,
   });
 
   final List<LineItem> items;
   final List<LineItem> selectableItems;
   final Map<String, int> selectedQuantities;
   final ValueChanged<Map<String, int>> onChanged;
+  final ValueChanged<String> onRemoveDiscount;
 
   @override
   Widget build(BuildContext context) {
@@ -189,6 +194,7 @@ class _ItemSelectionList extends StatelessWidget {
                         isDiscounted: isDiscounted,
                         isSelected: isSelected,
                         selectedQty: selectedQty,
+                        onRemoveDiscount: () => onRemoveDiscount(item.id),
                         onToggle:
                             isDiscounted
                                 ? null
@@ -225,6 +231,7 @@ class _ItemRow extends StatelessWidget {
     required this.isDiscounted,
     required this.isSelected,
     required this.selectedQty,
+    required this.onRemoveDiscount,
     required this.onToggle,
     required this.onQuantityChanged,
   });
@@ -233,6 +240,7 @@ class _ItemRow extends StatelessWidget {
   final bool isDiscounted;
   final bool isSelected;
   final int? selectedQty;
+  final VoidCallback onRemoveDiscount;
   final ValueChanged<bool>? onToggle;
   final ValueChanged<int> onQuantityChanged;
 
@@ -278,9 +286,27 @@ class _ItemRow extends StatelessWidget {
           ),
           subtitle:
               isDiscounted
-                  ? const Text(
-                    'Already Discounted',
-                    style: TextStyle(color: AppColors.warning, fontSize: 11),
+                  ? Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Already Discounted',
+                          style: AppTextStyles.bodySm.copyWith(
+                            color: AppColors.warning,
+                          ),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: onRemoveDiscount,
+                        icon: const Icon(Icons.close_rounded, size: 16),
+                        label: const Text('Remove'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          minimumSize: const Size(0, 36),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                      ),
+                    ],
                   )
                   : isSelected && item.quantity > 1
                   ? _QtyStepper(
@@ -367,8 +393,6 @@ class _DiscountControls extends StatelessWidget {
       final item = items.firstWhere((i) => i.id == entry.key);
       return sum + item.unitPrice * entry.value;
     });
-    final vatExempt =
-        selectedType == 'Senior/PWD' ? selectedSubtotal.vatAmount : 0.0;
     final discountAmount =
         selectedType == 'Senior/PWD'
             ? const SeniorPwdDiscount(
@@ -457,9 +481,13 @@ class _DiscountControls extends StatelessWidget {
                 child: Column(
                   children: [
                     _SummaryRow('Selected Total', selectedSubtotal),
-                    if (vatExempt > 0) _SummaryRow('VAT Exempt', -vatExempt),
-                    if (discountAmount > 0)
+                    if (discountAmount > 0) ...[
                       _SummaryRow('Discount', -discountAmount),
+                      _SummaryRow(
+                        'Discounted Total',
+                        selectedSubtotal - discountAmount,
+                      ),
+                    ],
                   ],
                 ),
               ),

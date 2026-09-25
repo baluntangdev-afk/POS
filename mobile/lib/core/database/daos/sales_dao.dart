@@ -216,6 +216,20 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     required DateTime now,
   }) async {
     final refundId = await transaction(() async {
+      final refundable = await getRefundableItems(saleId);
+      final refundableQty = {
+        for (final r in refundable) r.saleItemId: r.qty,
+      };
+      for (final item in items) {
+        final available = refundableQty[item.saleItemId] ?? 0;
+        if (item.qty > available) {
+          throw ArgumentError(
+            'Cannot refund qty ${item.qty} for sale item ${item.saleItemId}: '
+            'only $available remaining',
+          );
+        }
+      }
+
       final refundId = await insertRefund(RefundsTableCompanion.insert(
         saleId: saleId,
         reason: reason,
@@ -393,58 +407,6 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       voidReason: sale.voidReason,
       voidLocked: sale.status != 'voided' && sale.createdAt.isBefore(voidCutoff),
     );
-  }
-
-  Future<void> recordRefund({
-    required int saleId,
-    required double total,
-    required List<({int saleItemId, int qty})> items,
-    String reason = 'Refund',
-  }) async {
-    await transaction(() async {
-      final refundable = await getRefundableItems(saleId);
-      final refundableQty = {
-        for (final r in refundable) r.saleItemId: r.qty,
-      };
-      for (final item in items) {
-        final available = refundableQty[item.saleItemId] ?? 0;
-        if (item.qty > available) {
-          throw ArgumentError(
-            'Cannot refund qty ${item.qty} for sale item ${item.saleItemId}: '
-            'only $available remaining',
-          );
-        }
-      }
-
-      final refundId = await insertRefund(
-        RefundsTableCompanion.insert(
-          saleId: saleId,
-          reason: reason,
-          total: total,
-          createdAt: DateTime.now(),
-        ),
-      );
-      for (final item in items) {
-        final saleItem = await (select(saleItemsTable)
-              ..where((t) => t.id.equals(item.saleItemId)))
-            .getSingle();
-        await insertRefundItem(
-          RefundItemsTableCompanion.insert(
-            refundId: refundId,
-            saleItemId: item.saleItemId,
-            qty: item.qty,
-            amount: saleItem.unitPrice * item.qty,
-          ),
-        );
-      }
-
-      final remaining = await getRefundableItems(saleId);
-      if (remaining.isEmpty) {
-        await (update(salesTable)..where((t) => t.id.equals(saleId)))
-            .write(const SalesTableCompanion(status: Value('refunded')));
-      }
-    });
-    _notifySyncNeeded();
   }
 
   Future<int> voidSale(
@@ -1172,24 +1134,13 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       'THEN (si.qty * si.unit_price - COALESCE(si.discount_amount, 0)) / 1.12 ELSE 0 END), 0) as vatable_sales, '
       "COALESCE(SUM(CASE WHEN si.vat_exempt_amount IS NULL OR si.vat_exempt_amount = 0 "
       'THEN (si.qty * si.unit_price - COALESCE(si.discount_amount, 0)) '
-      '- (si.qty * si.unit_price - COALESCE(si.discount_amount, 0)) / 1.12 ELSE 0 END), 0) as vat_amount '
+      '- (si.qty * si.unit_price - COALESCE(si.discount_amount, 0)) / 1.12 ELSE 0 END), 0) as vat_amount, '
+      // VAT-exempt (Senior/PWD) lines only, VAT-exclusive before the discount —
+      // same basis as Sale.vatExemptSales / Receipt.vatExemptSales.
+      'COALESCE(SUM(CASE WHEN si.vat_exempt_amount > 0 '
+      'THEN ROUND(si.qty * si.unit_price / 1.12, 2) ELSE 0 END), 0) as vat_exempt_sales '
       'FROM sale_items si JOIN sales s ON s.id = si.sale_id '
       'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$cashierFilter$storeFilter',
-      variables: [
-        Variable.withDateTime(from),
-        Variable.withDateTime(to),
-        Variable.withString('completed'),
-        if (cashierId != null) Variable.withInt(cashierId),
-        if (storeId != null) Variable.withString(storeId),
-      ],
-      readsFrom: {salesTable, saleItemsTable},
-    ).getSingle();
-
-    final exemptRow = await customSelect(
-      'SELECT COALESCE(SUM(s.total), 0) as vat_exempt_sales FROM sales s '
-      'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$cashierFilter$storeFilter '
-      'AND s.id IN (SELECT DISTINCT sale_id FROM sale_items '
-      'WHERE vat_exempt_amount IS NOT NULL AND vat_exempt_amount > 0)',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
@@ -1203,7 +1154,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     return (
       vatableSales: taxRow.read<double>('vatable_sales'),
       vatAmount: taxRow.read<double>('vat_amount'),
-      vatExemptSales: exemptRow.read<double>('vat_exempt_sales'),
+      vatExemptSales: taxRow.read<double>('vat_exempt_sales'),
     );
   }
 
@@ -1354,6 +1305,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         qty: item.qty,
         unitPrice: item.unitPrice,
         discountAmount: item.discountAmount ?? 0,
+        vatExemptAmount: item.vatExemptAmount ?? 0,
       );
     }).toList();
   }

@@ -212,6 +212,40 @@ class OrderingNotifier extends AsyncNotifier<OrderingData> {
     state = state.whenData((s) => s.copyWith(sale: s.sale.copyWith(items: newLineItems)));
   }
 
+  /// Strips the discount off [lineItemId]. If an identical undiscounted line
+  /// already exists (e.g. the remainder of a partial-quantity discount), the
+  /// quantities are merged back into it.
+  void removeDiscount(String lineItemId) {
+    state = state.whenData((s) {
+      final items = s.sale.items;
+      final target = items.where((i) => i.id == lineItemId).firstOrNull;
+      if (target == null || target.discount == null) return s;
+
+      final mergeIndex = items.indexWhere(
+        (i) => i.id != lineItemId && i.discount == null && _isSameItem(i, target),
+      );
+
+      final List<LineItem> updatedItems;
+      if (mergeIndex != -1) {
+        final existing = items[mergeIndex];
+        updatedItems = [
+          for (final i in items)
+            if (i.id == existing.id)
+              existing.copyWith(quantity: existing.quantity + target.quantity)
+            else if (i.id != lineItemId)
+              i,
+        ];
+      } else {
+        updatedItems = [
+          for (final i in items)
+            i.id == lineItemId ? i.copyWith(discount: () => null) : i,
+        ];
+      }
+
+      return s.copyWith(sale: s.sale.copyWith(items: updatedItems));
+    });
+  }
+
   void setSaleType(String type) {
     state = state.whenData((s) => s.copyWith(sale: s.sale.copyWith(type: type)));
   }

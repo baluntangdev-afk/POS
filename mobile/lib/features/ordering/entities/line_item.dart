@@ -59,10 +59,11 @@ class LineItem {
   double get discountAmount => discount?.calculateAmount(lineSubtotal) ?? 0;
 
   bool get isVatExempt => discount?.isVatExempt ?? false;
-  double get vatExclusiveAmount => lineSubtotal.vatExclusiveAmount;
-  double get vatAmount => isVatExempt ? 0 : lineSubtotal.vatAmount;
+  double get lineTotal => lineSubtotal - discountAmount;
 
-  double get lineTotal => vatExclusiveAmount + vatAmount - discountAmount;
+  // VAT is computed on what the customer actually pays (net of discount).
+  double get vatExclusiveAmount => lineTotal.vatExclusiveAmount;
+  double get vatAmount => isVatExempt ? 0 : lineTotal.vatAmount;
 
   LineItem copyWith({
     String? id,

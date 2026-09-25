@@ -249,12 +249,12 @@ class _PaymentSummaryRows extends ConsumerWidget {
         final sale = it.value?.sale;
         if (sale == null) return const <({String label, Decimal amount})>[];
         return [
-          (label: 'VATable Sales', amount: sale.vatableAmount),
-          if (sale.vatExemptSales > Decimal.zero)
-            (label: 'VAT-Exempt Sales', amount: sale.vatExemptSales),
-          (label: 'VAT', amount: sale.vatAmount),
+          // Subtotal − Discount = the amount due; VATable Sales + VAT split it.
+          (label: 'Subtotal', amount: sale.grossAmount),
           if (sale.discountAmount > Decimal.zero)
             (label: 'Discount', amount: -sale.discountAmount),
+          (label: 'VATable Sales', amount: sale.vatableAmount),
+          (label: 'VAT', amount: sale.vatAmount),
         ];
       }),
     );

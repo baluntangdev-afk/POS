@@ -1,6 +1,6 @@
 import { Injectable, Logger, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, QueryRunner } from 'typeorm';
 import { ArchiveCryptoService } from './archive-crypto.service';
 import { DbSnapshotService, TableSnapshot } from './db-snapshot.service';
 import { ARCHIVE_FORMAT_VERSION } from '../device-transfer.constants';
@@ -38,6 +38,15 @@ export class DeviceImportService {
     let result: Awaited<ReturnType<typeof this.snapshot.restore>>;
     try {
       result = await this.snapshot.restore({ tables: payload.tables }, qr, { partial });
+      if (partial) {
+        const stamped = await this.backfillSaleStoreIds(payload.tables, qr);
+        if (stamped > 0) {
+          warnings.push(
+            `${stamped} restored sale${stamped === 1 ? '' : 's'} had no merchant and ` +
+              "were assigned to this device's Kiosk ID so they sync.",
+          );
+        }
+      }
       await qr.commitTransaction();
     } catch (err) {
       await qr.rollbackTransaction();
@@ -106,6 +115,34 @@ export class DeviceImportService {
           'Update both devices to the same version, or retry as a partial restore.',
       );
     }
+  }
+
+  /**
+   * A partial restore keeps this device's own migration history, so the
+   * `store_id` backfill in `TransactionSyncState1785200000000` never runs over
+   * sales from a pre-sync backup. Left NULL they are invisible to transaction
+   * sync, so stamp them the same way that migration does: with the (single)
+   * terminal's Kiosk ID. Returns the number of sales stamped.
+   */
+  private async backfillSaleStoreIds(tables: TableSnapshot[], qr: QueryRunner): Promise<number> {
+    const archived = tables.find((t) => t.name === 'sales_orders');
+    if (!archived || archived.columns.some((c) => c.name === 'store_id')) return 0;
+
+    const [{ exists }] = (await qr.query(
+      `SELECT EXISTS (
+         SELECT 1 FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = 'sales_orders' AND column_name = 'store_id'
+       ) AS "exists"`,
+    )) as { exists: boolean }[];
+    if (!exists) return 0;
+
+    const [, affected] = (await qr.query(
+      `UPDATE "sales_orders"
+          SET "store_id" = (SELECT "kiosk_id" FROM "pos_terminals" ORDER BY "id" ASC LIMIT 1)
+        WHERE "store_id" IS NULL
+          AND EXISTS (SELECT 1 FROM "pos_terminals")`,
+    )) as [unknown, number];
+    return affected ?? 0;
   }
 
   /** Warn about target tables the archive did not carry — they end up empty. */

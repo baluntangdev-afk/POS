@@ -2,6 +2,8 @@ import { SalesOrder } from '../../sales-orders/entities/sales-order.entity';
 import { SalesOrderItem } from '../../sales-orders/entities/sales-order-item.entity';
 import { Refund } from '../../refunds/entities/refund.entity';
 import { PaymentMethod } from '../../payments/payments.enum';
+import { SalesOrderStatus, SalesOrderType } from '../../sales-orders/sales-orders.enum';
+import { VAT_EXEMPT_DISCOUNT_NAME_PATTERNS } from '../../sales-orders/services/sales-order-calculation.service';
 
 /**
  * Builds the `sales[]` / `refunds[]` records of the orders service's
@@ -9,22 +11,40 @@ import { PaymentMethod } from '../../payments/payments.enum';
  * app sends (see mobile `SalesDao.getSaleSyncPayload` / `getRefundSyncPayload`),
  * so the kiosk can forward them verbatim.
  *
+ * The orders service validates records against the mobile app's model, so
+ * values are translated to it: `local_id` is the sale's integer `syncId` (the
+ * UUID primary key is rejected), and `status` / `type` use mobile's
+ * lowercase vocabulary.
+ *
  * Kiosk sales model modifiers/add-ons as child line items (`parent_so_item_id`)
  * rather than a separate table, so only top-level items become `items[]` and
  * their children become each item's `modifiers[]`.
  */
 export class TransactionSyncPayloadMapper {
-  static toSalePayload(sale: SalesOrder): Record<string, unknown> {
+  /**
+   * Whether [sale] was saved as VAT-exempt: it has a Senior Citizen / PWD line
+   * and was charged no VAT. Mirrors the reports' `LEGACY_VAT_EXEMPT_SALE_SQL`.
+   */
+  static isLegacyVatExemptSale(sale: SalesOrder): boolean {
+    if (Number(sale.taxAmount ?? 0) !== 0) return false;
+    return (sale.salesOrderItems ?? []).some(
+      (item) => item.salesOrderDiscount?.discount?.name === VAT_EXEMPT_DISCOUNT_NAME_PATTERNS,
+    );
+  }
+
+  /** [refundedAmount] is the sum of every refund against [sale]. */
+  static toSalePayload(sale: SalesOrder, refundedAmount = 0): Record<string, unknown> {
     const items = TransactionSyncPayloadMapper.topLevelItems(sale.salesOrderItems ?? []);
     const children = sale.salesOrderItems ?? [];
+    const isLegacyVatExempt = TransactionSyncPayloadMapper.isLegacyVatExemptSale(sale);
 
     return {
-      local_id: sale.id,
+      local_id: sale.syncId,
       so_number: sale.soNumber,
       cashier_name: TransactionSyncPayloadMapper.userName(sale.createdBy),
       created_at: sale.createdAt.toISOString(),
-      type: sale.soType,
-      status: sale.status,
+      type: TransactionSyncPayloadMapper.saleType(sale.soType),
+      status: TransactionSyncPayloadMapper.saleStatus(sale, refundedAmount),
       total: Number(sale.finalTotalAmount),
       discount: Number(sale.discountAmount),
       void_reason: sale.voidReason,
@@ -42,7 +62,9 @@ export class TransactionSyncPayloadMapper {
           discount_beneficiary_id: item.discountBeneficiaryIdNumber,
           discount_beneficiary_name: item.discountBeneficiaryName,
           discount_amount: Number(item.itemDiscountedPrice ?? 0),
-          vat_exempt_amount: discount ? Number(item.vatAmount ?? 0) : 0,
+          // Only sales saved while Senior Citizen / PWD was VAT-exempt carry a
+          // VAT-exempt figure; newer Senior/PWD sales are VATable.
+          vat_exempt_amount: isLegacyVatExempt && discount ? Number(item.vatAmount ?? 0) : 0,
           modifiers: children
             .filter((child) => child.parentSoItem?.id === item.id)
             .map((child) => ({
@@ -77,7 +99,7 @@ export class TransactionSyncPayloadMapper {
     return {
       local_id: refund.id,
       refund_number: refund.refundNumber,
-      sale_local_id: sale.id,
+      sale_local_id: sale.syncId,
       sale_so_number: sale.soNumber,
       reason: refund.reason,
       method: refund.paymentMethod,
@@ -94,6 +116,26 @@ export class TransactionSyncPayloadMapper {
         };
       }),
     };
+  }
+
+  /** Mobile's sale statuses: `completed` | `voided` | `refunded`. */
+  private static saleStatus(sale: SalesOrder, refundedAmount: number): string {
+    if (sale.status === SalesOrderStatus.CANCELLED) return 'voided';
+    const total = Number(sale.finalTotalAmount);
+    if (total > 0 && refundedAmount >= total) return 'refunded';
+    return 'completed';
+  }
+
+  /** Mobile's sale types: `dine_in` | `take_out` | `delivery`. */
+  private static saleType(type: SalesOrderType): string {
+    switch (type) {
+      case SalesOrderType.TAKE_OUT:
+        return 'take_out';
+      case SalesOrderType.DELIVERY:
+        return 'delivery';
+      default:
+        return 'dine_in';
+    }
   }
 
   private static topLevelItems(items: SalesOrderItem[]): SalesOrderItem[] {

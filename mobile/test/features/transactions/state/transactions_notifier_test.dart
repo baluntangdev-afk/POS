@@ -5,7 +5,10 @@ import 'package:mobile/core/database/app_database.dart';
 import 'package:mobile/core/database/tables/sales_table.dart';
 import 'package:mobile/core/database/tables/users_table.dart';
 import 'package:mobile/core/providers/database_provider.dart';
+import 'package:mobile/core/services/clock/app_clock.dart';
+import 'package:mobile/features/ordering/use_cases/void_sale.dart';
 import 'package:mobile/features/transactions/state/transactions_notifier.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   Future<int> _seedCashier(AppDatabase db) => db.into(db.usersTable).insert(
@@ -115,7 +118,9 @@ void main() {
     expect(ids, hasLength(25));
   });
 
-  test('voidTransaction marks the sale as voided', () async {
+  test('voiding a sale shows it as voided in the transactions list', () async {
+    SharedPreferences.setMockInitialValues({});
+    final appClock = await AppClock.load();
     final db = AppDatabase(NativeDatabase.memory());
     final cashierId = await _seedCashier(db);
     final saleId = await db.salesDao.insertSale(SalesTableCompanion.insert(
@@ -128,6 +133,7 @@ void main() {
 
     final container = ProviderContainer(overrides: [
       databaseProvider.overrideWithValue(db),
+      appClockProvider.overrideWithValue(appClock),
     ]);
     addTearDown(() {
       container.dispose();
@@ -135,7 +141,10 @@ void main() {
     });
 
     await container.read(transactionsProvider.future);
-    await container.read(transactionsProvider.notifier).voidTransaction(saleId);
+    // Mirrors VoidTransactionDialog: void via the use case, then refresh.
+    await container.read(voidSaleProvider)(saleId: saleId, reason: 'Voided by cashier');
+    container.invalidate(transactionsProvider);
+    await container.read(transactionsProvider.future);
 
     final result = container.read(transactionsProvider).value!;
     final tx = result.items.firstWhere((e) => e.id == saleId);

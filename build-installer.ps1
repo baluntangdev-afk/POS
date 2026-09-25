@@ -4,9 +4,15 @@
 # Usage:
 #   .\build-installer.ps1                  # build with current version
 #   .\build-installer.ps1 -Version 1.1.0   # bump version then build
+#   .\build-installer.ps1 -Mode Offline    # build the offline flavor (default: Online)
+#
+# -Mode sets --dart-define=SKIP_DEVICE_REGISTRATION for the Flutter build and
+# suffixes the output: POSKiosk-Setup-<version>-<Mode>.exe
 
 param(
-    [string]$Version = ""
+    [string]$Version = "",
+    [ValidateSet("Online", "Offline")]
+    [string]$Mode = "Online"
 )
 
 $ErrorActionPreference = "Stop"
@@ -59,7 +65,8 @@ if ($Version -ne "") {
 
 # ── Read current version ──────────────────────────────────────────────────────
 $currentVersion = (Get-Content $IssPath | Select-String '#define MyAppVersion').ToString() -replace '.*"([^"]+)".*','$1'
-Write-Host "`nBuilding version: $currentVersion" -ForegroundColor Yellow
+$skipDeviceRegistration = if ($Mode -eq "Offline") { "true" } else { "false" }
+Write-Host "`nBuilding version: $currentVersion ($Mode, SKIP_DEVICE_REGISTRATION=$skipDeviceRegistration)" -ForegroundColor Yellow
 
 # ── Flutter pre-build setup (must run before jobs) ───────────────────────────
 Write-Step "Preparing Flutter environment..."
@@ -82,10 +89,10 @@ $beJob = Start-Job -Name "Backend" -ScriptBlock {
 } -ArgumentList $BeDir
 
 $flutterJob = Start-Job -Name "Flutter" -ScriptBlock {
-    param($dir)
+    param($dir, $skipDeviceRegistration)
     Set-Location $dir
-    flutter build windows 2>&1
-} -ArgumentList $KioskDir
+    flutter build windows "--dart-define=SKIP_DEVICE_REGISTRATION=$skipDeviceRegistration" 2>&1
+} -ArgumentList $KioskDir, $skipDeviceRegistration
 
 # Stream progress while waiting
 $done = @{}
@@ -149,14 +156,14 @@ Write-Ok "Installer scripts sanitized."
 Write-Step "Compiling installer (LZMA2 - this takes ~2 min)..."
 
 New-Item -ItemType Directory -Force $OutputDir | Out-Null
-& $IsccPath $IssPath
+& $IsccPath "/DMyAppFlavor=$Mode" $IssPath
 if ($LASTEXITCODE -ne 0) {
     Write-Fail "ISCC compilation failed (exit $LASTEXITCODE)."
     exit 1
 }
 
 # ── Done ──────────────────────────────────────────────────────────────────────
-$outFile = Get-ChildItem $OutputDir -Filter "POSKiosk-Setup-*.exe" |
+$outFile = Get-ChildItem $OutputDir -Filter "POSKiosk-Setup-*-$Mode.exe" |
            Sort-Object LastWriteTime -Descending | Select-Object -First 1
 
 Write-Host ""

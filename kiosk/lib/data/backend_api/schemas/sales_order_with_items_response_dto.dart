@@ -25,6 +25,7 @@ class SalesOrderWithItemsResponseDto with SalesOrderWithItemsResponseDtoMappable
     this.totalRefundAmount = 0,
     this.voidReason,
     this.voidedAt,
+    this.syncedAt,
   });
 
   final String id;
@@ -43,6 +44,9 @@ class SalesOrderWithItemsResponseDto with SalesOrderWithItemsResponseDtoMappable
   final List<SalesOrderItemResponseDto> salesOrderItems;
   final String? voidReason;
   final DateTime? voidedAt;
+
+  /// When the orders service accepted this sale; `null` while pending sync.
+  final DateTime? syncedAt;
 
   static const fromJson = SalesOrderWithItemsResponseDtoMapper.fromJson;
 }

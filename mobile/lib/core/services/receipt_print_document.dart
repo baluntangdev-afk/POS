@@ -172,6 +172,11 @@ abstract final class ReceiptPrintDocument {
   ) {
     for (final item in items) {
       final prefix = item.isMain ? '' : '  ';
+      // Add-on prices are already included in the main item's amount.
+      if (!item.isMain) {
+        instructions.add(PrintText('$prefix${item.quantity} ${item.description}'));
+        continue;
+      }
       instructions.add(
         PrintRow(
           columns: [
@@ -320,7 +325,7 @@ abstract final class ReceiptPrintDocument {
         PrintText(payment.change.toStringAsFixed(2), align: PrintAlign.right),
       );
     } else {
-      instructions.add(PrintText(payment.method));
+      instructions.add(PrintText(_methodLabel(payment.method)));
       instructions.add(
         PrintText(
           payment.amountPaid.toStringAsFixed(2),
@@ -334,6 +339,12 @@ abstract final class ReceiptPrintDocument {
       }
     }
   }
+
+  static String _methodLabel(String method) => switch (method) {
+        'card' => 'Card',
+        'ewallet' => 'E-Wallet',
+        _ => method,
+      };
 
   static String _fmtDate(DateTime dt) =>
       DateFormat.yMd().add_jm().format(dt.toLocal());

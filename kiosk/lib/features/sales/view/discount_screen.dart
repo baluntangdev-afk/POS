@@ -12,7 +12,6 @@ import '../../../styles/responsive/responsive_builder.dart';
 import '../../../styles/responsive/responsive_value.dart';
 import '../../../theme/pos_design.dart';
 import '../../../utils/decimal_formatter.dart';
-import '../../../utils/tax_calculator.dart';
 import '../../../utils/physical_keyboard_detector.dart';
 import '../../../utils/windows_touch_keyboard.dart';
 import '../../../widgets/onscreen_keyboard/keyboard_suppress.dart';
@@ -26,6 +25,7 @@ import '../../../widgets/windows_scaffold.dart';
 import '../entities/discount.dart';
 import '../entities/line_item.dart';
 import '../state/ordering_notifier.dart';
+import 'remove_discount_button.dart';
 
 class DiscountScreen extends HookConsumerWidget {
   const DiscountScreen({super.key});
@@ -34,13 +34,9 @@ class DiscountScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final discountTypes = useMemoized(() => ['Senior/PWD', 'Promo']);
     final selectedDiscountType = useState('Senior/PWD');
-    final initialSelected = useMemoized(() {
-      final items = ref.read(orderingProvider).value?.sale.items ?? const IList.empty();
-      return <String, int>{
-        for (final item in items.where((e) => e.discount != null)) item.id: item.quantity,
-      };
-    });
-    final selectedQuantities = useState<Map<String, int>>(initialSelected);
+    // Already-discounted items are locked (remove the discount to reselect
+    // them), so nothing starts out selected.
+    final selectedQuantities = useState<Map<String, int>>(const {});
     final isAndroid = context.breakpoint.isAndroid;
 
     void onApplyDiscount(String? idNumber, String? beneficiaryName) {
@@ -284,6 +280,10 @@ class _LineItemSelectionView extends ConsumerWidget {
         (it) => it.value?.sale.items ?? const IList.empty(),
       ),
     );
+    // Discounted items are locked until their discount is removed.
+    final selectableItems = lineItems.where((e) => e.discount == null).toList();
+    final allSelected = selectableItems.isNotEmpty &&
+        selectableItems.every((e) => selectedQuantities.containsKey(e.id));
 
     return Container(
       margin: EdgeInsets.all(r.value<double>(kiosk: 20, tablet: 16, phone: 12)),
@@ -329,23 +329,23 @@ class _LineItemSelectionView extends ConsumerWidget {
                   ],
                 ),
                 TextButton(
-                  onPressed: () {
-                    if (selectedQuantities.length == lineItems.length) {
-                      onQuantitiesChanged({});
-                    } else {
-                      onQuantitiesChanged({
-                        for (final item in lineItems) item.id: item.quantity,
-                      });
-                    }
-                  },
+                  onPressed: selectableItems.isEmpty
+                      ? null
+                      : () {
+                          if (allSelected) {
+                            onQuantitiesChanged({});
+                          } else {
+                            onQuantitiesChanged({
+                              for (final item in selectableItems) item.id: item.quantity,
+                            });
+                          }
+                        },
                   style: TextButton.styleFrom(
                     foregroundColor: ColorSet.primary,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   ),
                   child: Text(
-                    selectedQuantities.length == lineItems.length
-                        ? 'Deselect All'
-                        : 'Select All',
+                    allSelected ? 'Deselect All' : 'Select All',
                     style: TextStyle(
                       fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
                       fontWeight: FontWeight.w600,
@@ -367,6 +367,7 @@ class _LineItemSelectionView extends ConsumerWidget {
               ),
               itemBuilder: (context, index) {
                 final item = lineItems[index];
+                final isDiscounted = item.discount != null;
                 final selectedQty = selectedQuantities[item.id];
                 final isSelected = selectedQty != null;
                 final style = productPlaceholder(item.categoryName);
@@ -376,15 +377,17 @@ class _LineItemSelectionView extends ConsumerWidget {
                       ? ColorSet.primary.withValues(alpha: 0.03)
                       : Colors.transparent,
                   child: InkWell(
-                    onTap: () {
-                      final newMap = Map<String, int>.from(selectedQuantities);
-                      if (isSelected) {
-                        newMap.remove(item.id);
-                      } else {
-                        newMap[item.id] = item.quantity;
-                      }
-                      onQuantitiesChanged(newMap);
-                    },
+                    onTap: isDiscounted
+                        ? null
+                        : () {
+                            final newMap = Map<String, int>.from(selectedQuantities);
+                            if (isSelected) {
+                              newMap.remove(item.id);
+                            } else {
+                              newMap[item.id] = item.quantity;
+                            }
+                            onQuantitiesChanged(newMap);
+                          },
                     child: Padding(
                       padding: EdgeInsets.symmetric(
                         vertical: r.value<double>(kiosk: 14, tablet: 12, phone: 10),
@@ -401,15 +404,17 @@ class _LineItemSelectionView extends ConsumerWidget {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(POSRadius.xs),
                               ),
-                              onChanged: (value) {
-                                final newMap = Map<String, int>.from(selectedQuantities);
-                                if (value ?? false) {
-                                  newMap[item.id] = item.quantity;
-                                } else {
-                                  newMap.remove(item.id);
-                                }
-                                onQuantitiesChanged(newMap);
-                              },
+                              onChanged: isDiscounted
+                                  ? null
+                                  : (value) {
+                                      final newMap = Map<String, int>.from(selectedQuantities);
+                                      if (value ?? false) {
+                                        newMap[item.id] = item.quantity;
+                                      } else {
+                                        newMap.remove(item.id);
+                                      }
+                                      onQuantitiesChanged(newMap);
+                                    },
                             ),
                           ),
                           SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
@@ -455,24 +460,9 @@ class _LineItemSelectionView extends ConsumerWidget {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 2),
-                                if (item.discount != null) ...[
-                                  Container(
-                                    margin: const EdgeInsets.only(bottom: 2),
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: ColorSet.danger.withValues(alpha: 0.08),
-                                      borderRadius: BorderRadius.circular(POSRadius.xs),
-                                      border: Border.all(color: ColorSet.danger.withValues(alpha: 0.3)),
-                                    ),
-                                    child: Text(
-                                      'LESS: ${item.discount!.code}',
-                                      style: TextStyle(
-                                        fontSize: r.value<double>(kiosk: 11, tablet: 10, phone: 9),
-                                        color: ColorSet.danger,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
+                                if (isDiscounted) ...[
+                                  const _AlreadyDiscountedBadge(),
+                                  const SizedBox(height: 2),
                                 ],
                                 if (isSelected && item.quantity > 1) ...[
                                   _QuantityStepper(
@@ -513,13 +503,27 @@ class _LineItemSelectionView extends ConsumerWidget {
                             ),
                           ),
                           SizedBox(width: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
-                          Text(
-                            item.grossAmount.pesoFormatted,
-                            style: TextStyle(
-                              fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
-                              fontWeight: FontWeight.w700,
-                              color: isSelected ? ColorSet.primary : POSColors.textPrimary,
-                            ),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                item.grossAmount.pesoFormatted,
+                                style: TextStyle(
+                                  fontSize: r.value<double>(kiosk: 16, tablet: 14, phone: 13),
+                                  fontWeight: FontWeight.w700,
+                                  color: isSelected ? ColorSet.primary : POSColors.textPrimary,
+                                ),
+                              ),
+                              if (isDiscounted) ...[
+                                const SizedBox(height: 4),
+                                RemoveDiscountButton(
+                                  label: 'Remove',
+                                  onPressed: () =>
+                                      ref.read(orderingProvider.notifier).removeDiscount(item.id),
+                                ),
+                              ],
+                            ],
                           ),
                         ],
                       ),
@@ -827,29 +831,11 @@ class _SummarySection extends ConsumerWidget {
       orderingProvider.select((it) => it.value?.sale.items ?? const IList.empty()),
     );
 
-    final grossAmount = selectedQuantities.entries.fold(Decimal.zero, (sum, entry) {
-      final lineItemId = entry.key;
-      final item = lineItems.firstWhere(
-        (item) => item.id == lineItemId,
-        orElse: () => throw Exception('Line item with ID $lineItemId not found'),
-      );
-      final quantity = Decimal.fromInt(entry.value);
-      final basePrice = item.variant.price;
-      final modifiersPrice = item.modifiers.fold(
-        Decimal.zero,
-        (total, modifier) => total + modifier.price,
-      );
-      return sum + (quantity * (basePrice + modifiersPrice));
-    });
-
-    var vatExempt = Decimal.zero;
-    var discountAmount = Decimal.zero;
-
-    if (selectedDiscountType == 'Senior/PWD') {
-      const discount = SeniorPwdDiscount(beneficiaryId: 'for_calculator_use_only', beneficiaryName: '');
-      vatExempt = grossAmount.vatAmount;
-      discountAmount = discount.calculateAmount(grossAmount);
-    }
+    final (:selectedTotal, :discountAmount) = _selectionAmounts(
+      lineItems,
+      selectedQuantities,
+      isSeniorPwd: selectedDiscountType == 'Senior/PWD',
+    );
 
     if (selectedQuantities.isEmpty) return const SizedBox.shrink();
 
@@ -862,11 +848,10 @@ class _SummarySection extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          _SummaryRow(label: 'Selected Total', amount: grossAmount),
-          if (vatExempt > Decimal.zero)
-            _SummaryRow(label: 'VAT Exempt', amount: -vatExempt, isDeduction: true),
+          _SummaryRow(label: 'Selected Total', amount: selectedTotal),
           if (discountAmount > Decimal.zero)
             _SummaryRow(label: 'Discount', amount: -discountAmount, isDeduction: true),
+          _SummaryRow(label: 'Discounted Total', amount: selectedTotal - discountAmount, isEmphasis: true),
         ],
       ),
     );
@@ -874,11 +859,17 @@ class _SummarySection extends ConsumerWidget {
 }
 
 class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({required this.label, required this.amount, this.isDeduction = false});
+  const _SummaryRow({
+    required this.label,
+    required this.amount,
+    this.isDeduction = false,
+    this.isEmphasis = false,
+  });
 
   final String label;
   final Decimal amount;
   final bool isDeduction;
+  final bool isEmphasis;
 
   @override
   Widget build(BuildContext context) {
@@ -892,15 +883,26 @@ class _SummaryRow extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
-              color: isDeduction ? ColorSet.danger : POSColors.textSecondary,
+              fontWeight: isEmphasis ? FontWeight.w700 : null,
+              color: isDeduction
+                  ? ColorSet.danger
+                  : isEmphasis
+                  ? POSColors.textPrimary
+                  : POSColors.textSecondary,
             ),
           ),
           Text(
             amount.pesoFormatted,
             style: TextStyle(
-              fontSize: r.value<double>(kiosk: 14, tablet: 13, phone: 12),
-              fontWeight: FontWeight.w600,
-              color: isDeduction ? ColorSet.danger : POSColors.textPrimary,
+              fontSize: isEmphasis
+                  ? r.value<double>(kiosk: 18, tablet: 16, phone: 14)
+                  : r.value<double>(kiosk: 14, tablet: 13, phone: 12),
+              fontWeight: isEmphasis ? FontWeight.w800 : FontWeight.w600,
+              color: isDeduction
+                  ? ColorSet.danger
+                  : isEmphasis
+                  ? ColorSet.primary
+                  : POSColors.textPrimary,
             ),
           ),
         ],
@@ -1494,17 +1496,31 @@ class _DlgItemPanel extends ConsumerWidget {
                             ),
                             SizedBox(width: r.value<double>(kiosk: 8, tablet: 6, phone: 6)),
           
-                            // Price
-                            Opacity(
-                              opacity: isDiscounted ? 0.55 : 1.0,
-                              child: Text(
-                                item.grossAmount.pesoFormatted,
-                                style: TextStyle(
-                                  fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 12),
-                                  fontWeight: FontWeight.w800,
-                                  color: isSelected ? ColorSet.primary : POSColors.textSecondary,
+                            // Price (+ Remove for a discounted item)
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Opacity(
+                                  opacity: isDiscounted ? 0.55 : 1.0,
+                                  child: Text(
+                                    item.grossAmount.pesoFormatted,
+                                    style: TextStyle(
+                                      fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 12),
+                                      fontWeight: FontWeight.w800,
+                                      color: isSelected ? ColorSet.primary : POSColors.textSecondary,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                if (isDiscounted) ...[
+                                  const SizedBox(height: 4),
+                                  RemoveDiscountButton(
+                                    label: 'Remove',
+                                    onPressed: () =>
+                                        ref.read(orderingProvider.notifier).removeDiscount(item.id),
+                                  ),
+                                ],
+                              ],
                             ),
                           ],
                         ),
@@ -1659,7 +1675,7 @@ class _DlgDiscountPanel extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    isSenior ? '20% off + VAT Exempt' : 'Promo / coupon code',
+                    isSenior ? '20% off the full price' : 'Promo / coupon code',
                     style: const TextStyle(fontSize: 10, color: POSColors.textTertiary),
                   ),
                   SizedBox(height: r.value<double>(kiosk: 12, tablet: 10, phone: 8)),
@@ -2035,27 +2051,12 @@ class _DlgSummary extends ConsumerWidget {
       orderingProvider.select((it) => it.value?.sale.items ?? const IList.empty()),
     );
 
-    final grossAmount = selectedQuantities.entries.fold(Decimal.zero, (sum, entry) {
-      try {
-        final item = lineItems.firstWhere((e) => e.id == entry.key);
-        final qty = Decimal.fromInt(entry.value);
-        final modifiersPrice = item.modifiers.fold(Decimal.zero, (t, m) => t + m.price);
-        return sum + qty * (item.variant.price + modifiersPrice);
-      } catch (_) {
-        return sum;
-      }
-    });
-
-    var vatExempt = Decimal.zero;
-    var discountAmount = Decimal.zero;
-
-    if (selectedType == 'Senior/PWD') {
-      const discount = SeniorPwdDiscount(beneficiaryId: '', beneficiaryName: '');
-      vatExempt = grossAmount.vatAmount;
-      discountAmount = discount.calculateAmount(grossAmount);
-    }
-
-    final afterDiscount = grossAmount - discountAmount - vatExempt;
+    final (:selectedTotal, :discountAmount) = _selectionAmounts(
+      lineItems,
+      selectedQuantities,
+      isSeniorPwd: selectedType == 'Senior/PWD',
+    );
+    final discountedTotal = selectedTotal - discountAmount;
 
     return Container(
       decoration: BoxDecoration(
@@ -2067,21 +2068,18 @@ class _DlgSummary extends ConsumerWidget {
         children: [
           // Breakdown rows
           Padding(
-            padding: EdgeInsets.fromLTRB(14, 12, 14, vatExempt > Decimal.zero || discountAmount > Decimal.zero ? 8 : 12),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
             child: Column(
               children: [
-                _DlgSummaryRow(label: 'Selected Total', amount: grossAmount),
-                if (vatExempt > Decimal.zero)
-                  _DlgSummaryRow(label: 'VAT Exempt', amount: -vatExempt, isDeduction: true),
+                _DlgSummaryRow(label: 'Selected Total', amount: selectedTotal),
                 if (discountAmount > Decimal.zero)
-                  _DlgSummaryRow(label: 'Discount (20%)', amount: -discountAmount, isDeduction: true),
+                  _DlgSummaryRow(label: 'Discount', amount: -discountAmount, isDeduction: true),
               ],
             ),
           ),
 
-          // After Discount highlight
-          if (discountAmount > Decimal.zero)
-            Container(
+          // Discounted Total highlight
+          Container(
               margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               decoration: BoxDecoration(
@@ -2097,7 +2095,7 @@ class _DlgSummary extends ConsumerWidget {
                       const Icon(Icons.savings_rounded, size: 14, color: ColorSet.primary),
                       const SizedBox(width: 6),
                       Text(
-                        'After Discount',
+                        'Discounted Total',
                         style: TextStyle(
                           fontSize: r.value<double>(kiosk: 13, tablet: 12, phone: 11),
                           fontWeight: FontWeight.w700,
@@ -2107,7 +2105,7 @@ class _DlgSummary extends ConsumerWidget {
                     ],
                   ),
                   Text(
-                    afterDiscount.pesoFormatted,
+                    discountedTotal.pesoFormatted,
                     style: TextStyle(
                       fontSize: r.value<double>(kiosk: 20, tablet: 18, phone: 16),
                       fontWeight: FontWeight.w800,
@@ -2211,17 +2209,35 @@ class _BeneficiaryGroup {
   );
 }
 
-/// Unlocks every item in [group] by resolving each item id to its current index in the sale and
-/// clearing the discount there. Clears from the highest index down so earlier removals don't
-/// shift the indices of items still pending removal.
+/// Unlocks every item in [group] by taking each one's discount off (see
+/// `OrderingNotifier.removeDiscount`). Works by id, so lines folded back into
+/// their undiscounted siblings along the way don't disturb the rest.
 void _removeBeneficiaryDiscount(BuildContext context, WidgetRef ref, _BeneficiaryGroup group) {
-  final items = ref.read(orderingProvider).value?.sale.items ?? const IList.empty();
-  final indexes = [
-    for (final itemId in group.itemIds) items.indexWhere((e) => e.id == itemId),
-  ]..sort((a, b) => b.compareTo(a));
-
-  for (final index in indexes) {
-    if (index == -1) continue;
-    ref.read(orderingProvider.notifier).clearDiscount(index: index);
+  final notifier = ref.read(orderingProvider.notifier);
+  for (final itemId in group.itemIds) {
+    notifier.removeDiscount(itemId);
   }
+}
+
+/// The Selected Total for [selectedQuantities] (line id -> quantity to
+/// discount) and, when [isSeniorPwd], the Senior/PWD discount on it, worked
+/// out per line exactly as the cart will once it's applied.
+({Decimal selectedTotal, Decimal discountAmount}) _selectionAmounts(
+  IList<LineItem> lineItems,
+  Map<String, int> selectedQuantities, {
+  required bool isSeniorPwd,
+}) {
+  var selectedTotal = Decimal.zero;
+  var discountAmount = Decimal.zero;
+  for (final MapEntry(key: id, value: quantity) in selectedQuantities.entries) {
+    final item = lineItems.where((e) => e.id == id).firstOrNull;
+    if (item == null) continue;
+    final portion = item.copyWith(
+      quantity: quantity,
+      discount: isSeniorPwd ? const SeniorPwdDiscount(beneficiaryId: '', beneficiaryName: '') : null,
+    );
+    selectedTotal += portion.grossAmount;
+    discountAmount += portion.discountAmount;
+  }
+  return (selectedTotal: selectedTotal, discountAmount: discountAmount);
 }

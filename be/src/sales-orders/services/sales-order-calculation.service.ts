@@ -9,8 +9,23 @@ import { toDecimalNumber } from '../../utils/calculation.helper';
 
 const DEFAULT_TAX_CATEGORY_NAME = '12% VAT';
 
-/** Discount names that imply VAT exemption (e.g. Senior Citizen / PWD). */
+/**
+ * Discount name that made a sale VAT-exempt *before* Senior Citizen / PWD
+ * stopped being VAT-exempt. New Senior/PWD sales are VATable (the discount is a
+ * flat 20% off the VAT-inclusive price); reports still use this name, together
+ * with the sale's zero `tax_amount`, to keep classifying those older sales as
+ * VAT-exempt. See [LEGACY_VAT_EXEMPT_SALE_SQL].
+ */
 export const VAT_EXEMPT_DISCOUNT_NAME_PATTERNS = 'Senior Citizen / PWD';
+
+/**
+ * SQL predicate (on a `so` sales-order alias, bound to `:vatExemptName`) that
+ * matches a sale saved as VAT-exempt: it carries the Senior Citizen / PWD
+ * discount *and* was charged no VAT. Senior/PWD sales made after the discount
+ * stopped being VAT-exempt carry VAT, so they don't match.
+ */
+export const LEGACY_VAT_EXEMPT_SALE_SQL =
+  'so.tax_amount = 0 AND EXISTS (SELECT 1 FROM so_discounts sod INNER JOIN discounts d ON d.id = sod.discount_id WHERE sod.sales_order_id = so.id AND d.name = :vatExemptName)';
 
 /**
  * All numeric formulas for sales orders: subtotal, discount, tax, order totals.
@@ -108,19 +123,9 @@ export class SalesOrderCalculationService {
   }
 
   /**
-   * Returns true if any sales order discount is a VAT-exempt type (e.g. PWD / Senior Citizen).
-   */
-  isVatExempt(salesOrderDiscounts: SalesOrderDiscount[]): boolean {
-    if (!salesOrderDiscounts?.length) return false;
-
-    return salesOrderDiscounts.some(
-      (sod) => VAT_EXEMPT_DISCOUNT_NAME_PATTERNS === sod.discount?.name,
-    );
-  }
-
-  /**
    * Resolves default tax and discount rates. When soId is provided, loads order discounts:
-   * discountRate = sum of discount.value; taxRate = 0 if any PWD/Senior discount, else default VAT.
+   * discountRate = sum of discount.value; taxRate is always the default VAT (no discount,
+   * Senior Citizen / PWD included, makes a sale VAT-exempt).
    * additionalSalesOrderDiscounts are merged in (e.g. not-yet-saved discounts when applying a new discount).
    */
   async getDefaultOrderRates(
@@ -153,13 +158,12 @@ export class SalesOrderCalculationService {
     }
 
     const discountRate = this.getDiscountRateFromSalesOrderDiscounts(salesOrderDiscounts);
-    const taxRate = this.isVatExempt(salesOrderDiscounts) ? 0 : defaultTaxRate;
-    return { taxRate, discountRate };
+    return { taxRate: defaultTaxRate, discountRate };
   }
 
   /**
    * Computes order totals and assigns them to the DTO. Uses default rates when options not provided.
-   * Pass options.soId to derive tax and discount rates from that order's discounts (VAT exempt if PWD/Senior).
+   * Pass options.soId to derive the discount rate from that order's discounts.
    * Pass options.additionalSalesOrderDiscounts when applying new discounts not yet persisted.
    */
   async applyOrderTotalsToDto(

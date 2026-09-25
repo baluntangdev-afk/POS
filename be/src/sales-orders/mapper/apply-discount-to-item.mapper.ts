@@ -11,7 +11,62 @@ import { ItemDiscountAmounts } from '../sales-order.interface';
 import { Discount } from '../../discounts/entities/discount.entity';
 import { TAX_RATE_PERCENT } from '../../utils/constants';
 
+/** Name of the Senior Citizen / PWD discount record. */
+export const SENIOR_PWD_DISCOUNT_NAME = 'Senior Citizen / PWD';
+
 export class ApplyDiscountToItemMapper {
+  /**
+   * Discount amounts for one sales order line. Senior Citizen / PWD is taken
+   * off the VAT-inclusive [grossAmount] (see [computeSeniorPwdAmounts]); every
+   * other discount keeps the VAT-exclusive formula of
+   * [computeItemDiscountAmounts]. [appliedAmount] is what's recorded on the
+   * line's `so_discounts` row.
+   */
+  static computeLineDiscount(
+    discount: Discount,
+    line: { vatExclusiveAmount: number; grossAmount: number; qty: number },
+  ): { amounts: ItemDiscountAmounts; appliedAmount: string } {
+    if (discount.name === SENIOR_PWD_DISCOUNT_NAME) {
+      const amounts = ApplyDiscountToItemMapper.computeSeniorPwdAmounts(
+        parseFloat(discount.value),
+        line.grossAmount,
+      );
+      return { amounts, appliedAmount: amounts.discountedUnitPrice };
+    }
+
+    const amounts = ApplyDiscountToItemMapper.computeItemDiscountAmounts(
+      discount,
+      line.vatExclusiveAmount,
+    );
+    const appliedAmount = ApplyDiscountToItemMapper.computeAppliedAmount(
+      line.vatExclusiveAmount,
+      amounts.discountedUnitPrice,
+      line.qty,
+    );
+    return { amounts, appliedAmount };
+  }
+
+  /**
+   * Senior Citizen / PWD: a flat [ratePercent] off the full VAT-inclusive
+   * price, with no VAT exemption. VAT is carried by what the customer pays:
+   * VATable = net / 1.12, VAT = net − VATable. The discount is rounded to
+   * centavos, same as the kiosk.
+   *
+   * e.g. 112.00 → discount 22.40 → net 89.60 = VATable 80.00 + VAT 9.60.
+   */
+  static computeSeniorPwdAmounts(ratePercent: number, grossAmount: number): ItemDiscountAmounts {
+    const discountAmount = Math.round((grossAmount * (ratePercent / 100) + Number.EPSILON) * 100) / 100;
+    const netAmount = parseFloat((grossAmount - discountAmount).toFixed(DECIMAL_PLACES));
+    const vatableAmount = parseFloat((netAmount / (1 + TAX_RATE_PERCENT / 100)).toFixed(DECIMAL_PLACES));
+
+    return {
+      discountedUnitPrice: discountAmount.toFixed(DECIMAL_PLACES),
+      subTotalAmount: vatableAmount.toFixed(DECIMAL_PLACES),
+      totalAmount: netAmount.toFixed(DECIMAL_PLACES),
+      vatAmount: (netAmount - vatableAmount).toFixed(DECIMAL_PLACES),
+    };
+  }
+
   /**
    * Computes discounted unit price and line total for an item.
    */
@@ -24,8 +79,7 @@ export class ApplyDiscountToItemMapper {
 
     const subTotalAmount = calculateLineItemSubtotal(amount, parseFloat(discountedUnitPrice));
 
-    const taxRate = discount.name === 'Senior Citizen / PWD' ? 0 : TAX_RATE_PERCENT;
-    const vatAmount = calculateLineItemVatAmount(parseFloat(subTotalAmount), taxRate);
+    const vatAmount = calculateLineItemVatAmount(parseFloat(subTotalAmount), TAX_RATE_PERCENT);
 
     const totalAmount = calculateLineItemTotalAmount(
       parseFloat(vatAmount),

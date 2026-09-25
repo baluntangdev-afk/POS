@@ -201,12 +201,19 @@ void _showSyncProgressToast() {
       SnackBar(
         duration: const Duration(days: 1),
         backgroundColor: ColorSet.primary,
+        // Fixed, not the theme's floating: a fixed bar sits at the very bottom
+        // and pushes any floating action button up above it, instead of
+        // covering it (e.g. the Transactions screen's Sync All).
+        behavior: SnackBarBehavior.fixed,
         content: Consumer(
           builder: (context, ref, _) {
             final progress = ref.watch(transactionSyncProgressProvider);
-            final label = progress == null
-                ? 'Syncing transactions…'
-                : 'Syncing transactions… batch ${progress.currentBatch} of ${progress.totalBatches}';
+            final cancelling = progress?.cancelling ?? false;
+            final label = switch (progress) {
+              null => 'Syncing transactions…',
+              _ when cancelling => 'Cancelling sync… finishing batch ${progress.currentBatch}',
+              _ => 'Syncing transactions… batch ${progress.currentBatch} of ${progress.totalBatches}',
+            };
             return Row(
               children: [
                 const SizedBox(
@@ -216,6 +223,18 @@ void _showSyncProgressToast() {
                 ),
                 const SizedBox(width: 12),
                 Expanded(child: Text(label)),
+                TextButton(
+                  onPressed:
+                      progress == null || cancelling
+                          ? null
+                          : () => ref.read(transactionSyncProgressProvider.notifier).cancel(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    disabledForegroundColor: Colors.white54,
+                    minimumSize: const Size(64, 40),
+                  ),
+                  child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+                ),
               ],
             );
           },

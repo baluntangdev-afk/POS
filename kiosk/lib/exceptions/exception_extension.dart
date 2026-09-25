@@ -2,12 +2,19 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 
+import '../data/backend_api/errors/api_exception.dart';
 import 'app_exception.dart';
 
 extension ExceptionExtension on Object {
   String get message {
     if (this is AppException) {
       final msg = (this as AppException).message;
+      if (msg.isNotEmpty) return msg;
+    }
+    // Orders-service failures (`ApiCall.guard`) carry the backend's own
+    // `message`, e.g. a 429's "Too many requests. Wait a minute and try again."
+    if (this is ApiException) {
+      final msg = (this as ApiException).message;
       if (msg.isNotEmpty) return msg;
     }
     if (this is DioException) {

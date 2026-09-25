@@ -27,6 +27,7 @@ import '../enums/sale_type.dart';
 import '../state/ordering_notifier.dart';
 import 'discount_screen.dart';
 import 'line_item_dialog.dart';
+import 'remove_discount_button.dart';
 
 class OrderingScreen extends ConsumerWidget {
   const OrderingScreen({super.key});
@@ -1064,7 +1065,7 @@ class _OrderPanel extends HookConsumerWidget {
                               item.discount != null
                                   ? () => ref
                                       .read(orderingProvider.notifier)
-                                      .clearDiscount(index: index)
+                                      .removeDiscount(item.id)
                                   : null,
                         );
                       },
@@ -1130,11 +1131,11 @@ class _OrderPanelFooter extends ConsumerWidget {
         final sale = it.value?.sale;
         if (sale == null) return <({String label, Decimal amount})>[];
         return [
-          (label: 'VATable Sales', amount: sale.vatableAmount),
-          if (sale.vatExemptSales > Decimal.zero)
-            (label: 'VAT-Exempt Sales', amount: sale.vatExemptSales),
-          (label: 'VAT', amount: sale.vatAmount),
+          // Subtotal − Discount = Total; VATable Sales + VAT split that total.
+          (label: 'Subtotal', amount: sale.grossAmount),
           if (sale.discountAmount > Decimal.zero) (label: 'Discount', amount: -sale.discountAmount),
+          (label: 'VATable Sales', amount: sale.vatableAmount),
+          (label: 'VAT', amount: sale.vatAmount),
           (label: 'Total', amount: sale.totalAmount),
         ];
       }),
@@ -1327,9 +1328,7 @@ class _OrderItemRow extends HookWidget {
                             if (item.itemSaleType != null)
                               _SaleTypeBadge(saleType: item.itemSaleType!),
                             if (item.discount != null)
-                              GestureDetector(
-                                onTap: onClearDiscount,
-                                child: Container(
+                              Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFFEF3C7),
@@ -1352,18 +1351,9 @@ class _OrderItemRow extends HookWidget {
                                           color: Color(0xFFD97706),
                                         ),
                                       ),
-                                      if (onClearDiscount != null) ...[
-                                        const SizedBox(width: 3),
-                                        const Icon(
-                                          Icons.close_rounded,
-                                          size: 9,
-                                          color: Color(0xFFD97706),
-                                        ),
-                                      ],
                                     ],
                                   ),
                                 ),
-                              ),
                             if (item.notes != null && item.notes!.isNotEmpty)
                               Text(
                                 item.notes!,
@@ -1424,6 +1414,27 @@ class _OrderItemRow extends HookWidget {
               ),
             ),
           ),
+
+          // Discount taken off this line, with a way to remove it.
+          if (item.discount != null && onClearDiscount != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.discount!.code,
+                      style: const TextStyle(fontSize: 11, color: POSColors.textTertiary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  DiscountAmountText((-item.discountAmount).pesoFormatted),
+                  const SizedBox(width: 6),
+                  RemoveDiscountButton(onPressed: onClearDiscount!),
+                ],
+              ),
+            ),
 
           // â”€â”€ Expanded controls â”€â”€
           if (isExpanded) ...[

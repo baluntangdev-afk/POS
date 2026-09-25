@@ -32,6 +32,10 @@ abstract class TransactionSyncRepository {
   /// Re-queues every sale/refund and reassigns every sale to [storeId], so
   /// the next sync pushes the full history to that merchant.
   Future<void> transferAll(String storeId);
+
+  /// Re-queues every sale/refund so the next sync re-uploads the full
+  /// history, keeping each sale's store.
+  Future<void> unsyncAll();
 }
 
 class TransactionSyncRepositoryImpl implements TransactionSyncRepository {
@@ -65,4 +69,7 @@ class TransactionSyncRepositoryImpl implements TransactionSyncRepository {
 
   @override
   Future<void> transferAll(String storeId) => _stateApi.transfer(storeId);
+
+  @override
+  Future<void> unsyncAll() => _stateApi.unsync();
 }

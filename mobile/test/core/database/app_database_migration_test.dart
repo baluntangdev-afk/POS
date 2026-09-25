@@ -57,6 +57,32 @@ void main() {
         variant_name TEXT NOT NULL, qty INTEGER NOT NULL, unit_price REAL NOT NULL
       )
     ''');
+      // Tables that later (v9+) upgrade steps alter. x/z_readings only get
+    // guarded addColumn calls, so a bare stub is enough; store_info is read
+    // back through Drift in the v16 step, so it needs its full v6 shape.
+    await v6db.customStatement('''
+      CREATE TABLE payments (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        sale_id INTEGER NOT NULL REFERENCES sales (id),
+        method TEXT NOT NULL, amount REAL NOT NULL,
+        reference TEXT, created_at INTEGER NOT NULL
+      )
+    ''');
+    await v6db.customStatement('''
+      CREATE TABLE store_info (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        store_name TEXT NOT NULL DEFAULT '', address TEXT NOT NULL DEFAULT '',
+        tax_rate REAL NOT NULL DEFAULT 0.0, currency TEXT NOT NULL DEFAULT 'PHP',
+        receipt_footer TEXT NOT NULL DEFAULT '', tin TEXT NOT NULL DEFAULT '',
+        terminal_name TEXT NOT NULL DEFAULT ''
+      )
+    ''');
+    await v6db.customStatement(
+      'CREATE TABLE x_readings (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT)',
+    );
+    await v6db.customStatement(
+      'CREATE TABLE z_readings (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT)',
+    );
     await v6db.customStatement('PRAGMA user_version = 6');
     await v6db.close();
 

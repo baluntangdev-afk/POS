@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -13,6 +14,14 @@ void main() {
       container.dispose();
       db.close();
     });
+
+    // Seed the store ID so save() sees it unchanged and skips the network
+    // merchant verification — this test only covers local persistence.
+    await db.storeInfoDao.ensureStoreInfoExists();
+    final seeded = await db.storeInfoDao.getStoreInfo();
+    await db.storeInfoDao.upsertStoreInfo(
+      StoreInfoTableCompanion(id: Value(seeded!.id), storeId: const Value('ST-001')),
+    );
 
     await container.read(storeInfoProvider.future);
     await container.read(storeInfoProvider.notifier).save(

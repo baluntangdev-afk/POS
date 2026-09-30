@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -12,6 +13,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/empty_state_widget.dart';
 import '../../live_orders/entities/order_event.dart';
+import '../../live_orders/state/order_detail_provider.dart';
 import '../../live_orders/state/orders_feed_notifier.dart';
 import '../../live_orders/state/orders_count_provider.dart';
 import '../../live_orders/state/webhook_auth_status_provider.dart';
@@ -76,10 +78,6 @@ class OrdersScreen extends HookConsumerWidget {
     AsyncValue<List<OrderEvent>> ordersAsync,
     WebhookAuthFailure? authFailure,
   ) {
-    // A rejected store/merchant ID (or bad build config) means the persisted
-    // list belongs to a store we're no longer signed in as — surface the
-    // failure instead of showing it. Transient blips fall through to the
-    // cached list, which the toast already covers.
     if (authFailure != null && _blocksOrdersList(authFailure.reason)) {
       return EmptyStateWidget(
         icon: Icons.error_outline,
@@ -120,10 +118,6 @@ void _showOrderDetail(BuildContext context, OrderEvent event) {
   );
 }
 
-/// The order list plus its dynamic status tab row. Tabs are derived from the
-/// statuses actually present in [orders] ("All" first); tapping one filters the
-/// list. If the active tab's status disappears after a refresh, the selection
-/// falls back to "All".
 class _OrdersList extends HookConsumerWidget {
   final List<OrderEvent> orders;
 
@@ -291,14 +285,13 @@ class _OrderCard extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final data = event.data;
     final status = classifyOrderStatus(event);
-    final isCancelled = event.type == OrderEventType.cancelled;
-    final canCancel = !isCancelled && status != OrderCardStatus.fulfilled;
+    final canCancel = canCancelOrder(event);
     final isSubmitting = useState(false);
 
     // Runs [action], shows a snackbar on failure, and keeps the card in its
     // submitting state (spinner + disabled controls) until it settles.
     Future<void> submit(
-      Future<Result<OrderEvent, CartivoPosError>> Function() action,
+      Future<Result<OrderEvent, CartivoPosFailure>> Function() action,
     ) async {
       if (isSubmitting.value) return;
       isSubmitting.value = true;
@@ -325,10 +318,14 @@ class _OrderCard extends HookConsumerWidget {
           ),
     );
 
-    Future<void> cancelOrder() => submit(
+    Future<void> cancelOrder(String reason) => submit(
       () => ref
           .read(ordersFeedNotifierProvider.notifier)
-          .updateCartivoOrderStatus(event, PosOrderStatus.cancelled),
+          .updateCartivoOrderStatus(
+            event,
+            PosOrderStatus.cancelled,
+            reason: reason,
+          ),
     );
 
     final subtitle = [
@@ -435,7 +432,7 @@ class _OrderCard extends HookConsumerWidget {
                     onPressed:
                         isSubmitting.value
                             ? null
-                            : () => _confirmCancelOrder(context, cancelOrder),
+                            : () => _confirmCancelOrder(context, event, cancelOrder),
                     child:
                         isSubmitting.value
                             ? const SizedBox(
@@ -560,43 +557,122 @@ class _StatusBadge extends StatelessWidget {
   }
 }
 
-/// Asks for confirmation, then runs [onConfirmed] (the actual cancel request).
+/// Collects a cancellation reason (Cartivo rejects a cancel without one), then
+/// runs [onConfirmed] with it (the actual cancel request).
 Future<void> _confirmCancelOrder(
   BuildContext context,
-  Future<void> Function() onConfirmed,
+  OrderEvent event,
+  Future<void> Function(String reason) onConfirmed,
 ) async {
-  final confirmed = await showDialog<bool>(
+  final reason = await showDialog<String>(
     context: context,
-    builder:
-        (dialogContext) => AlertDialog(
-          title: const Text('Cancel this order?'),
-          content: const Text("This can't be undone."),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Keep order'),
+    builder: (_) => _CancelOrderDialog(orderId: event.data.id),
+  );
+  if (reason != null) await onConfirmed(reason);
+}
+
+const _cancelReasonPresets = [
+  'Customer requested',
+  'Out of stock',
+  'Unable to fulfill',
+  'Duplicate order',
+];
+
+class _CancelOrderDialog extends HookWidget {
+  final String orderId;
+
+  const _CancelOrderDialog({required this.orderId});
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = useTextEditingController();
+    final text = useValueListenable(controller);
+    final reason = text.text.trim();
+
+    return AlertDialog(
+      title: Text('Cancel order #$orderId?'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Tell us why. This can't be undone.",
+              style: AppTextStyles.bodyMd.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              style: TextButton.styleFrom(foregroundColor: AppColors.error),
-              child: const Text('Cancel order'),
+            const SizedBox(height: AppSpacing.md),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final preset in _cancelReasonPresets)
+                  ChoiceChip(
+                    label: Text(preset),
+                    selected: reason == preset,
+                    onSelected: (_) {
+                      controller.text = preset;
+                      controller.selection = TextSelection.collapsed(
+                        offset: preset.length,
+                      );
+                    },
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: controller,
+              maxLines: 3,
+              minLines: 2,
+              maxLength: 200,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Reason',
+                hintText: 'Or type your own reason',
+                border: OutlineInputBorder(),
+              ),
             ),
           ],
         ),
-  );
-  if (confirmed ?? false) await onConfirmed();
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Keep order'),
+        ),
+        TextButton(
+          onPressed: reason.isEmpty ? null : () => Navigator.of(context).pop(reason),
+          style: TextButton.styleFrom(foregroundColor: AppColors.error),
+          child: const Text('Cancel order'),
+        ),
+      ],
+    );
+  }
 }
 
-class _OrderDetailSheet extends StatelessWidget {
+/// Read-only bottom sheet for one order. The header renders from the cached
+/// [event]; the body reads the full order from Cartivo. While loading it shows
+/// a skeleton sized from the cached items, and if the fetch fails the cached
+/// details stay visible under an error banner.
+class _OrderDetailSheet extends HookConsumerWidget {
   final OrderEvent event;
 
   const _OrderDetailSheet({required this.event});
 
   @override
-  Widget build(BuildContext context) {
-    final data = event.data;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final detail = ref.watch(orderDetailProvider(event.data.id));
+    final fetched = detail.value;
+    final data = fetched ?? event.data;
+    final isLoading = detail.isLoading && fetched == null;
+    final error = (detail.hasError && !detail.isLoading) ? detail.error : null;
+
     return SafeArea(
       child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+        ),
         decoration: const BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.vertical(
@@ -611,7 +687,7 @@ class _OrderDetailSheet extends StatelessWidget {
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Center(
               child: Container(
@@ -620,95 +696,614 @@ class _OrderDetailSheet extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: AppSpacing.md),
                 decoration: BoxDecoration(
                   color: AppColors.divider,
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
                 ),
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: 10,
-              children: [
-                Expanded(
-                  child: Text(
-                    'Order #${data.id}',
-                    style: AppTextStyles.headingLg,
-                  ),
-                ),
-                _StatusBadge(
-                  status: classifyOrderStatus(event),
-                  rawStatus: data.status,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              [
-                if ((data.customerName ?? '').isNotEmpty) data.customerName,
-                switch (data.fulfillmentType) {
-                  FulfillmentType.onSite =>
-                    'On-site${(data.facilityName ?? '').isNotEmpty ? ' · ${data.facilityName}' : ''}',
-                  FulfillmentType.pickup => 'Pickup',
-                  FulfillmentType.delivery => 'Delivery',
-                  FulfillmentType.other => null,
-                },
-                _relativeTime(data.updatedAt),
-              ].whereType<String>().join(' · '),
-              style: AppTextStyles.bodySm.copyWith(
-                color: AppColors.textSecondary,
+            _SheetHeader(event: event, data: data),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(top: AppSpacing.md),
+                child:
+                    isLoading
+                        ? _SheetSkeleton(
+                          itemCount: math.max(event.data.items.length, 1),
+                        )
+                        : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (error != null)
+                              _ErrorBanner(
+                                error: cartivoPosErrorFrom(error),
+                                onRetry:
+                                    () => ref.invalidate(
+                                      orderDetailProvider(event.data.id),
+                                    ),
+                              ),
+                            _OrderContent(data: data),
+                          ],
+                        ),
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            ...data.items.map(
-              (item) => Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: Row(
-                  children: [
-                    Text(
-                      '${item.quantity}×',
-                      style: AppTextStyles.bodyMd.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        item.productName,
-                        style: AppTextStyles.bodyMd,
-                      ),
-                    ),
-                    Text(
-                      NumberFormat.currency(
-                        symbol: '₱',
-                      ).format(item.price * item.quantity),
-                      style: AppTextStyles.bodyMd,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const Divider(height: AppSpacing.lg),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Total',
-                  style: AppTextStyles.bodyLg.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                Text(
-                  NumberFormat.currency(symbol: '₱').format(data.total),
-                  style: AppTextStyles.priceLg,
-                ),
-              ],
-            ),
+            isLoading ? const _TotalBarSkeleton() : _TotalBar(data: data),
           ],
         ),
       ),
     );
   }
 }
+
+class _SheetHeader extends StatelessWidget {
+  final OrderEvent event;
+  final OrderData data;
+
+  const _SheetHeader({required this.event, required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final created = data.createdAt.toLocal();
+    final placed = DateUtils.isSameDay(created, DateTime.now())
+        ? DateFormat('h:mm a').format(created)
+        : DateFormat('MMM d, h:mm a').format(created);
+    final wasUpdated = data.updatedAt.difference(data.createdAt).inSeconds >= 60;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: AppSpacing.md,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Order #${(data.id)}',
+                style: AppTextStyles.headingLg,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Placed $placed'
+                '${wasUpdated ? ' · Updated ${_relativeTime(data.updatedAt)}' : ''}',
+                style: AppTextStyles.bodyMd.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        _SheetStatusPill(
+          status: classifyOrderStatus(
+            OrderEvent(eventId: event.eventId, type: event.type, data: data),
+          ),
+          rawStatus: data.status,
+        ),
+      ],
+    );
+  }
+}
+
+/// Filled status pill for the sheet. Same colors as the list's outlined badge,
+/// on the matching `*Light` surface.
+class _SheetStatusPill extends StatelessWidget {
+  final OrderCardStatus status;
+  final String rawStatus;
+
+  const _SheetStatusPill({required this.status, required this.rawStatus});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = orderStatusPillStyle(status);
+    final background = switch (status) {
+      OrderCardStatus.pending ||
+      OrderCardStatus.preparing => AppColors.warningLight,
+      OrderCardStatus.ready => AppColors.successLight,
+      OrderCardStatus.cancelled => AppColors.errorLight,
+      OrderCardStatus.fulfilled || OrderCardStatus.unknown => AppColors.background,
+    };
+    return Container(
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width * 0.4,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+      ),
+      child: Text(
+        status == OrderCardStatus.unknown ? rawStatus : label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: AppTextStyles.bodySm.copyWith(
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  final CartivoPosError error;
+  final VoidCallback onRetry;
+
+  const _ErrorBanner({required this.error, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.errorLight,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: AppSpacing.sm,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: AppSpacing.sm,
+            children: [
+              const Icon(Icons.error_outline, color: AppColors.error),
+              Expanded(child: Text(error.message, style: AppTextStyles.bodyMd)),
+            ],
+          ),
+          if (error.isRetryable)
+            SizedBox(
+              height: AppSpacing.touchMin,
+              child: OutlinedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Try again'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  backgroundColor: AppColors.surface,
+                  side: const BorderSide(color: AppColors.primary, width: 1.5),
+                  shape: const StadiumBorder(),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrderContent extends StatelessWidget {
+  final OrderData data;
+
+  const _OrderContent({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final money = _moneyFormat(data.currency);
+    final fulfillment = switch (data.fulfillmentType) {
+      FulfillmentType.onSite => ('On-site', Icons.storefront_outlined),
+      FulfillmentType.pickup => ('Pickup', Icons.shopping_bag_outlined),
+      FulfillmentType.delivery => ('Delivery', Icons.local_shipping_outlined),
+      FulfillmentType.other => null,
+    };
+    final location = [
+      data.facilityName,
+      data.districtName,
+    ].firstWhere((s) => (s ?? '').isNotEmpty, orElse: () => null);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (fulfillment != null || location != null) ...[
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              if (fulfillment != null)
+                _InfoChip(icon: fulfillment.$2, label: fulfillment.$1),
+              if (location != null)
+                _InfoChip(icon: Icons.place_outlined, label: location),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ],
+        _CustomerRow(name: data.customerName, email: data.customerEmail),
+        const SizedBox(height: AppSpacing.lg),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'ITEMS',
+              style: AppTextStyles.labelMd.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            Text(
+              '${data.items.length}',
+              style: AppTextStyles.labelMd.copyWith(
+                color: AppColors.textSecondary,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        if (data.items.isEmpty)
+          Text(
+            'No items on this order.',
+            style: AppTextStyles.bodyMd.copyWith(color: AppColors.textDisabled),
+          )
+        else
+          for (final item in data.items)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: _ItemRow(item: item, money: money),
+            ),
+      ],
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _InfoChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 32),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.sm,
+        AppSpacing.xs,
+        AppSpacing.md,
+        AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        spacing: AppSpacing.xs,
+        children: [
+          Icon(icon, size: 16, color: AppColors.primary),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.labelLg,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CustomerRow extends StatelessWidget {
+  final String? name;
+  final String? email;
+
+  const _CustomerRow({required this.name, required this.email});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasName = (name ?? '').trim().isNotEmpty;
+    final hasEmail = (email ?? '').isNotEmpty;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+      decoration: const BoxDecoration(
+        border: Border.symmetric(
+          horizontal: BorderSide(color: AppColors.divider),
+        ),
+      ),
+      child: Row(
+        spacing: AppSpacing.md,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: AppColors.background,
+              shape: BoxShape.circle,
+            ),
+            child:
+                hasName
+                    ? Text(
+                      _initials(name!),
+                      style: AppTextStyles.labelLg.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    )
+                    : const Icon(
+                      Icons.person_outline,
+                      color: AppColors.primary,
+                    ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  hasName ? name! : 'Guest',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.headingSm,
+                ),
+                if (hasEmail)
+                  Text(
+                    email!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ItemRow extends StatelessWidget {
+  final OrderEventItem item;
+  final NumberFormat money;
+
+  const _ItemRow({required this.item, required this.money});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: AppSpacing.md,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+          ),
+          child: Text(
+            '${item.quantity}×',
+            style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xs),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.productName, style: AppTextStyles.labelLg),
+                if (item.quantity > 1)
+                  Text(
+                    '${money.format(item.price)} each',
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.xs),
+          child: Text(
+            money.format(item.price * item.quantity),
+            style: AppTextStyles.labelLg,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TotalBar extends StatelessWidget {
+  final OrderData data;
+
+  const _TotalBar({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final count = data.items.length;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Total', style: AppTextStyles.labelLg),
+              Text(
+                '$count item${count == 1 ? '' : 's'}',
+                style: AppTextStyles.bodySm.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          Text(_moneyFormat(data.currency).format(data.total), style: AppTextStyles.priceLg),
+        ],
+      ),
+    );
+  }
+}
+
+Color _usePulseColor(BuildContext context) {
+  final controller = useAnimationController(
+    duration: const Duration(milliseconds: 1400),
+  );
+  final reduceMotion = MediaQuery.disableAnimationsOf(context);
+  useEffect(() {
+    if (!reduceMotion) controller.repeat(reverse: true);
+    return null;
+  }, [reduceMotion]);
+  final t = useAnimation(controller);
+  return Color.lerp(AppColors.divider, AppColors.surfaceVariant, t)!;
+}
+
+class _Bone extends StatelessWidget {
+  final double? width;
+  final double height;
+  final Color color;
+  final bool circle;
+
+  const _Bone({
+    this.width,
+    required this.height,
+    required this.color,
+    this.circle = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: color,
+        shape: circle ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: circle ? null : BorderRadius.circular(AppSpacing.radiusSm),
+      ),
+    );
+  }
+}
+
+class _SheetSkeleton extends HookWidget {
+  final int itemCount;
+
+  const _SheetSkeleton({required this.itemCount});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _usePulseColor(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          spacing: AppSpacing.sm,
+          children: [
+            _Bone(width: 96, height: 32, color: c),
+            _Bone(width: 128, height: 32, color: c),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+          decoration: const BoxDecoration(
+            border: Border.symmetric(
+              horizontal: BorderSide(color: AppColors.divider),
+            ),
+          ),
+          child: Row(
+            spacing: AppSpacing.md,
+            children: [
+              _Bone(width: 40, height: 40, color: c, circle: true),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: AppSpacing.sm,
+                  children: [
+                    _Bone(width: 128, height: 16, color: c),
+                    _Bone(width: 176, height: 12, color: c),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        _Bone(width: 48, height: 12, color: c),
+        const SizedBox(height: AppSpacing.sm),
+        for (var i = 0; i < itemCount; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: AppSpacing.md,
+              children: [
+                _Bone(width: 32, height: 32, color: c),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: AppSpacing.sm,
+                    children: [
+                      _Bone(width: 160, height: 16, color: c),
+                      _Bone(width: 80, height: 12, color: c),
+                    ],
+                  ),
+                ),
+                _Bone(width: 64, height: 16, color: c),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _TotalBarSkeleton extends HookWidget {
+  const _TotalBarSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _usePulseColor(context);
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: AppSpacing.sm,
+            children: [
+              _Bone(width: 48, height: 16, color: c),
+              _Bone(width: 56, height: 12, color: c),
+            ],
+          ),
+          _Bone(width: 112, height: 32, color: c),
+        ],
+      ),
+    );
+  }
+}
+
+String _shortOrderId(String id) =>
+    id.length > 12 ? id.substring(0, 8).toUpperCase() : id;
+
+String _initials(String name) {
+  final parts = name.trim().split(RegExp(r'\s+'));
+  final first = parts.first[0];
+  final last = parts.length > 1 ? parts.last[0] : '';
+  return '$first$last'.toUpperCase();
+}
+
+NumberFormat _moneyFormat(String currency) =>
+    currency.isEmpty || currency == 'PHP'
+        ? NumberFormat.currency(symbol: '₱')
+        : NumberFormat.simpleCurrency(name: currency);
 
 String _relativeTime(DateTime time) {
   final diff = DateTime.now().difference(time);

@@ -16,7 +16,6 @@ class CartivoAuthApi with ApiCall {
 
   final Dio _httpClient;
 
-  /// `POST /cartivo-auth` — no request body; mints a bearer access token.
   Future<CartivoAuthDto> authenticate() => guard(() async {
     final response = await _httpClient.post<dynamic>('/cartivo-auth');
     return CartivoAuthDto.fromJson(jsonEncode(response.data));

@@ -52,6 +52,7 @@ class CartivoPosApi with ApiCall {
         'event_id': request.eventId,
         'status': request.status,
         'occurred_at': request.occurredAt.toUtc().toIso8601String(),
+        if (request.reason != null) 'reason': request.reason,
       },
     );
     return _asMap(response.data);

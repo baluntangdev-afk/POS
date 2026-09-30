@@ -9,6 +9,7 @@ class CartivoOrderStatusRequest with CartivoOrderStatusRequestMappable {
     required this.eventId,
     required this.status,
     required this.occurredAt,
+    this.reason,
   });
 
   /// Unique per call, `evt_<uuid>`.
@@ -19,6 +20,9 @@ class CartivoOrderStatusRequest with CartivoOrderStatusRequestMappable {
   final String status;
 
   final DateTime occurredAt;
+
+  /// Required by Cartivo when [status] is `cancelled`; omitted otherwise.
+  final String? reason;
 
   static const fromJson = CartivoOrderStatusRequestMapper.fromJson;
 }

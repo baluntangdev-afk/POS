@@ -12,6 +12,10 @@ analyzer:
   exclude:
     - "**/*.g.dart"
     - "**/*.mapper.dart"
+    - build/**
+    - android/**
+    - windows/**
+    - macos/**
 
 formatter:
   page_width: 100

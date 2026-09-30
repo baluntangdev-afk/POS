@@ -39,6 +39,16 @@ OrderCardStatus classifyOrderStatus(OrderEvent event) {
   }
 }
 
+/// Whether staff can still cancel [event]. Cartivo rejects a cancel from a
+/// terminal status (`invalid_transition`), so those orders don't offer it.
+/// `completed` isn't a known [OrderCardStatus], so it's matched on the raw string.
+bool canCancelOrder(OrderEvent event) {
+  if (classifyOrderStatus(event) case OrderCardStatus.cancelled || OrderCardStatus.fulfilled) {
+    return false;
+  }
+  return event.data.status.toLowerCase() != 'completed';
+}
+
 /// Lifecycle order for the Orders screen status tabs. A status present in the
 /// data but missing here (only [OrderCardStatus.unknown] today) is appended
 /// after these, in the order it's first seen.

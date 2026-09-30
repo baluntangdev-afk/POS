@@ -3,11 +3,10 @@
 /// translation, so callers must send [cartivoName].
 enum PosOrderStatus {
   pending('confirmed'),
-  preparing('processing'),
-  ready('ready_for_pickup'),
-  fulfilled('completed'),
+  preparing('preparing'),
+  ready('ready'),
+  fulfilled('fulfilled'),
   cancelled('cancelled');
-
   const PosOrderStatus(this.cartivoName);
 
   final String cartivoName;

@@ -42,12 +42,19 @@ class CartivoOrderStatusRequestMapper
     _$occurredAt,
     key: r'occurred_at',
   );
+  static String? _$reason(CartivoOrderStatusRequest v) => v.reason;
+  static const Field<CartivoOrderStatusRequest, String> _f$reason = Field(
+    'reason',
+    _$reason,
+    opt: true,
+  );
 
   @override
   final MappableFields<CartivoOrderStatusRequest> fields = const {
     #eventId: _f$eventId,
     #status: _f$status,
     #occurredAt: _f$occurredAt,
+    #reason: _f$reason,
   };
 
   static CartivoOrderStatusRequest _instantiate(DecodingData data) {
@@ -55,6 +62,7 @@ class CartivoOrderStatusRequestMapper
       eventId: data.dec(_f$eventId),
       status: data.dec(_f$status),
       occurredAt: data.dec(_f$occurredAt),
+      reason: data.dec(_f$reason),
     );
   }
 
@@ -132,7 +140,12 @@ abstract class CartivoOrderStatusRequestCopyWith<
   $Out
 >
     implements ClassCopyWith<$R, $In, $Out> {
-  $R call({String? eventId, String? status, DateTime? occurredAt});
+  $R call({
+    String? eventId,
+    String? status,
+    DateTime? occurredAt,
+    String? reason,
+  });
   CartivoOrderStatusRequestCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
   );
@@ -148,11 +161,17 @@ class _CartivoOrderStatusRequestCopyWithImpl<$R, $Out>
   late final ClassMapperBase<CartivoOrderStatusRequest> $mapper =
       CartivoOrderStatusRequestMapper.ensureInitialized();
   @override
-  $R call({String? eventId, String? status, DateTime? occurredAt}) => $apply(
+  $R call({
+    String? eventId,
+    String? status,
+    DateTime? occurredAt,
+    Object? reason = $none,
+  }) => $apply(
     FieldCopyWithData({
       if (eventId != null) #eventId: eventId,
       if (status != null) #status: status,
       if (occurredAt != null) #occurredAt: occurredAt,
+      if (reason != $none) #reason: reason,
     }),
   );
   @override
@@ -161,6 +180,7 @@ class _CartivoOrderStatusRequestCopyWithImpl<$R, $Out>
         eventId: data.get(#eventId, or: $value.eventId),
         status: data.get(#status, or: $value.status),
         occurredAt: data.get(#occurredAt, or: $value.occurredAt),
+        reason: data.get(#reason, or: $value.reason),
       );
 
   @override

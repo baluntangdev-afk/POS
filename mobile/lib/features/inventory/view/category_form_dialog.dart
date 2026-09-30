@@ -13,7 +13,7 @@ import '../state/inventory_notifier.dart';
 /// [existing] is `null` for create-mode; passing a [ProductGroupsTableData]
 /// switches to edit-mode. We need the raw table row here (rather than the
 /// lighter [InventoryGroup] entity) because [InventoryGroup] doesn't expose
-/// `isActive` â€” that's a DAO/table-level concept the edit form needs to show
+/// `isActive` — that's a DAO/table-level concept the edit form needs to show
 /// and let the user toggle.
 class CategoryFormDialog extends ConsumerStatefulWidget {
   final ProductGroupsTableData? existing;

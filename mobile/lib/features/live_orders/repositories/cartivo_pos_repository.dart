@@ -27,12 +27,11 @@ abstract interface class CartivoPosRepository {
     DateTime? updatedSince,
   });
 
-  /// Pushes [status] (translated to its Cartivo name) with a fresh `event_id`
-  /// and the clock-corrected current time as `occurred_at`.
   Future<Map<String, dynamic>> updateOrderStatus(
     String orderNumber,
-    PosOrderStatus status,
-  );
+    PosOrderStatus status, {
+    String? reason,
+  });
 }
 
 class CartivoPosRepositoryImpl implements CartivoPosRepository {
@@ -61,13 +60,15 @@ class CartivoPosRepositoryImpl implements CartivoPosRepository {
   @override
   Future<Map<String, dynamic>> updateOrderStatus(
     String orderNumber,
-    PosOrderStatus status,
-  ) => _api.updateOrderStatus(
+    PosOrderStatus status, {
+    String? reason,
+  }) => _api.updateOrderStatus(
     orderNumber,
     CartivoOrderStatusRequest(
       eventId: 'evt_${_uuidV4()}',
       status: status.cartivoName,
       occurredAt: _clock.now(),
+      reason: reason,
     ),
   );
 

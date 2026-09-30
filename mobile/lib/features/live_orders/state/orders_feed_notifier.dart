@@ -335,18 +335,19 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
   /// and, once accepted, persists the order locally with the new status so the
   /// Orders screen reflects it right away. Returns the reason on failure so the
   /// caller can surface it.
-  Future<Result<OrderEvent, CartivoPosError>> updateCartivoOrderStatus(
+  Future<Result<OrderEvent, CartivoPosFailure>> updateCartivoOrderStatus(
     OrderEvent order,
-    PosOrderStatus status,
-  ) async {
+    PosOrderStatus status, {
+    String? reason,
+  }) async {
     final storeId = _storeId ?? state.value?.storeId;
     try {
       await ref
           .read(cartivoPosRepositoryProvider)
-          .updateOrderStatus(order.data.id, status);
+          .updateOrderStatus(order.data.id, status, reason: reason);
     } catch (e, st) {
       debugPrint('[OrdersFeed] updateCartivoOrderStatus failed: $e\n$st');
-      return Failure(cartivoPosErrorFrom(e));
+      return Failure(cartivoPosFailureFrom(e));
     }
 
     final json =

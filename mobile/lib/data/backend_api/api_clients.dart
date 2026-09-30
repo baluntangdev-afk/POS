@@ -7,6 +7,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../config/environment/orders_server_url.dart';
 import '../../core/services/clock/app_clock.dart';
+import 'cartivo_token_interceptor.dart';
 import 'webhook_token_interceptor.dart';
 
 // Dio's default `LogInterceptor.logPrint` wraps `print()` in an `assert()`,
@@ -80,5 +81,16 @@ final ordersAuthRefreshApiClientProvider = Provider<Dio>((ref) {
 final deviceTokenApiClientProvider = Provider<Dio>((ref) {
   final baseUrl = ref.watch(ordersServerUrlProvider);
   return Dio(BaseOptions(baseUrl: baseUrl))
+    ..interceptors.add(_apiLogInterceptor());
+});
+
+/// Client for the webhook-receiver's `/pos/*` Cartivo relay routes, which
+/// authenticate with the Cartivo access token (not the webhook token).
+final cartivoPosApiClientProvider = Provider<Dio>((ref) {
+  final baseUrl = ref.watch(ordersServerUrlProvider);
+  final appClock = ref.watch(appClockProvider);
+  return Dio(BaseOptions(baseUrl: baseUrl))
+    ..interceptors.add(ref.watch(cartivoTokenInterceptorProvider))
+    ..interceptors.add(_serverTimeInterceptor(appClock))
     ..interceptors.add(_apiLogInterceptor());
 });

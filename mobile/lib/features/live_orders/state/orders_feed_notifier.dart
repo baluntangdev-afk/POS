@@ -14,10 +14,13 @@ import '../../settings/state/store_info_notifier.dart';
 import '../entities/merchant_device_state.dart';
 import '../entities/order_event.dart';
 import '../entities/orders_feed_state.dart';
+import '../entities/pos_order_status.dart';
+import '../repositories/cartivo_pos_repository.dart';
 import '../repositories/device_token_repository.dart';
 import '../repositories/order_events_local_repository.dart';
 import '../repositories/orders_live_feed_repository.dart';
 import '../repositories/webhook_auth_repository.dart';
+import '../use_cases/cartivo_pos_error.dart';
 import '../use_cases/device_registration_status.dart';
 import '../use_cases/device_token_error.dart';
 import '../use_cases/latest_event_per_order.dart';
@@ -328,12 +331,46 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
     }
   }
 
-  /// Convenience wrapper over [applyOrderUpdate] for the common case of
-  /// moving an order to a new [status] (including `cancelled`).
-  Future<Result<OrderEvent, OrderUpdateError>> setOrderStatus(
-    String orderId,
-    String status,
-  ) => applyOrderUpdate(orderId, updates: {'status': status});
+  /// Pushes [status] for [order] to Cartivo (`POST /pos/orders/{n}/status`)
+  /// and, once accepted, persists the order locally with the new status so the
+  /// Orders screen reflects it right away. Returns the reason on failure so the
+  /// caller can surface it.
+  Future<Result<OrderEvent, CartivoPosError>> updateCartivoOrderStatus(
+    OrderEvent order,
+    PosOrderStatus status,
+  ) async {
+    final storeId = _storeId ?? state.value?.storeId;
+    try {
+      await ref
+          .read(cartivoPosRepositoryProvider)
+          .updateOrderStatus(order.data.id, status);
+    } catch (e, st) {
+      debugPrint('[OrdersFeed] updateCartivoOrderStatus failed: $e\n$st');
+      return Failure(cartivoPosErrorFrom(e));
+    }
+
+    final json =
+        order.data.toJson()
+          ..['status'] = status.name
+          ..['updated_at'] = DateTime.now().toUtc().toIso8601String();
+    final updated = OrderEvent(
+      eventId: order.eventId,
+      type:
+          status == PosOrderStatus.cancelled
+              ? OrderEventType.cancelled
+              : OrderEventType.updated,
+      data: OrderData.fromJson(json),
+    );
+    // Cartivo already accepted the change; a local persistence hiccup
+    // shouldn't be reported as a failed update — the next history sync
+    // reconciles the row.
+    if (storeId != null && storeId.isNotEmpty) {
+      await ref
+          .read(orderEventsLocalRepositoryProvider)
+          .save(updated, storeId: storeId);
+    }
+    return Success(updated);
+  }
 
   void _onEvent(OrderEvent event) {
     if (!_seenEventIds.add(event.eventId)) return;
@@ -411,8 +448,8 @@ class OrdersFeedNotifier extends AsyncNotifier<OrdersFeedState> {
   bool _isApproved(MerchantDeviceState deviceState) =>
       kSkipDeviceRegistration ||
       deviceState.isRegistered &&
-      deviceRegistrationStatusFrom(deviceState.status) ==
-          DeviceRegistrationStatus.approved;
+          deviceRegistrationStatusFrom(deviceState.status) ==
+              DeviceRegistrationStatus.approved;
 
   void _teardown() {
     _retryTimer?.cancel();

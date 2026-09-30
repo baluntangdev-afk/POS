@@ -15,7 +15,8 @@ import '../../live_orders/entities/order_event.dart';
 import '../../live_orders/state/orders_feed_notifier.dart';
 import '../../live_orders/state/orders_count_provider.dart';
 import '../../live_orders/state/webhook_auth_status_provider.dart';
-import '../../live_orders/use_cases/order_update_error.dart';
+import '../../live_orders/entities/pos_order_status.dart';
+import '../../live_orders/use_cases/cartivo_pos_error.dart';
 import '../../live_orders/use_cases/webhook_auth_error.dart';
 import 'order_status.dart';
 
@@ -161,9 +162,10 @@ class _OrdersList extends HookConsumerWidget {
                   )
                   : RefreshIndicator(
                     onRefresh:
-                        () => ref
-                            .read(ordersFeedNotifierProvider.notifier)
-                            .refreshHistory(),
+                        () =>
+                            ref
+                                .read(ordersFeedNotifierProvider.notifier)
+                                .refreshHistory(),
                     child: ListView.separated(
                       padding: const EdgeInsets.all(AppSpacing.md),
                       itemCount: filtered.length,
@@ -173,7 +175,8 @@ class _OrdersList extends HookConsumerWidget {
                           (context, index) => _OrderCard(
                             event: filtered[index],
                             onTap:
-                                () => _showOrderDetail(context, filtered[index]),
+                                () =>
+                                    _showOrderDetail(context, filtered[index]),
                           ),
                     ),
                   ),
@@ -295,7 +298,7 @@ class _OrderCard extends HookConsumerWidget {
     // Runs [action], shows a snackbar on failure, and keeps the card in its
     // submitting state (spinner + disabled controls) until it settles.
     Future<void> submit(
-      Future<Result<OrderEvent, OrderUpdateError>> Function() action,
+      Future<Result<OrderEvent, CartivoPosError>> Function() action,
     ) async {
       if (isSubmitting.value) return;
       isSubmitting.value = true;
@@ -316,14 +319,18 @@ class _OrderCard extends HookConsumerWidget {
     Future<void> changeStatus(OrderCardStatus next) => submit(
       () => ref
           .read(ordersFeedNotifierProvider.notifier)
-          .setOrderStatus(data.id, next.rawValue),
+          .updateCartivoOrderStatus(
+            event,
+            PosOrderStatus.values.byName(next.rawValue),
+          ),
     );
 
     Future<void> cancelOrder() => submit(
       () => ref
           .read(ordersFeedNotifierProvider.notifier)
-          .setOrderStatus(data.id, OrderCardStatus.cancelled.rawValue),
+          .updateCartivoOrderStatus(event, PosOrderStatus.cancelled),
     );
+
     final subtitle = [
       (data.customerName ?? '').isNotEmpty ? data.customerName : 'Guest',
       switch (data.fulfillmentType) {

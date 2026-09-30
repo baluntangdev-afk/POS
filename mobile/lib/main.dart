@@ -24,12 +24,15 @@ import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/workers/backup_worker.dart';
 import 'core/workers/transaction_sync_worker.dart';
+import 'data/backend_api/errors/api_exception.dart';
 import 'data/backend_api/sources/transaction_sync_api.dart';
 import 'features/auth/state/auth_providers.dart';
 import 'features/auth/state/auth_state.dart';
 import 'features/live_orders/entities/order_event.dart';
 import 'features/live_orders/entities/orders_feed_state.dart';
+import 'features/live_orders/repositories/cartivo_auth_repository.dart';
 import 'features/live_orders/repositories/webhook_auth_repository.dart';
+import 'features/live_orders/state/cartivo_auth_status_provider.dart';
 import 'features/live_orders/state/device_token_status_provider.dart';
 import 'features/live_orders/state/merchant_device_notifier.dart';
 import 'features/live_orders/state/orders_feed_notifier.dart';
@@ -100,16 +103,33 @@ Future<void> _syncTransactionsNow(WidgetRef ref) async {
   }
 }
 
-/// Drains every pending batch (not just one), via the same shared notifier
-/// the Transactions screen's "Sync All" button uses — so the Dashboard's
-/// progress pill reflects it wherever it's triggered from: right after
-/// login, or right after a sale/refund/void commits locally (see
-/// [salesSyncTriggerProvider]), so pending transactions reach the backend
-/// within seconds instead of waiting for the next reconnect edge or the
-/// 15-minute WorkManager tick. Skipped for an unverified merchant (same
-/// check gating device-approval on the Store Information screen) rather
-/// than letting it fail quietly inside [TransactionSyncService.syncPending]'s
-/// own `ensureToken` call.
+Future<void> _authenticateCartivo(WidgetRef ref) async {
+  try {
+    final authenticated =
+        await ref.read(cartivoAuthRepositoryProvider).authenticate();
+    if (authenticated) {
+      ref.read(cartivoAuthStatusProvider.notifier).clear();
+    } else {
+      _reportCartivoFailure(ref, _cartivoErrorMessage);
+    }
+  } catch (error) {
+    _reportCartivoFailure(ref, _cartivoMessageFrom(error));
+  }
+}
+
+void _reportCartivoFailure(WidgetRef ref, String message) {
+  ref.read(cartivoAuthStatusProvider.notifier).reportFailure(message);
+  _showAuthToast(message);
+}
+
+const _cartivoErrorMessage =
+    'Cartivo service error: authentication failed. Please contact support.';
+
+String _cartivoMessageFrom(Object error) =>
+    error is ApiResponseException && error.serverMessage.isNotEmpty
+        ? error.serverMessage
+        : _cartivoErrorMessage;
+
 Future<void> _drainPendingSync(WidgetRef ref) async {
   try {
     final storeId = (await ref.read(storeInfoProvider.future))?.storeId ?? '';
@@ -145,6 +165,7 @@ class _App extends ConsumerWidget {
             ref.read(merchantDeviceNotifierProvider.notifier).refreshStatus(),
           );
         }
+        unawaited(_authenticateCartivo(ref));
         unawaited(_drainPendingSync(ref));
       }
     });
@@ -216,14 +237,6 @@ void _showAuthToast(String message) {
     );
 }
 
-/// Replaces the passive Dashboard header pill: any [transactionSyncProgressProvider]
-/// run — login-triggered or the Transactions screen's manual "Sync All" —
-/// surfaces its batch progress here instead, app-wide.
-///
-/// Shown once per run (see the `previous == null` gate in `_App.build`) and
-/// its content watches the provider directly, so later batch updates rebuild
-/// the text in place instead of tearing down and re-showing the SnackBar —
-/// which previously caused it to flicker on every batch.
 void _showSyncProgressToast() {
   scaffoldMessengerKey.currentState
     ?..clearSnackBars()
@@ -232,12 +245,6 @@ void _showSyncProgressToast() {
         content: Consumer(
           builder: (context, ref, _) {
             final progress = ref.watch(transactionSyncProgressProvider);
-            // The run this toast was raised for may already have finished by
-            // the time this Consumer gets its first build (fast batch, LAN
-            // backend) — `next != null && previous == null` fires the show
-            // a frame before this paints, so `progress` here can already be
-            // back to null. Rather than fall back to a bogus "0/0", close
-            // the toast on the next frame instead of rendering it.
             if (progress == null) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 scaffoldMessengerKey.currentState?.hideCurrentSnackBar();

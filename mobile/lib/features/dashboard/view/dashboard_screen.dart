@@ -14,6 +14,7 @@ import '../../auth/state/auth_state.dart';
 import '../../inventory/state/inventory_notifier.dart';
 import '../../live_orders/entities/merchant_device_state.dart';
 import '../../live_orders/entities/orders_feed_state.dart';
+import '../../live_orders/state/cartivo_auth_status_provider.dart';
 import '../../live_orders/state/merchant_device_notifier.dart';
 import '../../live_orders/state/orders_feed_notifier.dart';
 import '../../live_orders/state/orders_count_provider.dart';
@@ -114,6 +115,7 @@ class DashboardScreen extends HookConsumerWidget {
       ordersFeedNotifierProvider.select((s) => s.value?.connection),
     );
     final ordersCount = ref.watch(ordersCountProvider).value ?? 0;
+    final cartivoError = ref.watch(cartivoAuthStatusProvider);
 
     final isSetupDialogOpen = useRef(false);
     final hasShownEmployeesDialog = useRef(false);
@@ -312,6 +314,7 @@ class DashboardScreen extends HookConsumerWidget {
               feedConnection: feedConnection,
               onSignOut: () => ref.read(authNotifierProvider.notifier).logout(),
             ),
+            if (cartivoError != null) _CartivoErrorBanner(message: cartivoError),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -351,6 +354,36 @@ class DashboardScreen extends HookConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CartivoErrorBanner extends StatelessWidget {
+  final String message;
+
+  const _CartivoErrorBanner({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: AppColors.error,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.white, size: 20),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
       ),
     );
   }

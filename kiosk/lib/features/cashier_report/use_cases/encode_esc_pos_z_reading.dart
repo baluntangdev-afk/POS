@@ -110,6 +110,14 @@ class EncodeEscPosZReading {
             DateFormat.yMd().format(group.date),
             styles: const PosStyles(bold: true),
           );
+          if (ledger.isCash) {
+            final label = sanitizeForPrinter(
+              '${timeFormat.format(group.start.toLocal())}'
+              ' - ${timeFormat.format(group.end.toLocal())}  $nameUpper',
+            );
+            bytes += _amountRow(generator, label, group.amount);
+            continue;
+          }
           for (final entry in group.entries) {
             final label = sanitizeForPrinter(
               '${timeFormat.format(entry.time.toLocal())}  $nameUpper'

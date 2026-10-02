@@ -33,6 +33,7 @@ import 'features/live_orders/entities/orders_feed_state.dart';
 import 'features/live_orders/repositories/cartivo_auth_repository.dart';
 import 'features/live_orders/repositories/webhook_auth_repository.dart';
 import 'features/live_orders/state/cartivo_auth_status_provider.dart';
+import 'features/live_orders/state/cartivo_products_sync_provider.dart';
 import 'features/live_orders/state/device_token_status_provider.dart';
 import 'features/live_orders/state/merchant_device_notifier.dart';
 import 'features/live_orders/state/orders_feed_notifier.dart';
@@ -77,7 +78,8 @@ void main() async {
 Future<void> _runStartupBackupSafetyNet(AppDatabase db) async {
   try {
     final lastBackup = await BackupStorageService.lastBackupAt();
-    final isStale = lastBackup == null ||
+    final isStale =
+        lastBackup == null ||
         DateTime.now().difference(lastBackup) > const Duration(hours: 3);
     if (isStale) {
       await BackupService.createBackupIfChanged(db);
@@ -88,7 +90,9 @@ Future<void> _runStartupBackupSafetyNet(AppDatabase db) async {
 }
 
 Future<void> _syncTransactionsNow(WidgetRef ref) async {
-  await Future.delayed(Duration(seconds: Random().nextInt(kTransactionSyncJitterMax.inSeconds)));
+  await Future.delayed(
+    Duration(seconds: Random().nextInt(kTransactionSyncJitterMax.inSeconds)),
+  );
   try {
     final storeId = (await ref.read(storeInfoProvider.future))?.storeId ?? '';
     if (storeId.isEmpty) return;
@@ -109,11 +113,24 @@ Future<void> _authenticateCartivo(WidgetRef ref) async {
         await ref.read(cartivoAuthRepositoryProvider).authenticate();
     if (authenticated) {
       ref.read(cartivoAuthStatusProvider.notifier).clear();
+      unawaited(_fetchCartivoProducts(ref));
     } else {
       _reportCartivoFailure(ref, _cartivoErrorMessage);
     }
   } catch (error) {
     _reportCartivoFailure(ref, _cartivoMessageFrom(error));
+  }
+}
+
+
+Future<void> _fetchCartivoProducts(WidgetRef ref) async {
+  try {
+    final merchantId =
+        (await ref.read(storeInfoProvider.future))?.storeId ?? '';
+    if (merchantId.isEmpty) return;
+    await ref.read(cartivoProductsSyncProvider.notifier).sync(merchantId);
+  } catch (error) {
+    debugPrint('[Cartivo] fetching products failed: $error');
   }
 }
 
@@ -136,7 +153,9 @@ Future<void> _drainPendingSync(WidgetRef ref) async {
     if (storeId.isEmpty) return;
     final isVerified = await ref.read(merchantVerificationProvider.future);
     if (!isVerified) return;
-    await ref.read(transactionSyncProgressProvider.notifier).syncAll(
+    await ref
+        .read(transactionSyncProgressProvider.notifier)
+        .syncAll(
           db: ref.read(databaseProvider),
           api: ref.read(transactionSyncApiProvider),
           auth: ref.read(webhookAuthRepositoryProvider),
@@ -202,7 +221,6 @@ class _App extends ConsumerWidget {
   }
 }
 
-
 void _onOrderEvents(
   AsyncValue<OrdersFeedState>? previous,
   AsyncValue<OrdersFeedState> next,
@@ -212,7 +230,8 @@ void _onOrderEvents(
   final nextEvents = next.value?.events;
   if (nextEvents == null || nextEvents.isEmpty) return;
 
-  final previousHeadId = (previousEvents?.isEmpty ?? true) ? null : previousEvents!.first.eventId;
+  final previousHeadId =
+      (previousEvents?.isEmpty ?? true) ? null : previousEvents!.first.eventId;
   final newEvents = <OrderEvent>[];
   for (final event in nextEvents) {
     if (event.eventId == previousHeadId) break;
@@ -263,7 +282,9 @@ void _showSyncProgressToast() {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text('Syncing transactions ${progress.currentBatch}/${progress.totalBatches}'),
+                Text(
+                  'Syncing transactions ${progress.currentBatch}/${progress.totalBatches}',
+                ),
               ],
             );
           },
@@ -278,11 +299,17 @@ void _showOrderToast(OrderEvent event) {
   final data = event.data;
   final (message, color) = switch (event.type) {
     OrderEventType.created => (
-        'New order #${data.id} · ${data.items.length} item${data.items.length == 1 ? '' : 's'}',
-        AppColors.success,
-      ),
-    OrderEventType.updated => ('Order #${data.id} updated · ${data.status}', AppColors.primary),
-    OrderEventType.cancelled => ('Order #${data.id} cancelled', AppColors.error),
+      'New order #${data.id} · ${data.items.length} item${data.items.length == 1 ? '' : 's'}',
+      AppColors.success,
+    ),
+    OrderEventType.updated => (
+      'Order #${data.id} updated · ${data.status}',
+      AppColors.primary,
+    ),
+    OrderEventType.cancelled => (
+      'Order #${data.id} cancelled',
+      AppColors.error,
+    ),
     OrderEventType.deleted => ('Order #${data.id} removed', AppColors.error),
   };
 

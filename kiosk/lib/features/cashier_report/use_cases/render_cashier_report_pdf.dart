@@ -57,6 +57,14 @@ class RenderCashierReportPdf {
         b.text('$nameUpper LEDGER', bold: true, center: false);
         for (final group in ledger.entriesByDate) {
           b.text(DateFormat.yMd().format(group.date), bold: true, center: false);
+          if (ledger.isCash) {
+            b.row(
+              '${timeFormat.format(group.start.toLocal())}'
+              ' - ${timeFormat.format(group.end.toLocal())}  $nameUpper',
+              _moneyFormat.format(group.amount),
+            );
+            continue;
+          }
           for (final entry in group.entries) {
             final label =
                 '${timeFormat.format(entry.time.toLocal())}  $nameUpper'

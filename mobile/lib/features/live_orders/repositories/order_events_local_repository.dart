@@ -39,7 +39,7 @@ abstract class OrderEventsLocalRepository {
   /// [watchOrders]. No status filtering.
   Stream<int> watchOrderCount(String storeId);
 
-  /// All persisted orders for [storeId], most recently updated first.
+  /// All persisted orders for [storeId], newest (by order creation time) first.
   Stream<List<OrderEvent>> watchOrders(String storeId);
 }
 
@@ -115,7 +115,8 @@ class OrderEventsLocalRepositoryImpl implements OrderEventsLocalRepository {
                   data: OrderData.fromJson(jsonDecode(row.payload) as Map<String, dynamic>),
                 ),
               )
-              .toList(),
+              .toList()
+            ..sort((a, b) => b.data.createdAt.compareTo(a.data.createdAt)),
         );
   }
 }

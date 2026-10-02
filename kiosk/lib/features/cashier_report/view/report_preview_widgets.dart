@@ -317,12 +317,19 @@ class PaymentLedgerSection extends StatelessWidget {
       rows: [
         for (final group in ledger.entriesByDate) ...[
           ReportDateGroupHeader(group.date),
-          for (final entry in group.entries)
+          if (ledger.isCash)
             ReportAmountRow(
-              '${timeFormat.format(entry.time.toLocal())}  $nameUpper'
-              '${entry.reference != null ? '#${entry.reference}' : ''}',
-              entry.amount,
-            ),
+              '${timeFormat.format(group.start.toLocal())}'
+              ' - ${timeFormat.format(group.end.toLocal())}  $nameUpper',
+              group.amount,
+            )
+          else
+            for (final entry in group.entries)
+              ReportAmountRow(
+                '${timeFormat.format(entry.time.toLocal())}  $nameUpper'
+                '${entry.reference != null ? '#${entry.reference}' : ''}',
+                entry.amount,
+              ),
         ],
         ReportAmountRow('Total $nameUpper [${ledger.count}]', ledger.total, bold: true),
       ],

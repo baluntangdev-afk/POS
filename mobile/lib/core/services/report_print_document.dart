@@ -305,6 +305,17 @@ void _paymentLedgerInstructions(List<PrintInstruction> instructions,
   _sectionHeader(instructions, '$nameUpper LEDGER');
   for (final group in ledger.entriesByDate) {
     instructions.add(PrintText(_fmtDay(group.date), bold: true));
+    if (ledger.method == 'cash') {
+      // Cash is summarized per date: first - last transaction time + total.
+      _amountRow(
+        instructions,
+        '${_fmtTime(group.entries.first.time)} - '
+        '${_fmtTime(group.entries.last.time)}  $nameUpper',
+        group.entries.fold(0.0, (sum, e) => sum + e.amount),
+        currency: currency,
+      );
+      continue;
+    }
     for (final entry in group.entries) {
       final label =
           '${_fmtTime(entry.time)}  $nameUpper${entry.reference != null

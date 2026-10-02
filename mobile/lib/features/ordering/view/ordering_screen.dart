@@ -6,7 +6,6 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../../core/providers/database_provider.dart';
 import '../../../core/services/image_storage_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_gradients.dart';
@@ -17,6 +16,8 @@ import '../../../core/utils/breakpoints.dart';
 import '../../../core/widgets/gradient_filled_button.dart';
 import '../../auth/state/auth_providers.dart';
 import '../../auth/state/auth_state.dart';
+import '../../live_orders/state/cartivo_products_sync_provider.dart';
+import '../../live_orders/view/cartivo_sync_banner.dart';
 import '../../settings/state/store_info_notifier.dart';
 import '../entities/line_item.dart';
 import '../entities/sale.dart';
@@ -50,9 +51,7 @@ class OrderingScreen extends HookConsumerWidget {
             },
             icon: Icon(Icons.arrow_back),
           ),
-          actions: [
-            _StoreHeader(),
-          ],
+          actions: [_StoreHeader()],
         ),
         body: LayoutBuilder(
           builder: (context, constraints) {
@@ -141,17 +140,110 @@ class _PhoneLayout extends HookConsumerWidget {
 
 // ── Product section (chips + grid) ────────────────────────────────────────────
 
-class _ProductSection extends StatelessWidget {
+class _ProductSection extends HookWidget {
   const _ProductSection();
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    final controller = useTextEditingController();
+    final query = useState('');
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _CategoryChipRow(),
-        Expanded(child: _ProductGrid()),
+        const CartivoSyncBanner(),
+        Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular(AppSpacing.radiusXl),
+            ),
+            boxShadow: AppShadows.card,
+          ),
+          child: Column(
+            children: [
+              _SearchField(
+                controller: controller,
+                onChanged: (v) => query.value = v.trim().toLowerCase(),
+                onClear: () {
+                  controller.clear();
+                  query.value = '';
+                },
+              ),
+              _CategoryChipRow(query: query.value),
+              const Gap(AppSpacing.xs),
+            ],
+          ),
+        ),
+        Expanded(child: _ProductGrid(query: query.value)),
       ],
+    );
+  }
+}
+
+class _SearchField extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  const _SearchField({
+    required this.controller,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.sm,
+        AppSpacing.lg,
+        AppSpacing.xs,
+      ),
+      child: TextField(
+        controller: controller,
+        onChanged: onChanged,
+        textInputAction: TextInputAction.search,
+        style: AppTextStyles.bodyMd,
+        decoration: InputDecoration(
+          hintText: 'Search products or categories',
+          hintStyle: AppTextStyles.bodyMd.copyWith(
+            color: AppColors.textDisabled,
+          ),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: AppColors.textSecondary,
+          ),
+          suffixIcon: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder:
+                (_, value, _) =>
+                    value.text.isEmpty
+                        ? const SizedBox.shrink()
+                        : IconButton(
+                          onPressed: onClear,
+                          icon: const Icon(Icons.close_rounded),
+                          tooltip: 'Clear search',
+                        ),
+          ),
+          isDense: true,
+          filled: true,
+          fillColor: AppColors.surfaceVariant,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm + 2,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -169,7 +261,8 @@ class _StoreHeader extends ConsumerWidget {
     final authState = ref.watch(authNotifierProvider);
     final cashierName =
         authState is AuthAuthenticated ? authState.user.name : null;
-    final displayName = storeName?.isNotEmpty == true ? storeName! : 'New Order';
+    final displayName =
+        storeName?.isNotEmpty == true ? storeName! : 'New Order';
 
     // AppBar lays out `actions` with unbounded width, so an `Expanded` here
     // would throw ("incoming width constraints are unbounded"). Bound the
@@ -240,22 +333,40 @@ class _StoreHeader extends ConsumerWidget {
 // ── Category chips ─────────────────────────────────────────────────────────────
 
 class _CategoryChipRow extends ConsumerWidget {
-  const _CategoryChipRow();
+  final String query;
+
+  const _CategoryChipRow({required this.query});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final groups = ref.watch(
+    final allGroups = ref.watch(
       orderingProvider.select((s) => s.value?.groups ?? const []),
+    );
+    final allProducts = ref.watch(
+      orderingProvider.select((s) => s.value?.allProducts ?? const []),
     );
     final selectedId = ref.watch(
       orderingProvider.select((s) => s.value?.selectedGroupId),
     );
 
+    // While searching, only offer categories that match by name or that
+    // contain a matching product. The selected category always stays visible.
+    final groups =
+        query.isEmpty
+            ? allGroups
+            : allGroups.where((g) {
+              if (g.id == selectedId) return true;
+              if (g.name.toLowerCase().contains(query)) return true;
+              return allProducts.any(
+                (p) =>
+                    p.groupId == g.id && p.name.toLowerCase().contains(query),
+              );
+            }).toList();
+
     if (groups.isEmpty) return const SizedBox.shrink();
 
-    return Container(
+    return SizedBox(
       height: 52,
-      color: AppColors.surface,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(
@@ -305,12 +416,19 @@ class _Chip extends StatelessWidget {
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.surface,
+          gradient: isSelected ? AppGradients.primary : null,
+          color: isSelected ? null : AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
-            width: 1.5,
-          ),
+          boxShadow:
+              isSelected
+                  ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                  : null,
         ),
         child: Text(
           label,
@@ -324,17 +442,16 @@ class _Chip extends StatelessWidget {
   }
 }
 
-// ── Product grid ──────────────────────────────────────────────────────────────
-
 class _ProductGrid extends ConsumerWidget {
-  const _ProductGrid();
+  final String query;
+
+  const _ProductGrid({required this.query});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Selects only the catalog fields (not `sale`), and `copyWith` reuses
-    // the same `allProducts`/`groups` list instances across cart-only
-    // updates — so this stays unchanged, and the grid doesn't rebuild,
-    // while the cart is edited (add item, qty +/-, notes, sale type, etc).
+    Future<void> onRefresh() =>
+        ref.read(cartivoProductsSyncProvider.notifier).retry();
+
     final state = ref.watch(
       orderingProvider.select(
         (s) => s.whenData(
@@ -376,62 +493,97 @@ class _ProductGrid extends ConsumerWidget {
             ),
           ),
       data: (catalog) {
-        final products = catalog.allProducts.where((p) {
-          if (!p.isAvailable) return false;
-          if (catalog.selectedGroupId != null &&
-              p.groupId != catalog.selectedGroupId) {
-            return false;
-          }
-          return true;
-        }).toList();
+        final groupById = {for (final g in catalog.groups) g.id: g.name};
+
+        final products =
+            catalog.allProducts.where((p) {
+              if (catalog.selectedGroupId != null &&
+                  p.groupId != catalog.selectedGroupId) {
+                return false;
+              }
+              if (query.isNotEmpty) {
+                final inName = p.name.toLowerCase().contains(query);
+                final inCategory = (groupById[p.groupId] ?? '')
+                    .toLowerCase()
+                    .contains(query);
+                if (!inName && !inCategory) return false;
+              }
+              return true;
+            }).toList();
         if (products.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.restaurant_menu_rounded,
-                  size: 48,
-                  color: AppColors.textDisabled,
-                ),
-                const Gap(AppSpacing.md),
-                Text(
-                  'No products available',
-                  style: AppTextStyles.headingSm.copyWith(
-                    color: AppColors.textSecondary,
+          return RefreshIndicator(
+            onRefresh: onRefresh,
+            child: LayoutBuilder(
+              builder:
+                  (context, constraints) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(
+                      height: constraints.maxHeight,
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 88,
+                              height: 88,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.08,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.restaurant_menu_rounded,
+                                size: 40,
+                                color: AppColors.primary.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            const Gap(AppSpacing.md),
+                            Text(
+                              query.isEmpty
+                                  ? 'No products available'
+                                  : 'No matches found',
+                              style: AppTextStyles.headingSm.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ],
             ),
           );
         }
 
-        final groupById = {for (final g in catalog.groups) g.id: g.name};
-
         return LayoutBuilder(
           builder: (context, constraints) {
             final cols = constraints.maxWidth >= 600 ? 3 : 2;
-            return GridView.builder(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.md,
-                AppSpacing.md,
-                100,
-              ),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: cols,
-                childAspectRatio: 0.72,
-                crossAxisSpacing: AppSpacing.sm,
-                mainAxisSpacing: AppSpacing.sm,
-              ),
-              itemCount: products.length,
-              itemBuilder:
-                  (_, i) => RepaintBoundary(
-                    child: _ProductCard(
-                      product: products[i],
-                      groupName: groupById[products[i].groupId] ?? '',
+            return RefreshIndicator(
+              onRefresh: onRefresh,
+              child: GridView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  AppSpacing.md,
+                  AppSpacing.md,
+                  100,
+                ),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: cols,
+                  childAspectRatio: 0.68,
+                  crossAxisSpacing: AppSpacing.sm,
+                  mainAxisSpacing: AppSpacing.sm,
+                ),
+                itemCount: products.length,
+                itemBuilder:
+                    (_, i) => RepaintBoundary(
+                      child: _ProductCard(
+                        product: products[i],
+                        groupName: groupById[products[i].groupId] ?? '',
+                      ),
                     ),
-                  ),
+              ),
             );
           },
         );
@@ -448,103 +600,157 @@ class _ProductCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final soldOut = !product.isAvailable;
+    const radius = 20.0;
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        boxShadow: AppShadows.card,
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: AppColors.divider.withValues(alpha: 0.6)),
+        boxShadow: soldOut ? null : AppShadows.card,
       ),
       child: Material(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(radius),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-          onTap: () async {
-            final db = ref.read(databaseProvider);
-            final item = await showModifierDialog(
-              context,
-              product: product,
-              groupName: groupName,
-              db: db,
-            );
-            if (item != null) {
-              ref.read(orderingProvider.notifier).addItem(item);
-            }
-          },
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-            Expanded(
-              flex: 5,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(AppSpacing.radiusXl),
-                ),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _ProductImage(imageUrl: product.imageUrl),
-                    Positioned(
-                      bottom: 8,
-                      right: 8,
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          gradient: AppGradients.primary,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.surface,
-                            width: 2.5,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.4),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+          onTap:
+              soldOut
+                  ? null
+                  : () async {
+                    final item = await showModifierDialog(
+                      context,
+                      product: product,
+                      groupName: groupName,
+                    );
+                    if (item != null) {
+                      ref.read(orderingProvider.notifier).addItem(item);
+                    }
+                  },
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 5,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(radius - 8),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ColorFiltered(
+                          colorFilter:
+                              soldOut
+                                  ? const ColorFilter.mode(
+                                    Colors.grey,
+                                    BlendMode.saturation,
+                                  )
+                                  : const ColorFilter.mode(
+                                    Colors.transparent,
+                                    BlendMode.dst,
+                                  ),
+                          child: _ProductImage(imageUrl: product.imageUrl),
+                        ),
+                        if (soldOut)
+                          Container(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            alignment: Alignment.center,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.textPrimary,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                'Sold out',
+                                style: AppTextStyles.labelMd.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 10, 4, 2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (groupName.isNotEmpty)
+                          Text(
+                            groupName.toUpperCase(),
+                            style: AppTextStyles.labelMd.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: 10,
+                              letterSpacing: 0.8,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        const Gap(2),
+                        Text(
+                          product.name,
+                          style: AppTextStyles.labelLg.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color:
+                                soldOut
+                                    ? AppColors.textDisabled
+                                    : AppColors.textPrimary,
+                            height: 1.2,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const Spacer(),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '₱${product.price.toStringAsFixed(2)}',
+                                style: AppTextStyles.labelLg.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                  color:
+                                      soldOut
+                                          ? AppColors.textDisabled
+                                          : AppColors.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (!soldOut)
+                              Container(
+                                width: 32,
+                                height: 32,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.add_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.add_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-            Expanded(
-              flex: 3,
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product.name,
-                      style: AppTextStyles.labelLg.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const Gap(2),
-                    Text(
-                      'PHP ${product.price.toStringAsFixed(2)}',
-                      style: AppTextStyles.bodyMd.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
           ),
         ),
       ),
@@ -561,10 +767,15 @@ class _ProductImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final url = imageUrl;
     if (url != null && url.isNotEmpty) {
-      Widget errorBuilder(BuildContext ctx, Object err, StackTrace? st) => _Placeholder();
+      Widget errorBuilder(BuildContext ctx, Object err, StackTrace? st) =>
+          _Placeholder();
       return ImageStorageService.isNetworkUrl(url)
           ? Image.network(url, fit: BoxFit.cover, errorBuilder: errorBuilder)
-          : Image.file(File(url), fit: BoxFit.cover, errorBuilder: errorBuilder);
+          : Image.file(
+            File(url),
+            fit: BoxFit.cover,
+            errorBuilder: errorBuilder,
+          );
     }
     return _Placeholder();
   }
@@ -573,13 +784,30 @@ class _ProductImage extends StatelessWidget {
 class _Placeholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: AppColors.primary.withValues(alpha: 0.08),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primary.withValues(alpha: 0.14),
+            AppColors.secondary.withValues(alpha: 0.28),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
       child: Center(
-        child: Icon(
-          Icons.fastfood_rounded,
-          size: 36,
-          color: AppColors.primary.withValues(alpha: 0.35),
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: AppColors.surface.withValues(alpha: 0.7),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.fastfood_rounded,
+            size: 28,
+            color: AppColors.primary.withValues(alpha: 0.6),
+          ),
         ),
       ),
     );
@@ -1069,10 +1297,7 @@ class _CartItemRow extends HookConsumerWidget {
                         ),
                         TextButton.icon(
                           onPressed: () => notifier.removeDiscount(item.id),
-                          icon: const Icon(
-                            Icons.close_rounded,
-                            size: 16,
-                          ),
+                          icon: const Icon(Icons.close_rounded, size: 16),
                           label: const Text('Remove Discount'),
                           style: TextButton.styleFrom(
                             foregroundColor: AppColors.error,

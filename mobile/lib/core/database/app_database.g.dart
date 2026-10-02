@@ -3501,6 +3501,28 @@ class $SaleItemsTableTable extends SaleItemsTable
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _productNameMeta = const VerificationMeta(
+    'productName',
+  );
+  @override
+  late final GeneratedColumn<String> productName = GeneratedColumn<String>(
+    'product_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _categoryNameMeta = const VerificationMeta(
+    'categoryName',
+  );
+  @override
+  late final GeneratedColumn<String> categoryName = GeneratedColumn<String>(
+    'category_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _qtyMeta = const VerificationMeta('qty');
   @override
   late final GeneratedColumn<int> qty = GeneratedColumn<int>(
@@ -3582,6 +3604,8 @@ class $SaleItemsTableTable extends SaleItemsTable
     saleId,
     productId,
     variantName,
+    productName,
+    categoryName,
     qty,
     unitPrice,
     discountType,
@@ -3631,6 +3655,24 @@ class $SaleItemsTableTable extends SaleItemsTable
       );
     } else if (isInserting) {
       context.missing(_variantNameMeta);
+    }
+    if (data.containsKey('product_name')) {
+      context.handle(
+        _productNameMeta,
+        productName.isAcceptableOrUnknown(
+          data['product_name']!,
+          _productNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('category_name')) {
+      context.handle(
+        _categoryNameMeta,
+        categoryName.isAcceptableOrUnknown(
+          data['category_name']!,
+          _categoryNameMeta,
+        ),
+      );
     }
     if (data.containsKey('qty')) {
       context.handle(
@@ -3722,6 +3764,14 @@ class $SaleItemsTableTable extends SaleItemsTable
             DriftSqlType.string,
             data['${effectivePrefix}variant_name'],
           )!,
+      productName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}product_name'],
+      ),
+      categoryName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_name'],
+      ),
       qty:
           attachedDatabase.typeMapping.read(
             DriftSqlType.int,
@@ -3767,6 +3817,8 @@ class SaleItemsTableData extends DataClass
   final int saleId;
   final int productId;
   final String variantName;
+  final String? productName;
+  final String? categoryName;
   final int qty;
   final double unitPrice;
   final String? discountType;
@@ -3779,6 +3831,8 @@ class SaleItemsTableData extends DataClass
     required this.saleId,
     required this.productId,
     required this.variantName,
+    this.productName,
+    this.categoryName,
     required this.qty,
     required this.unitPrice,
     this.discountType,
@@ -3794,6 +3848,12 @@ class SaleItemsTableData extends DataClass
     map['sale_id'] = Variable<int>(saleId);
     map['product_id'] = Variable<int>(productId);
     map['variant_name'] = Variable<String>(variantName);
+    if (!nullToAbsent || productName != null) {
+      map['product_name'] = Variable<String>(productName);
+    }
+    if (!nullToAbsent || categoryName != null) {
+      map['category_name'] = Variable<String>(categoryName);
+    }
     map['qty'] = Variable<int>(qty);
     map['unit_price'] = Variable<double>(unitPrice);
     if (!nullToAbsent || discountType != null) {
@@ -3822,6 +3882,14 @@ class SaleItemsTableData extends DataClass
       saleId: Value(saleId),
       productId: Value(productId),
       variantName: Value(variantName),
+      productName:
+          productName == null && nullToAbsent
+              ? const Value.absent()
+              : Value(productName),
+      categoryName:
+          categoryName == null && nullToAbsent
+              ? const Value.absent()
+              : Value(categoryName),
       qty: Value(qty),
       unitPrice: Value(unitPrice),
       discountType:
@@ -3857,6 +3925,8 @@ class SaleItemsTableData extends DataClass
       saleId: serializer.fromJson<int>(json['saleId']),
       productId: serializer.fromJson<int>(json['productId']),
       variantName: serializer.fromJson<String>(json['variantName']),
+      productName: serializer.fromJson<String?>(json['productName']),
+      categoryName: serializer.fromJson<String?>(json['categoryName']),
       qty: serializer.fromJson<int>(json['qty']),
       unitPrice: serializer.fromJson<double>(json['unitPrice']),
       discountType: serializer.fromJson<String?>(json['discountType']),
@@ -3878,6 +3948,8 @@ class SaleItemsTableData extends DataClass
       'saleId': serializer.toJson<int>(saleId),
       'productId': serializer.toJson<int>(productId),
       'variantName': serializer.toJson<String>(variantName),
+      'productName': serializer.toJson<String?>(productName),
+      'categoryName': serializer.toJson<String?>(categoryName),
       'qty': serializer.toJson<int>(qty),
       'unitPrice': serializer.toJson<double>(unitPrice),
       'discountType': serializer.toJson<String?>(discountType),
@@ -3897,6 +3969,8 @@ class SaleItemsTableData extends DataClass
     int? saleId,
     int? productId,
     String? variantName,
+    Value<String?> productName = const Value.absent(),
+    Value<String?> categoryName = const Value.absent(),
     int? qty,
     double? unitPrice,
     Value<String?> discountType = const Value.absent(),
@@ -3909,6 +3983,8 @@ class SaleItemsTableData extends DataClass
     saleId: saleId ?? this.saleId,
     productId: productId ?? this.productId,
     variantName: variantName ?? this.variantName,
+    productName: productName.present ? productName.value : this.productName,
+    categoryName: categoryName.present ? categoryName.value : this.categoryName,
     qty: qty ?? this.qty,
     unitPrice: unitPrice ?? this.unitPrice,
     discountType: discountType.present ? discountType.value : this.discountType,
@@ -3932,6 +4008,12 @@ class SaleItemsTableData extends DataClass
       productId: data.productId.present ? data.productId.value : this.productId,
       variantName:
           data.variantName.present ? data.variantName.value : this.variantName,
+      productName:
+          data.productName.present ? data.productName.value : this.productName,
+      categoryName:
+          data.categoryName.present
+              ? data.categoryName.value
+              : this.categoryName,
       qty: data.qty.present ? data.qty.value : this.qty,
       unitPrice: data.unitPrice.present ? data.unitPrice.value : this.unitPrice,
       discountType:
@@ -3964,6 +4046,8 @@ class SaleItemsTableData extends DataClass
           ..write('saleId: $saleId, ')
           ..write('productId: $productId, ')
           ..write('variantName: $variantName, ')
+          ..write('productName: $productName, ')
+          ..write('categoryName: $categoryName, ')
           ..write('qty: $qty, ')
           ..write('unitPrice: $unitPrice, ')
           ..write('discountType: $discountType, ')
@@ -3981,6 +4065,8 @@ class SaleItemsTableData extends DataClass
     saleId,
     productId,
     variantName,
+    productName,
+    categoryName,
     qty,
     unitPrice,
     discountType,
@@ -3997,6 +4083,8 @@ class SaleItemsTableData extends DataClass
           other.saleId == this.saleId &&
           other.productId == this.productId &&
           other.variantName == this.variantName &&
+          other.productName == this.productName &&
+          other.categoryName == this.categoryName &&
           other.qty == this.qty &&
           other.unitPrice == this.unitPrice &&
           other.discountType == this.discountType &&
@@ -4011,6 +4099,8 @@ class SaleItemsTableCompanion extends UpdateCompanion<SaleItemsTableData> {
   final Value<int> saleId;
   final Value<int> productId;
   final Value<String> variantName;
+  final Value<String?> productName;
+  final Value<String?> categoryName;
   final Value<int> qty;
   final Value<double> unitPrice;
   final Value<String?> discountType;
@@ -4023,6 +4113,8 @@ class SaleItemsTableCompanion extends UpdateCompanion<SaleItemsTableData> {
     this.saleId = const Value.absent(),
     this.productId = const Value.absent(),
     this.variantName = const Value.absent(),
+    this.productName = const Value.absent(),
+    this.categoryName = const Value.absent(),
     this.qty = const Value.absent(),
     this.unitPrice = const Value.absent(),
     this.discountType = const Value.absent(),
@@ -4036,6 +4128,8 @@ class SaleItemsTableCompanion extends UpdateCompanion<SaleItemsTableData> {
     required int saleId,
     required int productId,
     required String variantName,
+    this.productName = const Value.absent(),
+    this.categoryName = const Value.absent(),
     required int qty,
     required double unitPrice,
     this.discountType = const Value.absent(),
@@ -4053,6 +4147,8 @@ class SaleItemsTableCompanion extends UpdateCompanion<SaleItemsTableData> {
     Expression<int>? saleId,
     Expression<int>? productId,
     Expression<String>? variantName,
+    Expression<String>? productName,
+    Expression<String>? categoryName,
     Expression<int>? qty,
     Expression<double>? unitPrice,
     Expression<String>? discountType,
@@ -4066,6 +4162,8 @@ class SaleItemsTableCompanion extends UpdateCompanion<SaleItemsTableData> {
       if (saleId != null) 'sale_id': saleId,
       if (productId != null) 'product_id': productId,
       if (variantName != null) 'variant_name': variantName,
+      if (productName != null) 'product_name': productName,
+      if (categoryName != null) 'category_name': categoryName,
       if (qty != null) 'qty': qty,
       if (unitPrice != null) 'unit_price': unitPrice,
       if (discountType != null) 'discount_type': discountType,
@@ -4083,6 +4181,8 @@ class SaleItemsTableCompanion extends UpdateCompanion<SaleItemsTableData> {
     Value<int>? saleId,
     Value<int>? productId,
     Value<String>? variantName,
+    Value<String?>? productName,
+    Value<String?>? categoryName,
     Value<int>? qty,
     Value<double>? unitPrice,
     Value<String?>? discountType,
@@ -4096,6 +4196,8 @@ class SaleItemsTableCompanion extends UpdateCompanion<SaleItemsTableData> {
       saleId: saleId ?? this.saleId,
       productId: productId ?? this.productId,
       variantName: variantName ?? this.variantName,
+      productName: productName ?? this.productName,
+      categoryName: categoryName ?? this.categoryName,
       qty: qty ?? this.qty,
       unitPrice: unitPrice ?? this.unitPrice,
       discountType: discountType ?? this.discountType,
@@ -4122,6 +4224,12 @@ class SaleItemsTableCompanion extends UpdateCompanion<SaleItemsTableData> {
     }
     if (variantName.present) {
       map['variant_name'] = Variable<String>(variantName.value);
+    }
+    if (productName.present) {
+      map['product_name'] = Variable<String>(productName.value);
+    }
+    if (categoryName.present) {
+      map['category_name'] = Variable<String>(categoryName.value);
     }
     if (qty.present) {
       map['qty'] = Variable<int>(qty.value);
@@ -4158,6 +4266,8 @@ class SaleItemsTableCompanion extends UpdateCompanion<SaleItemsTableData> {
           ..write('saleId: $saleId, ')
           ..write('productId: $productId, ')
           ..write('variantName: $variantName, ')
+          ..write('productName: $productName, ')
+          ..write('categoryName: $categoryName, ')
           ..write('qty: $qty, ')
           ..write('unitPrice: $unitPrice, ')
           ..write('discountType: $discountType, ')
@@ -10946,6 +11056,1359 @@ class OrderEventsTableCompanion extends UpdateCompanion<OrderEventsTableData> {
   }
 }
 
+class $CartivoProductsTableTable extends CartivoProductsTable
+    with TableInfo<$CartivoProductsTableTable, CartivoProductsTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CartivoProductsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _productIdMeta = const VerificationMeta(
+    'productId',
+  );
+  @override
+  late final GeneratedColumn<int> productId = GeneratedColumn<int>(
+    'product_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _merchantIdMeta = const VerificationMeta(
+    'merchantId',
+  );
+  @override
+  late final GeneratedColumn<String> merchantId = GeneratedColumn<String>(
+    'merchant_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _imageUrlMeta = const VerificationMeta(
+    'imageUrl',
+  );
+  @override
+  late final GeneratedColumn<String> imageUrl = GeneratedColumn<String>(
+    'image_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    productId,
+    merchantId,
+    name,
+    category,
+    imageUrl,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cartivo_products';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CartivoProductsTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('product_id')) {
+      context.handle(
+        _productIdMeta,
+        productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta),
+      );
+    }
+    if (data.containsKey('merchant_id')) {
+      context.handle(
+        _merchantIdMeta,
+        merchantId.isAcceptableOrUnknown(data['merchant_id']!, _merchantIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_merchantIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    }
+    if (data.containsKey('image_url')) {
+      context.handle(
+        _imageUrlMeta,
+        imageUrl.isAcceptableOrUnknown(data['image_url']!, _imageUrlMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {productId};
+  @override
+  CartivoProductsTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CartivoProductsTableData(
+      productId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}product_id'],
+          )!,
+      merchantId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}merchant_id'],
+          )!,
+      name:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}name'],
+          )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      ),
+      imageUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}image_url'],
+      ),
+      updatedAt:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.dateTime,
+            data['${effectivePrefix}updated_at'],
+          )!,
+    );
+  }
+
+  @override
+  $CartivoProductsTableTable createAlias(String alias) {
+    return $CartivoProductsTableTable(attachedDatabase, alias);
+  }
+}
+
+class CartivoProductsTableData extends DataClass
+    implements Insertable<CartivoProductsTableData> {
+  final int productId;
+  final String merchantId;
+  final String name;
+  final String? category;
+  final String? imageUrl;
+  final DateTime updatedAt;
+  const CartivoProductsTableData({
+    required this.productId,
+    required this.merchantId,
+    required this.name,
+    this.category,
+    this.imageUrl,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['product_id'] = Variable<int>(productId);
+    map['merchant_id'] = Variable<String>(merchantId);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || category != null) {
+      map['category'] = Variable<String>(category);
+    }
+    if (!nullToAbsent || imageUrl != null) {
+      map['image_url'] = Variable<String>(imageUrl);
+    }
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  CartivoProductsTableCompanion toCompanion(bool nullToAbsent) {
+    return CartivoProductsTableCompanion(
+      productId: Value(productId),
+      merchantId: Value(merchantId),
+      name: Value(name),
+      category:
+          category == null && nullToAbsent
+              ? const Value.absent()
+              : Value(category),
+      imageUrl:
+          imageUrl == null && nullToAbsent
+              ? const Value.absent()
+              : Value(imageUrl),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CartivoProductsTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CartivoProductsTableData(
+      productId: serializer.fromJson<int>(json['productId']),
+      merchantId: serializer.fromJson<String>(json['merchantId']),
+      name: serializer.fromJson<String>(json['name']),
+      category: serializer.fromJson<String?>(json['category']),
+      imageUrl: serializer.fromJson<String?>(json['imageUrl']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'productId': serializer.toJson<int>(productId),
+      'merchantId': serializer.toJson<String>(merchantId),
+      'name': serializer.toJson<String>(name),
+      'category': serializer.toJson<String?>(category),
+      'imageUrl': serializer.toJson<String?>(imageUrl),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  CartivoProductsTableData copyWith({
+    int? productId,
+    String? merchantId,
+    String? name,
+    Value<String?> category = const Value.absent(),
+    Value<String?> imageUrl = const Value.absent(),
+    DateTime? updatedAt,
+  }) => CartivoProductsTableData(
+    productId: productId ?? this.productId,
+    merchantId: merchantId ?? this.merchantId,
+    name: name ?? this.name,
+    category: category.present ? category.value : this.category,
+    imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CartivoProductsTableData copyWithCompanion(
+    CartivoProductsTableCompanion data,
+  ) {
+    return CartivoProductsTableData(
+      productId: data.productId.present ? data.productId.value : this.productId,
+      merchantId:
+          data.merchantId.present ? data.merchantId.value : this.merchantId,
+      name: data.name.present ? data.name.value : this.name,
+      category: data.category.present ? data.category.value : this.category,
+      imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CartivoProductsTableData(')
+          ..write('productId: $productId, ')
+          ..write('merchantId: $merchantId, ')
+          ..write('name: $name, ')
+          ..write('category: $category, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(productId, merchantId, name, category, imageUrl, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CartivoProductsTableData &&
+          other.productId == this.productId &&
+          other.merchantId == this.merchantId &&
+          other.name == this.name &&
+          other.category == this.category &&
+          other.imageUrl == this.imageUrl &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CartivoProductsTableCompanion
+    extends UpdateCompanion<CartivoProductsTableData> {
+  final Value<int> productId;
+  final Value<String> merchantId;
+  final Value<String> name;
+  final Value<String?> category;
+  final Value<String?> imageUrl;
+  final Value<DateTime> updatedAt;
+  const CartivoProductsTableCompanion({
+    this.productId = const Value.absent(),
+    this.merchantId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.category = const Value.absent(),
+    this.imageUrl = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  CartivoProductsTableCompanion.insert({
+    this.productId = const Value.absent(),
+    required String merchantId,
+    required String name,
+    this.category = const Value.absent(),
+    this.imageUrl = const Value.absent(),
+    required DateTime updatedAt,
+  }) : merchantId = Value(merchantId),
+       name = Value(name),
+       updatedAt = Value(updatedAt);
+  static Insertable<CartivoProductsTableData> custom({
+    Expression<int>? productId,
+    Expression<String>? merchantId,
+    Expression<String>? name,
+    Expression<String>? category,
+    Expression<String>? imageUrl,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (productId != null) 'product_id': productId,
+      if (merchantId != null) 'merchant_id': merchantId,
+      if (name != null) 'name': name,
+      if (category != null) 'category': category,
+      if (imageUrl != null) 'image_url': imageUrl,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  CartivoProductsTableCompanion copyWith({
+    Value<int>? productId,
+    Value<String>? merchantId,
+    Value<String>? name,
+    Value<String?>? category,
+    Value<String?>? imageUrl,
+    Value<DateTime>? updatedAt,
+  }) {
+    return CartivoProductsTableCompanion(
+      productId: productId ?? this.productId,
+      merchantId: merchantId ?? this.merchantId,
+      name: name ?? this.name,
+      category: category ?? this.category,
+      imageUrl: imageUrl ?? this.imageUrl,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (productId.present) {
+      map['product_id'] = Variable<int>(productId.value);
+    }
+    if (merchantId.present) {
+      map['merchant_id'] = Variable<String>(merchantId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (imageUrl.present) {
+      map['image_url'] = Variable<String>(imageUrl.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CartivoProductsTableCompanion(')
+          ..write('productId: $productId, ')
+          ..write('merchantId: $merchantId, ')
+          ..write('name: $name, ')
+          ..write('category: $category, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CartivoProductVariantsTableTable extends CartivoProductVariantsTable
+    with
+        TableInfo<
+          $CartivoProductVariantsTableTable,
+          CartivoProductVariantsTableData
+        > {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CartivoProductVariantsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _variantIdMeta = const VerificationMeta(
+    'variantId',
+  );
+  @override
+  late final GeneratedColumn<int> variantId = GeneratedColumn<int>(
+    'variant_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _productIdMeta = const VerificationMeta(
+    'productId',
+  );
+  @override
+  late final GeneratedColumn<int> productId = GeneratedColumn<int>(
+    'product_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES cartivo_products (product_id)',
+    ),
+  );
+  static const VerificationMeta _skuMeta = const VerificationMeta('sku');
+  @override
+  late final GeneratedColumn<String> sku = GeneratedColumn<String>(
+    'sku',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _variantNameMeta = const VerificationMeta(
+    'variantName',
+  );
+  @override
+  late final GeneratedColumn<String> variantName = GeneratedColumn<String>(
+    'variant_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _priceMeta = const VerificationMeta('price');
+  @override
+  late final GeneratedColumn<double> price = GeneratedColumn<double>(
+    'price',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _availableQuantityMeta = const VerificationMeta(
+    'availableQuantity',
+  );
+  @override
+  late final GeneratedColumn<int> availableQuantity = GeneratedColumn<int>(
+    'available_quantity',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isAvailableMeta = const VerificationMeta(
+    'isAvailable',
+  );
+  @override
+  late final GeneratedColumn<bool> isAvailable = GeneratedColumn<bool>(
+    'is_available',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_available" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    variantId,
+    productId,
+    sku,
+    variantName,
+    price,
+    availableQuantity,
+    isAvailable,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cartivo_product_variants';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CartivoProductVariantsTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('variant_id')) {
+      context.handle(
+        _variantIdMeta,
+        variantId.isAcceptableOrUnknown(data['variant_id']!, _variantIdMeta),
+      );
+    }
+    if (data.containsKey('product_id')) {
+      context.handle(
+        _productIdMeta,
+        productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_productIdMeta);
+    }
+    if (data.containsKey('sku')) {
+      context.handle(
+        _skuMeta,
+        sku.isAcceptableOrUnknown(data['sku']!, _skuMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_skuMeta);
+    }
+    if (data.containsKey('variant_name')) {
+      context.handle(
+        _variantNameMeta,
+        variantName.isAcceptableOrUnknown(
+          data['variant_name']!,
+          _variantNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_variantNameMeta);
+    }
+    if (data.containsKey('price')) {
+      context.handle(
+        _priceMeta,
+        price.isAcceptableOrUnknown(data['price']!, _priceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_priceMeta);
+    }
+    if (data.containsKey('available_quantity')) {
+      context.handle(
+        _availableQuantityMeta,
+        availableQuantity.isAcceptableOrUnknown(
+          data['available_quantity']!,
+          _availableQuantityMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_availableQuantityMeta);
+    }
+    if (data.containsKey('is_available')) {
+      context.handle(
+        _isAvailableMeta,
+        isAvailable.isAcceptableOrUnknown(
+          data['is_available']!,
+          _isAvailableMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_isAvailableMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {variantId};
+  @override
+  CartivoProductVariantsTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CartivoProductVariantsTableData(
+      variantId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}variant_id'],
+          )!,
+      productId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}product_id'],
+          )!,
+      sku:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}sku'],
+          )!,
+      variantName:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}variant_name'],
+          )!,
+      price:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.double,
+            data['${effectivePrefix}price'],
+          )!,
+      availableQuantity:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.int,
+            data['${effectivePrefix}available_quantity'],
+          )!,
+      isAvailable:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.bool,
+            data['${effectivePrefix}is_available'],
+          )!,
+      updatedAt:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.dateTime,
+            data['${effectivePrefix}updated_at'],
+          )!,
+    );
+  }
+
+  @override
+  $CartivoProductVariantsTableTable createAlias(String alias) {
+    return $CartivoProductVariantsTableTable(attachedDatabase, alias);
+  }
+}
+
+class CartivoProductVariantsTableData extends DataClass
+    implements Insertable<CartivoProductVariantsTableData> {
+  final int variantId;
+  final int productId;
+  final String sku;
+  final String variantName;
+  final double price;
+  final int availableQuantity;
+  final bool isAvailable;
+  final DateTime updatedAt;
+  const CartivoProductVariantsTableData({
+    required this.variantId,
+    required this.productId,
+    required this.sku,
+    required this.variantName,
+    required this.price,
+    required this.availableQuantity,
+    required this.isAvailable,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['variant_id'] = Variable<int>(variantId);
+    map['product_id'] = Variable<int>(productId);
+    map['sku'] = Variable<String>(sku);
+    map['variant_name'] = Variable<String>(variantName);
+    map['price'] = Variable<double>(price);
+    map['available_quantity'] = Variable<int>(availableQuantity);
+    map['is_available'] = Variable<bool>(isAvailable);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  CartivoProductVariantsTableCompanion toCompanion(bool nullToAbsent) {
+    return CartivoProductVariantsTableCompanion(
+      variantId: Value(variantId),
+      productId: Value(productId),
+      sku: Value(sku),
+      variantName: Value(variantName),
+      price: Value(price),
+      availableQuantity: Value(availableQuantity),
+      isAvailable: Value(isAvailable),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CartivoProductVariantsTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CartivoProductVariantsTableData(
+      variantId: serializer.fromJson<int>(json['variantId']),
+      productId: serializer.fromJson<int>(json['productId']),
+      sku: serializer.fromJson<String>(json['sku']),
+      variantName: serializer.fromJson<String>(json['variantName']),
+      price: serializer.fromJson<double>(json['price']),
+      availableQuantity: serializer.fromJson<int>(json['availableQuantity']),
+      isAvailable: serializer.fromJson<bool>(json['isAvailable']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'variantId': serializer.toJson<int>(variantId),
+      'productId': serializer.toJson<int>(productId),
+      'sku': serializer.toJson<String>(sku),
+      'variantName': serializer.toJson<String>(variantName),
+      'price': serializer.toJson<double>(price),
+      'availableQuantity': serializer.toJson<int>(availableQuantity),
+      'isAvailable': serializer.toJson<bool>(isAvailable),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  CartivoProductVariantsTableData copyWith({
+    int? variantId,
+    int? productId,
+    String? sku,
+    String? variantName,
+    double? price,
+    int? availableQuantity,
+    bool? isAvailable,
+    DateTime? updatedAt,
+  }) => CartivoProductVariantsTableData(
+    variantId: variantId ?? this.variantId,
+    productId: productId ?? this.productId,
+    sku: sku ?? this.sku,
+    variantName: variantName ?? this.variantName,
+    price: price ?? this.price,
+    availableQuantity: availableQuantity ?? this.availableQuantity,
+    isAvailable: isAvailable ?? this.isAvailable,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CartivoProductVariantsTableData copyWithCompanion(
+    CartivoProductVariantsTableCompanion data,
+  ) {
+    return CartivoProductVariantsTableData(
+      variantId: data.variantId.present ? data.variantId.value : this.variantId,
+      productId: data.productId.present ? data.productId.value : this.productId,
+      sku: data.sku.present ? data.sku.value : this.sku,
+      variantName:
+          data.variantName.present ? data.variantName.value : this.variantName,
+      price: data.price.present ? data.price.value : this.price,
+      availableQuantity:
+          data.availableQuantity.present
+              ? data.availableQuantity.value
+              : this.availableQuantity,
+      isAvailable:
+          data.isAvailable.present ? data.isAvailable.value : this.isAvailable,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CartivoProductVariantsTableData(')
+          ..write('variantId: $variantId, ')
+          ..write('productId: $productId, ')
+          ..write('sku: $sku, ')
+          ..write('variantName: $variantName, ')
+          ..write('price: $price, ')
+          ..write('availableQuantity: $availableQuantity, ')
+          ..write('isAvailable: $isAvailable, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    variantId,
+    productId,
+    sku,
+    variantName,
+    price,
+    availableQuantity,
+    isAvailable,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CartivoProductVariantsTableData &&
+          other.variantId == this.variantId &&
+          other.productId == this.productId &&
+          other.sku == this.sku &&
+          other.variantName == this.variantName &&
+          other.price == this.price &&
+          other.availableQuantity == this.availableQuantity &&
+          other.isAvailable == this.isAvailable &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CartivoProductVariantsTableCompanion
+    extends UpdateCompanion<CartivoProductVariantsTableData> {
+  final Value<int> variantId;
+  final Value<int> productId;
+  final Value<String> sku;
+  final Value<String> variantName;
+  final Value<double> price;
+  final Value<int> availableQuantity;
+  final Value<bool> isAvailable;
+  final Value<DateTime> updatedAt;
+  const CartivoProductVariantsTableCompanion({
+    this.variantId = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.sku = const Value.absent(),
+    this.variantName = const Value.absent(),
+    this.price = const Value.absent(),
+    this.availableQuantity = const Value.absent(),
+    this.isAvailable = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  CartivoProductVariantsTableCompanion.insert({
+    this.variantId = const Value.absent(),
+    required int productId,
+    required String sku,
+    required String variantName,
+    required double price,
+    required int availableQuantity,
+    required bool isAvailable,
+    required DateTime updatedAt,
+  }) : productId = Value(productId),
+       sku = Value(sku),
+       variantName = Value(variantName),
+       price = Value(price),
+       availableQuantity = Value(availableQuantity),
+       isAvailable = Value(isAvailable),
+       updatedAt = Value(updatedAt);
+  static Insertable<CartivoProductVariantsTableData> custom({
+    Expression<int>? variantId,
+    Expression<int>? productId,
+    Expression<String>? sku,
+    Expression<String>? variantName,
+    Expression<double>? price,
+    Expression<int>? availableQuantity,
+    Expression<bool>? isAvailable,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (variantId != null) 'variant_id': variantId,
+      if (productId != null) 'product_id': productId,
+      if (sku != null) 'sku': sku,
+      if (variantName != null) 'variant_name': variantName,
+      if (price != null) 'price': price,
+      if (availableQuantity != null) 'available_quantity': availableQuantity,
+      if (isAvailable != null) 'is_available': isAvailable,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  CartivoProductVariantsTableCompanion copyWith({
+    Value<int>? variantId,
+    Value<int>? productId,
+    Value<String>? sku,
+    Value<String>? variantName,
+    Value<double>? price,
+    Value<int>? availableQuantity,
+    Value<bool>? isAvailable,
+    Value<DateTime>? updatedAt,
+  }) {
+    return CartivoProductVariantsTableCompanion(
+      variantId: variantId ?? this.variantId,
+      productId: productId ?? this.productId,
+      sku: sku ?? this.sku,
+      variantName: variantName ?? this.variantName,
+      price: price ?? this.price,
+      availableQuantity: availableQuantity ?? this.availableQuantity,
+      isAvailable: isAvailable ?? this.isAvailable,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (variantId.present) {
+      map['variant_id'] = Variable<int>(variantId.value);
+    }
+    if (productId.present) {
+      map['product_id'] = Variable<int>(productId.value);
+    }
+    if (sku.present) {
+      map['sku'] = Variable<String>(sku.value);
+    }
+    if (variantName.present) {
+      map['variant_name'] = Variable<String>(variantName.value);
+    }
+    if (price.present) {
+      map['price'] = Variable<double>(price.value);
+    }
+    if (availableQuantity.present) {
+      map['available_quantity'] = Variable<int>(availableQuantity.value);
+    }
+    if (isAvailable.present) {
+      map['is_available'] = Variable<bool>(isAvailable.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CartivoProductVariantsTableCompanion(')
+          ..write('variantId: $variantId, ')
+          ..write('productId: $productId, ')
+          ..write('sku: $sku, ')
+          ..write('variantName: $variantName, ')
+          ..write('price: $price, ')
+          ..write('availableQuantity: $availableQuantity, ')
+          ..write('isAvailable: $isAvailable, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CartivoSyncStateTableTable extends CartivoSyncStateTable
+    with TableInfo<$CartivoSyncStateTableTable, CartivoSyncStateTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CartivoSyncStateTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _merchantIdMeta = const VerificationMeta(
+    'merchantId',
+  );
+  @override
+  late final GeneratedColumn<String> merchantId = GeneratedColumn<String>(
+    'merchant_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _watermarkMeta = const VerificationMeta(
+    'watermark',
+  );
+  @override
+  late final GeneratedColumn<DateTime> watermark = GeneratedColumn<DateTime>(
+    'watermark',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastFullSyncAtMeta = const VerificationMeta(
+    'lastFullSyncAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastFullSyncAt =
+      GeneratedColumn<DateTime>(
+        'last_full_sync_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  @override
+  late final GeneratedColumnWithTypeConverter<CartivoSyncStatus, String>
+  status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: Constant(CartivoSyncStatus.idle.name),
+  ).withConverter<CartivoSyncStatus>(
+    $CartivoSyncStateTableTable.$converterstatus,
+  );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    merchantId,
+    watermark,
+    lastFullSyncAt,
+    status,
+    lastError,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cartivo_sync_state';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CartivoSyncStateTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('merchant_id')) {
+      context.handle(
+        _merchantIdMeta,
+        merchantId.isAcceptableOrUnknown(data['merchant_id']!, _merchantIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_merchantIdMeta);
+    }
+    if (data.containsKey('watermark')) {
+      context.handle(
+        _watermarkMeta,
+        watermark.isAcceptableOrUnknown(data['watermark']!, _watermarkMeta),
+      );
+    }
+    if (data.containsKey('last_full_sync_at')) {
+      context.handle(
+        _lastFullSyncAtMeta,
+        lastFullSyncAt.isAcceptableOrUnknown(
+          data['last_full_sync_at']!,
+          _lastFullSyncAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {merchantId};
+  @override
+  CartivoSyncStateTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CartivoSyncStateTableData(
+      merchantId:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.string,
+            data['${effectivePrefix}merchant_id'],
+          )!,
+      watermark: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}watermark'],
+      ),
+      lastFullSyncAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_full_sync_at'],
+      ),
+      status: $CartivoSyncStateTableTable.$converterstatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}status'],
+        )!,
+      ),
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
+    );
+  }
+
+  @override
+  $CartivoSyncStateTableTable createAlias(String alias) {
+    return $CartivoSyncStateTableTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<CartivoSyncStatus, String, String>
+  $converterstatus = const EnumNameConverter<CartivoSyncStatus>(
+    CartivoSyncStatus.values,
+  );
+}
+
+class CartivoSyncStateTableData extends DataClass
+    implements Insertable<CartivoSyncStateTableData> {
+  final String merchantId;
+  final DateTime? watermark;
+  final DateTime? lastFullSyncAt;
+  final CartivoSyncStatus status;
+  final String? lastError;
+  const CartivoSyncStateTableData({
+    required this.merchantId,
+    this.watermark,
+    this.lastFullSyncAt,
+    required this.status,
+    this.lastError,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['merchant_id'] = Variable<String>(merchantId);
+    if (!nullToAbsent || watermark != null) {
+      map['watermark'] = Variable<DateTime>(watermark);
+    }
+    if (!nullToAbsent || lastFullSyncAt != null) {
+      map['last_full_sync_at'] = Variable<DateTime>(lastFullSyncAt);
+    }
+    {
+      map['status'] = Variable<String>(
+        $CartivoSyncStateTableTable.$converterstatus.toSql(status),
+      );
+    }
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    return map;
+  }
+
+  CartivoSyncStateTableCompanion toCompanion(bool nullToAbsent) {
+    return CartivoSyncStateTableCompanion(
+      merchantId: Value(merchantId),
+      watermark:
+          watermark == null && nullToAbsent
+              ? const Value.absent()
+              : Value(watermark),
+      lastFullSyncAt:
+          lastFullSyncAt == null && nullToAbsent
+              ? const Value.absent()
+              : Value(lastFullSyncAt),
+      status: Value(status),
+      lastError:
+          lastError == null && nullToAbsent
+              ? const Value.absent()
+              : Value(lastError),
+    );
+  }
+
+  factory CartivoSyncStateTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CartivoSyncStateTableData(
+      merchantId: serializer.fromJson<String>(json['merchantId']),
+      watermark: serializer.fromJson<DateTime?>(json['watermark']),
+      lastFullSyncAt: serializer.fromJson<DateTime?>(json['lastFullSyncAt']),
+      status: $CartivoSyncStateTableTable.$converterstatus.fromJson(
+        serializer.fromJson<String>(json['status']),
+      ),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'merchantId': serializer.toJson<String>(merchantId),
+      'watermark': serializer.toJson<DateTime?>(watermark),
+      'lastFullSyncAt': serializer.toJson<DateTime?>(lastFullSyncAt),
+      'status': serializer.toJson<String>(
+        $CartivoSyncStateTableTable.$converterstatus.toJson(status),
+      ),
+      'lastError': serializer.toJson<String?>(lastError),
+    };
+  }
+
+  CartivoSyncStateTableData copyWith({
+    String? merchantId,
+    Value<DateTime?> watermark = const Value.absent(),
+    Value<DateTime?> lastFullSyncAt = const Value.absent(),
+    CartivoSyncStatus? status,
+    Value<String?> lastError = const Value.absent(),
+  }) => CartivoSyncStateTableData(
+    merchantId: merchantId ?? this.merchantId,
+    watermark: watermark.present ? watermark.value : this.watermark,
+    lastFullSyncAt:
+        lastFullSyncAt.present ? lastFullSyncAt.value : this.lastFullSyncAt,
+    status: status ?? this.status,
+    lastError: lastError.present ? lastError.value : this.lastError,
+  );
+  CartivoSyncStateTableData copyWithCompanion(
+    CartivoSyncStateTableCompanion data,
+  ) {
+    return CartivoSyncStateTableData(
+      merchantId:
+          data.merchantId.present ? data.merchantId.value : this.merchantId,
+      watermark: data.watermark.present ? data.watermark.value : this.watermark,
+      lastFullSyncAt:
+          data.lastFullSyncAt.present
+              ? data.lastFullSyncAt.value
+              : this.lastFullSyncAt,
+      status: data.status.present ? data.status.value : this.status,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CartivoSyncStateTableData(')
+          ..write('merchantId: $merchantId, ')
+          ..write('watermark: $watermark, ')
+          ..write('lastFullSyncAt: $lastFullSyncAt, ')
+          ..write('status: $status, ')
+          ..write('lastError: $lastError')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(merchantId, watermark, lastFullSyncAt, status, lastError);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CartivoSyncStateTableData &&
+          other.merchantId == this.merchantId &&
+          other.watermark == this.watermark &&
+          other.lastFullSyncAt == this.lastFullSyncAt &&
+          other.status == this.status &&
+          other.lastError == this.lastError);
+}
+
+class CartivoSyncStateTableCompanion
+    extends UpdateCompanion<CartivoSyncStateTableData> {
+  final Value<String> merchantId;
+  final Value<DateTime?> watermark;
+  final Value<DateTime?> lastFullSyncAt;
+  final Value<CartivoSyncStatus> status;
+  final Value<String?> lastError;
+  final Value<int> rowid;
+  const CartivoSyncStateTableCompanion({
+    this.merchantId = const Value.absent(),
+    this.watermark = const Value.absent(),
+    this.lastFullSyncAt = const Value.absent(),
+    this.status = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CartivoSyncStateTableCompanion.insert({
+    required String merchantId,
+    this.watermark = const Value.absent(),
+    this.lastFullSyncAt = const Value.absent(),
+    this.status = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : merchantId = Value(merchantId);
+  static Insertable<CartivoSyncStateTableData> custom({
+    Expression<String>? merchantId,
+    Expression<DateTime>? watermark,
+    Expression<DateTime>? lastFullSyncAt,
+    Expression<String>? status,
+    Expression<String>? lastError,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (merchantId != null) 'merchant_id': merchantId,
+      if (watermark != null) 'watermark': watermark,
+      if (lastFullSyncAt != null) 'last_full_sync_at': lastFullSyncAt,
+      if (status != null) 'status': status,
+      if (lastError != null) 'last_error': lastError,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CartivoSyncStateTableCompanion copyWith({
+    Value<String>? merchantId,
+    Value<DateTime?>? watermark,
+    Value<DateTime?>? lastFullSyncAt,
+    Value<CartivoSyncStatus>? status,
+    Value<String?>? lastError,
+    Value<int>? rowid,
+  }) {
+    return CartivoSyncStateTableCompanion(
+      merchantId: merchantId ?? this.merchantId,
+      watermark: watermark ?? this.watermark,
+      lastFullSyncAt: lastFullSyncAt ?? this.lastFullSyncAt,
+      status: status ?? this.status,
+      lastError: lastError ?? this.lastError,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (merchantId.present) {
+      map['merchant_id'] = Variable<String>(merchantId.value);
+    }
+    if (watermark.present) {
+      map['watermark'] = Variable<DateTime>(watermark.value);
+    }
+    if (lastFullSyncAt.present) {
+      map['last_full_sync_at'] = Variable<DateTime>(lastFullSyncAt.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(
+        $CartivoSyncStateTableTable.$converterstatus.toSql(status.value),
+      );
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CartivoSyncStateTableCompanion(')
+          ..write('merchantId: $merchantId, ')
+          ..write('watermark: $watermark, ')
+          ..write('lastFullSyncAt: $lastFullSyncAt, ')
+          ..write('status: $status, ')
+          ..write('lastError: $lastError, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -10980,6 +12443,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $OrderEventsTableTable orderEventsTable = $OrderEventsTableTable(
     this,
   );
+  late final $CartivoProductsTableTable cartivoProductsTable =
+      $CartivoProductsTableTable(this);
+  late final $CartivoProductVariantsTableTable cartivoProductVariantsTable =
+      $CartivoProductVariantsTableTable(this);
+  late final $CartivoSyncStateTableTable cartivoSyncStateTable =
+      $CartivoSyncStateTableTable(this);
   late final UsersDao usersDao = UsersDao(this as AppDatabase);
   late final ProductsDao productsDao = ProductsDao(this as AppDatabase);
   late final SalesDao salesDao = SalesDao(this as AppDatabase);
@@ -10988,6 +12457,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this as AppDatabase,
   );
   late final OrderEventsDao orderEventsDao = OrderEventsDao(
+    this as AppDatabase,
+  );
+  late final CartivoProductsDao cartivoProductsDao = CartivoProductsDao(
     this as AppDatabase,
   );
   @override
@@ -11014,6 +12486,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     zReadingsTable,
     paymentMethodsTable,
     orderEventsTable,
+    cartivoProductsTable,
+    cartivoProductVariantsTable,
+    cartivoSyncStateTable,
   ];
 }
 
@@ -14680,6 +16155,8 @@ typedef $$SaleItemsTableTableCreateCompanionBuilder =
       required int saleId,
       required int productId,
       required String variantName,
+      Value<String?> productName,
+      Value<String?> categoryName,
       required int qty,
       required double unitPrice,
       Value<String?> discountType,
@@ -14694,6 +16171,8 @@ typedef $$SaleItemsTableTableUpdateCompanionBuilder =
       Value<int> saleId,
       Value<int> productId,
       Value<String> variantName,
+      Value<String?> productName,
+      Value<String?> categoryName,
       Value<int> qty,
       Value<double> unitPrice,
       Value<String?> discountType,
@@ -14822,6 +16301,16 @@ class $$SaleItemsTableTableFilterComposer
 
   ColumnFilters<String> get variantName => $composableBuilder(
     column: $table.variantName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get productName => $composableBuilder(
+    column: $table.productName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -14977,6 +16466,16 @@ class $$SaleItemsTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get productName => $composableBuilder(
+    column: $table.productName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get qty => $composableBuilder(
     column: $table.qty,
     builder: (column) => ColumnOrderings(column),
@@ -15073,6 +16572,16 @@ class $$SaleItemsTableTableAnnotationComposer
 
   GeneratedColumn<String> get variantName => $composableBuilder(
     column: $table.variantName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get productName => $composableBuilder(
+    column: $table.productName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
     builder: (column) => column,
   );
 
@@ -15248,6 +16757,8 @@ class $$SaleItemsTableTableTableManager
                 Value<int> saleId = const Value.absent(),
                 Value<int> productId = const Value.absent(),
                 Value<String> variantName = const Value.absent(),
+                Value<String?> productName = const Value.absent(),
+                Value<String?> categoryName = const Value.absent(),
                 Value<int> qty = const Value.absent(),
                 Value<double> unitPrice = const Value.absent(),
                 Value<String?> discountType = const Value.absent(),
@@ -15260,6 +16771,8 @@ class $$SaleItemsTableTableTableManager
                 saleId: saleId,
                 productId: productId,
                 variantName: variantName,
+                productName: productName,
+                categoryName: categoryName,
                 qty: qty,
                 unitPrice: unitPrice,
                 discountType: discountType,
@@ -15274,6 +16787,8 @@ class $$SaleItemsTableTableTableManager
                 required int saleId,
                 required int productId,
                 required String variantName,
+                Value<String?> productName = const Value.absent(),
+                Value<String?> categoryName = const Value.absent(),
                 required int qty,
                 required double unitPrice,
                 Value<String?> discountType = const Value.absent(),
@@ -15286,6 +16801,8 @@ class $$SaleItemsTableTableTableManager
                 saleId: saleId,
                 productId: productId,
                 variantName: variantName,
+                productName: productName,
+                categoryName: categoryName,
                 qty: qty,
                 unitPrice: unitPrice,
                 discountType: discountType,
@@ -19459,6 +20976,1015 @@ typedef $$OrderEventsTableTableProcessedTableManager =
       OrderEventsTableData,
       PrefetchHooks Function()
     >;
+typedef $$CartivoProductsTableTableCreateCompanionBuilder =
+    CartivoProductsTableCompanion Function({
+      Value<int> productId,
+      required String merchantId,
+      required String name,
+      Value<String?> category,
+      Value<String?> imageUrl,
+      required DateTime updatedAt,
+    });
+typedef $$CartivoProductsTableTableUpdateCompanionBuilder =
+    CartivoProductsTableCompanion Function({
+      Value<int> productId,
+      Value<String> merchantId,
+      Value<String> name,
+      Value<String?> category,
+      Value<String?> imageUrl,
+      Value<DateTime> updatedAt,
+    });
+
+final class $$CartivoProductsTableTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $CartivoProductsTableTable,
+          CartivoProductsTableData
+        > {
+  $$CartivoProductsTableTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<
+    $CartivoProductVariantsTableTable,
+    List<CartivoProductVariantsTableData>
+  >
+  _cartivoProductVariantsTableRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.cartivoProductVariantsTable,
+        aliasName: $_aliasNameGenerator(
+          db.cartivoProductsTable.productId,
+          db.cartivoProductVariantsTable.productId,
+        ),
+      );
+
+  $$CartivoProductVariantsTableTableProcessedTableManager
+  get cartivoProductVariantsTableRefs {
+    final manager = $$CartivoProductVariantsTableTableTableManager(
+      $_db,
+      $_db.cartivoProductVariantsTable,
+    ).filter(
+      (f) => f.productId.productId.sqlEquals($_itemColumn<int>('product_id')!),
+    );
+
+    final cache = $_typedResult.readTableOrNull(
+      _cartivoProductVariantsTableRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$CartivoProductsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $CartivoProductsTableTable> {
+  $$CartivoProductsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get productId => $composableBuilder(
+    column: $table.productId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get merchantId => $composableBuilder(
+    column: $table.merchantId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get imageUrl => $composableBuilder(
+    column: $table.imageUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> cartivoProductVariantsTableRefs(
+    Expression<bool> Function(
+      $$CartivoProductVariantsTableTableFilterComposer f,
+    )
+    f,
+  ) {
+    final $$CartivoProductVariantsTableTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.productId,
+          referencedTable: $db.cartivoProductVariantsTable,
+          getReferencedColumn: (t) => t.productId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$CartivoProductVariantsTableTableFilterComposer(
+                $db: $db,
+                $table: $db.cartivoProductVariantsTable,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$CartivoProductsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $CartivoProductsTableTable> {
+  $$CartivoProductsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get productId => $composableBuilder(
+    column: $table.productId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get merchantId => $composableBuilder(
+    column: $table.merchantId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get imageUrl => $composableBuilder(
+    column: $table.imageUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CartivoProductsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CartivoProductsTableTable> {
+  $$CartivoProductsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get productId =>
+      $composableBuilder(column: $table.productId, builder: (column) => column);
+
+  GeneratedColumn<String> get merchantId => $composableBuilder(
+    column: $table.merchantId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<String> get imageUrl =>
+      $composableBuilder(column: $table.imageUrl, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  Expression<T> cartivoProductVariantsTableRefs<T extends Object>(
+    Expression<T> Function(
+      $$CartivoProductVariantsTableTableAnnotationComposer a,
+    )
+    f,
+  ) {
+    final $$CartivoProductVariantsTableTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.productId,
+          referencedTable: $db.cartivoProductVariantsTable,
+          getReferencedColumn: (t) => t.productId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$CartivoProductVariantsTableTableAnnotationComposer(
+                $db: $db,
+                $table: $db.cartivoProductVariantsTable,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$CartivoProductsTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CartivoProductsTableTable,
+          CartivoProductsTableData,
+          $$CartivoProductsTableTableFilterComposer,
+          $$CartivoProductsTableTableOrderingComposer,
+          $$CartivoProductsTableTableAnnotationComposer,
+          $$CartivoProductsTableTableCreateCompanionBuilder,
+          $$CartivoProductsTableTableUpdateCompanionBuilder,
+          (CartivoProductsTableData, $$CartivoProductsTableTableReferences),
+          CartivoProductsTableData,
+          PrefetchHooks Function({bool cartivoProductVariantsTableRefs})
+        > {
+  $$CartivoProductsTableTableTableManager(
+    _$AppDatabase db,
+    $CartivoProductsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer:
+              () => $$CartivoProductsTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer:
+              () => $$CartivoProductsTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer:
+              () => $$CartivoProductsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> productId = const Value.absent(),
+                Value<String> merchantId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> category = const Value.absent(),
+                Value<String?> imageUrl = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => CartivoProductsTableCompanion(
+                productId: productId,
+                merchantId: merchantId,
+                name: name,
+                category: category,
+                imageUrl: imageUrl,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> productId = const Value.absent(),
+                required String merchantId,
+                required String name,
+                Value<String?> category = const Value.absent(),
+                Value<String?> imageUrl = const Value.absent(),
+                required DateTime updatedAt,
+              }) => CartivoProductsTableCompanion.insert(
+                productId: productId,
+                merchantId: merchantId,
+                name: name,
+                category: category,
+                imageUrl: imageUrl,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper:
+              (p0) =>
+                  p0
+                      .map(
+                        (e) => (
+                          e.readTable(table),
+                          $$CartivoProductsTableTableReferences(db, table, e),
+                        ),
+                      )
+                      .toList(),
+          prefetchHooksCallback: ({cartivoProductVariantsTableRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (cartivoProductVariantsTableRefs)
+                  db.cartivoProductVariantsTable,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (cartivoProductVariantsTableRefs)
+                    await $_getPrefetchedData<
+                      CartivoProductsTableData,
+                      $CartivoProductsTableTable,
+                      CartivoProductVariantsTableData
+                    >(
+                      currentTable: table,
+                      referencedTable: $$CartivoProductsTableTableReferences
+                          ._cartivoProductVariantsTableRefsTable(db),
+                      managerFromTypedResult:
+                          (p0) =>
+                              $$CartivoProductsTableTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).cartivoProductVariantsTableRefs,
+                      referencedItemsForCurrentItem:
+                          (item, referencedItems) => referencedItems.where(
+                            (e) => e.productId == item.productId,
+                          ),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CartivoProductsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CartivoProductsTableTable,
+      CartivoProductsTableData,
+      $$CartivoProductsTableTableFilterComposer,
+      $$CartivoProductsTableTableOrderingComposer,
+      $$CartivoProductsTableTableAnnotationComposer,
+      $$CartivoProductsTableTableCreateCompanionBuilder,
+      $$CartivoProductsTableTableUpdateCompanionBuilder,
+      (CartivoProductsTableData, $$CartivoProductsTableTableReferences),
+      CartivoProductsTableData,
+      PrefetchHooks Function({bool cartivoProductVariantsTableRefs})
+    >;
+typedef $$CartivoProductVariantsTableTableCreateCompanionBuilder =
+    CartivoProductVariantsTableCompanion Function({
+      Value<int> variantId,
+      required int productId,
+      required String sku,
+      required String variantName,
+      required double price,
+      required int availableQuantity,
+      required bool isAvailable,
+      required DateTime updatedAt,
+    });
+typedef $$CartivoProductVariantsTableTableUpdateCompanionBuilder =
+    CartivoProductVariantsTableCompanion Function({
+      Value<int> variantId,
+      Value<int> productId,
+      Value<String> sku,
+      Value<String> variantName,
+      Value<double> price,
+      Value<int> availableQuantity,
+      Value<bool> isAvailable,
+      Value<DateTime> updatedAt,
+    });
+
+final class $$CartivoProductVariantsTableTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $CartivoProductVariantsTableTable,
+          CartivoProductVariantsTableData
+        > {
+  $$CartivoProductVariantsTableTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $CartivoProductsTableTable _productIdTable(_$AppDatabase db) =>
+      db.cartivoProductsTable.createAlias(
+        $_aliasNameGenerator(
+          db.cartivoProductVariantsTable.productId,
+          db.cartivoProductsTable.productId,
+        ),
+      );
+
+  $$CartivoProductsTableTableProcessedTableManager get productId {
+    final $_column = $_itemColumn<int>('product_id')!;
+
+    final manager = $$CartivoProductsTableTableTableManager(
+      $_db,
+      $_db.cartivoProductsTable,
+    ).filter((f) => f.productId.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_productIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$CartivoProductVariantsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $CartivoProductVariantsTableTable> {
+  $$CartivoProductVariantsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get variantId => $composableBuilder(
+    column: $table.variantId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sku => $composableBuilder(
+    column: $table.sku,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get variantName => $composableBuilder(
+    column: $table.variantName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get availableQuantity => $composableBuilder(
+    column: $table.availableQuantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isAvailable => $composableBuilder(
+    column: $table.isAvailable,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CartivoProductsTableTableFilterComposer get productId {
+    final $$CartivoProductsTableTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.productId,
+      referencedTable: $db.cartivoProductsTable,
+      getReferencedColumn: (t) => t.productId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CartivoProductsTableTableFilterComposer(
+            $db: $db,
+            $table: $db.cartivoProductsTable,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CartivoProductVariantsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $CartivoProductVariantsTableTable> {
+  $$CartivoProductVariantsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get variantId => $composableBuilder(
+    column: $table.variantId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sku => $composableBuilder(
+    column: $table.sku,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get variantName => $composableBuilder(
+    column: $table.variantName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get availableQuantity => $composableBuilder(
+    column: $table.availableQuantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isAvailable => $composableBuilder(
+    column: $table.isAvailable,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CartivoProductsTableTableOrderingComposer get productId {
+    final $$CartivoProductsTableTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.productId,
+          referencedTable: $db.cartivoProductsTable,
+          getReferencedColumn: (t) => t.productId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$CartivoProductsTableTableOrderingComposer(
+                $db: $db,
+                $table: $db.cartivoProductsTable,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$CartivoProductVariantsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CartivoProductVariantsTableTable> {
+  $$CartivoProductVariantsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get variantId =>
+      $composableBuilder(column: $table.variantId, builder: (column) => column);
+
+  GeneratedColumn<String> get sku =>
+      $composableBuilder(column: $table.sku, builder: (column) => column);
+
+  GeneratedColumn<String> get variantName => $composableBuilder(
+    column: $table.variantName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get price =>
+      $composableBuilder(column: $table.price, builder: (column) => column);
+
+  GeneratedColumn<int> get availableQuantity => $composableBuilder(
+    column: $table.availableQuantity,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isAvailable => $composableBuilder(
+    column: $table.isAvailable,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$CartivoProductsTableTableAnnotationComposer get productId {
+    final $$CartivoProductsTableTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.productId,
+          referencedTable: $db.cartivoProductsTable,
+          getReferencedColumn: (t) => t.productId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$CartivoProductsTableTableAnnotationComposer(
+                $db: $db,
+                $table: $db.cartivoProductsTable,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$CartivoProductVariantsTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CartivoProductVariantsTableTable,
+          CartivoProductVariantsTableData,
+          $$CartivoProductVariantsTableTableFilterComposer,
+          $$CartivoProductVariantsTableTableOrderingComposer,
+          $$CartivoProductVariantsTableTableAnnotationComposer,
+          $$CartivoProductVariantsTableTableCreateCompanionBuilder,
+          $$CartivoProductVariantsTableTableUpdateCompanionBuilder,
+          (
+            CartivoProductVariantsTableData,
+            $$CartivoProductVariantsTableTableReferences,
+          ),
+          CartivoProductVariantsTableData,
+          PrefetchHooks Function({bool productId})
+        > {
+  $$CartivoProductVariantsTableTableTableManager(
+    _$AppDatabase db,
+    $CartivoProductVariantsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer:
+              () => $$CartivoProductVariantsTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer:
+              () => $$CartivoProductVariantsTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer:
+              () => $$CartivoProductVariantsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> variantId = const Value.absent(),
+                Value<int> productId = const Value.absent(),
+                Value<String> sku = const Value.absent(),
+                Value<String> variantName = const Value.absent(),
+                Value<double> price = const Value.absent(),
+                Value<int> availableQuantity = const Value.absent(),
+                Value<bool> isAvailable = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => CartivoProductVariantsTableCompanion(
+                variantId: variantId,
+                productId: productId,
+                sku: sku,
+                variantName: variantName,
+                price: price,
+                availableQuantity: availableQuantity,
+                isAvailable: isAvailable,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> variantId = const Value.absent(),
+                required int productId,
+                required String sku,
+                required String variantName,
+                required double price,
+                required int availableQuantity,
+                required bool isAvailable,
+                required DateTime updatedAt,
+              }) => CartivoProductVariantsTableCompanion.insert(
+                variantId: variantId,
+                productId: productId,
+                sku: sku,
+                variantName: variantName,
+                price: price,
+                availableQuantity: availableQuantity,
+                isAvailable: isAvailable,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper:
+              (p0) =>
+                  p0
+                      .map(
+                        (e) => (
+                          e.readTable(table),
+                          $$CartivoProductVariantsTableTableReferences(
+                            db,
+                            table,
+                            e,
+                          ),
+                        ),
+                      )
+                      .toList(),
+          prefetchHooksCallback: ({productId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                T extends TableManagerState<
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic,
+                  dynamic
+                >
+              >(state) {
+                if (productId) {
+                  state =
+                      state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.productId,
+                            referencedTable:
+                                $$CartivoProductVariantsTableTableReferences
+                                    ._productIdTable(db),
+                            referencedColumn:
+                                $$CartivoProductVariantsTableTableReferences
+                                    ._productIdTable(db)
+                                    .productId,
+                          )
+                          as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CartivoProductVariantsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CartivoProductVariantsTableTable,
+      CartivoProductVariantsTableData,
+      $$CartivoProductVariantsTableTableFilterComposer,
+      $$CartivoProductVariantsTableTableOrderingComposer,
+      $$CartivoProductVariantsTableTableAnnotationComposer,
+      $$CartivoProductVariantsTableTableCreateCompanionBuilder,
+      $$CartivoProductVariantsTableTableUpdateCompanionBuilder,
+      (
+        CartivoProductVariantsTableData,
+        $$CartivoProductVariantsTableTableReferences,
+      ),
+      CartivoProductVariantsTableData,
+      PrefetchHooks Function({bool productId})
+    >;
+typedef $$CartivoSyncStateTableTableCreateCompanionBuilder =
+    CartivoSyncStateTableCompanion Function({
+      required String merchantId,
+      Value<DateTime?> watermark,
+      Value<DateTime?> lastFullSyncAt,
+      Value<CartivoSyncStatus> status,
+      Value<String?> lastError,
+      Value<int> rowid,
+    });
+typedef $$CartivoSyncStateTableTableUpdateCompanionBuilder =
+    CartivoSyncStateTableCompanion Function({
+      Value<String> merchantId,
+      Value<DateTime?> watermark,
+      Value<DateTime?> lastFullSyncAt,
+      Value<CartivoSyncStatus> status,
+      Value<String?> lastError,
+      Value<int> rowid,
+    });
+
+class $$CartivoSyncStateTableTableFilterComposer
+    extends Composer<_$AppDatabase, $CartivoSyncStateTableTable> {
+  $$CartivoSyncStateTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get merchantId => $composableBuilder(
+    column: $table.merchantId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get watermark => $composableBuilder(
+    column: $table.watermark,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastFullSyncAt => $composableBuilder(
+    column: $table.lastFullSyncAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<CartivoSyncStatus, CartivoSyncStatus, String>
+  get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CartivoSyncStateTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $CartivoSyncStateTableTable> {
+  $$CartivoSyncStateTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get merchantId => $composableBuilder(
+    column: $table.merchantId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get watermark => $composableBuilder(
+    column: $table.watermark,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastFullSyncAt => $composableBuilder(
+    column: $table.lastFullSyncAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CartivoSyncStateTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CartivoSyncStateTableTable> {
+  $$CartivoSyncStateTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get merchantId => $composableBuilder(
+    column: $table.merchantId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get watermark =>
+      $composableBuilder(column: $table.watermark, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastFullSyncAt => $composableBuilder(
+    column: $table.lastFullSyncAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<CartivoSyncStatus, String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+}
+
+class $$CartivoSyncStateTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CartivoSyncStateTableTable,
+          CartivoSyncStateTableData,
+          $$CartivoSyncStateTableTableFilterComposer,
+          $$CartivoSyncStateTableTableOrderingComposer,
+          $$CartivoSyncStateTableTableAnnotationComposer,
+          $$CartivoSyncStateTableTableCreateCompanionBuilder,
+          $$CartivoSyncStateTableTableUpdateCompanionBuilder,
+          (
+            CartivoSyncStateTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $CartivoSyncStateTableTable,
+              CartivoSyncStateTableData
+            >,
+          ),
+          CartivoSyncStateTableData,
+          PrefetchHooks Function()
+        > {
+  $$CartivoSyncStateTableTableTableManager(
+    _$AppDatabase db,
+    $CartivoSyncStateTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer:
+              () => $$CartivoSyncStateTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer:
+              () => $$CartivoSyncStateTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer:
+              () => $$CartivoSyncStateTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> merchantId = const Value.absent(),
+                Value<DateTime?> watermark = const Value.absent(),
+                Value<DateTime?> lastFullSyncAt = const Value.absent(),
+                Value<CartivoSyncStatus> status = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CartivoSyncStateTableCompanion(
+                merchantId: merchantId,
+                watermark: watermark,
+                lastFullSyncAt: lastFullSyncAt,
+                status: status,
+                lastError: lastError,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String merchantId,
+                Value<DateTime?> watermark = const Value.absent(),
+                Value<DateTime?> lastFullSyncAt = const Value.absent(),
+                Value<CartivoSyncStatus> status = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CartivoSyncStateTableCompanion.insert(
+                merchantId: merchantId,
+                watermark: watermark,
+                lastFullSyncAt: lastFullSyncAt,
+                status: status,
+                lastError: lastError,
+                rowid: rowid,
+              ),
+          withReferenceMapper:
+              (p0) =>
+                  p0
+                      .map(
+                        (e) => (
+                          e.readTable(table),
+                          BaseReferences(db, table, e),
+                        ),
+                      )
+                      .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CartivoSyncStateTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CartivoSyncStateTableTable,
+      CartivoSyncStateTableData,
+      $$CartivoSyncStateTableTableFilterComposer,
+      $$CartivoSyncStateTableTableOrderingComposer,
+      $$CartivoSyncStateTableTableAnnotationComposer,
+      $$CartivoSyncStateTableTableCreateCompanionBuilder,
+      $$CartivoSyncStateTableTableUpdateCompanionBuilder,
+      (
+        CartivoSyncStateTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $CartivoSyncStateTableTable,
+          CartivoSyncStateTableData
+        >,
+      ),
+      CartivoSyncStateTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -19508,4 +22034,14 @@ class $AppDatabaseManager {
       $$PaymentMethodsTableTableTableManager(_db, _db.paymentMethodsTable);
   $$OrderEventsTableTableTableManager get orderEventsTable =>
       $$OrderEventsTableTableTableManager(_db, _db.orderEventsTable);
+  $$CartivoProductsTableTableTableManager get cartivoProductsTable =>
+      $$CartivoProductsTableTableTableManager(_db, _db.cartivoProductsTable);
+  $$CartivoProductVariantsTableTableTableManager
+  get cartivoProductVariantsTable =>
+      $$CartivoProductVariantsTableTableTableManager(
+        _db,
+        _db.cartivoProductVariantsTable,
+      );
+  $$CartivoSyncStateTableTableTableManager get cartivoSyncStateTable =>
+      $$CartivoSyncStateTableTableTableManager(_db, _db.cartivoSyncStateTable);
 }

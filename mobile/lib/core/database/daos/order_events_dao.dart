@@ -45,7 +45,8 @@ class OrderEventsDao extends DatabaseAccessor<AppDatabase> with _$OrderEventsDao
     return query.map((row) => row.read(orderEventsTable.orderId.count()) ?? 0).watchSingle();
   }
 
-  /// All persisted orders for [storeId], most recently updated first. Backs
+  /// All persisted orders for [storeId], by row update time; the repository
+  /// re-sorts by order creation time for display. Backs
   /// the Orders screen list, so it matches [watchOrderCount] — both read
   /// the same on-disk state instead of relying on the in-memory live feed.
   Stream<List<OrderEventsTableData>> watchOrders(String storeId) {

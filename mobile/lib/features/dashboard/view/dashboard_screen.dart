@@ -11,14 +11,16 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../widgets/setup_prompt_dialog.dart';
 import '../../auth/state/auth_providers.dart';
 import '../../auth/state/auth_state.dart';
-import '../../inventory/state/inventory_notifier.dart';
 import '../../live_orders/entities/merchant_device_state.dart';
 import '../../live_orders/entities/orders_feed_state.dart';
+import '../../../core/database/tables/cartivo_sync_state_table.dart';
 import '../../live_orders/state/cartivo_auth_status_provider.dart';
+import '../../live_orders/state/cartivo_products_sync_provider.dart';
 import '../../live_orders/state/merchant_device_notifier.dart';
 import '../../live_orders/state/orders_feed_notifier.dart';
 import '../../live_orders/state/orders_count_provider.dart';
 import '../../live_orders/use_cases/device_registration_status.dart';
+import '../../live_orders/view/cartivo_sync_banner.dart';
 import '../../live_orders/view/device_registration_prompt.dart';
 import '../../settings/state/store_info_notifier.dart';
 import '../../users/state/users_notifier.dart';
@@ -211,27 +213,33 @@ class DashboardScreen extends HookConsumerWidget {
         }
       }
 
-      // Step 3 — products (skippable)
+      // Step 3 — Cartivo products (skippable)
       if (hasShownProductsDialog.value) return;
-      final inventoryState = ref.read(inventoryNotifierProvider);
-      if (inventoryState.isLoading || inventoryState.hasError) return;
-      final products = inventoryState.value?.products;
-      if (products == null || products.isNotEmpty) return;
+      if (ref.read(cartivoProductsSyncProvider) != null) return;
+      final countState = ref.read(cartivoProductCountProvider);
+      final syncState = ref.read(cartivoSyncStateProvider);
+      if (countState.isLoading || syncState.isLoading) return;
+      // No sync row yet means the first sync hasn't started.
+      final status = syncState.value?.status;
+      if (status == null || status == CartivoSyncStatus.syncing) return;
+      if ((countState.value ?? 0) > 0) return;
 
       hasShownProductsDialog.value = true;
       open(
         showSetupPromptDialog(
           context,
-          title: 'No Products Found',
-          message: 'Import your product catalog to get started.',
+          title: 'No Products Synced',
+          message:
+              'No Cartivo products have been downloaded yet. '
+              'Sync now to start selling.',
           type: SetupPromptType.warning,
-          primaryButtonText: 'Import Products',
+          primaryButtonText: 'Sync Now',
           secondaryButtonText: 'Sign Out',
           tertiaryButtonText: 'Skip for now',
           barrierDismissible: false,
           onPrimaryPressed: () {
             Navigator.of(context, rootNavigator: true).pop();
-            context.push('/settings/csv-import');
+            unawaited(ref.read(cartivoProductsSyncProvider.notifier).retry());
           },
           onSecondaryPressed: () {
             Navigator.of(context, rootNavigator: true).pop();
@@ -246,6 +254,14 @@ class DashboardScreen extends HookConsumerWidget {
 
     ref.listen(storeInfoProvider, (prev, next) => checkAndShowSetupFlow());
     ref.listen(usersProvider, (prev, next) => checkAndShowSetupFlow());
+    ref.listen(
+      cartivoProductCountProvider,
+      (prev, next) => checkAndShowSetupFlow(),
+    );
+    ref.listen(
+      cartivoSyncStateProvider,
+      (prev, next) => checkAndShowSetupFlow(),
+    );
 
     ref.listen(merchantDeviceNotifierProvider, (prev, next) {
       final result = next.value;
@@ -259,10 +275,6 @@ class DashboardScreen extends HookConsumerWidget {
       if (changed) hasShownDeviceStatusToast.value = false;
       maybeShowDeviceStatusToast(result);
     });
-    ref.listen(
-      inventoryNotifierProvider,
-      (prev, next) => checkAndShowSetupFlow(),
-    );
 
     useEffect(() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -283,7 +295,6 @@ class DashboardScreen extends HookConsumerWidget {
       return null;
     }, const []);
 
-
     useEffect(() {
       ref.read(ordersFeedNotifierProvider.notifier).checkConnection();
       return null;
@@ -292,7 +303,7 @@ class DashboardScreen extends HookConsumerWidget {
     final tiles = [
       _kTileNew,
       _kTileTransactions,
-      if (isAdmin) _kTileInventory,
+      // if (isAdmin) _kTileInventory,
       // _kTileReports hidden for now
       _kTileCashierAccounting,
       _kTileOrders.copyWith(badge: ordersCount > 0 ? ordersCount : null),
@@ -314,7 +325,9 @@ class DashboardScreen extends HookConsumerWidget {
               feedConnection: feedConnection,
               onSignOut: () => ref.read(authNotifierProvider.notifier).logout(),
             ),
-            if (cartivoError != null) _CartivoErrorBanner(message: cartivoError),
+            if (cartivoError != null)
+              _CartivoErrorBanner(message: cartivoError),
+            const CartivoSyncBanner(showFailure: false),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -378,10 +391,7 @@ class _CartivoErrorBanner extends StatelessWidget {
           const Icon(Icons.error_outline, color: Colors.white, size: 20),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(color: Colors.white),
-            ),
+            child: Text(message, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

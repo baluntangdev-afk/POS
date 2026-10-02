@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../api_clients.dart';
 import '../errors/api_call.dart';
 import '../schemas/cartivo_order_status_request.dart';
+import '../schemas/cartivo_products_page_dto.dart';
 
 final cartivoPosApiProvider = Provider<CartivoPosApi>((ref) {
   return CartivoPosApi(ref.watch(cartivoPosApiClientProvider));
@@ -24,7 +27,7 @@ class CartivoPosApi with ApiCall {
 
   /// `GET /pos/merchants/{merchant_id}/products`. Only `page`, `limit` and
   /// `updated_since` are forwarded by the backend.
-  Future<Map<String, dynamic>> fetchMerchantProducts(
+  Future<CartivoProductsPageDto> fetchMerchantProducts(
     String merchantId, {
     int? page,
     int? limit,
@@ -38,7 +41,7 @@ class CartivoPosApi with ApiCall {
         if (updatedSince != null) 'updated_since': updatedSince.toUtc().toIso8601String(),
       },
     );
-    return _asMap(response.data);
+    return CartivoProductsPageDto.fromJson(jsonEncode(_asMap(response.data)));
   });
 
   /// `POST /pos/orders/{order_number}/status`. Returns Cartivo's body as-is.

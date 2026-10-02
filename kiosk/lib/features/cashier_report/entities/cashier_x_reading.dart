@@ -24,6 +24,15 @@ class PaymentLedgerDateGroup {
 
   final DateTime date;
   final List<PaymentLedgerEntry> entries;
+
+  /// Time of the earliest entry in this date bucket.
+  DateTime get start => entries.map((e) => e.time).reduce((a, b) => a.isBefore(b) ? a : b);
+
+  /// Time of the latest entry in this date bucket.
+  DateTime get end => entries.map((e) => e.time).reduce((a, b) => a.isAfter(b) ? a : b);
+
+  /// Sum of all entry amounts in this date bucket.
+  double get amount => entries.fold(0.0, (sum, entry) => sum + entry.amount);
 }
 
 @MappableClass()
@@ -39,6 +48,10 @@ class PaymentLedger with PaymentLedgerMappable {
   final double total;
   final int count;
   final List<PaymentLedgerEntry> entries;
+
+  /// Cash ledgers print one summarized line per date (start - end time, day total) instead of
+  /// one line per sale, to save thermal paper. Other payment methods stay itemized.
+  bool get isCash => name.trim().toLowerCase() == 'cash';
 
   /// Entries bucketed by local calendar date, oldest date first. Entries within each
   /// bucket keep the ascending order they arrive in from the backend.

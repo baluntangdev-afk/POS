@@ -10,6 +10,8 @@ class SaleItemsTable extends Table {
   IntColumn get saleId => integer().references(SalesTable, #id)();
   IntColumn get productId => integer().references(ProductsTable, #id)();
   TextColumn get variantName => text()();
+  TextColumn get productName => text().nullable()();
+  TextColumn get categoryName => text().nullable()();
   IntColumn get qty => integer()();
   RealColumn get unitPrice => real()();
   TextColumn get discountType => text().nullable()();

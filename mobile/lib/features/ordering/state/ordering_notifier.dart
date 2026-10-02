@@ -1,6 +1,8 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/providers/database_provider.dart';
+import '../../live_orders/state/cartivo_products_sync_provider.dart';
+import '../../settings/state/store_info_notifier.dart';
 import '../entities/discount.dart';
 import '../entities/line_item.dart';
 import '../entities/receipt.dart';
@@ -8,19 +10,36 @@ import '../entities/sale.dart';
 import '../entities/sale_payment.dart';
 import '../use_cases/finalize_sale.dart';
 
+const _uncategorized = 'Uncategorized';
+
 class OrderGroup {
-  final int id;
+  final String id;
   final String name;
   const OrderGroup({required this.id, required this.name});
 }
 
+class OrderVariant {
+  final int id;
+  final String name;
+  final double price;
+  final bool isAvailable;
+
+  const OrderVariant({
+    required this.id,
+    required this.name,
+    required this.price,
+    required this.isAvailable,
+  });
+}
+
 class OrderProduct {
   final int id;
-  final int groupId;
+  final String groupId;
   final String name;
   final double price;
   final bool isAvailable;
   final String? imageUrl;
+  final List<OrderVariant> variants;
 
   const OrderProduct({
     required this.id,
@@ -28,6 +47,7 @@ class OrderProduct {
     required this.name,
     required this.price,
     required this.isAvailable,
+    required this.variants,
     this.imageUrl,
   });
 }
@@ -35,7 +55,7 @@ class OrderProduct {
 class OrderingData {
   final List<OrderGroup> groups;
   final List<OrderProduct> allProducts;
-  final int? selectedGroupId;
+  final String? selectedGroupId;
   final Sale sale;
 
   const OrderingData({
@@ -56,7 +76,7 @@ class OrderingData {
   OrderingData copyWith({
     List<OrderGroup>? groups,
     List<OrderProduct>? allProducts,
-    int? Function()? selectedGroupId,
+    String? Function()? selectedGroupId,
     Sale? sale,
   }) =>
       OrderingData(
@@ -73,20 +93,51 @@ class OrderingNotifier extends AsyncNotifier<OrderingData> {
 
   Future<OrderingData> _load() async {
     final db = ref.watch(databaseProvider);
-    final groupRows = await db.productsDao.getAllActiveGroups();
-    final productRows = await db.productsDao.getAllProductsWithPrice();
+    // Reload when a Cartivo sync lands new data.
+    ref.watch(
+      cartivoSyncStateProvider.select(
+        (s) => (s.value?.watermark, s.value?.lastFullSyncAt),
+      ),
+    );
+    final merchantId =
+        (await ref.watch(storeInfoProvider.future))?.storeId ?? '';
+    final dao = db.cartivoProductsDao;
+    final productRows = await dao.getProducts(merchantId);
+    final variantRows = await dao.getVariantsForMerchant(merchantId);
 
-    final groups = groupRows.map((g) => OrderGroup(id: g.id, name: g.name)).toList();
-    final products = productRows
-        .map((p) => OrderProduct(
-              id: p.product.id,
-              groupId: p.product.groupId,
-              name: p.product.name,
-              price: p.price,
-              isAvailable: p.product.isAvailable,
-              imageUrl: p.product.imageUrl,
-            ))
-        .toList();
+    final variantsByProduct = <int, List<OrderVariant>>{};
+    for (final v in variantRows) {
+      variantsByProduct.putIfAbsent(v.productId, () => []).add(
+            OrderVariant(
+              id: v.variantId,
+              name: v.variantName,
+              price: v.price,
+              isAvailable: v.isAvailable && v.availableQuantity > 0,
+            ),
+          );
+    }
+
+    final products = <OrderProduct>[];
+    for (final p in productRows) {
+      final variants = variantsByProduct[p.productId] ?? const [];
+      if (variants.isEmpty) continue;
+      final sellable = variants.where((v) => v.isAvailable);
+      final category = p.category?.trim() ?? '';
+      products.add(OrderProduct(
+        id: p.productId,
+        groupId: category.isEmpty ? _uncategorized : category,
+        name: p.name,
+        price: (sellable.isEmpty ? variants : sellable)
+            .map((v) => v.price)
+            .reduce((a, b) => a < b ? a : b),
+        isAvailable: sellable.isNotEmpty,
+        imageUrl: p.imageUrl,
+        variants: variants,
+      ));
+    }
+
+    final groupNames = {for (final p in products) p.groupId}.toList()..sort();
+    final groups = [for (final n in groupNames) OrderGroup(id: n, name: n)];
 
     final current = state.value;
     return OrderingData(
@@ -97,7 +148,7 @@ class OrderingNotifier extends AsyncNotifier<OrderingData> {
     );
   }
 
-  void selectGroup(int? groupId) {
+  void selectGroup(String? groupId) {
     state = state.whenData((s) => s.copyWith(selectedGroupId: () => groupId));
   }
 

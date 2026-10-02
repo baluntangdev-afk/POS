@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/services/clock/app_clock.dart';
 import '../../../data/backend_api/schemas/cartivo_order_status_request.dart';
+import '../../../data/backend_api/schemas/cartivo_products_page_dto.dart';
 import '../../../data/backend_api/sources/cartivo_pos_api.dart';
 import '../entities/pos_order_status.dart';
 
@@ -14,13 +15,15 @@ final cartivoPosRepositoryProvider = Provider<CartivoPosRepository>((ref) {
   );
 });
 
-/// Cartivo's own response bodies are returned unchanged (as JSON maps) since
-/// their shape isn't fixed yet. Failures surface as `ApiException`; map them
+/// Order responses are returned unchanged (as JSON maps) since their shape
+/// isn't fixed yet; the products listing is decoded into typed DTOs. Failures surface as `ApiException`; map them
 /// with `cartivoPosErrorFrom`.
 abstract interface class CartivoPosRepository {
   Future<Map<String, dynamic>> getOrder(String orderNumber);
 
-  Future<Map<String, dynamic>> getMerchantProducts(
+  /// A single page of the merchant's products. Walking every page is the
+  /// caller's job (see `FetchAllCartivoProducts`).
+  Future<CartivoProductsPageDto> getProductsPage(
     String merchantId, {
     int? page,
     int? limit,
@@ -45,7 +48,7 @@ class CartivoPosRepositoryImpl implements CartivoPosRepository {
       _api.fetchOrder(orderNumber);
 
   @override
-  Future<Map<String, dynamic>> getMerchantProducts(
+  Future<CartivoProductsPageDto> getProductsPage(
     String merchantId, {
     int? page,
     int? limit,

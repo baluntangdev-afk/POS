@@ -20,12 +20,16 @@ import 'tables/daily_reports_table.dart';
 import 'tables/z_readings_table.dart';
 import 'tables/payment_methods_table.dart';
 import 'tables/order_events_table.dart';
+import 'tables/cartivo_products_table.dart';
+import 'tables/cartivo_product_variants_table.dart';
+import 'tables/cartivo_sync_state_table.dart';
 import 'daos/users_dao.dart';
 import 'daos/products_dao.dart';
 import 'daos/sales_dao.dart';
 import 'daos/store_info_dao.dart';
 import 'daos/cashier_accounting_dao.dart';
 import 'daos/order_events_dao.dart';
+import 'daos/cartivo_products_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -50,15 +54,26 @@ part 'app_database.g.dart';
     ZReadingsTable,
     PaymentMethodsTable,
     OrderEventsTable,
+    CartivoProductsTable,
+    CartivoProductVariantsTable,
+    CartivoSyncStateTable,
   ],
-  daos: [UsersDao, ProductsDao, SalesDao, StoreInfoDao, CashierAccountingDao, OrderEventsDao],
+  daos: [
+    UsersDao,
+    ProductsDao,
+    SalesDao,
+    StoreInfoDao,
+    CashierAccountingDao,
+    OrderEventsDao,
+    CartivoProductsDao,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? driftDatabase(name: 'mobile_pos'));
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -294,6 +309,35 @@ class AppDatabase extends _$AppDatabase {
               }
             }
           }
+          if (from < 17) {
+            await m.createTable(cartivoProductsTable);
+            await m.createTable(cartivoProductVariantsTable);
+            await m.createTable(cartivoSyncStateTable);
+          }
+          if (from < 18) {
+            if (!await _hasColumn('sale_items', 'product_name')) {
+              await m.addColumn(saleItemsTable, saleItemsTable.productName);
+              await m.addColumn(saleItemsTable, saleItemsTable.categoryName);
+              // Snapshot names for existing sales from the legacy catalog,
+              // falling back to Cartivo.
+              await customStatement(
+                'UPDATE sale_items SET '
+                'product_name = COALESCE('
+                '(SELECT p.name FROM products p WHERE p.id = sale_items.product_id), '
+                '(SELECT cp.name FROM cartivo_products cp WHERE cp.product_id = sale_items.product_id)), '
+                'category_name = COALESCE('
+                '(SELECT pg.name FROM products p JOIN product_groups pg ON pg.id = p.group_id '
+                'WHERE p.id = sale_items.product_id), '
+                '(SELECT cp.category FROM cartivo_products cp WHERE cp.product_id = sale_items.product_id))',
+              );
+            }
+          }
+        },
+        beforeOpen: (details) async {
+          // A sync killed mid-run leaves 'syncing' behind; nothing is running now.
+          await customStatement(
+            "UPDATE cartivo_sync_state SET status = 'idle' WHERE status = 'syncing'",
+          );
         },
       );
 

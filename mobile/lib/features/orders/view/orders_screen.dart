@@ -275,58 +275,16 @@ class _OrdersTabBar extends StatelessWidget {
   }
 }
 
-class _OrderCard extends HookConsumerWidget {
+class _OrderCard extends StatelessWidget {
   final OrderEvent event;
   final VoidCallback onTap;
 
   const _OrderCard({required this.event, required this.onTap});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final data = event.data;
     final status = classifyOrderStatus(event);
-    final canCancel = canCancelOrder(event);
-    final isSubmitting = useState(false);
-
-    // Runs [action], shows a snackbar on failure, and keeps the card in its
-    // submitting state (spinner + disabled controls) until it settles.
-    Future<void> submit(
-      Future<Result<OrderEvent, CartivoPosFailure>> Function() action,
-    ) async {
-      if (isSubmitting.value) return;
-      isSubmitting.value = true;
-      final result = await action();
-      if (!context.mounted) return;
-      isSubmitting.value = false;
-      if (result.isFailure) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result.error.message),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-
-    Future<void> changeStatus(OrderCardStatus next) => submit(
-      () => ref
-          .read(ordersFeedNotifierProvider.notifier)
-          .updateCartivoOrderStatus(
-            event,
-            PosOrderStatus.values.byName(next.rawValue),
-          ),
-    );
-
-    Future<void> cancelOrder(String reason) => submit(
-      () => ref
-          .read(ordersFeedNotifierProvider.notifier)
-          .updateCartivoOrderStatus(
-            event,
-            PosOrderStatus.cancelled,
-            reason: reason,
-          ),
-    );
 
     final subtitle = [
       (data.customerName ?? '').isNotEmpty ? data.customerName : 'Guest',
@@ -376,13 +334,7 @@ class _OrderCard extends HookConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  _StatusBadge(
-                    status: status,
-                    rawStatus: data.status,
-                    interactive: canCancel,
-                    isSubmitting: isSubmitting.value,
-                    onSelected: changeStatus,
-                  ),
+                  _StatusBadge(status: status, rawStatus: data.status),
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -416,44 +368,6 @@ class _OrderCard extends HookConsumerWidget {
                   ),
                 ],
               ),
-              if (canCancel) ...[
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  width: double.infinity,
-                  child: MaterialButton(
-                    shape: RoundedRectangleBorder(
-                      side: BorderSide(color: AppColors.error),
-                      borderRadius: BorderRadius.circular(
-                        AppSpacing.radiusFull,
-                      ),
-                    ),
-                    splashColor: AppColors.error.withValues(alpha: 0.3),
-                    padding: EdgeInsets.all(4.0),
-                    onPressed:
-                        isSubmitting.value
-                            ? null
-                            : () => _confirmCancelOrder(context, event, cancelOrder),
-                    child:
-                        isSubmitting.value
-                            ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.5,
-                                color: AppColors.error,
-                              ),
-                            )
-                            : const Text(
-                              'CANCEL ORDER',
-                              style: TextStyle(
-                                color: AppColors.error,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.3,
-                              ),
-                            ),
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -465,94 +379,28 @@ class _OrderCard extends HookConsumerWidget {
 class _StatusBadge extends StatelessWidget {
   final OrderCardStatus status;
   final String rawStatus;
-  final bool interactive;
-  final bool isSubmitting;
-  final ValueChanged<OrderCardStatus>? onSelected;
 
-  const _StatusBadge({
-    required this.status,
-    required this.rawStatus,
-    this.interactive = false,
-    this.isSubmitting = false,
-    this.onSelected,
-  });
+  const _StatusBadge({required this.status, required this.rawStatus});
 
   @override
   Widget build(BuildContext context) {
     final (label, color) = orderStatusPillStyle(status);
-    final pill = Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: interactive ? 10 : 8,
-        vertical: 4,
-      ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: color, width: 1.2),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            (status == OrderCardStatus.unknown ? rawStatus : label)
-                .toUpperCase(),
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.2,
-              color: color,
-            ),
-          ),
-          if (interactive) ...[
-            const SizedBox(width: 2),
-            if (isSubmitting)
-              SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(
-                  strokeWidth: 1.5,
-                  color: color,
-                ),
-              )
-            else
-              Icon(Icons.keyboard_arrow_down, size: 14, color: color),
-          ],
-        ],
+      child: Text(
+        (status == OrderCardStatus.unknown ? rawStatus : label).toUpperCase(),
+        style: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.2,
+          color: color,
+        ),
       ),
-    );
-
-    if (!interactive || onSelected == null) return pill;
-
-    return PopupMenuButton<OrderCardStatus>(
-      tooltip: '',
-      enabled: !isSubmitting,
-      padding: EdgeInsets.zero,
-      offset: const Offset(0, 30),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-      ),
-      onSelected: (next) => onSelected?.call(next),
-      itemBuilder:
-          (context) => [
-            for (final option in assignableOrderStatuses)
-              PopupMenuItem(
-                value: option,
-                // The current status stays selectable so staff can re-apply it
-                // (e.g. to re-push the update); it's only marked, not disabled.
-                child: Row(
-                  children: [
-                    Expanded(child: Text(orderStatusPillStyle(option).$1)),
-                    if (option == status)
-                      const Icon(
-                        Icons.check,
-                        size: 18,
-                        color: AppColors.primary,
-                      ),
-                  ],
-                ),
-              ),
-          ],
-      child: pill,
     );
   }
 }
@@ -578,6 +426,48 @@ const _cancelReasonPresets = [
   'Duplicate order',
 ];
 
+/// Pill chip matching the Orders tab row: brand-filled when selected, white
+/// with a border otherwise.
+class _BrandChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  const _BrandChip({required this.label, required this.selected, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: onTap == null ? 0.5 : 1,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primary : AppColors.surface,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+            border: Border.all(
+              color: selected ? AppColors.primary : AppColors.border,
+              width: 1.5,
+            ),
+          ),
+          child: Text(
+            label,
+            style: AppTextStyles.labelLg.copyWith(
+              color:
+                  selected ? AppColors.textOnPrimary : AppColors.textSecondary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CancelOrderDialog extends HookWidget {
   final String orderId;
 
@@ -590,6 +480,8 @@ class _CancelOrderDialog extends HookWidget {
     final reason = text.text.trim();
 
     return AlertDialog(
+      backgroundColor: AppColors.surface,
+      surfaceTintColor: Colors.transparent,
       title: Text('Cancel order #$orderId?'),
       content: SingleChildScrollView(
         child: Column(
@@ -608,10 +500,10 @@ class _CancelOrderDialog extends HookWidget {
               runSpacing: 8,
               children: [
                 for (final preset in _cancelReasonPresets)
-                  ChoiceChip(
-                    label: Text(preset),
+                  _BrandChip(
+                    label: preset,
                     selected: reason == preset,
-                    onSelected: (_) {
+                    onTap: () {
                       controller.text = preset;
                       controller.selection = TextSelection.collapsed(
                         offset: preset.length,
@@ -631,6 +523,10 @@ class _CancelOrderDialog extends HookWidget {
                 labelText: 'Reason',
                 hintText: 'Or type your own reason',
                 border: OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                ),
+                floatingLabelStyle: TextStyle(color: AppColors.primary),
               ),
             ),
           ],
@@ -639,6 +535,7 @@ class _CancelOrderDialog extends HookWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
+          style: TextButton.styleFrom(foregroundColor: AppColors.primary),
           child: const Text('Keep order'),
         ),
         TextButton(
@@ -651,10 +548,6 @@ class _CancelOrderDialog extends HookWidget {
   }
 }
 
-/// Read-only bottom sheet for one order. The header renders from the cached
-/// [event]; the body reads the full order from Cartivo. While loading it shows
-/// a skeleton sized from the cached items, and if the fetch fails the cached
-/// details stay visible under an error banner.
 class _OrderDetailSheet extends HookConsumerWidget {
   final OrderEvent event;
 
@@ -663,10 +556,59 @@ class _OrderDetailSheet extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(orderDetailProvider(event.data.id));
+    // Latest local copy after a status change; the fetched detail can lag it.
+    final current = useState(event);
+    final isSubmitting = useState(false);
+    // Shown inside the sheet: a SnackBar would render on the Scaffold behind
+    // the modal sheet and be hidden by it.
+    final actionError = useState<String?>(null);
     final fetched = detail.value;
     final data = fetched ?? event.data;
     final isLoading = detail.isLoading && fetched == null;
     final error = (detail.hasError && !detail.isLoading) ? detail.error : null;
+
+    Future<void> submit(
+      Future<Result<OrderEvent, CartivoPosFailure>> Function() action,
+    ) async {
+      if (isSubmitting.value) return;
+      isSubmitting.value = true;
+      actionError.value = null;
+      final result = await action();
+      if (!context.mounted) return;
+      isSubmitting.value = false;
+      if (result.isFailure) {
+        actionError.value = result.error.message;
+      } else {
+        current.value = result.value;
+      }
+    }
+
+    Future<void> changeStatus(OrderCardStatus next) => submit(
+      () => ref
+          .read(ordersFeedNotifierProvider.notifier)
+          .updateCartivoOrderStatus(
+            current.value,
+            PosOrderStatus.values.byName(next.rawValue),
+          ),
+    );
+
+    Future<void> cancelOrder(String reason) => submit(
+      () => ref
+          .read(ordersFeedNotifierProvider.notifier)
+          .updateCartivoOrderStatus(
+            current.value,
+            PosOrderStatus.cancelled,
+            reason: reason,
+          ),
+    );
+
+    // The fetched order carries Cartivo's own status; after a local change the
+    // updated event is the source of truth for the status shown/controlled.
+    final statusEvent = OrderEvent(
+      eventId: current.value.eventId,
+      type: current.value.type,
+      data: identical(current.value, event) ? data : current.value.data,
+    );
 
     return SafeArea(
       child: Container(
@@ -700,7 +642,7 @@ class _OrderDetailSheet extends HookConsumerWidget {
                 ),
               ),
             ),
-            _SheetHeader(event: event, data: data),
+            _SheetHeader(event: statusEvent, data: data),
             Flexible(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.only(top: AppSpacing.md),
@@ -721,10 +663,44 @@ class _OrderDetailSheet extends HookConsumerWidget {
                                     ),
                               ),
                             _OrderContent(data: data),
+                            if (canCancelOrder(statusEvent))
+                              _StatusActions(
+                                status: classifyOrderStatus(statusEvent),
+                                isSubmitting: isSubmitting.value,
+                                onSelected: changeStatus,
+                                onCancel:
+                                    () => _confirmCancelOrder(
+                                      context,
+                                      statusEvent,
+                                      cancelOrder,
+                                    ),
+                              ),
                           ],
                         ),
               ),
             ),
+            if (actionError.value != null)
+              Container(
+                margin: const EdgeInsets.only(top: AppSpacing.md),
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.errorLight,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: AppSpacing.sm,
+                  children: [
+                    const Icon(Icons.error_outline, color: AppColors.error),
+                    Expanded(
+                      child: Text(
+                        actionError.value!,
+                        style: AppTextStyles.bodyMd,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: AppSpacing.md),
             isLoading ? const _TotalBarSkeleton() : _TotalBar(data: data),
           ],
@@ -774,10 +750,8 @@ class _SheetHeader extends StatelessWidget {
           ),
         ),
         _SheetStatusPill(
-          status: classifyOrderStatus(
-            OrderEvent(eventId: event.eventId, type: event.type, data: data),
-          ),
-          rawStatus: data.status,
+          status: classifyOrderStatus(event),
+          rawStatus: event.data.status,
         ),
       ],
     );
@@ -894,6 +868,11 @@ class _OrderContent extends StatelessWidget {
       data.districtName,
     ].firstWhere((s) => (s ?? '').isNotEmpty, orElse: () => null);
 
+    final pickupSchedule = _formatPickupSchedule(
+      data.pickupDate,
+      data.pickupTime,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -908,6 +887,11 @@ class _OrderContent extends StatelessWidget {
                 _InfoChip(icon: Icons.place_outlined, label: location),
             ],
           ),
+          const SizedBox(height: AppSpacing.md),
+        ],
+        if (data.fulfillmentType == FulfillmentType.pickup &&
+            (pickupSchedule != null || (data.pickupNotes ?? '').isNotEmpty)) ...[
+          _PickupCard(schedule: pickupSchedule, notes: data.pickupNotes),
           const SizedBox(height: AppSpacing.md),
         ],
         _CustomerRow(name: data.customerName, email: data.customerEmail),
@@ -942,6 +926,130 @@ class _OrderContent extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: AppSpacing.md),
               child: _ItemRow(item: item, money: money),
             ),
+      ],
+    );
+  }
+}
+
+class _PickupCard extends StatelessWidget {
+  final String? schedule;
+  final String? notes;
+
+  const _PickupCard({required this.schedule, required this.notes});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasNotes = (notes ?? '').trim().isNotEmpty;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: AppSpacing.md,
+        children: [
+          const Icon(Icons.schedule, color: AppColors.primary),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'PICKUP',
+                  style: AppTextStyles.labelMd.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                if (schedule != null)
+                  Text(schedule!, style: AppTextStyles.headingSm),
+                if (hasNotes)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.xs),
+                    child: Text(
+                      notes!.trim(),
+                      style: AppTextStyles.bodyMd.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Status controls shown inside the detail sheet: pick the next status, or
+/// cancel (which asks for a reason first).
+class _StatusActions extends StatelessWidget {
+  final OrderCardStatus status;
+  final bool isSubmitting;
+  final ValueChanged<OrderCardStatus> onSelected;
+  final VoidCallback onCancel;
+
+  const _StatusActions({
+    required this.status,
+    required this.isSubmitting,
+    required this.onSelected,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          spacing: AppSpacing.sm,
+          children: [
+            Text(
+              'UPDATE STATUS',
+              style: AppTextStyles.labelMd.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            if (isSubmitting)
+              const SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(strokeWidth: 1.5),
+              ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: [
+            for (final option in assignableOrderStatuses)
+              _BrandChip(
+                label: orderStatusPillStyle(option).$1,
+                selected: option == status,
+                // The current status stays tappable so staff can re-push it.
+                onTap: isSubmitting ? null : () => onSelected(option),
+              ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        SizedBox(
+          height: AppSpacing.touchMin,
+          child: OutlinedButton(
+            onPressed: isSubmitting ? null : onCancel,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.error,
+              side: const BorderSide(color: AppColors.error),
+              shape: const StadiumBorder(),
+            ),
+            child: const Text(
+              'CANCEL ORDER',
+              style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.3),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
       ],
     );
   }
@@ -1288,6 +1396,23 @@ class _TotalBarSkeleton extends HookWidget {
       ),
     );
   }
+}
+
+/// "Thu, Oct 1 · 3:00 PM" from Cartivo's `2026-10-01` / `15:00`. Falls back to
+/// the raw strings if they don't parse; null when neither is present.
+String? _formatPickupSchedule(String? date, String? time) {
+  final d = (date ?? '').isEmpty ? null : DateTime.tryParse(date!);
+  final t = RegExp(r'^(\d{1,2}):(\d{2})').firstMatch(time ?? '');
+  final dateText =
+      d != null ? DateFormat('EEE, MMM d').format(d) : (date ?? '');
+  final timeText =
+      t != null
+          ? DateFormat('h:mm a').format(
+            DateTime(2000, 1, 1, int.parse(t.group(1)!), int.parse(t.group(2)!)),
+          )
+          : (time ?? '');
+  final parts = [dateText, timeText].where((e) => e.isNotEmpty);
+  return parts.isEmpty ? null : parts.join(' \u00b7 ');
 }
 
 String _shortOrderId(String id) =>

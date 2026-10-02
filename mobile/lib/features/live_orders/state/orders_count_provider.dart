@@ -40,7 +40,7 @@ final ordersCountProvider = StreamProvider<int>((ref) async* {
   yield* repository.watchOrderCount(storeId);
 });
 
-/// The persisted orders themselves, most recently updated first — same
+/// The persisted orders themselves, newest first — same
 /// underlying source as [ordersCountProvider], so the Orders screen
 /// list always matches what the badge counts.
 final persistedOrdersProvider = StreamProvider<List<OrderEvent>>((ref) async* {

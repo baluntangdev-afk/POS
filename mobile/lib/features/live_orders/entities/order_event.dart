@@ -104,6 +104,9 @@ class OrderData {
     required this.updatedAt,
     required this.items,
     required this.merchantId,
+    this.pickupDate,
+    this.pickupTime,
+    this.pickupNotes,
   });
 
   final String id;
@@ -122,6 +125,12 @@ class OrderData {
   final DateTime updatedAt;
   final List<OrderEventItem> items;
   final String merchantId;
+
+  /// Pickup schedule as sent by Cartivo (`2026-10-01` / `15:00`), only set on
+  /// `pickup` orders. Kept as raw strings; the UI formats them for display.
+  final String? pickupDate;
+  final String? pickupTime;
+  final String? pickupNotes;
 
   /// Lenient on purpose: only [id] is truly required (it keys the local row
   /// and every update call). Every other field falls back to a sane default
@@ -154,6 +163,9 @@ class OrderData {
               .map(OrderEventItem.fromJson)
               .toList(),
       merchantId: json['merchant_id']?.toString() ?? '',
+      pickupDate: json['pickup_date']?.toString(),
+      pickupTime: json['pickup_time']?.toString(),
+      pickupNotes: json['pickup_notes']?.toString(),
     );
   }
 
@@ -186,6 +198,9 @@ class OrderData {
             )
             .toList(),
     'merchant_id': merchantId,
+    'pickup_date': pickupDate,
+    'pickup_time': pickupTime,
+    'pickup_notes': pickupNotes,
   };
 }
 

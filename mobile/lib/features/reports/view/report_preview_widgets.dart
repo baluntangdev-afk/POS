@@ -296,9 +296,10 @@ class ReportStatusBadge extends StatelessWidget {
   }
 }
 
-/// Itemized per-payment-method ledger: entries grouped by calendar date, each
-/// with a time/reference label, followed by a bold running total. Mirrors
-/// kiosk's `PaymentLedgerSection`.
+/// Per-payment-method ledger grouped by calendar date, followed by a bold
+/// running total. The cash ledger is summarized to one row per date (first and
+/// last transaction time with that date's total); other methods itemize every
+/// entry with its time/reference. The printed receipt itemizes everything.
 class PaymentLedgerSection extends StatelessWidget {
   const PaymentLedgerSection({required this.ledger, super.key});
 
@@ -308,18 +309,26 @@ class PaymentLedgerSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final nameUpper = ledger.displayName.toUpperCase();
     final timeFormat = DateFormat.jm();
+    final summarize = ledger.method == 'cash';
 
     return ReportSection(
       title: '$nameUpper LEDGER',
       rows: [
         for (final group in ledger.entriesByDate) ...[
           ReportDateGroupHeader(group.date),
-          for (final entry in group.entries)
+          if (summarize)
             ReportAmountRow(
-              '${timeFormat.format(entry.time.toLocal())}  $nameUpper'
-              '${entry.reference != null ? ' #${entry.reference}' : ''}',
-              entry.amount,
-            ),
+              '${timeFormat.format(group.entries.first.time.toLocal())}'
+              ' - ${timeFormat.format(group.entries.last.time.toLocal())}  $nameUpper',
+              group.entries.fold(0.0, (sum, e) => sum + e.amount),
+            )
+          else
+            for (final entry in group.entries)
+              ReportAmountRow(
+                '${timeFormat.format(entry.time.toLocal())}  $nameUpper'
+                '${entry.reference != null ? ' #${entry.reference}' : ''}',
+                entry.amount,
+              ),
         ],
         ReportAmountRow('Total $nameUpper [${ledger.count}]', ledger.total, bold: true),
       ],

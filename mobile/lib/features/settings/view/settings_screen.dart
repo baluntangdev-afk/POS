@@ -40,13 +40,13 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             if (isAdmin) ...[
               _SectionHeader('Data'),
-              _SettingsTile(
-                icon: Icons.upload_file_rounded,
-                title: 'Import CSV',
-                subtitle:
-                    'Import products, modifiers, users, or store info from CSV files',
-                onTap: () => context.push('/settings/csv-import'),
-              ),
+              // _SettingsTile(
+              //   icon: Icons.upload_file_rounded,
+              //   title: 'Import CSV',
+              //   subtitle:
+              //       'Import products, modifiers, users, or store info from CSV files',
+              //   onTap: () => context.push('/settings/csv-import'),
+              // ),
               const SizedBox(height: AppSpacing.sm),
               _SettingsTile(
                 icon: Icons.backup_rounded,
@@ -55,12 +55,12 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () => context.push('/settings/backup'),
               ),
               const SizedBox(height: AppSpacing.sm),
-              _SettingsTile(
-                icon: Icons.lock_outline_rounded,
-                title: 'CSV Export Password',
-                subtitle: 'Password required to download report CSV files',
-                onTap: () => context.push('/settings/csv-export-key'),
-              ),
+              // _SettingsTile(
+              //   icon: Icons.lock_outline_rounded,
+              //   title: 'CSV Export Password',
+              //   subtitle: 'Password required to download report CSV files',
+              //   onTap: () => context.push('/settings/csv-export-key'),
+              // ),
               const SizedBox(height: AppSpacing.lg),
               _SectionHeader('Store'),
               _SettingsTile(

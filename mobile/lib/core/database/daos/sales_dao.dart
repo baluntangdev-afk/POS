@@ -78,6 +78,10 @@ class TimeSeriesPoint {
 class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   SalesDao(super.db);
 
+  // Sale items may point at either the legacy catalog or a Cartivo product.
+  $CartivoProductsTableTable get cartivoProducts =>
+      attachedDatabase.cartivoProductsTable;
+
   // TODO: replace with a per-terminal/store code once multi-terminal support lands.
   static const _terminalCode = '001';
 
@@ -137,6 +141,8 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
           saleId: saleId,
           productId: item.productId,
           variantName: item.variantName,
+          productName: Value(item.productName),
+          categoryName: Value(item.groupName.isEmpty ? null : item.groupName),
           qty: item.quantity,
           unitPrice: item.unitPrice,
           discountType: Value(discount?.code),
@@ -275,6 +281,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
 
     final itemQ = select(saleItemsTable).join([
       leftOuterJoin(productsTable, productsTable.id.equalsExp(saleItemsTable.productId)),
+      leftOuterJoin(cartivoProducts, cartivoProducts.productId.equalsExp(saleItemsTable.productId)),
       leftOuterJoin(productGroupsTable, productGroupsTable.id.equalsExp(productsTable.groupId)),
     ]);
     itemQ.where(saleItemsTable.saleId.equals(saleId));
@@ -285,6 +292,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     for (final ir in itemRows) {
       final item = ir.readTable(saleItemsTable);
       final product = ir.readTableOrNull(productsTable);
+      final cartivo = ir.readTableOrNull(cartivoProducts);
       final group = ir.readTableOrNull(productGroupsTable);
       final grossAmount = item.qty * item.unitPrice;
       final itemDiscountAmount = item.discountAmount ?? 0;
@@ -292,7 +300,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
       final itemTotal = itemVatExemptAmount > 0
           ? grossAmount.vatExclusiveAmount - itemDiscountAmount
           : grossAmount - itemDiscountAmount;
-      final productName = product?.name ?? 'Unknown Product';
+      final productName = item.productName ?? cartivo?.name ?? product?.name ?? 'Unknown Product';
       final description = item.variantName.isEmpty
           ? productName
           : '$productName (${item.variantName})';
@@ -310,7 +318,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         discountBeneficiaryId: item.discountBeneficiaryId,
         discountBeneficiaryName: item.discountBeneficiaryName,
         vatExemptAmount: item.vatExemptAmount ?? 0,
-        categoryName: group?.name,
+        categoryName: item.categoryName ?? cartivo?.category ?? group?.name,
         categorySortOrder: group?.sortOrder ?? 0,
       ));
 
@@ -332,7 +340,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
           totalAmount: modTotal,
           isMain: false,
           vatExemptAmount: itemVatExemptAmount > 0 ? modGross.vatAmount : 0,
-          categoryName: group?.name,
+          categoryName: item.categoryName ?? cartivo?.category ?? group?.name,
           categorySortOrder: group?.sortOrder ?? 0,
         ));
       }
@@ -509,12 +517,14 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   }) async {
     final storeFilter = (storeId != null) ? ' AND s.store_id = ?' : '';
     final rows = await customSelect(
-      'SELECT p.name, SUM(si.qty) as qty, SUM(si.qty * si.unit_price) as amount '
+      'SELECT COALESCE(si.product_name, cp.name, p.name) as name, SUM(si.qty) as qty, SUM(si.qty * si.unit_price) as amount '
       'FROM sale_items si '
-      'JOIN products p ON p.id = si.product_id '
+      'LEFT JOIN products p ON p.id = si.product_id '
+      'LEFT JOIN cartivo_products cp ON cp.product_id = si.product_id '
       'JOIN sales s ON s.id = si.sale_id '
       'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$storeFilter '
-      'GROUP BY p.id, p.name ORDER BY amount DESC LIMIT ?',
+      'AND COALESCE(si.product_name, cp.name, p.name) IS NOT NULL '
+      'GROUP BY si.product_id, COALESCE(si.product_name, cp.name, p.name) ORDER BY amount DESC LIMIT ?',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
@@ -709,12 +719,14 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   }) async {
     final storeFilter = (storeId != null) ? ' AND s.store_id = ?' : '';
     final rows = await customSelect(
-      'SELECT p.name, SUM(si.qty) as qty, SUM(si.qty * si.unit_price) as amount '
+      'SELECT COALESCE(si.product_name, cp.name, p.name) as name, SUM(si.qty) as qty, SUM(si.qty * si.unit_price) as amount '
       'FROM sale_items si '
-      'JOIN products p ON p.id = si.product_id '
+      'LEFT JOIN products p ON p.id = si.product_id '
+      'LEFT JOIN cartivo_products cp ON cp.product_id = si.product_id '
       'JOIN sales s ON s.id = si.sale_id '
       'WHERE s.created_at BETWEEN ? AND ? AND s.status = ? AND s.cashier_id = ?$storeFilter '
-      'GROUP BY p.id, p.name ORDER BY amount DESC LIMIT ?',
+      'AND COALESCE(si.product_name, cp.name, p.name) IS NOT NULL '
+      'GROUP BY si.product_id, COALESCE(si.product_name, cp.name, p.name) ORDER BY amount DESC LIMIT ?',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
@@ -758,20 +770,22 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   Future<List<ProductGroupSales>> getSalesByProductGroup(DateTime from, DateTime to, {String? storeId}) async {
     final storeFilter = (storeId != null) ? ' AND s.store_id = ?' : '';
     final rows = await customSelect(
-      'SELECT pg.name as group_name, COALESCE(SUM(si.qty * si.unit_price), 0) as total '
+      "SELECT COALESCE(NULLIF(TRIM(si.category_name), ''), NULLIF(TRIM(cp.category), ''), pg.name, 'Uncategorized') as group_name, "
+      'COALESCE(SUM(si.qty * si.unit_price), 0) as total '
       'FROM sale_items si '
-      'JOIN products p ON p.id = si.product_id '
-      'JOIN product_groups pg ON pg.id = p.group_id '
+      'LEFT JOIN products p ON p.id = si.product_id '
+      'LEFT JOIN product_groups pg ON pg.id = p.group_id '
+      'LEFT JOIN cartivo_products cp ON cp.product_id = si.product_id '
       'JOIN sales s ON s.id = si.sale_id '
       'WHERE s.created_at BETWEEN ? AND ? AND s.status = ?$storeFilter '
-      'GROUP BY pg.id, pg.name',
+      'GROUP BY group_name',
       variables: [
         Variable.withDateTime(from),
         Variable.withDateTime(to),
         Variable.withString('completed'),
         if (storeId != null) Variable.withString(storeId),
       ],
-      readsFrom: {salesTable, saleItemsTable, productsTable, productGroupsTable},
+      readsFrom: {salesTable, saleItemsTable, productsTable, productGroupsTable, cartivoProducts},
     ).get();
     return rows
         .map((r) => ProductGroupSales(
@@ -1288,6 +1302,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     if (saleIds.isEmpty) return [];
     final rows = await (select(saleItemsTable).join([
       leftOuterJoin(productsTable, productsTable.id.equalsExp(saleItemsTable.productId)),
+      leftOuterJoin(cartivoProducts, cartivoProducts.productId.equalsExp(saleItemsTable.productId)),
     ])
           ..where(saleItemsTable.saleId.isIn(saleIds))
           ..orderBy([
@@ -1298,9 +1313,10 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     return rows.map((row) {
       final item = row.readTable(saleItemsTable);
       final product = row.readTableOrNull(productsTable);
+      final cartivo = row.readTableOrNull(cartivoProducts);
       return SaleItemExportRow(
         saleId: item.saleId,
-        productName: product?.name ?? 'Unknown Product',
+        productName: item.productName ?? cartivo?.name ?? product?.name ?? 'Unknown Product',
         variantName: item.variantName,
         qty: item.qty,
         unitPrice: item.unitPrice,
@@ -1367,6 +1383,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
 
     final itemRows = await (select(saleItemsTable).join([
       leftOuterJoin(productsTable, productsTable.id.equalsExp(saleItemsTable.productId)),
+      leftOuterJoin(cartivoProducts, cartivoProducts.productId.equalsExp(saleItemsTable.productId)),
       leftOuterJoin(productGroupsTable, productGroupsTable.id.equalsExp(productsTable.groupId)),
     ])
           ..where(saleItemsTable.saleId.equals(saleId))
@@ -1377,13 +1394,14 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     for (final row in itemRows) {
       final item = row.readTable(saleItemsTable);
       final product = row.readTableOrNull(productsTable);
+      final cartivo = row.readTableOrNull(cartivoProducts);
       final group = row.readTableOrNull(productGroupsTable);
       final mods = await (select(saleItemModifiersTable)
             ..where((t) => t.itemId.equals(item.id)))
           .get();
       items.add({
-        'product_name': product?.name ?? 'Unknown Product',
-        'category_name': group?.name,
+        'product_name': item.productName ?? cartivo?.name ?? product?.name ?? 'Unknown Product',
+        'category_name': item.categoryName ?? cartivo?.category ?? group?.name,
         'variant_name': item.variantName,
         'qty': item.qty,
         'unit_price': item.unitPrice,
@@ -1435,6 +1453,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
 
     final itemRows = await (select(saleItemsTable).join([
       leftOuterJoin(productsTable, productsTable.id.equalsExp(saleItemsTable.productId)),
+      leftOuterJoin(cartivoProducts, cartivoProducts.productId.equalsExp(saleItemsTable.productId)),
       leftOuterJoin(productGroupsTable, productGroupsTable.id.equalsExp(productsTable.groupId)),
     ])
           ..where(saleItemsTable.saleId.equals(refund.saleId))
@@ -1447,10 +1466,13 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     for (var i = 0; i < itemRows.length; i++) {
       final item = itemRows[i].readTable(saleItemsTable);
       final product = itemRows[i].readTableOrNull(productsTable);
+      final cartivo = itemRows[i].readTableOrNull(cartivoProducts);
       final group = itemRows[i].readTableOrNull(productGroupsTable);
       indexBySaleItemId[item.id] = i;
-      productNameBySaleItemId[item.id] = product?.name ?? 'Unknown Product';
-      categoryNameBySaleItemId[item.id] = group?.name;
+      productNameBySaleItemId[item.id] =
+          item.productName ?? cartivo?.name ?? product?.name ?? 'Unknown Product';
+      categoryNameBySaleItemId[item.id] =
+          item.categoryName ?? cartivo?.category ?? group?.name;
     }
 
     final refundItems = await (select(refundItemsTable)

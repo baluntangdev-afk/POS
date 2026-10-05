@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$AppDir
 )
@@ -34,6 +34,22 @@ try {
         Start-Sleep -Seconds 2
     }
 
+    # ── Reset the active service logs ────────────────────────────────────
+    # Only reachable here: the service held these open until `nssm remove`
+    # above, and `nssm install` below reopens them. [InstallDelete] already
+    # cleared the rotated files; these are the two live ones.
+    foreach ($log in @("$logs\backend-output.log", "$logs\backend-error.log")) {
+        if (Test-Path $log) {
+            $mb = [math]::Round((Get-Item $log).Length / 1MB, 1)
+            try {
+                Remove-Item $log -Force -ErrorAction Stop
+                Write-Host "Reset $(Split-Path $log -Leaf) ($mb MB reclaimed)."
+            } catch {
+                Write-Warning "Could not reset $(Split-Path $log -Leaf): $($_.Exception.Message)"
+            }
+        }
+    }
+
     # ── Install via NSSM ─────────────────────────────────────────────────
     Write-Host "Installing $svcName via NSSM..."
     & $nssm install $svcName $beExe
@@ -48,6 +64,10 @@ try {
     & $nssm set $svcName AppStderr      "$logs\backend-error.log"
     & $nssm set $svcName AppRotateFiles 1
     & $nssm set $svcName AppRotateBytes 10485760
+    # Without AppRotateOnline, NSSM only checks the size when the service starts,
+    # so a service that runs for days writes one unbounded file -- a 10 MB limit
+    # produced an 84 GB log on a live terminal. 1 = rotate while running.
+    & $nssm set $svcName AppRotateOnline 1
 
     # Make Windows start PostgreSQL before the backend on every boot. Without this
     # the two auto-start services race and the backend can come up before the DB is

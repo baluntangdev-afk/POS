@@ -42,10 +42,7 @@ export class CronJobsService {
       select: { id: true },
     });
 
-    if (counts.length === 0) {
-      this.logger.log('No inventory counts In Progress, skip sync');
-      return;
-    }
+    if (counts.length === 0) return;
 
     for (const count of counts) {
       await this.processCount(count.id);
@@ -75,10 +72,7 @@ export class CronJobsService {
       },
     });
 
-    if (pendingItems.length === 0) {
-      this.logger.log(`No pending inventory count items for count: ${countId}`);
-      return;
-    }
+    if (pendingItems.length === 0) return;
 
     await this.inventoryStockRepository.manager.transaction(async (tx) => {
       for (const item of pendingItems) {

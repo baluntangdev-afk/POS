@@ -11,6 +11,16 @@ import 'utils/windows_touch_keyboard.dart';
 
 Future<ProviderContainer> bootstrap(AppEnv env) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // With memCacheWidth capping decode at 480px, a product image costs ~0.9 MB
+  // instead of the 8.6 MB a 1500x1500 source used to. 96 MB therefore holds
+  // ~100 of them -- roughly three full menu categories -- so the cache stops
+  // thrashing without the app sitting on a quarter gigabyte of bitmaps.
+  // The count cap bounds the worst case if a future asset decodes smaller.
+  PaintingBinding.instance.imageCache
+    ..maximumSizeBytes = 96 << 20
+    ..maximumSize = 200;
+
   WindowsTouchKeyboard.startGuard();
   PhysicalKeyboardDetector.startPolling();
 

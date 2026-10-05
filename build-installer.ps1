@@ -1,4 +1,4 @@
-# build-installer.ps1
+﻿# build-installer.ps1
 # One-click build: backend + Flutter (parallel) → compile installer
 #
 # Usage:
@@ -70,6 +70,17 @@ $missingBeKeys = Get-EnvKeys "$BeDir\.env.example" |
                  Where-Object { (Get-EnvKeys "$BeDir\.env.prod") -notcontains $_ }
 if ($missingBeKeys) {
     Write-Fail "be\.env.prod is missing keys from .env.example: $($missingBeKeys -join ', ')"
+    exit 1
+}
+
+# NODE_ENV must be production. In development the backend turns on TypeORM
+# query logging, which dumps every SQL statement to the service stdout log --
+# measured at ~12 GB/day on a live terminal, enough to fill the disk and stall
+# the kiosk. It also builds Swagger and reads KIOSK_NO from .env instead of
+# the per-store settings.txt.
+$prodNodeEnv = Get-EnvValue "$BeDir\.env.prod" "NODE_ENV"
+if ($prodNodeEnv -ne "production") {
+    Write-Fail "be\.env.prod has NODE_ENV=$prodNodeEnv -- must be 'production'."
     exit 1
 }
 
@@ -180,6 +191,31 @@ if (-not (Test-Path $kioskExe))   { Write-Fail "pos_app.exe not found.";    exit
 
 Write-Ok "POSBackend.exe: $([math]::Round((Get-Item $backendExe).Length/1MB,1)) MB"
 Write-Ok "pos_app.exe:    $([math]::Round((Get-Item $kioskExe).Length/1MB,1)) MB"
+
+# ── Drop stale JIT artifacts from the release output ─────────────────────────
+# kernel_blob.bin is the Dart JIT snapshot, written by debug/profile builds.
+# A release build is AOT and runs from app.so, but `flutter build` does not
+# clean its output directory, so a blob left by an earlier debug build sits
+# there forever -- and installer.iss copies data\* with recursesubdirs, so it
+# ships to every kiosk. One was found at 94 MB, five days older than app.so,
+# i.e. 68% of the payload was dead weight.
+#
+# Guarded on app.so so this can never strip the snapshot a genuinely non-AOT
+# build depends on. A full `flutter clean` would also fix it but forces a
+# from-scratch rebuild on every installer build.
+$releaseData = "$KioskDir\build\windows\x64\runner\Release\data"
+$aotLib      = "$releaseData\app.so"
+$jitBlob     = "$releaseData\flutter_assets\kernel_blob.bin"
+
+if (Test-Path $jitBlob) {
+    if (Test-Path $aotLib) {
+        $blobMB = [math]::Round((Get-Item $jitBlob).Length/1MB,1)
+        Remove-Item $jitBlob -Force
+        Write-Ok "Removed stale kernel_blob.bin ($blobMB MB) - AOT build uses app.so."
+    } else {
+        Write-Host "  kernel_blob.bin present but app.so is missing - leaving it alone (not an AOT build)."
+    }
+}
 
 # ── Sanitize installer scripts: strip smart/curly quotes ─────────────────────
 # Some editors auto-convert straight quotes to typographic curly quotes.

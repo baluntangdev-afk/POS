@@ -13,18 +13,49 @@ $backupDir  = "$AppDir\Backups"
 $configRoot = "$backupDir\config"
 $logs       = "$AppDir\logs"
 $retentionDays = 30
+# Rotated service logs are bulky; keep a shorter window than the dumps.
+$logRetentionDays = 7
 
 if (!(Test-Path $logs))      { New-Item -ItemType Directory -Force $logs      | Out-Null }
 if (!(Test-Path $backupDir)) { New-Item -ItemType Directory -Force $backupDir | Out-Null }
 if (!(Test-Path $configRoot)) { New-Item -ItemType Directory -Force $configRoot | Out-Null }
 
-Start-Transcript -Path "$logs\backup-database.log" -Append
+# -Append grows forever on a daily task; reset once it passes 5 MB.
+$transcript = "$logs\backup-database.log"
+if ((Test-Path $transcript) -and ((Get-Item $transcript).Length -gt 5MB)) {
+    Remove-Item $transcript -Force -ErrorAction SilentlyContinue
+}
+Start-Transcript -Path $transcript -Append
 
 try {
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
     Write-Host "=== backup-database.ps1 starting: $timestamp ==="
     Write-Host "AppDir     : $AppDir"
     Write-Host "backupDir  : $backupDir"
+
+    # -- 0. Retention: rotated service logs --
+    # NSSM rotates backend-output.log but never deletes what it rotated away.
+    # Nothing else prunes this folder, so it grew to ~193 GB on a live terminal.
+    # Only timestamped (rotated) files are touched; the active logs stay.
+    #
+    # Runs first, and in its own try/catch, for two reasons: a disk full of
+    # logs is exactly the case where pg_dump fails, so pruning after the dump
+    # would never run when it matters most -- and freeing the space first is
+    # what lets the dump succeed.
+    try {
+        $logCutoff = (Get-Date).AddDays(-$logRetentionDays)
+        $oldLogs = Get-ChildItem "$logs\backend-output-*.log","$logs\backend-error-*.log" -ErrorAction SilentlyContinue |
+            Where-Object { $_.LastWriteTime -lt $logCutoff }
+        $freed = 0
+        foreach ($f in $oldLogs) {
+            Write-Host "Deleting expired service log: $($f.Name) ($([math]::Round($f.Length/1MB,1)) MB)"
+            $freed += $f.Length
+            Remove-Item $f.FullName -Force -ErrorAction SilentlyContinue
+        }
+        if ($freed -gt 0) { Write-Host "Reclaimed $([math]::Round($freed/1GB,2)) GB of expired logs." }
+    } catch {
+        Write-Warning "Log retention failed (non-fatal): $_"
+    }
 
     if (!(Test-Path "$pgBin\pg_dump.exe")) {
         Write-Error "Missing binary: $pgBin\pg_dump.exe"

@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
@@ -733,10 +734,12 @@ class _ProductImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = productPlaceholder(categoryName);
     if (imageUrl != null && imageUrl!.isNotEmpty) {
-      return Image.network(
-        imageUrl!,
+      return CachedNetworkImage(
+        imageUrl: imageUrl!,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, ___) => _ImagePlaceholder(style: style),
+        // Grid thumbnails; decode at display size, not source size.
+        memCacheWidth: 480,
+        errorWidget: (_, _, _) => _ImagePlaceholder(style: style),
       );
     }
     return _ImagePlaceholder(style: style);

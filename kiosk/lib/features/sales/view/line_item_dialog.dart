@@ -354,6 +354,8 @@ class _ProductDetails extends StatelessWidget {
             width: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
             height: context.responsive.value(kiosk: 200, tablet: 150, phone: 100),
             fit: BoxFit.cover,
+            // Rendered at 200dp max -- decode at display size, not source size.
+            memCacheWidth: 480,
             fadeInDuration: POSAnimation.fast,
             placeholderFadeInDuration: Duration.zero,
             errorWidget: (context, url, error) {
@@ -734,6 +736,8 @@ class _ModifierOptionCard extends StatelessWidget {
                     width: double.infinity,
                     height: context.responsive.value(kiosk: 64, tablet: 48, phone: 40),
                     fit: BoxFit.cover,
+                    // Modifier thumbnails are 64dp tall at most.
+                    cacheHeight: 160,
                     errorBuilder:
                         (context, error, stackTrace) => Container(
                           height: context.responsive.value(kiosk: 64, tablet: 48, phone: 40),

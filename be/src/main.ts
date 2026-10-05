@@ -118,8 +118,13 @@ async function bootstrap(): Promise<void> {
     process.exit(1);
   }
 
+  // debug/verbose only outside production — the service log is append-only on
+  // disk and these levels add nothing an operator reads.
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+    logger:
+      process.env.NODE_ENV === 'production'
+        ? ['error', 'warn', 'log']
+        : ['error', 'warn', 'log', 'debug', 'verbose'],
   });
   const configService = app.get(AppConfigService);
   app.setGlobalPrefix('api/v1', {

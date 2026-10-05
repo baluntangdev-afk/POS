@@ -140,7 +140,7 @@ class _CategoryHeading extends StatelessWidget {
           decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(POSRadius.sm)),
           clipBehavior: Clip.antiAlias,
           child: category.image != null
-              ? Image.memory(category.image!, fit: BoxFit.cover)
+              ? Image.memory(category.image!, fit: BoxFit.cover, cacheWidth: 128)
               : Center(
                   child: Text(
                     category.name.isEmpty ? '?' : category.name[0].toUpperCase(),
@@ -278,6 +278,8 @@ class _MenuItemCard extends StatelessWidget {
               CachedNetworkImage(
                 imageUrl: imageUrl,
                 fit: BoxFit.cover,
+                // Decode at display size -- source photos reach 1500x1500.
+                memCacheWidth: 480,
                 fadeInDuration: POSAnimation.fast,
                 placeholderFadeInDuration: Duration.zero,
                 errorWidget: (_, _, _) => _ProductFallback(name: product.name, accent: accent),

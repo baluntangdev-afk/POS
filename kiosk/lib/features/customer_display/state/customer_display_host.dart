@@ -21,7 +21,9 @@ import 'snapshot_debouncer.dart';
 /// push/websocket infrastructure in the backend today, so this poll is what
 /// "real-time" means here — admin edits (price, new product, store name)
 /// show up on the display within one interval.
-const _catalogPollInterval = Duration(seconds: 15);
+// Each poll costs one request per product group, so it drove a steady N+1 load
+// against the backend. A menu board tolerates a minute of lag.
+const _catalogPollInterval = Duration(minutes: 1);
 
 /// Runs in the cashier engine. Owns the customer-display window's entire
 /// lifecycle: creating it when a second monitor is present, recreating it if
@@ -75,23 +77,26 @@ class CustomerDisplayHost with ScreenListener {
 
   Future<void> _pollCatalog() async {
     if (_disposed) return;
-    unawaited(_log.write('poll: starting'));
     try {
       final store = await _container.read(storeRepositoryProvider).getCurrent();
       final groups = await _container.read(productGroupRepositoryProvider).getAll();
-      unawaited(_log.write('poll: store="${store.legalName}", ${groups.length} groups fetched'));
       final productRepository = _container.read(productRepositoryProvider);
 
       final categories = <CustomerDisplayCategory>[];
       for (final group in groups) {
         final products = await productRepository.getByGroup(group);
-        unawaited(_log.write('poll: group "${group.name}" (id ${group.id}) → ${products.length} products'));
         categories.add(CustomerDisplayCategory.build(group: group, products: products.toList()));
       }
 
       final catalog = CustomerDisplayCatalog.build(store: store, categories: categories);
+
+      // A menu changes a few times a day, so skip the encode + IPC + rebuild
+      // when nothing moved. Without this the whole catalog crossed the window
+      // channel on every poll.
+      if (catalog == _lastCatalog) return;
+
       _lastCatalog = catalog;
-      unawaited(_log.write('poll: catalog built ok, ${categories.length} categories, controller=${_controller != null}'));
+      unawaited(_log.write('poll: catalog changed, ${categories.length} categories'));
       _pushCatalog(catalog);
     } catch (e, s) {
       unawaited(_log.write('poll: FAILED: $e\n$s'));
@@ -101,13 +106,13 @@ class CustomerDisplayHost with ScreenListener {
   void _pushCatalog(CustomerDisplayCatalog catalog) {
     final controller = _controller;
     if (controller == null) {
-      unawaited(_log.write('push: skipped, no display window yet'));
+      unawaited(_log.trace('push: skipped, no display window yet'));
       return;
     }
     unawaited(
       controller
           .invokeMethod('catalogSync', catalog.toTransportMap())
-          .then((_) => _log.write('push: catalogSync sent ok'))
+          .then((_) => _log.trace('push: catalogSync sent ok'))
           .catchError((Object e) => _log.write('push: catalogSync FAILED: $e')),
     );
   }
@@ -165,7 +170,7 @@ class CustomerDisplayHost with ScreenListener {
       return;
     }
 
-    unawaited(_log.write('sync: ${displays.length} display(s) found'));
+    unawaited(_log.trace('sync: ${displays.length} display(s) found'));
 
     // The sub-window is never closed once created — only hidden and re-shown.
     // Destroying it from its own engine quits the whole process (see

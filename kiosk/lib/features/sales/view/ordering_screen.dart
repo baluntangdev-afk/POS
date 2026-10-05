@@ -725,6 +725,11 @@ class _ProductCard extends StatelessWidget {
                             fit: BoxFit.cover,
                             width: double.infinity,
                             height: double.infinity,
+                            // Tiles are at most 210dp wide. Source photos run to
+                            // 1500x1500 (8.6 MB decoded), which thrashes the image
+                            // cache and re-decodes on the UI thread. Decode at
+                            // display size instead.
+                            memCacheWidth: 480,
                             // Fade only on the first decode; cached frames show
                             // instantly with no placeholder flash on rebuild.
                             fadeInDuration: POSAnimation.fast,

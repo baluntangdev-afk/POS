@@ -35,6 +35,8 @@ class CustomerDisplayHeader extends StatelessWidget {
                 ? CachedNetworkImage(
                     imageUrl: storeLogoUrl!,
                     fit: BoxFit.cover,
+                    // Rendered at 40dp -- never decode the full-size logo.
+                    memCacheWidth: 96,
                     errorWidget: (_, _, _) => _Initial(displayName: displayName),
                   )
                 : _Initial(displayName: displayName),

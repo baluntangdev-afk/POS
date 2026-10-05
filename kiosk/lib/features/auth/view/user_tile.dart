@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../styles/color_set.dart';
@@ -82,12 +83,14 @@ class _Avatar extends StatelessWidget {
     }
 
     return ClipOval(
-      child: Image.network(
-        image,
+      child: CachedNetworkImage(
+        imageUrl: image,
         width: size,
         height: size,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => initialsCircle(),
+        // Avatars render small; decode at display size, not source size.
+        memCacheWidth: 192,
+        errorWidget: (_, _, _) => initialsCircle(),
       ),
     );
   }

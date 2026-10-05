@@ -58,7 +58,7 @@ class CustomerDisplayReceiver {
   Timer? _thankYouTimer;
 
   void attach(WindowController windowController) {
-    unawaited(_log.write('attach: window method handler registered'));
+    unawaited(_log.trace('attach: window method handler registered'));
     windowController.setWindowMethodHandler((call) async {
       switch (call.method) {
         case 'sync':
@@ -68,7 +68,7 @@ class CustomerDisplayReceiver {
             unawaited(_log.write('recv: sync DECODE FAILED: $e\n$s'));
           }
         case 'catalogSync':
-          unawaited(_log.write('recv: catalogSync received'));
+          unawaited(_log.trace('recv: catalogSync received'));
           try {
             final catalog = CustomerDisplayCatalog.fromTransportMap(call.arguments);
             unawaited(_log.write('recv: decoded ok, ${catalog.categories.length} categories'));
@@ -77,10 +77,10 @@ class CustomerDisplayReceiver {
             unawaited(_log.write('recv: catalogSync DECODE FAILED: $e\n$s'));
           }
         case 'hide':
-          unawaited(_log.write('recv: hide'));
+          unawaited(_log.trace('recv: hide'));
           await windowManager.hide();
         case 'reshow':
-          unawaited(_log.write('recv: reshow'));
+          unawaited(_log.trace('recv: reshow'));
           await placeOnCustomerMonitor(_log);
       }
       return null;

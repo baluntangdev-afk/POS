@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
@@ -319,12 +320,14 @@ class _CurrentImageThumbnail extends StatelessWidget {
         const Gap(4),
         ClipRRect(
           borderRadius: BorderRadius.circular(POSRadius.md),
-          child: Image.network(
-            imageUrl,
+          child: CachedNetworkImage(
+            imageUrl: imageUrl,
             height: r.value(kiosk: 100, tablet: 90, phone: 70),
             width: double.infinity,
             fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => Container(
+            // Preview strip is 100dp tall at most.
+            memCacheHeight: 240,
+            errorWidget: (_, _, _) => Container(
               height: r.value(kiosk: 100, tablet: 90, phone: 70),
               color: POSColors.surfaceSubtle,
               alignment: Alignment.center,

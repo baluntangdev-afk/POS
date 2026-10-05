@@ -58,7 +58,7 @@
 ; ═══════════════════════════════════════════════════════════════════════
 
 #define MyAppName    "POS Kiosk"
-#define MyAppVersion "4.0.1"
+#define MyAppVersion "4.0.4"
 #define MyAppPublisher "Your Company"
 #define KioskExe     "pos_app.exe"
 #define BackendExe   "POSBackend.exe"
@@ -120,7 +120,8 @@ Source: "..\{#BackendExe}"; DestDir: "{app}\backend"; Flags: ignoreversion
 ; .env.prod copied as .env — onlyifdoesntexist preserves custom config on upgrades
 Source: "..\.env.prod"; DestDir: "{app}\backend"; DestName: ".env"; Flags: ignoreversion onlyifdoesntexist
 ; On upgrades the existing .env is kept, so append any keys added to .env.prod
-; since then (existing values are never touched). Must stay after the entry above.
+; since then and reset the installer-owned ones (NODE_ENV). Other existing
+; values are never touched. Must stay after the entry above.
 Source: "..\.env.prod"; DestDir: "{tmp}"; DestName: "env.prod.template"; Flags: ignoreversion deleteafterinstall; AfterInstall: MergeMissingEnvKeys
 ; Static assets (product images) served by the backend at /static/*. AppDirectory
 ; for POSBackendService is {app}\backend, so process.cwd()\public resolves here.
@@ -163,6 +164,8 @@ Source: "scripts\start-services.ps1";          DestDir: "{app}\scripts"; Flags: 
 Source: "scripts\start-services.bat";          DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\backup-database.ps1";         DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\backup-database.bat";         DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\cleanup-logs.ps1";            DestDir: "{app}\scripts"; Flags: ignoreversion
+Source: "scripts\cleanup-logs.bat";            DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\register-backup-task.ps1";    DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\register-backup-task.bat";    DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "scripts\restore-database.ps1";        DestDir: "{app}\scripts"; Flags: ignoreversion
@@ -267,6 +270,25 @@ Filename: "{cmd}"; Parameters: "/c ""{app}\scripts\uninstall-services.bat"" ""{a
 ; Wipe the scripts folder before extraction so removed/renamed scripts never linger
 Type: filesandordirs; Name: "{app}\scripts"
 
+; Reset the log folder on every install. [InstallDelete] runs BEFORE extraction,
+; which matters: a terminal whose disk filled with logs has to free space here or
+; setup itself cannot unpack. Rotated service logs are never held open, so these
+; always succeed. The active backend logs are still locked by the running service
+; at this point and are reset later by install-backend-service.ps1, in the window
+; between `nssm remove` and `nssm install`.
+;
+; Background: NSSM shipped with AppRotateOnline=0, so rotation only ran at service
+; start and single files reached 84 GB; one fleet terminal accumulated ~193 GB here.
+Type: files; Name: "{app}\logs\backend-output-*.log"
+Type: files; Name: "{app}\logs\backend-error-*.log"
+; Kiosk-side display logs. Fail silently when pos_app.exe is running, which is
+; fine -- CustomerDisplayLog caps them at 2 MB on its own from this build on.
+Type: files; Name: "{app}\logs\customer-display-*.log"
+; Previous install's transcripts. The current install rewrites these in [Run].
+Type: files; Name: "{app}\logs\*-install.log"
+Type: files; Name: "{app}\logs\backup-database.log"
+Type: files; Name: "{app}\logs\stop-services.log"
+
 [UninstallDelete]
 ; Remove PostgreSQL data directory on uninstall
 Type: filesandordirs; Name: "C:\posdata"
@@ -335,22 +357,53 @@ begin
     Result := Trim(Copy(Line, 1, EqPos - 1));
 end;
 
-// AfterInstall for the env.prod.template entry: appends every key present in
-// the bundled .env.prod but missing from the installed {app}\backend\.env.
-// Existing keys/values are left exactly as they are.
+// Keys the installer owns outright: always reset to the bundled .env.prod
+// value, even on an upgrade over a hand-edited .env. NODE_ENV=development
+// turns on TypeORM query logging, measured at ~12 GB/day on a live terminal.
+function IsInstallerOwnedKey(Key: String): Boolean;
+begin
+  Result := CompareText(Key, 'NODE_ENV') = 0;
+end;
+
+// AfterInstall for the env.prod.template entry: rewrites {app}\backend\.env so
+// installer-owned keys match .env.prod and keys added to .env.prod since the
+// last install get appended. Every other existing value is left as it is.
 procedure MergeMissingEnvKeys();
 var
   EnvPath: String;
-  Template, Existing, ToAppend: TArrayOfString;
+  Template, Existing, Merged: TArrayOfString;
   i, j, Count: Integer;
   Key: String;
-  Found: Boolean;
+  Found, Changed, HeaderAdded: Boolean;
 begin
   EnvPath := ExpandConstant('{app}\backend\.env');
   if not LoadStringsFromFile(ExpandConstant('{tmp}\env.prod.template'), Template) then Exit;
   if not LoadStringsFromFile(EnvPath, Existing) then Exit;
 
-  Count := 0;
+  Changed := False;
+  HeaderAdded := False;
+  Count := GetArrayLength(Existing);
+  SetArrayLength(Merged, Count);
+
+  // Pass 1: copy the existing file, overriding installer-owned keys in place.
+  for i := 0 to Count - 1 do
+  begin
+    Merged[i] := Existing[i];
+    Key := EnvLineKey(Existing[i]);
+    if (Key = '') or (not IsInstallerOwnedKey(Key)) then Continue;
+    for j := 0 to GetArrayLength(Template) - 1 do
+      if CompareText(EnvLineKey(Template[j]), Key) = 0 then
+      begin
+        if CompareText(Trim(Existing[i]), Trim(Template[j])) <> 0 then
+        begin
+          Merged[i] := Trim(Template[j]);
+          Changed := True;
+        end;
+        Break;
+      end;
+  end;
+
+  // Pass 2: append keys present in the template but absent from the .env.
   for i := 0 to GetArrayLength(Template) - 1 do
   begin
     Key := EnvLineKey(Template[i]);
@@ -362,24 +415,23 @@ begin
         Found := True;
         Break;
       end;
-    if not Found then
+    if Found then Continue;
+    if not HeaderAdded then
     begin
-      if Count = 0 then
-      begin
-        // Leading blank line guards against an existing file with no trailing newline.
-        SetArrayLength(ToAppend, 2);
-        ToAppend[0] := '';
-        ToAppend[1] := '# Added by installer {#MyAppVersion}';
-        Count := 2;
-      end;
-      SetArrayLength(ToAppend, Count + 1);
-      ToAppend[Count] := Trim(Template[i]);
-      Count := Count + 1;
+      SetArrayLength(Merged, Count + 2);
+      Merged[Count] := '';
+      Merged[Count + 1] := '# Added by installer {#MyAppVersion}';
+      Count := Count + 2;
+      HeaderAdded := True;
     end;
+    SetArrayLength(Merged, Count + 1);
+    Merged[Count] := Trim(Template[i]);
+    Count := Count + 1;
+    Changed := True;
   end;
 
-  if Count > 0 then
-    SaveStringsToFile(EnvPath, ToAppend, True);
+  if Changed then
+    SaveStringsToFile(EnvPath, Merged, False);
 end;
 
 // Guard for the optional seeding step — skips silently if the exe wasn't extracted.

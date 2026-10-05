@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$AppDir    = "C:\POSKiosk",
     [string]$ExePath   = "",         # path to new POSBackend.exe; defaults to AppDir\backend\POSBackend.exe in-place
     [string]$PublicDir = ""          # optional: path to new static assets (be\public) to sync into AppDir\backend\public

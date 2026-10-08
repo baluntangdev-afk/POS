@@ -84,7 +84,7 @@ class CashierDailyReportNotifier extends Notifier<AsyncValue<CashierDailyReport?
             bytes: bytes,
             at: report.reportGeneratedAt,
           );
-    } catch (_) {
+    } catch (e, st) { debugPrint('History archive failed: \n');
       // Non-fatal, see comment above.
     }
   }

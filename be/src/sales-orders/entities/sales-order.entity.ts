@@ -24,6 +24,8 @@ import { ZReading } from '../../reports/entities/z-reading.entity';
 export class SalesOrder extends UuidIdEntity {
   @Column({ type: 'varchar', length: 20, unique: true, name: 'so_number' })
   soNumber: string;
+  @Column({ name: "client_request_id", type: "varchar", length: 100, nullable: true })
+  clientRequestId?: string;
 
   @Column({ type: 'timestamp', name: 'so_date', default: () => 'CURRENT_TIMESTAMP' })
   soDate: Date;

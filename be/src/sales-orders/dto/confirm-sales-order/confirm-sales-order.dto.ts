@@ -1,3 +1,4 @@
+import { IsOptional, IsString, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -8,6 +9,13 @@ import { PaymentDetailsDto } from './payment-details.dto';
  * DTO for confirming a sales order (payment and status).
  */
 export class ConfirmSalesOrderDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  clientRequestId?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
   @ApiProperty({
     type: () => PaymentDetailsDto,
     description: 'Payment details (payee, method, amounts, change)',
@@ -24,3 +32,7 @@ export class ConfirmSalesOrderDto {
   @IsEnum(SalesOrderType)
   soType: SalesOrderType;
 }
+
+
+
+// check imports

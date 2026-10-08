@@ -1,42 +1,58 @@
 import { Injectable } from '@nestjs/common';
-import { SalesOrder } from '../entities/sales-order.entity';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-import { ConfirmSalesOrderDto } from '../dto/confirm-sales-order/confirm-sales-order.dto';
-import { User } from '../../users/entities/user.entity';
-import { PaymentDetailsToPaymentMapper } from '../../payments/mapper/payment-details-to-payment.mapper';
-import { SalesOrderStatus } from '../sales-orders.enum';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { SalesOrder } from '../entities/sales-order.entity';
+import { SalesOrderStatus } from '../sales-orders.enum';
+import { ConfirmSalesOrderDto } from '../dto/confirm-sales-order/confirm-sales-order.dto';
+import { Payment } from '../../payments/entities/payment.entity';
 import { SalesOrderEvents } from '../events';
-import { OrderConfirmedEvent } from '../events/order-confirmed.event';
 
 @Injectable()
 export class ConfirmSalesOrderService {
   constructor(
     @InjectRepository(SalesOrder)
     private readonly salesOrderRepository: Repository<SalesOrder>,
+    @InjectRepository(Payment)
+    private readonly paymentRepository: Repository<Payment>,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async execute(soId: string, confirmSalesOrderDto: ConfirmSalesOrderDto, causer: User) {
-    const salesOrder = this.salesOrderRepository.create({
-      id: soId,
-      status: SalesOrderStatus.CONFIRMED,
-      updatedBy: causer,
+  async execute(
+    id: string,
+    confirmSalesOrderDto: ConfirmSalesOrderDto,
+  ): Promise<SalesOrder> {
+    const salesOrder = await this.salesOrderRepository.findOne({
+      where: { id },
+      relations: ['items'],
     });
 
-    const payment = PaymentDetailsToPaymentMapper.toEntity(
-      soId,
-      confirmSalesOrderDto.payment_details,
-    );
+    if (!salesOrder) {
+      throw new Error('Sales order not found');
+    }
 
-    await this.salesOrderRepository.manager.transaction(async (transactionalEntityManager) => {
-      await transactionalEntityManager.save(salesOrder);
-      await transactionalEntityManager.save(payment);
+    if (salesOrder.status === SalesOrderStatus.CONFIRMED) {
+      return salesOrder;
+    }
+
+    if (salesOrder.status === SalesOrderStatus.CANCELLED) {
+      throw new Error('Cannot confirm a cancelled sales order');
+    }
+
+    await this.salesOrderRepository.manager.transaction(async (manager) => {
+      await manager.update(
+        SalesOrder,
+        { id },
+        {
+          status: SalesOrderStatus.CONFIRMED,
+          clientRequestId:
+            confirmSalesOrderDto.clientRequestId ??
+            (salesOrder as any).clientRequestId,
+        },
+      );
     });
 
-    this.eventEmitter.emit(SalesOrderEvents.ORDER_CONFIRMED, new OrderConfirmedEvent(soId, causer));
-
-    return soId;
+    this.eventEmitter.emit(SalesOrderEvents.ORDER_CONFIRMED, { orderId: id });
+    return salesOrder;
   }
 }

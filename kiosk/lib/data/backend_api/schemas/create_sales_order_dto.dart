@@ -7,10 +7,11 @@ part 'create_sales_order_dto.mapper.dart';
 
 @MappableClass()
 class CreateSalesOrderDto with CreateSalesOrderDtoMappable {
-  const CreateSalesOrderDto({required this.soType, required this.products});
+  const CreateSalesOrderDto({required this.soType, required this.products, this.clientRequestId});
 
   final SalesOrderType soType;
   final List<CreateSalesOrderItemDto> products;
+  final String? clientRequestId;
 
   static const fromJson = CreateSalesOrderDtoMapper.fromJson;
 }

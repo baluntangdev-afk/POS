@@ -140,13 +140,14 @@ class _PhoneLayout extends HookConsumerWidget {
 
 // ── Product section (chips + grid) ────────────────────────────────────────────
 
-class _ProductSection extends HookWidget {
+class _ProductSection extends HookConsumerWidget {
   const _ProductSection();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final controller = useTextEditingController();
     final query = useState('');
+    final isSyncing = ref.watch(cartivoProductsSyncProvider) != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -169,6 +170,7 @@ class _ProductSection extends HookWidget {
                   controller.clear();
                   query.value = '';
                 },
+                trailing: _RetrySyncButton(isSyncing: isSyncing),
               ),
               _CategoryChipRow(query: query.value),
               const Gap(AppSpacing.xs),
@@ -185,11 +187,13 @@ class _SearchField extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
+  final Widget? trailing;
 
   const _SearchField({
     required this.controller,
     required this.onChanged,
     required this.onClear,
+    this.trailing,
   });
 
   @override
@@ -201,49 +205,88 @@ class _SearchField extends StatelessWidget {
         AppSpacing.lg,
         AppSpacing.xs,
       ),
-      child: TextField(
-        controller: controller,
-        onChanged: onChanged,
-        textInputAction: TextInputAction.search,
-        style: AppTextStyles.bodyMd,
-        decoration: InputDecoration(
-          hintText: 'Search products or categories',
-          hintStyle: AppTextStyles.bodyMd.copyWith(
-            color: AppColors.textDisabled,
-          ),
-          prefixIcon: const Icon(
-            Icons.search_rounded,
-            color: AppColors.textSecondary,
-          ),
-          suffixIcon: ValueListenableBuilder<TextEditingValue>(
-            valueListenable: controller,
-            builder:
-                (_, value, _) =>
-                    value.text.isEmpty
-                        ? const SizedBox.shrink()
-                        : IconButton(
-                          onPressed: onClear,
-                          icon: const Icon(Icons.close_rounded),
-                          tooltip: 'Clear search',
-                        ),
-          ),
-          isDense: true,
-          filled: true,
-          fillColor: AppColors.surfaceVariant,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm + 2,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-          ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(child: _buildTextField()),
+          if (trailing != null) ...[const Gap(AppSpacing.sm), trailing!],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField() {
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      textInputAction: TextInputAction.search,
+      style: AppTextStyles.bodyMd,
+      decoration: InputDecoration(
+        hintText: 'Search products or categories',
+        hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textDisabled),
+        prefixIcon: const Icon(
+          Icons.search_rounded,
+          color: AppColors.textSecondary,
+        ),
+        suffixIcon: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: controller,
+          builder:
+              (_, value, _) =>
+                  value.text.isEmpty
+                      ? const SizedBox.shrink()
+                      : IconButton(
+                        onPressed: onClear,
+                        icon: const Icon(Icons.close_rounded),
+                        tooltip: 'Clear search',
+                      ),
+        ),
+        isDense: true,
+        filled: true,
+        fillColor: AppColors.surfaceVariant,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm + 2,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
       ),
+    );
+  }
+}
+
+class _RetrySyncButton extends ConsumerWidget {
+  final bool isSyncing;
+
+  const _RetrySyncButton({required this.isSyncing});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return IconButton(
+      onPressed:
+          isSyncing
+              ? null
+              : () => ref.read(cartivoProductsSyncProvider.notifier).retry(),
+      tooltip: 'Retry product sync',
+      style: IconButton.styleFrom(
+        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+        foregroundColor: AppColors.primary,
+        disabledBackgroundColor: AppColors.surfaceVariant,
+        disabledForegroundColor: AppColors.textDisabled,
+      ),
+      icon:
+          isSyncing
+              ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+              : const Icon(Icons.refresh_rounded),
     );
   }
 }
@@ -510,7 +553,11 @@ class _ProductGrid extends ConsumerWidget {
               }
               return true;
             }).toList();
-        if (products.isEmpty) {
+
+        final available = products.where((p) => p.isAvailable).toList();
+        final soldOut = products.where((p) => !p.isAvailable).toList();
+        final orderedProducts = [...available, ...soldOut];
+        if (orderedProducts.isEmpty) {
           return RefreshIndicator(
             onRefresh: onRefresh,
             child: LayoutBuilder(
@@ -575,12 +622,12 @@ class _ProductGrid extends ConsumerWidget {
                   crossAxisSpacing: AppSpacing.sm,
                   mainAxisSpacing: AppSpacing.sm,
                 ),
-                itemCount: products.length,
+                itemCount: orderedProducts.length,
                 itemBuilder:
                     (_, i) => RepaintBoundary(
                       child: _ProductCard(
-                        product: products[i],
-                        groupName: groupById[products[i].groupId] ?? '',
+                        product: orderedProducts[i],
+                        groupName: groupById[orderedProducts[i].groupId] ?? '',
                       ),
                     ),
               ),

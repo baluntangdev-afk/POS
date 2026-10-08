@@ -45,16 +45,6 @@ class CartivoProductsSyncException implements Exception {
   String toString() => 'CartivoProductsSyncException($failure)';
 }
 
-/// Walks every page of a merchant's Cartivo products and returns them together.
-///
-/// * `meta.has_next` decides when to stop; `meta.total` is only used to report
-///   progress, bound the page count, and verify completeness afterwards.
-/// * Pages are read sequentially. Transient failures (network, 5xx) are retried
-///   on the same page with backoff, so a flaky connection doesn't restart the
-///   whole sync. Errors that can't succeed on retry surface immediately as the
-///   original `ApiException` (map with `cartivoPosFailureFrom`).
-/// * Nothing is returned unless the whole catalog was read, so callers can save
-///   the result in a single transaction and never end up with half a catalog.
 class FetchAllCartivoProducts {
   const FetchAllCartivoProducts(
     this._repository, {
@@ -68,9 +58,6 @@ class FetchAllCartivoProducts {
   final int maxAttemptsPerPage;
   final Duration retryBaseDelay;
 
-  /// Pass [updatedSince] for a delta sync. `meta.total` is then checked only
-  /// if Cartivo documents it as the filtered count — until confirmed, deltas
-  /// skip the completeness check ([verifyTotalOnDelta]).
   Future<CartivoProductsSyncResult> call(
     String merchantId, {
     DateTime? updatedSince,

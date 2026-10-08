@@ -88,7 +88,7 @@ class CashierXReadingNotifier extends Notifier<AsyncValue<CashierXReading?>> {
             bytes: bytes,
             at: report.reportGeneratedAt,
           );
-    } catch (_) {
+    } catch (e, st) { debugPrint('History archive failed: \n');
       // Non-fatal, see comment above.
     }
   }

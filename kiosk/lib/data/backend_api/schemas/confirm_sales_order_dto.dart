@@ -11,6 +11,7 @@ class ConfirmSalesOrderDto with ConfirmSalesOrderDtoMappable {
 
   @MappableField(key: 'payment_details')
   final PaymentDetailsDto paymentDetails;
+  final String? clientRequestId;
 
   final SalesOrderType soType;
 

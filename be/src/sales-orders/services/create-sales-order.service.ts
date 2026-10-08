@@ -96,7 +96,7 @@ export class CreateSalesOrderService {
   private async generateSoNumber(): Promise<string> {
     const currentYear = dayjs().format('YYYY');
     const kioskNo = getKioskNo();
-    const prefix = `SO-${kioskNo.padStart(3, '0')}-${currentYear}`;
+    const prefix = `SO-${String(kioskNo).padStart(3, '0')}-${currentYear}`;
 
     const lastSoNumber = await this.salesOrderRepository
       .createQueryBuilder('salesOrder')
@@ -113,6 +113,6 @@ export class CreateSalesOrderService {
     const lastFour = lastSoNumber.soNumber.slice(-4);
     const lastSoNumberInt = parseInt(lastFour, 10);
     const nextSoNumberInt = lastSoNumberInt + 1;
-    return `${prefix}-${nextSoNumberInt.toString().padStart(4, '0')}`;
+    return `${prefix}-${nextSoNumberInt.toString().padStart(5, '0')}`;
   }
 }

@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:decimal/decimal.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/transaction_sync/sales_sync_signal.dart';
 import '../../../data/backend_api/enums/payment_method.dart';

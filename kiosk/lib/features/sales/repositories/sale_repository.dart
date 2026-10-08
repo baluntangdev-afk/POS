@@ -1,4 +1,5 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../data/backend_api/enums/sales_order_type.dart';
 import '../../../data/backend_api/schemas/apply_discount_item_discount_dto.dart';

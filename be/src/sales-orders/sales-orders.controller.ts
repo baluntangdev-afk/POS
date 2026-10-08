@@ -130,7 +130,7 @@ export class SalesOrdersController {
     @CurrentUser() causer: User,
   ) {
     const soId = await this.addDiscountToItemService.execute(id, applyDiscountDto, causer);
-    return this.salesOrdersService.findOneWithItems(soId);
+    return this.salesOrdersService.findOneWithItems(id);
   }
 
   @Patch(':id/confirm')
@@ -147,8 +147,8 @@ export class SalesOrdersController {
     @Body() confirmSalesOrderDto: ConfirmSalesOrderDto,
     @CurrentUser() causer: User,
   ) {
-    const soId = await this.confirmSalesOrderService.execute(id, confirmSalesOrderDto, causer);
-    return this.salesOrdersService.findOneWithItems(soId);
+    await this.confirmSalesOrderService.execute(id, confirmSalesOrderDto);
+    return this.salesOrdersService.findOneWithItems(id);
   }
 
   @Patch(':id/void')
@@ -162,7 +162,7 @@ export class SalesOrdersController {
   @ApiOkResponse({ description: 'The sales order has been voided.' })
   async void(@Param('id') id: string, @Body() voidSalesOrderDto: VoidSalesOrderDto) {
     const soId = await this.voidSalesOrderService.execute(id, voidSalesOrderDto);
-    return this.salesOrdersService.findOneWithItems(soId);
+    return this.salesOrdersService.findOneWithItems(id);
   }
 
   @Patch(':id/item/:itemId')

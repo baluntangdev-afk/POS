@@ -86,7 +86,7 @@ class ZReadingNotifier extends Notifier<AsyncValue<ZReading?>> {
             bytes: bytes,
             at: report.reportGeneratedAt,
           );
-    } catch (_) {
+    } catch (e, st) { debugPrint('History archive failed: \n');
       // Non-fatal, see comment above.
     }
   }

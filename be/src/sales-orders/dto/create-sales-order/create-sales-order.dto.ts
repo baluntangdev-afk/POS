@@ -1,3 +1,4 @@
+import { IsOptional, IsString, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsEnum, IsNotEmpty, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -9,6 +10,13 @@ import { User } from '../../../users/entities/user.entity';
  * DTO for creating a new sales order.
  */
 export class CreateSalesOrderDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  clientRequestId?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
   @ApiProperty({ description: 'Sales order type', enum: SalesOrderType })
   @IsNotEmpty()
   @IsEnum(SalesOrderType)
@@ -38,3 +46,4 @@ export class CreateSalesOrderDto {
   createdBy: User;
   updatedBy: User;
 }
+

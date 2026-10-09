@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
@@ -21,11 +22,17 @@ class SaleRepositoryImpl implements SaleRepository {
 
   @override
   Future<Sale> save(Sale sale, {required int cashierId}) async {
-    final saleId = await _db.salesDao.insertPendingSale(
-      cashierId: cashierId,
-      sale: sale,
-      now: _appClock.now(),
-    );
-    return sale.copyWith(id: saleId);
+    try {
+      final saleId = await _db.salesDao.insertPendingSale(
+        cashierId: cashierId,
+        sale: sale,
+        now: _appClock.now(),
+      );
+      return sale.copyWith(id: saleId);
+    } catch (e, s) {
+      debugPrint('SALES ERROR ${e} ${s}');
+      throw Exception(e);
+    }
+
   }
 }

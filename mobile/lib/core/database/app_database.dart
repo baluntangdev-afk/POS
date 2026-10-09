@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 
 import 'tables/users_table.dart';
 import 'tables/product_groups_table.dart';
@@ -73,7 +74,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'mobile_pos'));
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -314,18 +315,25 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(cartivoProductVariantsTable);
             await m.createTable(cartivoSyncStateTable);
           }
-          if (from < 18) {
+          // v18 added sale_items.product_name + category_name behind a single
+          // product_name check, so devices that ran an earlier v18 build with
+          // only product_name never got category_name. v19 re-checks each
+          // column on its own.
+          if (from < 19) {
             if (!await _hasColumn('sale_items', 'product_name')) {
               await m.addColumn(saleItemsTable, saleItemsTable.productName);
-              await m.addColumn(saleItemsTable, saleItemsTable.categoryName);
               // Snapshot names for existing sales from the legacy catalog,
               // falling back to Cartivo.
               await customStatement(
-                'UPDATE sale_items SET '
-                'product_name = COALESCE('
+                'UPDATE sale_items SET product_name = COALESCE('
                 '(SELECT p.name FROM products p WHERE p.id = sale_items.product_id), '
-                '(SELECT cp.name FROM cartivo_products cp WHERE cp.product_id = sale_items.product_id)), '
-                'category_name = COALESCE('
+                '(SELECT cp.name FROM cartivo_products cp WHERE cp.product_id = sale_items.product_id))',
+              );
+            }
+            if (!await _hasColumn('sale_items', 'category_name')) {
+              await m.addColumn(saleItemsTable, saleItemsTable.categoryName);
+              await customStatement(
+                'UPDATE sale_items SET category_name = COALESCE('
                 '(SELECT pg.name FROM products p JOIN product_groups pg ON pg.id = p.group_id '
                 'WHERE p.id = sale_items.product_id), '
                 '(SELECT cp.category FROM cartivo_products cp WHERE cp.product_id = sale_items.product_id))',
@@ -334,12 +342,32 @@ class AppDatabase extends _$AppDatabase {
           }
         },
         beforeOpen: (details) async {
+          await _addMissingNullableColumns();
           // A sync killed mid-run leaves 'syncing' behind; nothing is running now.
           await customStatement(
             "UPDATE cartivo_sync_state SET status = 'idle' WHERE status = 'syncing'",
           );
         },
       );
+
+  // Safety net: adds any nullable column declared in the Dart tables but
+  // missing on disk (e.g. a migration that was skipped or half-applied), so
+  // inserts don't fail with "no column named ...".
+  Future<void> _addMissingNullableColumns() async {
+    final m = createMigrator();
+    for (final table in allTables) {
+      final rows = await customSelect('PRAGMA table_info(${table.actualTableName})').get();
+      final existing = rows.map((r) => r.read<String>('name')).toSet();
+      for (final column in table.$columns) {
+        if (existing.contains(column.$name)) continue;
+        if (column.$nullable) {
+          await m.addColumn(table, column);
+        } else {
+          debugPrint('Schema drift: ${table.actualTableName}.${column.$name} is missing (NOT NULL, cannot auto-add)');
+        }
+      }
+    }
+  }
 
   Future<bool> _hasColumn(String table, String column) async {
     final rows = await customSelect('PRAGMA table_info($table)').get();

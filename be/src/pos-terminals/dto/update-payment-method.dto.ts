@@ -8,7 +8,11 @@ export class UpdatePaymentMethodDto {
   @IsOptional()
   paymentMethod?: PaymentMethod;
 
-  @ApiPropertyOptional({ example: 'PayMaya', nullable: true, description: 'Required when paymentMethod is Other' })
+  @ApiPropertyOptional({
+    example: 'PayMaya',
+    nullable: true,
+    description: 'Required when paymentMethod is Other',
+  })
   @ValidateIf((o: UpdatePaymentMethodDto) => o.paymentMethod === PaymentMethod.OTHER)
   @IsString()
   @IsNotEmpty()

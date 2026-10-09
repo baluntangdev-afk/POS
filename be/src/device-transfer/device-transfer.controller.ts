@@ -65,10 +65,6 @@ export class DeviceTransferController {
     if (!file?.buffer?.length) {
       throw new BadRequestException('No backup file was uploaded.');
     }
-    return this.importService.import(
-      file.buffer,
-      dto.passphrase,
-      dto.partialRestore === 'true',
-    );
+    return this.importService.import(file.buffer, dto.passphrase, dto.partialRestore === 'true');
   }
 }

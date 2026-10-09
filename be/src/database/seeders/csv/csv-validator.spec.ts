@@ -141,9 +141,9 @@ describe('validateCsvRows (MODIFIERS)', () => {
   });
 
   it('errors when Max Selection is less than Min Selection', () => {
-    expect(
-      validateCsvRows(schema, [mrow('Size', '', 'single', 'true', '3', '1')]),
-    ).toContainEqual(expect.objectContaining({ row: 2, column: 'Max Selection' }));
+    expect(validateCsvRows(schema, [mrow('Size', '', 'single', 'true', '3', '1')])).toContainEqual(
+      expect.objectContaining({ row: 2, column: 'Max Selection' }),
+    );
   });
 
   it('errors when Option Name is blank', () => {
@@ -169,7 +169,18 @@ describe('validateCsvRows (MODIFIERS)', () => {
   it('accepts a blank Linked Product Group (ignored column)', () => {
     expect(
       validateCsvRows(schema, [
-        mrow('Size', '', 'single', 'true', '1', '1', '(not linked in seeds)', 'Large', '25.00', 'true'),
+        mrow(
+          'Size',
+          '',
+          'single',
+          'true',
+          '1',
+          '1',
+          '(not linked in seeds)',
+          'Large',
+          '25.00',
+          'true',
+        ),
       ]),
     ).toHaveLength(0);
   });

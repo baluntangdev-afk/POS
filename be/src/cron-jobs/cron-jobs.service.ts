@@ -20,7 +20,6 @@ const CRON_SYNC_INVENTORY_STOCK = '*/2 * * * *';
 export class CronJobsService {
   private readonly logger = new Logger(CronJobsService.name);
 
-  
   constructor(
     @InjectRepository(InventoryCount)
     private readonly inventoryCountRepository: Repository<InventoryCount>,

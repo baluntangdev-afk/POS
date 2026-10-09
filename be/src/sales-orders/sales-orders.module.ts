@@ -28,7 +28,14 @@ import { User } from '../users/entities/user.entity';
 import { Refund } from '../refunds/entities/refund.entity';
 @Module({
   imports: [
-    TypeOrmModule.forFeature([SalesOrder, SalesOrderItem, SalesOrderDiscount, Payment, User, Refund]),
+    TypeOrmModule.forFeature([
+      SalesOrder,
+      SalesOrderItem,
+      SalesOrderDiscount,
+      Payment,
+      User,
+      Refund,
+    ]),
     TaxCategoriesModule,
     RecipesModule,
     ProductsModule,

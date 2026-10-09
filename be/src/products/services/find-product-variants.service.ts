@@ -28,5 +28,4 @@ export class FindProductVariantsService {
 
     return new Map(productVariants.map((pv) => [pv.id, pv]));
   }
-
 }

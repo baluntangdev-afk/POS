@@ -19,6 +19,9 @@ export class SalesResponseDto {
   @ApiProperty({ description: 'Count of voided (Cancelled) sales orders in range', example: 3 })
   totalVoidedTransactions: number;
 
-  @ApiProperty({ description: 'Sum of final_total_amount for voided orders in range', example: 1200.0 })
+  @ApiProperty({
+    description: 'Sum of final_total_amount for voided orders in range',
+    example: 1200.0,
+  })
   totalVoidedAmount: number;
 }

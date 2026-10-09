@@ -63,8 +63,6 @@ export class ModifierOptionsSeeder implements Seeder {
     if (toInsert.length > 0) await modifierOptionRepo.save(toInsert);
     if (toUpdate.length > 0) await modifierOptionRepo.save(toUpdate);
 
-    console.log(
-      `Modifier options: ${toInsert.length} inserted, ${toUpdate.length} updated`,
-    );
+    console.log(`Modifier options: ${toInsert.length} inserted, ${toUpdate.length} updated`);
   }
 }

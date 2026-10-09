@@ -41,7 +41,11 @@ export class PosTerminalsController {
 
   @Get('my-terminal')
   @ApiOperation({ summary: 'Get the POS terminal assigned to the current user' })
-  @ApiResponse({ status: 200, description: 'Returns the assigned POS terminal', type: PosTerminalDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns the assigned POS terminal',
+    type: PosTerminalDto,
+  })
   @ApiNotFoundResponse({ description: 'No POS terminal is assigned to your account' })
   async getMyTerminal(@CurrentUser() user: MeDto): Promise<PosTerminalDto> {
     const terminal = await this.posTerminalsService.findAssignedToUser(user.id);
@@ -51,10 +55,17 @@ export class PosTerminalsController {
   @Patch('my-terminal')
   @UseGuards(AdminOrSupervisorGuard)
   @ApiOperation({ summary: 'Update the POS terminal details for the current admin user' })
-  @ApiResponse({ status: 200, description: 'POS terminal updated successfully', type: PosTerminalDto })
+  @ApiResponse({
+    status: 200,
+    description: 'POS terminal updated successfully',
+    type: PosTerminalDto,
+  })
   @ApiNotFoundResponse({ description: 'No POS terminal is assigned to your account' })
   @ApiForbiddenResponse({ description: 'Admin or supervisor access required' })
-  async updateMyTerminal(@CurrentUser() user: MeDto, @Body() dto: UpdatePosTerminalDto): Promise<PosTerminalDto> {
+  async updateMyTerminal(
+    @CurrentUser() user: MeDto,
+    @Body() dto: UpdatePosTerminalDto,
+  ): Promise<PosTerminalDto> {
     const terminal = await this.posTerminalsService.updateForUser(user.id, dto);
     return PosTerminalDto.from(terminal);
   }
@@ -62,18 +73,29 @@ export class PosTerminalsController {
   @Post('register')
   @UseGuards(SystemAdminGuard)
   @ApiOperation({ summary: 'Register a new POS terminal for the current admin user' })
-  @ApiResponse({ status: 201, description: 'POS terminal registered successfully', type: PosTerminalDto })
+  @ApiResponse({
+    status: 201,
+    description: 'POS terminal registered successfully',
+    type: PosTerminalDto,
+  })
   @ApiConflictResponse({ description: 'A POS terminal is already assigned to your account' })
   @ApiForbiddenResponse({ description: 'System admin access required' })
-  async register(@CurrentUser() user: MeDto, @Body() dto: CreatePosTerminalDto): Promise<PosTerminalDto> {
+  async register(
+    @CurrentUser() user: MeDto,
+    @Body() dto: CreatePosTerminalDto,
+  ): Promise<PosTerminalDto> {
     const terminal = await this.posTerminalsService.registerForUser(user.id, dto);
     return PosTerminalDto.from(terminal);
   }
 
   @Post('my-terminal/payment-methods')
   @UseGuards(AdminOrSupervisorGuard)
-  @ApiOperation({ summary: 'Add a payment method to the current admin\'s POS terminal' })
-  @ApiResponse({ status: 201, description: 'Payment method added successfully', type: PaymentMethodEntryDto })
+  @ApiOperation({ summary: "Add a payment method to the current admin's POS terminal" })
+  @ApiResponse({
+    status: 201,
+    description: 'Payment method added successfully',
+    type: PaymentMethodEntryDto,
+  })
   @ApiNotFoundResponse({ description: 'No POS terminal is assigned to your account' })
   @ApiForbiddenResponse({ description: 'Admin or supervisor access required' })
   async addPaymentMethod(
@@ -86,8 +108,12 @@ export class PosTerminalsController {
 
   @Patch('my-terminal/payment-methods/:id')
   @UseGuards(AdminOrSupervisorGuard)
-  @ApiOperation({ summary: 'Update a payment method on the current admin\'s POS terminal' })
-  @ApiResponse({ status: 200, description: 'Payment method updated successfully', type: PaymentMethodEntryDto })
+  @ApiOperation({ summary: "Update a payment method on the current admin's POS terminal" })
+  @ApiResponse({
+    status: 200,
+    description: 'Payment method updated successfully',
+    type: PaymentMethodEntryDto,
+  })
   @ApiNotFoundResponse({ description: 'Payment method not found for your terminal' })
   @ApiForbiddenResponse({ description: 'Admin or supervisor access required' })
   async updatePaymentMethod(
@@ -102,7 +128,7 @@ export class PosTerminalsController {
   @Delete('my-terminal/payment-methods/:id')
   @UseGuards(AdminOrSupervisorGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remove a payment method from the current admin\'s POS terminal' })
+  @ApiOperation({ summary: "Remove a payment method from the current admin's POS terminal" })
   @ApiNoContentResponse({ description: 'Payment method removed successfully' })
   @ApiNotFoundResponse({ description: 'Payment method not found for your terminal' })
   @ApiForbiddenResponse({ description: 'Admin or supervisor access required' })

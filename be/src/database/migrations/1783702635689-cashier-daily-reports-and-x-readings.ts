@@ -78,8 +78,12 @@ export class CashierDailyReportsAndXReadings1783702635689 implements MigrationIn
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`DROP INDEX "idx_sales_orders_x_reading_id"`);
     await queryRunner.query(`DROP INDEX "idx_sales_orders_daily_report_id"`);
-    await queryRunner.query(`ALTER TABLE "sales_orders" DROP CONSTRAINT "FK_sales_orders_x_reading"`);
-    await queryRunner.query(`ALTER TABLE "sales_orders" DROP CONSTRAINT "FK_sales_orders_daily_report"`);
+    await queryRunner.query(
+      `ALTER TABLE "sales_orders" DROP CONSTRAINT "FK_sales_orders_x_reading"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "sales_orders" DROP CONSTRAINT "FK_sales_orders_daily_report"`,
+    );
     await queryRunner.query(`
       ALTER TABLE "sales_orders"
         DROP COLUMN "x_reading_id",
@@ -87,11 +91,15 @@ export class CashierDailyReportsAndXReadings1783702635689 implements MigrationIn
     `);
 
     await queryRunner.query(`DROP INDEX "idx_cashier_x_readings_cashier_id"`);
-    await queryRunner.query(`ALTER TABLE "cashier_x_readings" DROP CONSTRAINT "FK_cashier_x_readings_cashier"`);
+    await queryRunner.query(
+      `ALTER TABLE "cashier_x_readings" DROP CONSTRAINT "FK_cashier_x_readings_cashier"`,
+    );
     await queryRunner.query(`DROP TABLE "cashier_x_readings"`);
 
     await queryRunner.query(`DROP INDEX "idx_cashier_daily_reports_cashier_id"`);
-    await queryRunner.query(`ALTER TABLE "cashier_daily_reports" DROP CONSTRAINT "FK_cashier_daily_reports_cashier"`);
+    await queryRunner.query(
+      `ALTER TABLE "cashier_daily_reports" DROP CONSTRAINT "FK_cashier_daily_reports_cashier"`,
+    );
     await queryRunner.query(`DROP TABLE "cashier_daily_reports"`);
   }
 }

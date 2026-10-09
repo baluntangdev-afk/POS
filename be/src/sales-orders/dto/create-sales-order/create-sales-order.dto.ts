@@ -46,4 +46,3 @@ export class CreateSalesOrderDto {
   createdBy: User;
   updatedBy: User;
 }
-

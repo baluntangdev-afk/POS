@@ -4,9 +4,12 @@ import { getDataSourceToken } from '@nestjs/typeorm';
 import { ImportProductsCsvService } from './import-products-csv.service';
 import { ProductsCsvSeeder } from '../../database/seeders/csv/products-csv.seeder';
 
-const PRODUCTS_CSV = 'Category,Category Description,Product Name,Product Description,Product Base Price,Variant Name,Variant Price\nCoffee,,Latte,,120,Regular,120\n';
-const MODIFIERS_CSV = 'Modifier Group Name,Group Description,Selection Type,Is Required,Min Selection,Max Selection,Linked Product Group,Option Name,Option Price Add-On,Option Available\nMilk,,single,false,0,1,,Whole,0,true\n';
-const INVALID_PRODUCTS_CSV = 'Category,Category Description,Product Name,Product Description,Product Base Price,Variant Name,Variant Price\n,,Latte,,not-a-number,,\n';
+const PRODUCTS_CSV =
+  'Category,Category Description,Product Name,Product Description,Product Base Price,Variant Name,Variant Price\nCoffee,,Latte,,120,Regular,120\n';
+const MODIFIERS_CSV =
+  'Modifier Group Name,Group Description,Selection Type,Is Required,Min Selection,Max Selection,Linked Product Group,Option Name,Option Price Add-On,Option Available\nMilk,,single,false,0,1,,Whole,0,true\n';
+const INVALID_PRODUCTS_CSV =
+  'Category,Category Description,Product Name,Product Description,Product Base Price,Variant Name,Variant Price\n,,Latte,,not-a-number,,\n';
 
 describe('ImportProductsCsvService', () => {
   let service: ImportProductsCsvService;
@@ -44,19 +47,17 @@ describe('ImportProductsCsvService', () => {
   });
 
   it('should run the seeder in non-authoritative mode for "upsert"', async () => {
-    const runSpy = jest
-      .spyOn(ProductsCsvSeeder.prototype, 'run')
-      .mockResolvedValue({
-        categoriesInserted: 1,
-        categoriesUpdated: 0,
-        categoriesDeleted: 0,
-        productsInserted: 1,
-        productsUpdated: 0,
-        productsDeleted: 0,
-        variantsInserted: 1,
-        variantsUpdated: 0,
-        variantsDeleted: 0,
-      });
+    const runSpy = jest.spyOn(ProductsCsvSeeder.prototype, 'run').mockResolvedValue({
+      categoriesInserted: 1,
+      categoriesUpdated: 0,
+      categoriesDeleted: 0,
+      productsInserted: 1,
+      productsUpdated: 0,
+      productsDeleted: 0,
+      variantsInserted: 1,
+      variantsUpdated: 0,
+      variantsDeleted: 0,
+    });
 
     const summary = await service.execute(PRODUCTS_CSV, 'upsert');
 

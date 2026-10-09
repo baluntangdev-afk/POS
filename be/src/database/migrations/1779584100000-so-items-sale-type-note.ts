@@ -7,9 +7,7 @@ export class SoItemsSaleTypeNote1779584100000 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "so_items" ADD COLUMN "sale_type" sales_orders_so_type_enum NULL`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "so_items" ADD COLUMN "note" varchar(500) NULL`,
-    );
+    await queryRunner.query(`ALTER TABLE "so_items" ADD COLUMN "note" varchar(500) NULL`);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

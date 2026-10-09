@@ -53,10 +53,18 @@ export class CreatePosTerminals1779583000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE "pos_terminals" DROP CONSTRAINT "FK_pos_terminals_deleted_by"`);
-    await queryRunner.query(`ALTER TABLE "pos_terminals" DROP CONSTRAINT "FK_pos_terminals_updated_by"`);
-    await queryRunner.query(`ALTER TABLE "pos_terminals" DROP CONSTRAINT "FK_pos_terminals_created_by"`);
-    await queryRunner.query(`ALTER TABLE "pos_terminals" DROP CONSTRAINT "FK_pos_terminals_assigned_user"`);
+    await queryRunner.query(
+      `ALTER TABLE "pos_terminals" DROP CONSTRAINT "FK_pos_terminals_deleted_by"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "pos_terminals" DROP CONSTRAINT "FK_pos_terminals_updated_by"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "pos_terminals" DROP CONSTRAINT "FK_pos_terminals_created_by"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "pos_terminals" DROP CONSTRAINT "FK_pos_terminals_assigned_user"`,
+    );
     await queryRunner.query(`DROP TABLE "pos_terminals"`);
   }
 }

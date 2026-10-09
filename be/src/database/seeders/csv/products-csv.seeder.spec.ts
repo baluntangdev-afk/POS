@@ -85,7 +85,7 @@ describe('groupRows', () => {
     expect(byCategory.get('Tea')!.imageUrl).toBeNull();
   });
 
-  it('should take the first non-empty image URL across a product\'s variant rows', () => {
+  it("should take the first non-empty image URL across a product's variant rows", () => {
     const { products } = groupRows([
       row('Coffee', 'Latte', '150', 'Regular', '150', ''),
       row('Coffee', 'Latte', '150', 'Large', '200', 'https://cdn.example/latte.png'),
@@ -136,7 +136,12 @@ describe('productsToSoftDelete', () => {
   });
 
   it('should ignore products with no productGroup relation loaded', () => {
-    const orphan = { id: 12, name: 'Orphan', productGroup: null, deletedAt: null } as unknown as Product;
+    const orphan = {
+      id: 12,
+      name: 'Orphan',
+      productGroup: null,
+      deletedAt: null,
+    } as unknown as Product;
 
     const result = productsToSoftDelete([orphan], new Set());
 

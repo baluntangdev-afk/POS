@@ -9,7 +9,11 @@ export class ProductDetailsDto {
   @ApiProperty({ description: 'Product name', example: 'Sinigang' })
   name: string;
 
-  @ApiProperty({ description: 'Category name (product group)', example: 'Beverages', nullable: true })
+  @ApiProperty({
+    description: 'Category name (product group)',
+    example: 'Beverages',
+    nullable: true,
+  })
   categoryName: string | null;
 
   @ApiProperty({
@@ -27,7 +31,11 @@ export class ProductDetailsDto {
   @ApiProperty({ description: 'Display price', example: '100' })
   displayPrice: string;
 
-  @ApiProperty({ description: 'Default product variant ID for order placement', example: 1, nullable: true })
+  @ApiProperty({
+    description: 'Default product variant ID for order placement',
+    example: 1,
+    nullable: true,
+  })
   defaultVariantId: number | null;
 
   @ApiProperty({ type: () => [ProductVariantDetailsDto] })

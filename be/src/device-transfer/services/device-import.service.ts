@@ -21,11 +21,7 @@ export class DeviceImportService {
     private readonly crypto: ArchiveCryptoService,
   ) {}
 
-  async import(
-    file: Buffer,
-    passphrase: string,
-    partial = false,
-  ): Promise<DeviceImportSummaryDto> {
+  async import(file: Buffer, passphrase: string, partial = false): Promise<DeviceImportSummaryDto> {
     const payload = await this.parse(file, passphrase);
     await this.assertCompatible(payload.manifest, partial);
 

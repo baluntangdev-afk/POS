@@ -77,7 +77,9 @@ export class AugmentTablesForKioskCatalog1779582000000 implements MigrationInter
     await queryRunner.query(`ALTER TABLE "modifier_options"  DROP COLUMN IF EXISTS "sort_order"`);
     await queryRunner.query(`ALTER TABLE "modifier_options"  DROP COLUMN IF EXISTS "is_available"`);
     await queryRunner.query(`ALTER TABLE "modifier_groups"   DROP COLUMN IF EXISTS "is_required"`);
-    await queryRunner.query(`ALTER TABLE "modifier_groups"   DROP COLUMN IF EXISTS "selection_type"`);
+    await queryRunner.query(
+      `ALTER TABLE "modifier_groups"   DROP COLUMN IF EXISTS "selection_type"`,
+    );
     await queryRunner.query(`ALTER TABLE "modifier_groups"   DROP COLUMN IF EXISTS "description"`);
     await queryRunner.query(`ALTER TABLE "products"          DROP COLUMN IF EXISTS "sort_order"`);
     await queryRunner.query(`ALTER TABLE "products"          DROP COLUMN IF EXISTS "is_available"`);

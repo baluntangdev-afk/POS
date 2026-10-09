@@ -66,13 +66,22 @@ describe('DbSnapshotService — partial restore', () => {
   it('skips an archive table that does not exist on the target', async () => {
     const t = setup({
       targetTables: ['users'],
-      targetColumns: { users: [col('id', 'int4', 'NO', "nextval('users_id_seq')"), col('name', 'text')] },
+      targetColumns: {
+        users: [col('id', 'int4', 'NO', "nextval('users_id_seq')"), col('name', 'text')],
+      },
     });
 
     const result = await t.svc.restore(
       {
         tables: [
-          snap('users', [['id', 'int4'], ['name', 'text']], [[1, 'Ann']]),
+          snap(
+            'users',
+            [
+              ['id', 'int4'],
+              ['name', 'text'],
+            ],
+            [[1, 'Ann']],
+          ),
           snap('ghost', [['x', 'text']], [['y']]),
         ],
       },
@@ -95,7 +104,17 @@ describe('DbSnapshotService — partial restore', () => {
 
     const result = await t.svc.restore(
       {
-        tables: [snap('users', [['id', 'int4'], ['name', 'text'], ['nickname', 'text']], [[1, 'Ann', 'A']])],
+        tables: [
+          snap(
+            'users',
+            [
+              ['id', 'int4'],
+              ['name', 'text'],
+              ['nickname', 'text'],
+            ],
+            [[1, 'Ann', 'A']],
+          ),
+        ],
       },
       t.qr,
       { partial: true },
@@ -114,11 +133,24 @@ describe('DbSnapshotService — partial restore', () => {
   it('drops a column whose type changed between devices', async () => {
     const t = setup({
       targetTables: ['products'],
-      targetColumns: { products: [col('id', 'int4', 'NO', "nextval('x')"), col('image_url', 'text')] },
+      targetColumns: {
+        products: [col('id', 'int4', 'NO', "nextval('x')"), col('image_url', 'text')],
+      },
     });
 
     const result = await t.svc.restore(
-      { tables: [snap('products', [['id', 'int4'], ['image_url', 'bytea']], [[1, { $b64: 'AA==' }]])] },
+      {
+        tables: [
+          snap(
+            'products',
+            [
+              ['id', 'int4'],
+              ['image_url', 'bytea'],
+            ],
+            [[1, { $b64: 'AA==' }]],
+          ),
+        ],
+      },
       t.qr,
       { partial: true },
     );
@@ -135,12 +167,27 @@ describe('DbSnapshotService — partial restore', () => {
     const t = setup({
       targetTables: ['users'],
       targetColumns: {
-        users: [col('id', 'int4', 'NO', "nextval('x')"), col('name', 'text'), col('email', 'text', 'NO')],
+        users: [
+          col('id', 'int4', 'NO', "nextval('x')"),
+          col('name', 'text'),
+          col('email', 'text', 'NO'),
+        ],
       },
     });
 
     const result = await t.svc.restore(
-      { tables: [snap('users', [['id', 'int4'], ['name', 'text']], [[1, 'Ann']])] },
+      {
+        tables: [
+          snap(
+            'users',
+            [
+              ['id', 'int4'],
+              ['name', 'text'],
+            ],
+            [[1, 'Ann']],
+          ),
+        ],
+      },
       t.qr,
       { partial: true },
     );
@@ -165,7 +212,14 @@ describe('DbSnapshotService — partial restore', () => {
     const result = await t.svc.restore(
       {
         tables: [
-          snap('migrations', [['id', 'int4'], ['name', 'varchar']], [[1, 'InitialMigration']]),
+          snap(
+            'migrations',
+            [
+              ['id', 'int4'],
+              ['name', 'varchar'],
+            ],
+            [[1, 'InitialMigration']],
+          ),
           snap('users', [['id', 'int4']], [[1]]),
         ],
       },

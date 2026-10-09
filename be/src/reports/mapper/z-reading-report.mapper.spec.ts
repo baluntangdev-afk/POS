@@ -107,9 +107,7 @@ describe('ZReadingReportMapper', () => {
         name: 'Cash',
         total: 19050,
         count: 1,
-        entries: [
-          { time: '2026-07-15T10:00:00.000Z', reference: null, amount: 19050 },
-        ],
+        entries: [{ time: '2026-07-15T10:00:00.000Z', reference: null, amount: 19050 }],
       },
     ]);
   });

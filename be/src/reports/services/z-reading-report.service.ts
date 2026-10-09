@@ -125,7 +125,11 @@ export class ZReadingReportService extends BaseReportService<User, ZReadingRespo
 
     this.eventEmitter.emit(
       ReportEvents.REPORT_CLOSED,
-      new ReportClosedEvent('z_reading', String(result.id), result as unknown as Record<string, unknown>),
+      new ReportClosedEvent(
+        'z_reading',
+        String(result.id),
+        result as unknown as Record<string, unknown>,
+      ),
     );
     return result;
   }
@@ -415,10 +419,9 @@ export class ZReadingReportService extends BaseReportService<User, ZReadingRespo
       .where('so.status IN (:...statusFilter)', { statusFilter: STATUS_FILTER })
       .andWhere('so.done_z_reading = :doneZReading', { doneZReading: false })
       .andWhere('so.so_date <= :requestTime', { requestTime })
-      .andWhere(
-        `NOT (${LEGACY_VAT_EXEMPT_SALE_SQL})`,
-        { vatExemptName: VAT_EXEMPT_DISCOUNT_NAME_PATTERNS },
-      )
+      .andWhere(`NOT (${LEGACY_VAT_EXEMPT_SALE_SQL})`, {
+        vatExemptName: VAT_EXEMPT_DISCOUNT_NAME_PATTERNS,
+      })
       .getRawOne<CashierTaxRawRow>();
   }
 
@@ -432,10 +435,7 @@ export class ZReadingReportService extends BaseReportService<User, ZReadingRespo
       .where('so.status IN (:...statusFilter)', { statusFilter: STATUS_FILTER })
       .andWhere('so.done_z_reading = :doneZReading', { doneZReading: false })
       .andWhere('so.so_date <= :requestTime', { requestTime })
-      .andWhere(
-        LEGACY_VAT_EXEMPT_SALE_SQL,
-        { vatExemptName: VAT_EXEMPT_DISCOUNT_NAME_PATTERNS },
-      )
+      .andWhere(LEGACY_VAT_EXEMPT_SALE_SQL, { vatExemptName: VAT_EXEMPT_DISCOUNT_NAME_PATTERNS })
       .getRawOne<CashierVatExemptRawRow>();
   }
 

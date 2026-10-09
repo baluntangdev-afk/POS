@@ -72,10 +72,7 @@ export class VoidSalesOrderService {
       }),
     );
 
-    this.eventEmitter.emit(
-      SalesOrderEvents.ORDER_VOIDED,
-      new OrderVoidedEvent(soId, authorizer),
-    );
+    this.eventEmitter.emit(SalesOrderEvents.ORDER_VOIDED, new OrderVoidedEvent(soId, authorizer));
 
     return soId;
   }

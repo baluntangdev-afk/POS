@@ -156,9 +156,7 @@ export class DbSnapshotService {
     // Partial mode keeps this device's own migration history — the archive's
     // schema is a different version, and overwriting `migrations` would make the
     // DB misreport which migrations actually ran against it.
-    const truncatable = partial
-      ? targetTables.filter((t) => t !== 'migrations')
-      : targetTables;
+    const truncatable = partial ? targetTables.filter((t) => t !== 'migrations') : targetTables;
     await qr.query(
       `TRUNCATE ${truncatable.map((t) => `"${t}"`).join(', ')} RESTART IDENTITY CASCADE`,
     );

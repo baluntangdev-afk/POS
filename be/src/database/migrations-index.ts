@@ -67,6 +67,7 @@ import { AddRefundItemRelations1772524305356 } from './migrations/1772524305356-
 import { Catalog1779580800000 } from './migrations/1779580800000-catalog';
 import { AugmentTablesForKioskCatalog1779582000000 } from './migrations/1779582000000-augment-tables-for-kiosk-catalog';
 import { DropCatalogTables1779582100000 } from './migrations/1779582100000-drop-catalog-tables';
+import { AddClientRequestIdToSalesOrders1779582200000 } from './migrations/1779582200000-add-client-request-id-to-sales-orders';
 import { ProductGroupModifierGroups1779582200000 } from './migrations/1779582200000-product-group-modifier-groups';
 import { SoItemsOptionalProductVariant1779582300000 } from './migrations/1779582300000-so-items-optional-product-variant';
 import { CreatePosTerminals1779583000000 } from './migrations/1779583000000-create-pos-terminals';
@@ -168,6 +169,7 @@ export const migrations: Array<new () => MigrationInterface> = [
   Catalog1779580800000,
   AugmentTablesForKioskCatalog1779582000000,
   DropCatalogTables1779582100000,
+  AddClientRequestIdToSalesOrders1779582200000,
   ProductGroupModifierGroups1779582200000,
   SoItemsOptionalProductVariant1779582300000,
   CreatePosTerminals1779583000000,

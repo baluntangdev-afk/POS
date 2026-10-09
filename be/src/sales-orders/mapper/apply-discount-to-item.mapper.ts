@@ -55,9 +55,12 @@ export class ApplyDiscountToItemMapper {
    * e.g. 112.00 → discount 22.40 → net 89.60 = VATable 80.00 + VAT 9.60.
    */
   static computeSeniorPwdAmounts(ratePercent: number, grossAmount: number): ItemDiscountAmounts {
-    const discountAmount = Math.round((grossAmount * (ratePercent / 100) + Number.EPSILON) * 100) / 100;
+    const discountAmount =
+      Math.round((grossAmount * (ratePercent / 100) + Number.EPSILON) * 100) / 100;
     const netAmount = parseFloat((grossAmount - discountAmount).toFixed(DECIMAL_PLACES));
-    const vatableAmount = parseFloat((netAmount / (1 + TAX_RATE_PERCENT / 100)).toFixed(DECIMAL_PLACES));
+    const vatableAmount = parseFloat(
+      (netAmount / (1 + TAX_RATE_PERCENT / 100)).toFixed(DECIMAL_PLACES),
+    );
 
     return {
       discountedUnitPrice: discountAmount.toFixed(DECIMAL_PLACES),

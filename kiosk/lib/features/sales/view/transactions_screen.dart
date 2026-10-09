@@ -20,6 +20,7 @@ import '../../../utils/decimal_formatter.dart';
 import '../../../widgets/android_scaffold.dart';
 import '../../../widgets/message_dialog.dart';
 import '../../../widgets/resposive_wrap_container.dart';
+import '../../../widgets/supervisor_authorization_dialog.dart';
 import '../../../widgets/text_box_form_field.dart';
 import '../../../widgets/top_app_bar.dart';
 import '../../../widgets/windows_scaffold.dart';
@@ -152,6 +153,9 @@ class _CashierReportButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final r = context.responsive;
     final isLoading = ref.watch(cashierXReadingNotifierProvider.select((it) => it.isLoading));
+    final canViewDirectly = ref.watch(
+      loginStateProvider.select((auth) => auth.value?.isAdminOrSupervisor ?? false),
+    );
 
     return SizedBox(
       height: r.value<double>(kiosk: 40, tablet: 36, phone: 32),
@@ -160,6 +164,18 @@ class _CashierReportButton extends ConsumerWidget {
             isLoading
                 ? null
                 : () async {
+                  if (!canViewDirectly) {
+                    final result = await SupervisorAuthorizationDialog.show(
+                      context,
+                      title: 'X-Reading Access',
+                      warningMessage:
+                          'The X-Reading report is restricted to admin and supervisor '
+                          'accounts. Authorization is required to view it.',
+                      ctaLabel: 'Authorize',
+                      ctaIcon: Icons.lock_open_rounded,
+                    );
+                    if (result == null || !context.mounted) return;
+                  }
                   await ref.read(cashierXReadingNotifierProvider.notifier).load();
                   if (context.mounted) {
                     await const CashierReportRoute().push<void>(context);
@@ -278,6 +294,9 @@ class _ZReadingButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final r = context.responsive;
     final isLoading = ref.watch(zReadingNotifierProvider.select((it) => it.isLoading));
+    final canViewDirectly = ref.watch(
+      loginStateProvider.select((auth) => auth.value?.isAdminOrSupervisor ?? false),
+    );
 
     return SizedBox(
       height: r.value<double>(kiosk: 40, tablet: 36, phone: 32),
@@ -286,6 +305,18 @@ class _ZReadingButton extends ConsumerWidget {
             isLoading
                 ? null
                 : () async {
+                  if (!canViewDirectly) {
+                    final result = await SupervisorAuthorizationDialog.show(
+                      context,
+                      title: 'Z-Reading Access',
+                      warningMessage:
+                          'The Z-Reading report is restricted to admin and supervisor '
+                          'accounts. Authorization is required to view it.',
+                      ctaLabel: 'Authorize',
+                      ctaIcon: Icons.lock_open_rounded,
+                    );
+                    if (result == null || !context.mounted) return;
+                  }
                   await ref.read(zReadingNotifierProvider.notifier).load();
                   if (context.mounted) {
                     await const ZReadingRoute().push<void>(context);

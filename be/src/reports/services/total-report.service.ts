@@ -87,10 +87,7 @@ export class TotalReportService extends BaseReportService<SalesQueryDto, SalesRe
     }
   }
 
-  private applyVoidedDateFilter(
-    qb: SelectQueryBuilder<SalesOrder>,
-    query: SalesQueryDto,
-  ): void {
+  private applyVoidedDateFilter(qb: SelectQueryBuilder<SalesOrder>, query: SalesQueryDto): void {
     if (query.startDate && !query.endDate) {
       qb.andWhere('so.so_date >= :startDate', { startDate: query.startDate });
     } else if (query.endDate && !query.startDate) {

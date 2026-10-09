@@ -33,6 +33,4 @@ export class ConfirmSalesOrderDto {
   soType: SalesOrderType;
 }
 
-
-
 // check imports

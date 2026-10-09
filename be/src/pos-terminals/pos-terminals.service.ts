@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PosTerminal } from './entities/pos-terminal.entity';
@@ -114,7 +110,10 @@ export class PosTerminalsService {
     return this.posTerminalRepository.save(terminal);
   }
 
-  async addPaymentMethod(userId: number, dto: AddPaymentMethodDto): Promise<PosTerminalPaymentMethod> {
+  async addPaymentMethod(
+    userId: number,
+    dto: AddPaymentMethodDto,
+  ): Promise<PosTerminalPaymentMethod> {
     const terminal = await this.findAssignedToUser(userId);
 
     const entry = this.paymentMethodRepository.create({
@@ -143,8 +142,10 @@ export class PosTerminalsService {
     }
 
     if (dto.paymentMethod !== undefined) entry.paymentMethod = dto.paymentMethod;
-    if (dto.paymentMethodName !== undefined) entry.paymentMethodName = dto.paymentMethodName ?? null;
-    entry.paymentNumber = dto.paymentNumber !== undefined ? (dto.paymentNumber ?? null) : entry.paymentNumber;
+    if (dto.paymentMethodName !== undefined)
+      entry.paymentMethodName = dto.paymentMethodName ?? null;
+    entry.paymentNumber =
+      dto.paymentNumber !== undefined ? (dto.paymentNumber ?? null) : entry.paymentNumber;
 
     return this.paymentMethodRepository.save(entry);
   }

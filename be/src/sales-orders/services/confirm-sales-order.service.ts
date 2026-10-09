@@ -18,10 +18,7 @@ export class ConfirmSalesOrderService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async execute(
-    id: string,
-    confirmSalesOrderDto: ConfirmSalesOrderDto,
-  ): Promise<SalesOrder> {
+  async execute(id: string, confirmSalesOrderDto: ConfirmSalesOrderDto): Promise<SalesOrder> {
     const salesOrder = await this.salesOrderRepository.findOne({
       where: { id },
       relations: ['items'],
@@ -46,8 +43,7 @@ export class ConfirmSalesOrderService {
         {
           status: SalesOrderStatus.CONFIRMED,
           clientRequestId:
-            confirmSalesOrderDto.clientRequestId ??
-            (salesOrder as any).clientRequestId,
+            confirmSalesOrderDto.clientRequestId ?? (salesOrder as any).clientRequestId,
         },
       );
     });

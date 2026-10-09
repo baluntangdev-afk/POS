@@ -7,7 +7,8 @@ part 'confirm_sales_order_dto.mapper.dart';
 
 @MappableClass()
 class ConfirmSalesOrderDto with ConfirmSalesOrderDtoMappable {
-  const ConfirmSalesOrderDto({required this.paymentDetails, required this.soType});
+  const ConfirmSalesOrderDto(
+      {required this.paymentDetails, required this.soType, this.clientRequestId,});
 
   @MappableField(key: 'payment_details')
   final PaymentDetailsDto paymentDetails;

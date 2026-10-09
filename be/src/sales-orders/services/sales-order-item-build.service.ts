@@ -94,7 +94,10 @@ export class SalesOrderItemBuildService {
           parseFloat(discount.value),
           amounts,
           causer,
-          { idNumber: product.discount.idNumber, beneficiaryName: product.discount.beneficiaryName },
+          {
+            idNumber: product.discount.idNumber,
+            beneficiaryName: product.discount.beneficiaryName,
+          },
         );
 
         itemDiscount = SalesOrderDiscountMapper.toEntityWithAppliedAmount(
@@ -123,9 +126,11 @@ export class SalesOrderItemBuildService {
             parseFloat(discount.value),
             amounts,
             causer,
-            { idNumber: product.discount.idNumber, beneficiaryName: product.discount.beneficiaryName },
+            {
+              idNumber: product.discount.idNumber,
+              beneficiaryName: product.discount.beneficiaryName,
+            },
           );
-
 
           const addOnDiscount = SalesOrderDiscountMapper.toEntityWithAppliedAmount(
             '', // soId will be set later during persistence
@@ -248,7 +253,10 @@ export class SalesOrderItemBuildService {
         ctx.discountValue,
         ctx.amounts,
         causer,
-        { idNumber: itemDto.discounts.idNumber, beneficiaryName: itemDto.discounts.beneficiaryName },
+        {
+          idNumber: itemDto.discounts.idNumber,
+          beneficiaryName: itemDto.discounts.beneficiaryName,
+        },
       );
       childItem.qty = Number(itemDto.qty).toFixed(DECIMAL_PLACES);
       childItem.createdBy = causer;

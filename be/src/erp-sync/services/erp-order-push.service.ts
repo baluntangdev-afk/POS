@@ -86,7 +86,9 @@ export class ErpOrderPushService {
       try {
         await this.pushOrder(row.salesOrder.id);
       } catch (err) {
-        this.logger.warn(`ERP push retry failed for ${row.salesOrder.id}: ${(err as Error).message}`);
+        this.logger.warn(
+          `ERP push retry failed for ${row.salesOrder.id}: ${(err as Error).message}`,
+        );
       }
     }
   }

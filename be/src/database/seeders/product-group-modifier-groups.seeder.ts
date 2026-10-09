@@ -15,7 +15,7 @@ const TEMPERATURE_GROUP = {
 };
 
 const TEMPERATURE_OPTIONS = [
-  { name: 'Hot',  priceAddOn: '0.00', sortOrder: 0, isAvailable: true },
+  { name: 'Hot', priceAddOn: '0.00', sortOrder: 0, isAvailable: true },
   { name: 'Cold', priceAddOn: '0.00', sortOrder: 1, isAvailable: true },
 ];
 
@@ -124,7 +124,9 @@ export class ProductGroupModifierGroupsSeeder implements Seeder {
     ]).filter((pair): pair is [number, number] => pair[0] !== undefined && pair[1] !== undefined);
 
     const existingLinks: { product_group_id: number; modifier_group_id: number }[] =
-      await dataSource.query(`SELECT product_group_id, modifier_group_id FROM product_group_modifier_groups`);
+      await dataSource.query(
+        `SELECT product_group_id, modifier_group_id FROM product_group_modifier_groups`,
+      );
 
     const staleLinks = existingLinks.filter(
       (row) =>

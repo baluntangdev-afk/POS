@@ -210,10 +210,9 @@ export class CashierDailyReportService extends BaseReportService<
       .andWhere('so.created_by = :userId', { userId })
       .andWhere('so.done_daily_report = :doneDailyReport', { doneDailyReport: false })
       .andWhere('so.so_date <= :requestTime', { requestTime })
-      .andWhere(
-        `NOT (${LEGACY_VAT_EXEMPT_SALE_SQL})`,
-        { vatExemptName: VAT_EXEMPT_DISCOUNT_NAME_PATTERNS },
-      )
+      .andWhere(`NOT (${LEGACY_VAT_EXEMPT_SALE_SQL})`, {
+        vatExemptName: VAT_EXEMPT_DISCOUNT_NAME_PATTERNS,
+      })
       .getRawOne<CashierTaxRawRow>();
   }
 
@@ -229,10 +228,7 @@ export class CashierDailyReportService extends BaseReportService<
       .andWhere('so.created_by = :userId', { userId })
       .andWhere('so.done_daily_report = :doneDailyReport', { doneDailyReport: false })
       .andWhere('so.so_date <= :requestTime', { requestTime })
-      .andWhere(
-        LEGACY_VAT_EXEMPT_SALE_SQL,
-        { vatExemptName: VAT_EXEMPT_DISCOUNT_NAME_PATTERNS },
-      )
+      .andWhere(LEGACY_VAT_EXEMPT_SALE_SQL, { vatExemptName: VAT_EXEMPT_DISCOUNT_NAME_PATTERNS })
       .getRawOne<CashierVatExemptRawRow>();
   }
 

@@ -37,12 +37,13 @@ export class ModifierGroupsSeeder implements Seeder {
     if (toInsert.length > 0) await repo.save(toInsert);
     if (toUpdate.length > 0) await repo.save(toUpdate);
 
-    console.log(
-      `Modifier groups: ${toInsert.length} inserted, ${toUpdate.length} updated`,
-    );
+    console.log(`Modifier groups: ${toInsert.length} inserted, ${toUpdate.length} updated`);
   }
 
-  private buildGroup(adminUser: User, item: (typeof MODIFIER_GROUPS_FIXTURE)[number]): Partial<ModifierGroup> {
+  private buildGroup(
+    adminUser: User,
+    item: (typeof MODIFIER_GROUPS_FIXTURE)[number],
+  ): Partial<ModifierGroup> {
     return {
       name: item.name,
       description: item.description,

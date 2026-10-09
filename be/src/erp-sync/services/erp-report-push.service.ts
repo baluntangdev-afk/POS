@@ -91,7 +91,8 @@ export class ErpReportPushService {
           await this.pushRow(entry.id);
           const refreshed = await this.pushRepository.findOne({ where: { id: entry.id } });
           if (refreshed?.status === ErpOrderPushStatus.SENT) pushed++;
-          else if (refreshed?.lastError) errors.push(`cashier_daily/${row.id}: ${refreshed.lastError}`);
+          else if (refreshed?.lastError)
+            errors.push(`cashier_daily/${row.id}: ${refreshed.lastError}`);
         } else {
           pushed++;
         }

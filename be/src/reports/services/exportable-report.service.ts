@@ -21,7 +21,12 @@ import { ProductSalesDataItemDto } from '../dto/product-sales-response.dto';
 import { ProductGroupSalesDataItemDto } from '../dto/product-group-sales-response.dto';
 import { PaymentMethodSalesDataItemDto } from '../dto/payment-sales-response.dto';
 import { UserSalesDataItemDto } from '../dto/user-sales-response.dto';
-import type { SalesByPeriodRawRow, SalesReportRawRow, IdNameTotalSalesRawRow, PaymentMethodSalesRawRow } from '../reports.interface';
+import type {
+  SalesByPeriodRawRow,
+  SalesReportRawRow,
+  IdNameTotalSalesRawRow,
+  PaymentMethodSalesRawRow,
+} from '../reports.interface';
 
 const HOUR_KEY_FORMAT = 'YYYY-MM-DDTHH:mm';
 
@@ -70,7 +75,16 @@ export class ExportableReportService {
         this._getByCashier(startDate, endDate),
       ]);
 
-    return { date, count, summary, hourlyBreakdown, byProduct, byProductGroup, byPayment, byCashier };
+    return {
+      date,
+      count,
+      summary,
+      hourlyBreakdown,
+      byProduct,
+      byProductGroup,
+      byPayment,
+      byCashier,
+    };
   }
 
   async markExported(date: string): Promise<{ updatedCount: number }> {
@@ -133,7 +147,10 @@ export class ExportableReportService {
     });
   }
 
-  private async _getHourlyBreakdown(startDate: Date, endDate: Date): Promise<HourlySalesDataItemDto[]> {
+  private async _getHourlyBreakdown(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<HourlySalesDataItemDto[]> {
     const dateExpr = "date_trunc('hour', so.so_date)";
 
     const soQb = this.salesOrderRepository
@@ -201,7 +218,10 @@ export class ExportableReportService {
     return rawRows.map((row) => toProductSalesItemDto(row));
   }
 
-  private async _getByProductGroup(startDate: Date, endDate: Date): Promise<ProductGroupSalesDataItemDto[]> {
+  private async _getByProductGroup(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<ProductGroupSalesDataItemDto[]> {
     const qb = this.salesOrderItemRepository
       .createQueryBuilder('soi')
       .innerJoin('soi.salesOrder', 'so')
@@ -225,7 +245,10 @@ export class ExportableReportService {
     return rawRows.map((row) => toProductGroupSalesItemDto(row));
   }
 
-  private async _getByPayment(startDate: Date, endDate: Date): Promise<PaymentMethodSalesDataItemDto[]> {
+  private async _getByPayment(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<PaymentMethodSalesDataItemDto[]> {
     const qb = this.paymentRepository
       .createQueryBuilder('p')
       .innerJoin('p.salesOrder', 'so')

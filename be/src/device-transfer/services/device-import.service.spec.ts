@@ -62,11 +62,9 @@ describe('DeviceImportService', () => {
       const summary = await svc.import(file, passphrase, true);
 
       expect(snapshot.getMigrations).not.toHaveBeenCalled();
-      expect(snapshot.restore).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.anything(),
-        { partial: true },
-      );
+      expect(snapshot.restore).toHaveBeenCalledWith(expect.anything(), expect.anything(), {
+        partial: true,
+      });
       expect(summary.skipped).toEqual({ tables: [], columns: [] });
     });
 
@@ -82,7 +80,9 @@ describe('DeviceImportService', () => {
         counts: { users: 3 },
         skipped: {
           tables: [{ name: 'loyalty_accounts', reason: 'not present on this device' }],
-          columns: [{ table: 'products', column: 'image_url', reason: 'type changed (bytea → text)' }],
+          columns: [
+            { table: 'products', column: 'image_url', reason: 'type changed (bytea → text)' },
+          ],
         },
       });
       const file = await archive({ formatVersion: ARCHIVE_FORMAT_VERSION, migrations: ['A'] });

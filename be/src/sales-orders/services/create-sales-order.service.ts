@@ -98,21 +98,14 @@ export class CreateSalesOrderService {
     const kioskNo = getKioskNo();
     const prefix = `SO-${String(kioskNo).padStart(3, '0')}-${currentYear}`;
 
-    const lastSoNumber = await this.salesOrderRepository
-      .createQueryBuilder('salesOrder')
-      .select('salesOrder.soNumber')
-      .where('salesOrder.soNumber LIKE :prefix', { prefix: `${prefix}%` })
-      .orderBy('salesOrder.soNumber', 'DESC')
-      .withDeleted()
-      .getOne();
+    // Numeric max, not string sort: 4-digit legacy numbers ("9999") sort above 5-digit ones ("10000").
+    // Raw query also counts soft-deleted rows, which still hold the unique number.
+    const [{ last }] = await this.salesOrderRepository.query<{ last: number }[]>(
+      `SELECT COALESCE(MAX(CAST(SUBSTRING(so_number FROM '[0-9]+$') AS INTEGER)), 0) AS last
+       FROM sales_orders WHERE so_number LIKE $1`,
+      [`${prefix}-%`],
+    );
 
-    if (!lastSoNumber) {
-      return `${prefix}-0001`;
-    }
-
-    const lastFour = lastSoNumber.soNumber.slice(-4);
-    const lastSoNumberInt = parseInt(lastFour, 10);
-    const nextSoNumberInt = lastSoNumberInt + 1;
-    return `${prefix}-${nextSoNumberInt.toString().padStart(5, '0')}`;
+    return `${prefix}-${String(last + 1).padStart(5, '0')}`;
   }
 }

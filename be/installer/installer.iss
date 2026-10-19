@@ -58,7 +58,7 @@
 ; ═══════════════════════════════════════════════════════════════════════
 
 #define MyAppName    "POS Kiosk"
-#define MyAppVersion "4.0.4"
+#define MyAppVersion "4.2.3"
 #define MyAppPublisher "Your Company"
 #define KioskExe     "pos_app.exe"
 #define BackendExe   "POSBackend.exe"

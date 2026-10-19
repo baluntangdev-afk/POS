@@ -14,7 +14,6 @@ import { SalesOrderWithItemsResponseDto } from './dto/sales-order-with-items-res
 import { UpdateSalesOrderDto } from './dto/update-sales-order.dto';
 import { CurrentUser } from '../utils/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
-import { SalesOrderWithItemsMapper } from './mapper/sales-order-with-items.mapper';
 import { UpdateSalesOrderItemService } from './services/update-sales-order-item.service';
 import { RemoveSalesOrderItemService } from './services/remove-sales-order-item.service';
 import { ApplyDiscountDto } from './dto/add-discount/apply-discount.dto';
@@ -45,8 +44,8 @@ export class SalesOrdersController {
   create(
     @Body() createSalesOrderDto: CreateSalesOrderDto,
     @CurrentUser() causer: User,
-  ): Promise<SalesOrderWithItemsMapper> {
-    return this.salesOrdersService.upsert(createSalesOrderDto, causer);
+  ): Promise<SalesOrderWithItemsResponseDto> {
+    return this.salesOrdersService.create(createSalesOrderDto, causer);
   }
 
   @Get()
@@ -147,7 +146,7 @@ export class SalesOrdersController {
     @Body() confirmSalesOrderDto: ConfirmSalesOrderDto,
     @CurrentUser() causer: User,
   ) {
-    await this.confirmSalesOrderService.execute(id, confirmSalesOrderDto);
+    await this.confirmSalesOrderService.execute(id, confirmSalesOrderDto, causer);
     return this.salesOrdersService.findOneWithItems(id);
   }
 

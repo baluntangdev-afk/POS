@@ -10,7 +10,6 @@ import { CreateSalesOrderService } from './services/create-sales-order.service';
 import { CreateSalesOrderDto } from './dto/create-sales-order/create-sales-order.dto';
 import { SalesOrderWithItemsMapper } from './mapper/sales-order-with-items.mapper';
 import { SalesOrderWithItemsResponseDto } from './dto/sales-order-with-items-response.dto';
-import { AppendSalesOrderItemService } from './services/append-sales-order-item.service';
 import { ProductDetailsDto } from '../products/dto/product-details/product-details.dto';
 import { SalesOrderItem } from './entities/sales-order-item.entity';
 import { ProductsService } from '../products/products.service';
@@ -29,7 +28,6 @@ export class SalesOrdersService {
     private readonly refundRepository: Repository<Refund>,
     private readonly productsService: ProductsService,
     private readonly createSalesOrderService: CreateSalesOrderService,
-    private readonly appendSalesOrderItemService: AppendSalesOrderItemService,
   ) {}
 
   async findAll(
@@ -317,16 +315,10 @@ export class SalesOrdersService {
     return new Map(rows.map((r) => [r.soId, parseFloat(r.total ?? '0')]));
   }
 
-  async upsert(dto: CreateSalesOrderDto, causer: User): Promise<SalesOrderWithItemsMapper> {
-    const so = await this.findCurrentByUser(causer.id);
-
-    if (so) {
-      dto.id = so.id;
-      await this.appendSalesOrderItemService.execute(dto, causer);
-      return this.findOneWithItems(so.id);
-    } else {
-      const savedSoId = await this.createSalesOrderService.execute(dto, causer);
-      return this.findOneWithItems(savedSoId);
-    }
+  // Always a fresh order: appending to a leftover PENDING order re-added the
+  // cart on every retry after a failed confirm (12 bottles became 4 x 12).
+  async create(dto: CreateSalesOrderDto, causer: User): Promise<SalesOrderWithItemsResponseDto> {
+    const savedSoId = await this.createSalesOrderService.execute(dto, causer);
+    return this.findOneWithItems(savedSoId);
   }
 }

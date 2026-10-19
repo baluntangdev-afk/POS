@@ -17,7 +17,7 @@ class CartivoAuthApi with ApiCall {
   final Dio _httpClient;
 
   Future<CartivoAuthDto> authenticate() => guard(() async {
-    final response = await _httpClient.post<dynamic>('/cartivo-auth');
+    final response = await _httpClient.post<dynamic>('/cartivo-auth-default');
     return CartivoAuthDto.fromJson(jsonEncode(response.data));
   });
 }

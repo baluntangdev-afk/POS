@@ -14,9 +14,7 @@ export class CreateSalesOrderDto {
   @IsString()
   @MaxLength(100)
   clientRequestId?: string;
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
+
   @ApiProperty({ description: 'Sales order type', enum: SalesOrderType })
   @IsNotEmpty()
   @IsEnum(SalesOrderType)

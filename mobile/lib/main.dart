@@ -28,6 +28,7 @@ import 'data/backend_api/errors/api_exception.dart';
 import 'data/backend_api/sources/transaction_sync_api.dart';
 import 'features/auth/state/auth_providers.dart';
 import 'features/auth/state/auth_state.dart';
+import 'features/auth/state/session_expired_provider.dart';
 import 'features/live_orders/entities/order_event.dart';
 import 'features/live_orders/entities/orders_feed_state.dart';
 import 'features/live_orders/repositories/cartivo_auth_repository.dart';
@@ -40,6 +41,7 @@ import 'features/live_orders/state/orders_feed_notifier.dart';
 import 'features/live_orders/state/webhook_auth_status_provider.dart';
 import 'features/settings/state/merchant_verification_provider.dart';
 import 'features/settings/state/store_info_notifier.dart';
+import 'widgets/setup_prompt_dialog.dart';
 
 final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
@@ -195,6 +197,17 @@ class _App extends ConsumerWidget {
     ref.listen(deviceTokenStatusProvider, (previous, next) {
       if (next != null && next != previous) _showAuthToast(next.message);
     });
+    ref.listen(sessionExpiredProvider, (previous, next) {
+      if (!next || previous == true) return;
+      if (ref.read(authNotifierProvider) is! AuthAuthenticated) {
+        ref.read(sessionExpiredProvider.notifier).clear();
+        return;
+      }
+      final dialogContext =
+          router.routerDelegate.navigatorKey.currentState?.overlay?.context;
+      if (dialogContext == null) return;
+      _showSessionExpiredDialog(dialogContext, ref);
+    });
     ref.listen(isOnlineProvider, (previous, next) {
       final wasOnline = previous?.value;
       final isOnline = next.value ?? false;
@@ -254,6 +267,26 @@ void _showAuthToast(String message) {
         duration: const Duration(seconds: 5),
       ),
     );
+}
+
+/// Shown when the session token was rejected and no refresh could recover it.
+/// The only action signs the user out, which routes back to `/login`.
+void _showSessionExpiredDialog(BuildContext context, WidgetRef ref) {
+  unawaited(
+    showSetupPromptDialog(
+      context,
+      type: SetupPromptType.error,
+      title: 'Session Expired',
+      message: 'Your session has expired. Please sign in again to continue.',
+      primaryButtonText: 'Sign In Again',
+      barrierDismissible: false,
+      onPrimaryPressed: () {
+        Navigator.of(context).pop();
+        ref.read(sessionExpiredProvider.notifier).clear();
+        ref.read(authNotifierProvider.notifier).logout();
+      },
+    ),
+  );
 }
 
 void _showSyncProgressToast() {

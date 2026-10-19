@@ -148,36 +148,91 @@ class _ProductSection extends HookConsumerWidget {
     final controller = useTextEditingController();
     final query = useState('');
     final isSyncing = ref.watch(cartivoProductsSyncProvider) != null;
+    final expanded = useState(false);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 5.0,
       children: [
         const CartivoSyncBanner(),
-        Container(
-          decoration: const BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.vertical(
-              bottom: Radius.circular(AppSpacing.radiusXl),
-            ),
-            boxShadow: AppShadows.card,
-          ),
-          child: Column(
-            children: [
-              _SearchField(
-                controller: controller,
-                onChanged: (v) => query.value = v.trim().toLowerCase(),
-                onClear: () {
-                  controller.clear();
-                  query.value = '';
-                },
-                trailing: _RetrySyncButton(isSyncing: isSyncing),
-              ),
-              _CategoryChipRow(query: query.value),
-              const Gap(AppSpacing.xs),
-            ],
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              Widget header({required bool open}) => Container(
+                decoration: const BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.vertical(
+                    bottom: Radius.circular(AppSpacing.radiusXl),
+                  ),
+                  boxShadow: AppShadows.card,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _SearchField(
+                      controller: controller,
+                      onChanged: (v) => query.value = v.trim().toLowerCase(),
+                      onClear: () {
+                        controller.clear();
+                        query.value = '';
+                      },
+                      trailing: _RetrySyncButton(isSyncing: isSyncing),
+                    ),
+                    _CategoryChipRow(
+                      query: query.value,
+                      expanded: open,
+                      maxExpandedHeight: constraints.maxHeight * 0.5,
+                      onToggle: () => expanded.value = !expanded.value,
+                    ),
+                    const Gap(AppSpacing.xs),
+                  ],
+                ),
+              );
+
+              return Stack(
+                children: [
+                  // The invisible collapsed header holds the grid's place, so
+                  // the real header can grow over the grid without pushing it.
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: 5.0,
+                    children: [
+                      ExcludeFocus(
+                        child: Visibility.maintain(
+                          visible: false,
+                          child: header(open: false),
+                        ),
+                      ),
+                      Expanded(child: _ProductGrid(query: query.value)),
+                    ],
+                  ),
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      ignoring: !expanded.value,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => expanded.value = false,
+                        child: AnimatedOpacity(
+                          opacity: expanded.value ? 1 : 0,
+                          duration: const Duration(milliseconds: 260),
+                          child: ColoredBox(
+                            color: Colors.black.withValues(alpha: 0.18),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: header(open: expanded.value),
+                  ),
+                ],
+              );
+            },
           ),
         ),
-        Expanded(child: _ProductGrid(query: query.value)),
       ],
     );
   }
@@ -375,109 +430,259 @@ class _StoreHeader extends ConsumerWidget {
 
 // ── Category chips ─────────────────────────────────────────────────────────────
 
+const _collapsedRows = 2;
+const _chipHeight = 44.0;
+
+typedef _Entry = ({String? id, String label});
+
+// Categories to show (after search filtering) as chip entries, "All" first.
+({List<_Entry> entries, String? selectedId}) _watchCategories(
+  WidgetRef ref,
+  String query,
+) {
+  final allGroups = ref.watch(
+    orderingProvider.select((s) => s.value?.groups ?? const []),
+  );
+  final allProducts = ref.watch(
+    orderingProvider.select((s) => s.value?.allProducts ?? const []),
+  );
+  final selectedId = ref.watch(
+    orderingProvider.select((s) => s.value?.selectedGroupId),
+  );
+
+  final groups =
+      query.isEmpty
+          ? allGroups
+          : allGroups.where((g) {
+            if (g.id == selectedId) return true;
+            if (g.name.toLowerCase().contains(query)) return true;
+            return allProducts.any(
+              (p) => p.groupId == g.id && p.name.toLowerCase().contains(query),
+            );
+          }).toList();
+
+  if (groups.isEmpty) {
+    return (entries: const <_Entry>[], selectedId: selectedId);
+  }
+  return (
+    entries: [
+      (id: null, label: 'All'),
+      for (final g in groups) (id: g.id, label: g.name),
+    ],
+    selectedId: selectedId,
+  );
+}
+
+({List<int> order, int visible}) _arrangeCategories(
+  BuildContext context,
+  List<_Entry> entries,
+  String? selectedId,
+  double width,
+) {
+  final inner = width - AppSpacing.lg * 2;
+  final widths = [for (final e in entries) _chipWidth(context, e.label)];
+  final moreWidth = _chipWidth(
+    context,
+    '+${entries.length} more',
+    hasIcon: true,
+  );
+
+  var order = List<int>.generate(entries.length, (i) => i);
+  var visible = _fitCount([for (final i in order) widths[i]], inner, moreWidth);
+
+  final selectedIndex = entries.indexWhere((e) => e.id == selectedId);
+  if (selectedIndex >= visible) {
+    order = [
+      0,
+      selectedIndex,
+      ...order.skip(1).where((i) => i != selectedIndex),
+    ];
+    visible = _fitCount([for (final i in order) widths[i]], inner, moreWidth);
+  }
+  return (order: order, visible: visible);
+}
+
+// Two rows of chips plus a toggle. Expanded, it lists every category and the
+// parent header grows to wrap them (the first chips never move).
 class _CategoryChipRow extends ConsumerWidget {
   final String query;
+  final bool expanded;
+  final double maxExpandedHeight;
+  final VoidCallback onToggle;
 
-  const _CategoryChipRow({required this.query});
+  const _CategoryChipRow({
+    required this.query,
+    required this.expanded,
+    required this.maxExpandedHeight,
+    required this.onToggle,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final allGroups = ref.watch(
-      orderingProvider.select((s) => s.value?.groups ?? const []),
-    );
-    final allProducts = ref.watch(
-      orderingProvider.select((s) => s.value?.allProducts ?? const []),
-    );
-    final selectedId = ref.watch(
-      orderingProvider.select((s) => s.value?.selectedGroupId),
-    );
+    final (:entries, :selectedId) = _watchCategories(ref, query);
+    if (entries.isEmpty) return const SizedBox.shrink();
 
-    // While searching, only offer categories that match by name or that
-    // contain a matching product. The selected category always stays visible.
-    final groups =
-        query.isEmpty
-            ? allGroups
-            : allGroups.where((g) {
-              if (g.id == selectedId) return true;
-              if (g.name.toLowerCase().contains(query)) return true;
-              return allProducts.any(
-                (p) =>
-                    p.groupId == g.id && p.name.toLowerCase().contains(query),
-              );
-            }).toList();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final (:order, :visible) = _arrangeCategories(
+          context,
+          entries,
+          selectedId,
+          constraints.maxWidth,
+        );
 
-    if (groups.isEmpty) return const SizedBox.shrink();
-
-    return SizedBox(
-      height: 52,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.sm,
-        ),
-        itemCount: groups.length + 1,
-        separatorBuilder: (ctx, i2) => const Gap(AppSpacing.sm),
-        itemBuilder: (_, i) {
-          if (i == 0) {
-            return _Chip(
-              label: 'All',
-              isSelected: selectedId == null,
-              onTap:
-                  () => ref.read(orderingProvider.notifier).selectGroup(null),
-            );
-          }
-          final g = groups[i - 1];
-          return _Chip(
-            label: g.name,
-            isSelected: selectedId == g.id,
-            onTap: () => ref.read(orderingProvider.notifier).selectGroup(g.id),
-          );
-        },
-      ),
+        return AnimatedSize(
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: expanded ? maxExpandedHeight : double.infinity,
+            ),
+            child: SingleChildScrollView(
+              physics: expanded ? null : const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.sm,
+              ),
+              child: Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: [
+                  for (final i in expanded ? order : order.take(visible))
+                    _Chip(
+                      label: entries[i].label,
+                      isSelected: selectedId == entries[i].id,
+                      onTap: () {
+                        ref
+                            .read(orderingProvider.notifier)
+                            .selectGroup(entries[i].id);
+                        if (expanded) onToggle();
+                      },
+                    ),
+                  if (visible < entries.length)
+                    _Chip(
+                      label:
+                          expanded
+                              ? 'Show less'
+                              : '+${entries.length - visible} more',
+                      icon:
+                          expanded
+                              ? Icons.expand_less_rounded
+                              : Icons.expand_more_rounded,
+                      isSelected: false,
+                      onTap: onToggle,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
+}
+
+double _chipWidth(BuildContext context, String label, {bool hasIcon = false}) {
+  final painter = TextPainter(
+    text: TextSpan(
+      text: label,
+      style: AppTextStyles.labelMd.copyWith(fontWeight: FontWeight.w700),
+    ),
+    textDirection: TextDirection.ltr,
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout();
+  final width = painter.width;
+  painter.dispose();
+  return width.ceilToDouble() + AppSpacing.md * 2 + (hasIcon ? 22 : 0);
+}
+
+int _wrapRows(List<double> widths, double maxWidth) {
+  var rows = 1;
+  var x = 0.0;
+  for (final w in widths) {
+    final next = x == 0 ? w : x + AppSpacing.sm + w;
+    if (next > maxWidth && x != 0) {
+      rows++;
+      x = w;
+    } else {
+      x = next;
+    }
+  }
+  return rows;
+}
+
+// How many chips fit in the collapsed rows, leaving room for the "more" chip.
+int _fitCount(List<double> widths, double maxWidth, double moreWidth) {
+  if (_wrapRows(widths, maxWidth) <= _collapsedRows) return widths.length;
+  var n = widths.length;
+  while (n > 0 &&
+      _wrapRows([...widths.take(n), moreWidth], maxWidth) > _collapsedRows) {
+    n--;
+  }
+  return n;
 }
 
 class _Chip extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final IconData? icon;
 
   const _Chip({
     required this.label,
     required this.isSelected,
     required this.onTap,
+    this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-        decoration: BoxDecoration(
-          gradient: isSelected ? AppGradients.primary : null,
-          color: isSelected ? null : AppColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-          boxShadow:
-              isSelected
-                  ? [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                  : null,
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.labelMd.copyWith(
-            color: isSelected ? Colors.white : AppColors.textSecondary,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+    final color = isSelected ? Colors.white : AppColors.textSecondary;
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          height: _chipHeight,
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          decoration: BoxDecoration(
+            gradient: isSelected ? AppGradients.primary : null,
+            color: isSelected ? null : AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+            boxShadow:
+                isSelected
+                    ? [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                    : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: AppTextStyles.labelMd.copyWith(
+                  color: icon != null ? AppColors.primary : color,
+                  fontWeight:
+                      isSelected || icon != null
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                ),
+              ),
+              if (icon != null) ...[
+                const Gap(AppSpacing.xs),
+                Icon(icon, size: 18, color: AppColors.primary),
+              ],
+            ],
           ),
         ),
       ),
@@ -1037,8 +1242,6 @@ class _CartPanel extends HookConsumerWidget {
             ),
           ),
 
-          // Items + footer (scroll together so the footer never overflows
-          // when the panel is short, e.g. a phone bottom sheet in landscape)
           Expanded(
             child:
                 items.isEmpty
@@ -1149,7 +1352,6 @@ class _CartItemRow extends HookConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Collapsed header row
           InkWell(
             onTap: () => expanded.value = !expanded.value,
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),

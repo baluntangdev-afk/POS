@@ -89,7 +89,15 @@ final deviceTokenApiClientProvider = Provider<Dio>((ref) {
 final cartivoPosApiClientProvider = Provider<Dio>((ref) {
   final baseUrl = ref.watch(ordersServerUrlProvider);
   final appClock = ref.watch(appClockProvider);
-  return Dio(BaseOptions(baseUrl: baseUrl))
+  // Without these a stalled request hangs the product sync forever; a timeout
+  // surfaces as NetworkException, which the page loop retries.
+  return Dio(
+    BaseOptions(
+      baseUrl: baseUrl,
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 30),
+    ),
+  )
     ..interceptors.add(ref.watch(cartivoTokenInterceptorProvider))
     ..interceptors.add(_serverTimeInterceptor(appClock))
     ..interceptors.add(_apiLogInterceptor());

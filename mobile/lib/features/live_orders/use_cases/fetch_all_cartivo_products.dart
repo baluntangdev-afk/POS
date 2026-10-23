@@ -95,6 +95,7 @@ class FetchAllCartivoProducts {
       final response = await _fetchPageWithRetry(
         merchantId,
         page: page,
+        updatedSince: updatedSince,
       );
       watermark ??= response.generatedAt;
       total = response.meta.total;
@@ -127,6 +128,7 @@ class FetchAllCartivoProducts {
   Future<CartivoProductsPageDto> _fetchPageWithRetry(
     String merchantId, {
     required int page,
+    required DateTime? updatedSince,
   }) async {
     for (var attempt = 1; ; attempt++) {
       try {
@@ -134,6 +136,7 @@ class FetchAllCartivoProducts {
           merchantId,
           page: page,
           limit: pageSize,
+          updatedSince: updatedSince,
         );
       } catch (error) {
         final transient = switch (cartivoPosErrorFrom(error)) {

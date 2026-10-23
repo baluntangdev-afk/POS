@@ -1,5 +1,8 @@
 import 'dart:io';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
@@ -65,8 +68,6 @@ class OrderingScreen extends HookConsumerWidget {
     );
   }
 }
-
-// ── Tablet: side-by-side product grid + cart panel ────────────────────────────
 
 class _TabletLayout extends StatelessWidget {
   const _TabletLayout();
@@ -168,6 +169,7 @@ class _ProductSection extends HookConsumerWidget {
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _SearchField(
                       controller: controller,
@@ -1018,19 +1020,121 @@ class _ProductImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final url = imageUrl;
-    if (url != null && url.isNotEmpty) {
-      Widget errorBuilder(BuildContext ctx, Object err, StackTrace? st) =>
-          _Placeholder();
-      return ImageStorageService.isNetworkUrl(url)
-          ? Image.network(url, fit: BoxFit.cover, errorBuilder: errorBuilder)
-          : Image.file(
-            File(url),
-            fit: BoxFit.cover,
-            errorBuilder: errorBuilder,
-          );
-    }
-    return _Placeholder();
+    if (url == null || url.isEmpty) return _Placeholder();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final ImageProvider source =
+            ImageStorageService.isNetworkUrl(url)
+                ? CachedNetworkImageProvider(url)
+                : FileImage(File(url));
+        // Decode at tile size, not full resolution, so a big catalog doesn't
+        // exhaust memory.
+        final box =
+            constraints.biggest * MediaQuery.devicePixelRatioOf(context);
+        final image =
+            box.isFinite && !box.isEmpty
+                ? _CoverResizeImage(
+                  source,
+                  width: box.width.ceil(),
+                  height: box.height.ceil(),
+                )
+                : source;
+        return Image(
+          image: image,
+          fit: BoxFit.cover,
+          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+            if (wasSynchronouslyLoaded) return child;
+            final loaded = frame != null;
+            final duration =
+                MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 500);
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                AnimatedOpacity(
+                  opacity: loaded ? 0 : 1,
+                  duration: duration,
+                  child: _Placeholder(),
+                ),
+                AnimatedOpacity(
+                  opacity: loaded ? 1 : 0,
+                  duration: duration,
+                  curve: Curves.easeOut,
+                  child: child,
+                ),
+              ],
+            );
+          },
+          errorBuilder: (context, error, stackTrace) => _Placeholder(),
+        );
+      },
+    );
   }
+}
+
+/// Decodes [imageProvider] just large enough to cover a [width] x [height]
+/// box, keeping the image's own aspect ratio and never upscaling.
+class _CoverResizeImage extends ImageProvider<_CoverResizeKey> {
+  const _CoverResizeImage(
+    this.imageProvider, {
+    required this.width,
+    required this.height,
+  });
+
+  final ImageProvider imageProvider;
+  final int width;
+  final int height;
+
+  @override
+  Future<_CoverResizeKey> obtainKey(ImageConfiguration configuration) =>
+      imageProvider
+          .obtainKey(configuration)
+          .then((key) => _CoverResizeKey(key, width, height));
+
+  @override
+  ImageStreamCompleter loadImage(
+    _CoverResizeKey key,
+    ImageDecoderCallback decode,
+  ) {
+    return imageProvider.loadImage(
+      key.providerKey,
+      (buffer, {getTargetSize}) => decode(
+        buffer,
+        // Runs once the header is read, so the real aspect ratio is known.
+        getTargetSize: (intrinsicWidth, intrinsicHeight) {
+          final scale = math.max(
+            width / intrinsicWidth,
+            height / intrinsicHeight,
+          );
+          if (scale >= 1) return const ui.TargetImageSize();
+          return ui.TargetImageSize(
+            width: (intrinsicWidth * scale).ceil(),
+            height: (intrinsicHeight * scale).ceil(),
+          );
+        },
+      ),
+    );
+  }
+}
+
+@immutable
+class _CoverResizeKey {
+  const _CoverResizeKey(this.providerKey, this.width, this.height);
+
+  final Object providerKey;
+  final int width;
+  final int height;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _CoverResizeKey &&
+      other.providerKey == providerKey &&
+      other.width == width &&
+      other.height == height;
+
+  @override
+  int get hashCode => Object.hash(providerKey, width, height);
 }
 
 class _Placeholder extends StatelessWidget {
